@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>
+          Vuejs
+        </title>
+        <meta charset="utf-8"/>
+        <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    </head>
+    <body>
+        <!-- VIEW -->
+        <div id="app">
+            <!--所有需要用vue管理的变量，状态，都需要在app的div下-->
+            <h3>模板语法</h3>
+            <h4>插值</h4>
+            <div @click="changeTemplateSyntax">
+                <span>Message: {{ templateSyntax }}</span>
+                <span>{{message}}</span>
+                <!-- 首次渲染后不会再随着model而改变 -->
+                <div v-once>这个将不会改变: {{ templateSyntax }}</div>
+                <!-- 插入html文本 -->
+                <div>{{htmltext}}</div>
+                <!-- 动态渲染的任意 HTML 可能会非常危险，因为它很容易导致 XSS 攻击。 -->
+                <div id="htmltext" v-html="htmltext"></div>
+                <!-- Mustache 语法不能作用在 HTML attribute 上，遇到这种情况应该使用 v-bind 指令 -->
+                <h5>属性绑定</h5>
+                <!-- 可以省略v-bind只留冒号 -->
+                <img :src="obj.img" v-bind:style="{ height: obj.size + 'vw' }"/>
+                <!-- {{}}和v-bind里只能写一个js语句 -->
+            </div>
+            <h4>指令</h4>
+            <!-- 指令 (Directives) 是带有 v- 前缀的特殊 attribute。 -->
+            <div>
+                <img :src="obj.img" v-bind:style="{ height: obj.size + 'vw' }"/>
+                <!-- 在这个例子中，style是v-bind指令的参数，通常在冒号“:”后面，有些指令能接受一个参数，
+                修饰符 (modifier) 是以半角句号 . 指明的特殊后缀，通常在紧接在参数后边，用于指出一个指令应该以特殊方式绑定。
+                下面的例子中，.prevent是用来阻止时间的默认行为的。
+                -->
+                <form v-on:submit.prevent="check" method="POST">
+                        用户名：<input type="text" name="account"/>
+                        <input type="submit" value="提交" />
+                </form>
+            </div>
+            
+            <h3>条件渲染</h3>
+            <div>
+                <div v-if="tab==1">你好</div>
+                <div v-else-if="tab==2">李欣</div>
+                <div v-else >开始学习了</div>
+                <div v-show="tab==3" >我想，我等，我期待</div>
+            </div>
+            <h3>列表渲染</h3>
+            <!-- 当在组件上使用 v-for 时，key 现在是必须的。 -->
+            <div>
+                <h4>循环数组</h4>
+                <div v-for="(item,index) in list" :key="index">
+                    {{item.text}}
+                    <span>&emsp;key：{{index}}</span>
+                    <span>&emsp;位置：{{item.location}}</span>
+                </div>
+                <h4>循环对象</h4>
+                <div v-for="item,index in obj" :key="index">
+                    {{item}}
+                </div>
+                
+            </div>
+           <h3>计算属性</h3>
+           <!-- 可以在console上改变属性值，看看效果 -->
+           <div>{{cfullname}}</div>
+           <h3>侦听属性</h3>
+           <div>{{wfullname}}</div>
+
+           <h4>事件处理</h4>
+            <!-- v-on用于为html元素绑定事件，事件名通常省略on，并且v-on可以简写为@ 
+            可以用 v-on 指令监听 DOM 事件，并在触发时运行一些 JavaScript 代码。
+            -->
+            <button @click="showPane(1,$event)">显示参数</button>
+
+            <!-- 有时也需要在内联语句处理器中访问原始的 DOM 事件。可以用特殊变量 $event 把它传入方法
+             -->
+
+             
+            <div>
+                过渡效果
+                <button v-on:click="show = !show">
+                    测试
+                </button>
+            </div>
+            <!--注意vue的行内样式，和react相似，值都需要用单引号-->
+            <div :style="{display:'flex'}">
+                <transition name="fade">
+                    <img  v-if="show" :src="obj.img" class="trans" />
+                </transition>
+                <transition name="slide">
+                    <img  v-if="show" :src="obj.img" class="trans" />
+                </transition>
+                <div class="trans"></div>
+            </div>
+           
+
+            <div>
+                生命周期
+            </div>
+        </div>
+        <style>
+            #app{
+                color:red;
+            }
+            #htmltext >>> div{
+                color:blue;
+            }
+            .trans{
+
+                height:10vw;
+            }
+            .fade-enter-active, .fade-leave-active {
+                transition: opacity 2s;
+            }
+            .fade-enter, .fade-leave-to /* .fade-leave-active below version 2.1.8 */ {
+                opacity: 0;
+            }
+            .slide-enter-active, .slide-leave-active {
+                transition: transform 2s;
+            }
+            .slide-enter, .slide-leave-to /* .fade-leave-active below version 2.1.8 */ {
+                transform:translateX(200px)
+            }
+        </style>
+        <script type="text/javascript">
+          console.log(Vue);
+        //   VIEW-MODEL
+        //   Vue
+          let app = new Vue({
+                        el: '#app',
+                        data: { // MODEL，放置属性
+                            message: 'Hello Vue!',
+                            tab:1,
+                            list:[
+                                {text:"老骥伏枥",location:1},
+                                {text:"志在千里",location:2},
+                                {text:"呦呦鹿鸣",location:3},
+                                {text:"食野之苹",location:4}
+                                ],
+                            obj:{
+                                name:"李欣",
+                                music:"100分",
+                                comment:"优秀如斯",
+                                img:"./lixin.png",
+                                size:10
+                            },
+                            templateSyntax:"闻过则喜",
+                            htmltext:"<div>插入html，使用v-html</div>",
+                            cfirstname:"李",
+                            clastname:"欣",
+                            wfirstname:"li",
+                            wlastname:"xin",
+                            wfullname:"lixin",
+                            show:true,
+                        },
+                        props:{},
+                        methods:{
+                            // vue不支持箭头语法
+                            showPane:function(param,event){
+                                console.log("事件绑定",param,event)
+                            },
+                            changeTemplateSyntax:function(){
+                                console.log('念念不忘，必有回响')
+                                this.templateSyntax="念念不忘，必有回响"
+                            },
+                            check:function(){
+                                let form=document.forms[0];
+                                console.log("账户信息:",form.account.value);
+                            }
+
+                        },
+                        computed:{//计算属性，是放在data外的另一种属性
+                            //这里面的属性，是依赖于其它属性进行计算的，
+                            //一旦其他属性发生变化，他就会触发计算属性的改变
+                            //计算属性默认getter方法，如果需要setter方法需要自己定义
+                            cfullname:{
+                               get:function () {     
+                                   let setter=this.cfirstname + ' ' + this.clastname;
+                                   console.log("计算属性",setter)
+                                    return setter
+                                },
+                                set:function(val){
+                                    return "秦"+val
+                                }
+                            }
+                        },
+                        watch:{//侦听器
+                            //一旦监听到data的属性发生变化，就会触发它对应的方法
+                            wfirstname: function (val) {
+                                this.wfullname = val + ' ' + this.wlastname
+                            },
+                            wlastname: function (val) {
+                            this.wfullname = this.wfirstname + ' ' + val
+                            }
+                        },
+                        beforeCreate(){
+                            console.log("实例创建之前",this)
+                            console.log("%c%s", "color:red" , "el     : " + this.$el);
+                            console.log("%c%s", "color:red","data   : " + this.$data);
+                            console.log("%c%s", "color:red","message: " + this.message) 
+                        },
+                        created(){
+                            console.log("实例创建之后",this)
+                            console.log("%c%s", "color:red" , "el     : " + this.$el);
+                            console.log("%c%s", "color:red","data   : " + this.$data);
+                            console.log("%c%s", "color:red","message: " + this.message); 
+                        },
+                        beforeMount(){
+                            console.log("挂载之前",this)
+                            console.log("%c%s", "color:red" , "el     : " + this.$el);
+                            console.log("%c%s", "color:red","data   : " + this.$data);
+                            console.log("%c%s", "color:red","message: " + this.message); 
+                        },
+                        mounted(){
+                            console.log("挂载之后",this)
+
+                            console.log("%c%s", "color:red" , "el     : " + this.$el);
+                            console.log("%c%s", "color:red","data   : " + this.$data);
+                            console.log("%c%s", "color:red","message: " + this.message); 
+                        },
+                        beforeUpdate(){
+                            console.log("更新页面之前")
+                        },
+                        updated(){
+                            console.log("更新页面之后")
+                        },
+                        beforeDestroy(){
+                            console.log("页面销毁之前")
+                        },
+                        destroyed(){
+                            console.log("页面销毁之后")
+                        }
+                    })
+                console.log("hahah")
+        </script>
+    </body>
+</html>

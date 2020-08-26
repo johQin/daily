@@ -1,0 +1,10 @@
+#box1 {
+    width: 100px;
+    height: 100px;
+    background-color: pink;
+    /*
+    下面两个属性用来检测css是否做到了浏览器兼容
+    */
+    display:flex;
+    backface-visibility: hidden;
+}

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>
+          组件
+        </title>
+        <meta charset="utf-8"/>
+        <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    </head>
+    <body>
+        <!-- VIEW -->
+        <div id="app">
+           <ul>
+               <!-- 父传子：props数组+属性 -->
+               <product-com v-for="item,index in proList" :product="item" factory-name="五芳斋" :key="index" :cprofa="cprof" @cpro="cprof">
+                <!-- 子穿父：用方法 -->
+               </product-com>
+               <div>当前产品：{{curproduct.title}}</div>
+           </ul>
+           
+           
+           <input-com :search-text='searchText' @input="searchText=$event"></input-com>
+           <input-com v-model="searchText"></input-com>
+           <div>组件v-model：{{searchText}}</div>
+
+           <alert-com>
+               <div>
+                  插槽测试
+               </div>
+               <div>
+                   slot
+               </div>
+           </alert-com>
+           <div>
+               <h2>动态组件</h2>
+               <button v-for="item,index in tabs" @click="chooseContent(index+1)">{{item}}</button>
+               <component :is="com"></component>
+           </div>
+        </div>
+        <style type="text/css">
+            
+        </style>
+        <script type="text/x-template" id="home">
+            <h1>首页内容</h1>
+        </script>
+        <script type="text/javascript">
+          console.log(Vue);
+          Vue.component("product-com",{
+              props:['product','factoryName',"cprofa"],//驼峰命名，在组件传值处是以短横线相连
+              template:`
+              <li :style="{display:'flex'}" @click="$parent.cprof(product)">
+                <span>产品名称：{{product.title}}&emsp;</span>
+                <span>产品描述：{{product.brief}}&emsp;</span>
+                <span>产品价格：{{product.price}}&emsp;</span>
+                <span>{{factoryName}}</span>
+              </li>
+              `,
+              data:function(){
+                return {}
+              },
+              methods:{
+                cproduct:function(p){
+                    console.log("产品信息",p);
+                    //子传父法一,通过触发当前实例上的事件
+                    // this.$emit("cpro",p)
+                    //子传父法二，通过调用父组件传来的方法，
+                    //this.cprofa(p);
+                    //子传父法三，
+                    console.log(this);
+                    this.$parent.cprof(p)
+                    //子传父法四，
+                    //直接在视图上直接调用$parent.cprof(p)
+                }
+              }
+          })
+          Vue.component("input-com",{
+              props:['searchText'],
+              template:`<input type='text' @input="$emit('input',$event.target.value)" :value="searchText"></input>`
+          })
+          Vue.component("alert-com",{
+              template:`<div>
+                    <h3>温馨提示</h3>
+                    <slot></slot>
+               </div>`
+          })
+          let com1=Vue.component("home-com",{
+              template:"#home"
+          })
+          let com2=Vue.component("news-com",{
+              template:`<h1>新闻内容</h1>`
+          })
+          let com3=Vue.component("list-com",{
+              template:`<h1>列表内容</h1>`
+          })
+          let com4=Vue.component("me-com",{
+              template:`<h1>我的内容</h1>`
+          })
+          let app=new Vue({
+              el:"#app",
+              data:{
+                  proList:[
+                      {title:"产品1",brief:"描述1",price:12},
+                      {title:"产品2",brief:"描述2",price:13},
+                      {title:"产品3",brief:"描述3",price:17},   
+                  ],
+                  curproduct:{},
+                  searchText:'',
+                  com:com1,
+                  tabs:["首页","新闻","列表","我的"]
+              },
+              methods:{
+                  cprof:function(p){
+                    this.curproduct=p;
+                  },
+                  chooseContent:function(id){
+                      console.log("选择内容",id)
+                      console.log(this);
+                      this.com=this.$options.components["com"+id]
+                  }
+              },
+              components:{
+                  com1,com2,com3,com4
+              }
+          })
+          
+         
+        </script>
+    </body>
+</html>
