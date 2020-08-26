@@ -139,6 +139,10 @@ cd test
 git init #初始化，创建仓库
 ```
 
+### 删除Git本地仓库
+
+删除Git本地仓库的根本原理是删除“Git本地仓库”里面的根目录下面的隐藏文件夹“.git”
+
 ## 2.4 文件CUD
 
 #### 添加文件
@@ -146,10 +150,17 @@ git init #初始化，创建仓库
 ```bash
 touch test.js #创建文件，用于测试上传
 git status
+# git add <file>
 git add test.js
+#提交所有变化
+#git add -A  
+#提交被修改(modified)和被删除(deleted)文件，不包括新文件(new)
+#git add -u 
+#提交新文件(new)和被修改(modified)文件，不包括被删除(deleted)文件
+#git add .  
 git status
 git commit -m '测试上传文件'
-git status 
+git status 	
 ```
 
 ![gitInit.png](legend/gitInit.png)
@@ -372,8 +383,6 @@ spring_gate
 
 
 ```
-
-
 
 # 3 git基本原理
 
