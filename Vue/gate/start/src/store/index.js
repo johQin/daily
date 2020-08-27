@@ -7,7 +7,6 @@ export default new Vuex.Store({
     //相当于data
     state,
     //store的计算属性,可以供多个组件共用
-    
     getters:{
         reverseMsg:function(state){
             return state.msg.split("").reverse().join("")
