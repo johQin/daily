@@ -655,16 +655,11 @@ $ npm run serve
 
 # 3 组件
 
-## 3.1 组件基础
-
 我们可以将组件进行任意次数的复用。**一个组件的 data 选项必须是一个函数**，因此每个实例可以维护一份被返回对象的独立的拷贝。
 
-### 3.1.1 组件传值
+## 3.1 组件传值
 
 <h3>父传子
-
-</h3>
-
 通过props传递，在子组件中注册props属性。
 
 子传父同样可以用此方法，通过props传递父组件的方法给子组件，子组件调用方法，达到子传父的效果
@@ -746,9 +741,6 @@ $ npm run serve
 ```
 
 <h3>子传父
-
-</h3>
-
 通过触发当前实例的事件，绑定父组件的事件处理函数，然后将值传给父组件。
 
 **this.$emit( eventName, […args] )**触发当前实例上的事件，this.$emit通常也用作自定义事件。
@@ -763,7 +755,7 @@ $ npm run serve
 
 **this.$parent，this.$children**，通过引用实例同样也可以达到传值的效果，但推荐不适用，我们应尽量减低组件之间的耦合。
 
-### 3.1.2 插槽
+## 3.2 插槽
 
 内容分发
 
@@ -801,7 +793,7 @@ $ npm run serve
 </script>
 ```
 
-### 3.1.3 动态组件
+## 3.3 动态组件
 
 ```vue
 <template>
@@ -845,7 +837,13 @@ $ npm run serve
 
 
 
-## 3.2 路由
+
+
+
+
+
+
+# 4 路由
 
 Vue Router 是 [Vue.js](http://cn.vuejs.org/) 官方的路由管理器。它和 Vue.js 的核心深度集成，让构建单页面应用变得易如反掌。包含的功能有：
 
@@ -864,20 +862,22 @@ Vue Router 是 [Vue.js](http://cn.vuejs.org/) 官方的路由管理器。它和 
 npm install vue-router
 ```
 
-
-
 `this.$router` 和 `router` 使用起来完全一样。
 
 我们可以在任何组件内通过 `this.$router` 访问路由器，也可以通过 `this.$route` 访问当前路由
 
 响应路由参数的变化
 
-### 3.2.1 配置路由
+## 4.1 配置路由
+
+### javascript
 
 ```js
 //在src/router/index.js
 import Vue from 'vue'
 import VueRouter from 'vue-router'
+
+//如果在一个模块化工程中使用它，必须要通过 Vue.use() 明确地安装路由功能
 Vue.use(VueRouter)
 const routes=[
     {
@@ -896,6 +896,7 @@ const routes=[
     },
     
 ]
+// 3. 创建 router 实例，
 const router= new VueRouter({
     mode:'history',
     base:process.env.BASE_URL,
@@ -909,7 +910,9 @@ import App from './App.vue'
 import router from './router'
 
 Vue.config.productionTip = false
-
+// 4. 创建和挂载根实例。
+// 记得要通过 router 配置参数注入路由，
+// 从而让整个应用都有路由功能
 new Vue({
   router,
   render: h => h(App),
@@ -917,12 +920,416 @@ new Vue({
 
 ```
 
-## 3.3 **状态管理**
+### html
+
+```html
+<div> 
+   <h1>路由入口</h1>
+    <!-- 使用 router-link 组件来导航. -->
+    <!-- 通过传入 `to` 属性指定链接. -->
+    <!-- <router-link> 默认会被渲染成一个 `<a>` 标签 -->
+   <router-link to="/home">Go to Foo</router-link>
+   <h1>路由出口</h1>
+    <!-- 路由匹配到的组件将渲染在这里 -->
+   <router-view></router-view>
+</div>
+```
+
+## 4.2 动态路由
+
+我们经常需要把某种模式匹配到的所有路由，全都映射到同个组件。
+
+例如，我们有一个 `User` 组件，对于所有 ID 各不相同的用户，都要使用这个组件来渲染。
+
+```js
+    {
+        //动态路由
+        path:'/news/:id?',//动态路由,?问号表示此id可有可无，并且后面可以跟query参数,url的查询参数
+        name:'news',
+        props:true,//组件传参，降低耦合度，$route,在页面上通过props拿到id的值
+            
+        // props: { newsletterPopup: false },  //当 props 是静态的时候有用。
+            
+        // props: (route) => ({ query: route.query.q }),可以通过路由参数，转换返回的参数
+            
+        component:()=>import('@/pages/News'),
+    },
+```
+
+**获取动态路径参数：this.$route.params**
+
+#### url的查询参数
+
+查询字符串（URL参数）是指在URL的末尾加上用于向服务器发送信息的字符串（变量）。将“？”放在URL的末尾，然后再加上“参数＝值”，想加上多个参数的话，使用“&”。以这个形式，可以将想要发送给服务器的数据添加到URL中。
+
+```js
+//eg
+https://baijiahao.baidu.com/s?id=1619273328999923463&wfr=spider&for=pc
+```
+
+**获取查询参数：this.$route.query**
+
+#### 动态路由下的组件复用
+
+提醒一下，当使用路由参数时，例如从 `/user/foo` 导航到 `/user/bar`，**原来的组件实例会被复用**。因为两个路由都渲染同个组件，比起销毁再创建，复用则显得更加高效。**不过，这也意味着组件的生命周期钩子不会再被调用**。
+
+复用组件时，想对路由参数的变化作出响应的话，你可以简单地 watch (监测变化) `$route` 对象：
+
+```js
+const User = {
+  template: '...',
+  watch: {
+    $route(to, from) {
+      // 对路由变化作出响应...
+    }
+  },
+  //导航守卫
+  beforeRouteUpdate (to, from, next) {
+    // react to route changes...
+    // don't forget to call next()
+  }
+}
+```
+
+也可以通过导航守卫（路由钩子函数）来实现对路由对象的监控
+
+#### 通配符路由
+
+```js
+{
+  // 会匹配所有路径
+  path: '*'
+}
+{
+  // 会匹配以 `/user-` 开头的任意路径
+  path: '/user-*'
+}
+```
+
+当使用一个*通配符*时，`$route.params` 内会自动添加一个名为 `pathMatch` 参数。它包含了 URL 通过*通配符*被匹配的部分。
+
+## 4.3 嵌套路由
+
+children
+
+实际生活中的应用界面，通常由多层嵌套的组件组合而成。同样地，URL 中各段动态路径也按某种结构对应嵌套的各层组件
+
+页面展示子组件的位置由\<router-view>\</router-view>定位
+
+```js
+  routes: [
+    { 
+        path: '/user/:id', 
+        component: User,
+        children: [
+             {
+                path: '', component: UserHome  //空路由
+             },
+            {
+              // 当 /user/:id/profile 匹配成功，
+              // UserProfile 会被渲染在 User 的 <router-view> 中
+              path: 'profile',
+              component: UserProfile
+              children:[//嵌套多层路由
+                ...
+               ]
+            },
+            {
+              // 当 /user/:id/posts 匹配成功
+              // UserPosts 会被渲染在 User 的 <router-view> 中
+              path: 'posts',
+              component: UserPosts
+            }
+        ]
+    }
+  ]
+```
+
+**要注意，以 / 开头的嵌套路径会被当作根路径。 这让你充分的使用嵌套组件而无须设置嵌套的路径。**
+
+`children` 配置就是像 `routes` 配置一样的路由配置数组，所以呢，你可以嵌套多层路由。
+
+## 4.4 命名路由
+
+name
+
+有时候，通过一个名称来标识一个路由显得更方便一些，特别是在链接一个路由，或者是执行一些跳转的时候。
+
+```js
+//配置
+const router = new VueRouter({
+  routes: [
+    {
+      path: '/user/:userId',
+      name: 'user',
+      component: User
+    }
+  ]
+})
+//函数式导航（编程式导航）
+router.push({ name: 'user', params: { userId: 123 }})
+```
+
+## 4.5 命名视图
+
+有时候想同时 (同级) 展示多个视图，而不是嵌套展示，例如创建一个布局，有 `sidebar` (侧导航) 和 `main` (主内容) 两个视图，这个时候命名视图就派上用场了。你可以在界面中拥有多个单独命名的视图，而不是只有一个单独的出口。如果 `router-view` 没有设置名字，那么默认为 `default`。
+
+## 4.6 路由组件传参
+
+## 4.7 编程式导航
+
+```js
+//<router-link :to="...">
+router.push(location, onComplete?, onAbort?)
+//<router-link :to="..." replace>            
+router.replace(location, onComplete?, onAbort?)
+//n为路由前进后退的步数
+router.go(n)
+```
+
+## 4.8 导航守卫
+
+路由钩子函数。
+
+### 全局守卫
+
+```js
+const router = new VueRouter({ ... })
+
+//前置守卫                        
+router.beforeEach((to, from, next) => {
+    // to: Route: 即将要进入的目标 路由对象
+
+    //from: Route: 当前导航正要离开的路由
+
+    //next: Function: 一定要调用该方法来 resolve 这个钩子
+    //next( false | {path:'' , ...})
+})
+//后置守卫
+router.afterEach((to, from) => {
+  // ...
+})
+```
+
+### 路由独享守卫
+
+```js
+const router = new VueRouter({
+  routes: [
+    {
+      path: '/foo',
+      component: Foo,
+      beforeEnter: (to, from, next) => {
+        // ...
+      }
+    }
+  ]
+})
+```
+
+
+
+### 组件守卫
+
+```js
+const Foo = {
+  template: `...`,
+  beforeRouteEnter (to, from, next) {
+    // 在渲染该组件的对应路由被 confirm 前调用
+    // 不！能！获取组件实例 `this`
+    // 因为当守卫执行前，组件实例还没被创建
+    //不过，你可以通过传一个回调给 next来访问组件实例。在导航被确认的时候执行回调，并且把组件实例作为回调方法的参数。
+    next(vm => {
+    	//通过 `vm` 访问组件实例
+  	})
+  },
+  beforeRouteUpdate (to, from, next) {
+    // 在当前路由改变，但是该组件被复用时调用
+    // 举例来说，对于一个带有动态参数的路径 /foo/:id，在 /foo/1 和 /foo/2 之间跳转的时候，
+    // 由于会渲染同样的 Foo 组件，因此组件实例会被复用。而这个钩子就会在这个情况下被调用。
+    // 可以访问组件实例 `this`
+  },
+  beforeRouteLeave (to, from, next) {
+    // 导航离开该组件的对应路由时调用
+    // 可以访问组件实例 `this`
+  }
+}
+```
+
+### 导航解析流程
+
+1. 导航被触发。
+2. 在失活的组件里调用 `beforeRouteLeave` 守卫。
+3. 调用全局的 `beforeEach` 守卫。
+4. 在重用的组件里调用 `beforeRouteUpdate` 守卫 (2.2+)。
+5. 在路由配置里调用 `beforeEnter`。
+6. 解析异步路由组件。
+7. 在被激活的组件里调用 `beforeRouteEnter`。
+8. 调用全局的 `beforeResolve` 守卫 (2.5+)。
+9. 导航被确认。
+10. 调用全局的 `afterEach` 钩子。
+11. 触发 DOM 更新。
+12. 调用 `beforeRouteEnter` 守卫中传给 `next` 的回调函数，创建好的组件实例会作为回调函数的参数传入。
+
+## 4.9 数据获取
+
+有时候，进入某个路由后，需要从服务器获取数据。例如，在渲染用户信息时，你需要从服务器获取用户的数据。我们可以通过两种方式来实现：
+
+- **导航完成之后获取**：先完成导航，然后在接下来的组件生命周期钩子中获取数据。在数据获取期间显示“加载中”之类的指示。
+- **导航完成之前获取**：导航完成前，在路由进入的守卫中获取数据，在数据获取成功后执行导航。
+
+从技术角度讲，两种方式都不错 —— 就看你想要的用户体验是哪种。
+
+### 导航完成后
+
+```js
+export default {
+  data () {
+    return {
+      loading: false,
+      post: null,
+      error: null
+    }
+  },
+  created () {
+    // 组件创建完后获取数据，
+    // 此时 data 已经被 observed 了
+    this.fetchData()
+  },
+  watch: {
+    // 如果路由有变化，会再次执行该方法
+    '$route': 'fetchData'
+  },
+  methods: {
+    fetchData () {
+      this.error = this.post = null
+      this.loading = true
+      // replace getPost with your data fetching util / API wrapper
+      getPost(this.$route.params.id, (err, post) => {
+        this.loading = false
+        if (err) {
+          this.error = err.toString()
+        } else {
+          this.post = post
+        }
+      })
+    }
+  }
+}
+```
+
+### 导航完成前
+
+```js
+export default {
+  data () {
+    return {
+      post: null,
+      error: null
+    }
+  },
+  beforeRouteEnter (to, from, next) {
+    getPost(to.params.id, (err, post) => {
+      //通过回调可以获取组件实例
+      next(vm => vm.setData(err, post))
+    })
+  },
+  // 路由改变前，组件就已经渲染完了
+  // 逻辑稍稍不同
+  beforeRouteUpdate (to, from, next) {
+    this.post = null
+    getPost(to.params.id, (err, post) => {
+      this.setData(err, post)
+      next()
+    })
+  },
+  methods: {
+    setData (err, post) {
+      if (err) {
+        this.error = err.toString()
+      } else {
+        this.post = post
+      }
+    }
+  }
+}
+```
+
+## 4.10 滚动行为
+
+```js
+const router = new VueRouter({
+  routes: [...],
+  scrollBehavior (to, from, savedPosition) {
+           //第三个参数 savedPosition 当且仅当 popstate 导航 (通过浏览器的 前进/后退 按钮触发) 时才可用。
+    // return 期望滚动到哪个的位置
+    //支持
+           //{ x: number, y: number }
+           //{ selector: string, offset? : { x: number, y: number }}(offset 只在 2.6.0+ 支持)
+  }
+})
+```
+
+# 5 **状态管理**
 
 ```bash
 npm install vuex --save
 ```
 
-![vuex.png](/legend/vuex.png)
+![vuex.png](E:/gitRepository/daily/Vue/legend/vuex.png)
 
-可以通过让 getter 返回一个函数，来实现给 getter 传参w
+## 5.1 状态配置
+
+```js
+import Vue from 'vue'
+import Vuex from 'vuex'
+import state from './state'//state，getters，mutations，actions等都可以像这样从外面导入
+import shopCart from './shopCart'
+Vue.use(Vuex)
+export default new Vuex.Store({
+    //相当于data
+    state,
+    //store的计算属性,可以供多个组件共用
+    getters:{
+        reverseMsg:function(state){
+            return state.msg.split("").reverse().join("")
+        },
+        //可以通过让 getter 返回一个函数，来实现给 getter 传参
+        //this.$store.getters.mixinMsg(12)
+        mixinMsg:(state)=>(id)=>{
+            return state.msg+id
+        }
+    },
+    //method，同步方法
+    mutations:{
+        addCount(state){
+            state.count++
+        },
+        setAge(state,val){
+            state.age=val; 
+        },
+        setWeather(state,val){
+            console.log('weather',val)
+            state.weather=val
+        }
+    },
+    //异步方法
+    actions:{
+        queryWeather:function({ commit, state },params){
+            console.log('请求天气参数',params)
+            //fetch浏览器自带请求方法
+            let url=`https://free-api.heweather.net/s6/weather/now?location=chengdu&key=db7f3a13f1ef48168d4045817776ffb2`
+            fetch(url,{method:"GET"}).then((res)=>res.json()).then((res)=>{
+                console.log('action的天气数据',res)
+                commit('setWeather',res)
+            })
+        },
+        
+    },
+    //模块
+    modules:{
+        shopCart
+    }
+})
+```
+
