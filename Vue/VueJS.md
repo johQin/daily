@@ -845,6 +845,8 @@ $ npm run serve
 
 # 4 路由
 
+vue-router是Vue.js官方的路由插件，它和vue.js是深度集成的，适合用于构建单页面应用。vue的单页面应用是基于路由和组件的，路由用于设定访问路径，并将路径和组件映射起来。传统的页面应用，是用一些超链接来实现页面切换和跳转的。在vue-router单页面应用中，则是路径之间的切换，也就是组件的切换。
+
 Vue Router 是 [Vue.js](http://cn.vuejs.org/) 官方的路由管理器。它和 Vue.js 的核心深度集成，让构建单页面应用变得易如反掌。包含的功能有：
 
 - 嵌套的路由/视图表
@@ -921,6 +923,12 @@ new Vue({
 ```
 
 ### html
+
+vue-router 提供的组件
+
+1. \<router-link to='' class='active-class'>路由入口，active-class是标签被点击时的样式，
+2. \<router-view>路由出口，渲染路由的容器
+3. \<keep-alive>缓存组件
 
 ```html
 <div> 
@@ -1074,11 +1082,35 @@ router.push({ name: 'user', params: { userId: 123 }})
 
 有时候想同时 (同级) 展示多个视图，而不是嵌套展示，例如创建一个布局，有 `sidebar` (侧导航) 和 `main` (主内容) 两个视图，这个时候命名视图就派上用场了。你可以在界面中拥有多个单独命名的视图，而不是只有一个单独的出口。如果 `router-view` 没有设置名字，那么默认为 `default`。
 
+```js
+const router = new VueRouter({
+  routes: [
+    {
+      path: '/',
+      components: {
+        default: Foo,
+        a: Bar,
+        b: Baz
+      }
+    }
+  ]
+})
+```
+
+同一个页面上显示三个组件，按照视图容器所放置的位置
+
+```html
+<router-view class="view one"></router-view>
+<router-view class="view two" name="a"></router-view>
+<router-view class="view three" name="b"></router-view>
+```
+
 ## 4.6 路由组件传参
 
 ## 4.7 编程式导航
 
 ```js
+router=this.$router
 //<router-link :to="...">
 router.push(location, onComplete?, onAbort?)
 //<router-link :to="..." replace>            
@@ -1095,7 +1127,6 @@ router.go(n)
 
 ```js
 const router = new VueRouter({ ... })
-
 //前置守卫                        
 router.beforeEach((to, from, next) => {
     // to: Route: 即将要进入的目标 路由对象
@@ -1270,7 +1301,25 @@ const router = new VueRouter({
 })
 ```
 
+## 4.11 路由懒加载
+
+```js
+const router = new VueRouter({
+  routes: [
+    { 
+        path: '/foo', component: () => import('./Foo.vue') 
+    }
+  ]
+})
+//webpack2.4以上，异步块
+const Foo = () => import(/* webpackChunkName: "group-foo" */ './Foo.vue')
+```
+
+
+
 # 5 **状态管理**
+
+Vuex 是一个专为 Vue.js 应用程序开发的**状态管理模式**。它采用集中式存储管理应用的所有组件的状态。
 
 ```bash
 npm install vuex --save
@@ -1301,6 +1350,8 @@ export default new Vuex.Store({
         }
     },
     //method，同步方法
+    //请求仓库的同步方法，mutation中的addCount
+    //组件内this.$store.commit('addCount');
     mutations:{
         addCount(state){
             state.count++
@@ -1314,6 +1365,8 @@ export default new Vuex.Store({
         }
     },
     //异步方法
+    //请求仓库的异步方法
+    //this.$store.dispatch('queryWeather',{address:'chengdu',type:'now'})
     actions:{
         queryWeather:function({ commit, state },params){
             console.log('请求天气参数',params)
@@ -1332,4 +1385,8 @@ export default new Vuex.Store({
     }
 })
 ```
+
+## 5.2 状态方法映射
+
+mapState，mapGetters，mapMutations，mapActions可以直接将状态管理中的同步异步方法以及状态映射到组件中去
 

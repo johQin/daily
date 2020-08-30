@@ -530,15 +530,27 @@
 
 # 3 Vue
 
+## 3.1 生命周期
+
 1. 生命周期：vue生命周期是指vue实例对象从创建之初到销毁的过程,vue所有功能的实现都是围绕其生命周期进行的,在生命周期的不同阶段调用对应的钩子函数实现组件数据管理和DOM渲染两大重要功能。
    - 实例创建阶段
-     - beforeCreate()：在new一个vue实例后，只有一些默认的生命周期钩子和默认事件，其他的东西都还没创建。在beforeCreate生命周期执行的时候，data和methods中的数据都还没有初始化。不能在这个阶段使用data中的数据和methods中的方法
+     - beforeCreate()：在new一个vue实例后，只有一些默认的生命周期钩子和默认事件，其他的东西都还没创建。
+       - 在beforeCreate生命周期执行的时候，data和methods中的数据都还没有初始化。不能在这个阶段使用data中的数据和methods中的方法
+       - data，computed，watch，methods 上的方法和数据均不能访问。
+       - 可以在这加个loading事件。
      - created()：data 和 methods都已经被初始化好了，如果要调用 methods 中的方法，或者操作 data 中的数据，最早可以在这个阶段中操作
+       - 可访问 data computed watch methods 上的方法和数据。
+       - 初始化完成时的事件写在这里，异步请求也适宜在这里调用（请求不宜过多，避免白屏时间太长）。
+       - 可以在这里结束loading事件，还做一些初始化，实现函数自执行。
+       - 未挂载DOM，若在此阶段进行DOM操作一定要放在Vue.nextTick()的回调函数中。
 
    - 挂载阶段
 
      - beforeMount()：执行到这个钩子的时候，在内存中已经编译好了模板了，但是还没有挂载到页面中，此时，页面还是旧的
-     - mounted()：执行到这个钩子的时候，就表示Vue实例已经初始化完成了。此时组件脱离了创建阶段，进入到了运行阶段。 如果我们想要通过插件操作页面上的DOM节点，最早可以在和这个阶段中进行
+       - 挂载前，虽然得不到具体的DOM元素，但vue挂载的根节点已经创建
+     - mounted()：执行到这个钩子的时候，完成创建vm.$el和双向绑定，就表示Vue实例已经初始化完成了。此时组件脱离了创建阶段
+       - 完成挂载DOM和渲染，可在mounted钩子函数中对挂载的DOM进行操作。
+       - 可在这发起后端请求，拿回数据，配合路由钩子做一些事情。
 
    - 更新阶段
 
@@ -548,6 +560,7 @@
    - 销毁阶段
 
      - beforeDestroy()：Vue实例从运行阶段进入到了销毁阶段，这个时候上所有的 data 和 methods ， 指令， 过滤器 ……都是处于可用状态。还没有真正被销毁
+       - 返回false将会取消页面销毁，可做一些删除提示，如：您确定删除xx吗？
      - destroyed()：这个时候上所有的 data 和 methods ， 指令， 过滤器 ……都是处于不可用状态。组件已经被销毁了。
 
    - 
@@ -562,3 +575,176 @@
    - deforeMount()，mounted()
 
 3. 
+
+## 3.2 Vue-router
+
+vue-router是Vue.js官方的路由插件，它和vue.js是深度集成的，适合用于构建单页面应用。vue的单页面应用是基于路由和组件的，路由用于设定访问路径，并将路径和组件映射起来。传统的页面应用，是用一些超链接来实现页面切换和跳转的。在vue-router单页面应用中，则是路径之间的切换，也就是组件的切换。
+
+1. vue-router提供了什么组件？
+
+   - \<router-link class='active-class'>路由入口
+   - \<router-view>路由出口
+   - \<keep-alive>缓存组件
+
+2. 动态路由
+
+   url：:param1/:param2/:param3?query1=1&query2=2
+
+   在this.$route.params，this.$route.query
+
+3. 导航钩子
+
+   - 全局级：beforeEach，afterEach
+   - 路由级：beforeEnter
+   - 组件级：beforeRouteEnter，afterRouteEnter，beforeRouteLeave
+
+4. route和router的区别
+
+   - router是VueRouter的一个对象，通过Vue.use(VueRouter)和VueRouter构造函数得到一个router的实例对象，这个对象中是一个全局的对象，他包含了所有的路由包含了许多关键的对象和属性。this.$router
+   - route是一个跳转的路由对象，每一个路由都会有一个route对象，是一个局部的对象，可以获取对应的name,path,params,query等。this.$route
+
+5. vue-router响应路由参数的变化
+
+   - 监听器
+
+     ```js
+       watch: {
+         $route(to, from) {
+           // 对路由变化作出响应...
+         }
+       },
+     ```
+
+   - 路由导航钩子
+
+6. vue-router传参
+
+   - 函数式传参
+   - 动态路由
+   - 路由查询参数
+
+7. vue-router的两种模式
+
+   - hash：前端路由，可以在`window`对象上监听这个事件（window.hashChange），只能改变#后面的url片段，hash发生变化的url都会被浏览器记录下来，但不会请求后端。
+   - history：后端路由，刷新会实实在在的请求后台
+
+8. 懒加载路由
+
+   - import()
+   - webpack的异步块
+
+   
+
+## 3.3 Vuex
+
+Vuex 是一个专为 Vue.js 应用程序开发的**状态管理模式**。它采用集中式存储管理应用的所有组件的状态。
+
+
+
+## 3. 编程
+
+1. 顶部悬停效果
+
+   position:sticky是css定位新增属性；
+
+   可以说是相对定位relative和固定定位fixed的结合；
+
+   它主要用在对scroll事件的监听上；
+
+   它的表现类似`position:relative`和`position:fixed`的合体，在目标区域在屏幕中可见时，它的行为就像`position:relative;` 而当页面滚动超出目标区域时，它的表现就像`position:fixed`，它会固定在目标位置。
+
+   当然悬停的效果，是子元素（悬停元素）相对于父元素的。如果父元素都消失在屏幕中，那么子元素的悬停效果就会消失。
+
+   ```html
+   <!DOCTYPE html>
+   <html>
+       <head>
+           <title>
+               position sticky
+           </title>
+       </head>
+       <body>
+           <div>
+               <div class='one'>
+                   one
+               </div>
+               <div class='two'>
+                   two
+               </div>
+               <div class='one'>
+                   one
+               </div>
+               <div class='one'>
+                   one
+               </div>
+               <div class='three'>
+                   three
+               </div>
+               <div class='one'>
+                   one
+               </div>
+               <div class='one'>
+                   one
+               </div>
+               <div class='one'>
+                   one
+               </div>
+              
+           </div>
+           <div>
+               --------------------------------------------------------------------------------------------
+           </div>
+           <div>
+               <div class='one'>
+                   one
+               </div>
+               <div class='one'>
+                   one
+               </div>
+   
+               <div class='three'>
+                   four
+               </div>
+               <div class='one'>
+                   one
+               </div>
+               <div class='one'>
+                   one
+               </div>
+               <div class='one'>
+                   one
+               </div>
+               <div class='one'>
+                   one
+               </div>
+           </div>
+           <style>
+               html body{
+                   height:100vh;
+                   width:100%;
+                   margin:0;
+               }
+               .one{
+                   height: 200px;
+                   background-color:#00f;
+               }
+               .two{
+                   position:sticky;
+                   height:100px;
+                   top:0px;
+                   background-color:#f00;
+               }
+               .three{
+                   position:sticky;
+                   height:100px;
+                   top:0px;
+                   background-color:#0f0;
+               }
+           </style>
+       </body>
+   </html>
+   ```
+
+   
+
+2. 
