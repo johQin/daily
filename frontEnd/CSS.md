@@ -53,14 +53,21 @@ label {
         p1:v1;
         ...
     }
-</pre>
+E#id{
+   匹配元素E和id同时选中的元素，求交集
+}
+
 4. 类选择器
 <pre>
 .class {
         p1:v1;
         ...
     }
+E.class{
+	匹配元素E和class同时选中的元素，求交集    
+}
 </pre>
+
 5. 属性选择器---[attr = value]
 
     - E[attr]，只使用属性名，但没有确定任何属性值
@@ -72,12 +79,26 @@ label {
     - E[attr|="value"]，属性值是value或者以value-开头的值
     - E表示匹配元素的选择符，可以省略
     - 中括号为属性选择器标识，不可或缺
+```css
+div[class=male]{
+    color:blue;/*记住不用写引号*/
+}
+div[class=female]{
+    color:red;
+}
+```
+
+
+
 ## 2.3 复合选择器
+
     将不同的选择器进行组合形成新的匹配
 1. 分组选择器
 <pre>
 label,#id,.class,[attr]{
+同时匹配，labal元素选择器选中的，id选择器选中的，，，选择器匹配到的元素之间求并集，而不是交集
 }
+
 
 2. 后代元素选择器
 <pre>
@@ -120,7 +141,7 @@ fatherLabel > sonLabel{
 
 ### 2.4.2 伪类选择器
 
-通过文档结构的相互关系来匹配特定的元素，从而减少文档内的选择器。
+通过文档结构的相互关系来匹配特定的元 素，从而减少文档内的选择器。
 
 分类：
 - 结构性伪类：它利用文档结构树实现元素的过滤，通过文档结构的相互关系来匹配特定的元素
@@ -138,6 +159,26 @@ fatherLabel > sonLabel{
     - 匹配冒号前的元素，
 
   - empty：匹配元素没有任何内容
+
+    ```css
+    /*eg:*/
+    /*匹配所有元素下第一个子元素为div的元素*/
+    div:nth-child(1){
+        background-color:#fff;
+    }
+    /*匹配所有id为wrapper元素下的第一个子元素为div的元素*/
+    #wrapper div:nth-child(1){
+        background-color: #f00;
+    }
+    /*匹配所有元素下的第一个元素类型为p的元素*/
+    p:first-of-type{
+        background-color:pink;
+    }
+    /*匹配所有id为wrapper元素下的最后一个元素类型为p的元素*/
+    #wrapper p:last-of-type{
+        background-color:orange;
+    }
+    ```
 
     
 
@@ -360,7 +401,7 @@ top right bottom right
 
 columns-* width count rule gap fill span 栏宽 栏数 分隔条 栏隙 栏高 元素横跨列数
 
-## 6.2 [流体布局](https://www.runoob.com/w3cnote/flex-grammar.html)
+## 6.2 [流体布局（一维布局）](https://www.runoob.com/w3cnote/flex-grammar.html)
 
     流体布局是当下最为流行的布局方式，在项目实践中，也的确感受到了，这种布局带来的好处。上面提供的参考网页图文并茂，相信看过以后会有顿悟。
     
@@ -399,7 +440,7 @@ columns-* width count rule gap fill span 栏宽 栏数 分隔条 栏隙 栏高 �
 - order 排列顺序。数越小，越靠前。
 - flex-grow 子元素放大比例
 - flex-shrink 缩小比例
-- flex-basis 分配多余空间
+- flex-basis 在分配多余空间之前，项目占据的主轴空间
 
 ## 6.3 响应式布局
     前端是面向用户的一端，面向用户的一端是多变的一端。由于显示媒体的多样性，我们需要根据媒体具体的属性，对我们的样式做相应的修改。
@@ -471,6 +512,12 @@ columns-* width count rule gap fill span 栏宽 栏数 分隔条 栏隙 栏高 �
     <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=0">
 </head>
 ```
+## 6.4 [网格布局（二维布局）](<http://www.ruanyifeng.com/blog/2019/03/grid-layout-tutorial.html>)
+
+网格布局（Grid）是最强大的 CSS 布局方案。
+
+它将网页划分成一个个网格，可以任意组合不同的网格，做出各种各样的布局。
+
 # 7 变形和动画
 
 ## 7.1 变形
