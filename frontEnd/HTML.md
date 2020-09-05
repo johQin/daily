@@ -9,7 +9,7 @@
 - HTML 使用标记<span style="color:red;">标签来描述网页</span>
 
 ## 1.1 HTML标签(元素)
-    
+
     HTML 标记标签通常被称为 HTML 标签 (HTML tag)。
 
 - HTML 标签是由尖括号包围的关键词，比如 ```<html>```
@@ -26,11 +26,11 @@ eg：```<div style="width:200px;height:100px;">我是一个宽200px，高100px�
 HTML5 <span style='color:red'>重要的通用属性</span>
 
 - id class style 
-    
+  
         id和class通常用于CSS和JavaScript的DOM节点选中，选中后可以设置样式等逻辑操作。
         
         style用来设置标签的样式，例如width，height，border，background等。
-
+        
         CSS中经常会用到这三个属性，
 - dir
 
@@ -134,7 +134,7 @@ a的属性
 
 
 当下较为流行的scheme以及对应的资源如下
-   
+
  scheme | 对应资源 | 
 :------- | :---------------- | 
 file  | 访问本地磁盘的文件 | 
@@ -143,10 +143,10 @@ http   | 访问www服务器上的文件|
 news|访问新闻组上的文件|
 telnet|访问Telnet链接|
 gopher|访问远程Gopher服务器上的文件
-    
-    
+
+
 2. target 装载资源位置。
-    
+   
      _self，_blank，_top，_parent分别为自身，新窗口，顶层框架，父框架来加载新资源。
 3. download 用于下载，href链接所链接的资源，该属性的属性值指定了用户下载资源时的默认文件名。
 
@@ -174,7 +174,7 @@ gopher|访问远程Gopher服务器上的文件
 ## 2.5 嵌入标签
 - img 图片 property：src alt width height 指定其一，另成比例变化
 
-<img src='./warrningyou.png' alt='诫子书-诸葛亮'>
+<img src='./legend/warrningyou.png' alt='诫子书-诸葛亮'>
 
 - iframe 网页 property: src frameborder height width name scrolling
 
@@ -207,6 +207,7 @@ gopher|访问远程Gopher服务器上的文件
 ## 2.7 结构标签
     划分文档的不同结构部分，为让文档结构更加清晰，但无任何效果，只做结构划分。 
 - header 文档头部
+- main 文档主体
 - section 部分
 - footer 文档尾部
 - aside 侧边栏
@@ -272,9 +273,169 @@ gopher|访问远程Gopher服务器上的文件
 # 3. [特殊字符](http://114.xixik.com/character/)
 HTML文档是由标签和字符组成，有一些特殊字符通过键盘无法输入，需要用到转义字符。
 常用的转义字符
+
 - \&nbsp; 半角空格
 - \&emsp; 全角空格
 - \\n 换行
 
 # 4. 绘图-canvas
     在HTML5之前，前端开发者无法在HTML页面上动态的绘制图片。然而现在，我们甚至可以在页面开发动画和游戏，全是基于canvas这个画布标签，这个标签仅仅用作绘制的图样的容器，绘制工具还是要依靠其他插件来完成。这个在接下来的BIM项目可能会用到，这里只做引入介绍，使用我现在都还没碰触过，希望大家能完善此模块。
+
+# 5 元素拖放
+
+## 5.1 事件
+
+| 事件               | 事件监听    | 触发时机                                                     |
+| ------------------ | ----------- | ------------------------------------------------------------ |
+| 拖拽元素支持的事件 |             |                                                              |
+| drag               | ondrag      | 当拖动元素或选中的文本时触发。                               |
+| dragstart          | ondragstart | 当用户开始拖动一个元素或选中的文本时触发（见开始拖动操作）。 |
+| dragleave          | ondragleave | 当拖动元素或选中的文本离开一个可释放目标时触发。             |
+| dragend            | ondragend   | 当拖拽操作结束时触发 (比如松开鼠标按键或敲“Esc”键). (见结束拖拽) |
+| 目标容器支持的事件 |             |                                                              |
+| dragenter          | ondragenter | 当拖动元素或选中的文本到一个可释放目标时触发（见 指定释放目标）。 |
+| dragover           | ondragover  | 当元素或选中的文本被拖到一个可释放目标上时触发（每100毫秒触发一次）。 |
+| dragexit           | ondragexit  | 当元素变得不再是拖动操作的选中目标时触发。                   |
+| drop               | ondrop      | 当元素或选中的文本在可释放目标上被释放时触发（见执行释放）。 |
+
+## 5.2 接口
+
+HTML 的拖拽接口有DragEvent、 DataTransfer、DataTransferItem、DataTransferItemList。
+
+### DragEvent
+
+DragEvent接口有一个构造函数和一个 dataTransfer 属性，dataTransfer 属性是一个 DataTransfer 对象。
+
+DragTransfer
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <style>
+        * {
+            padding: 0;
+            margin: 0;
+        }
+
+        .div1,
+        .div2,
+        .div3 {
+            margin: 0 20px;
+            float: left;
+            width: 200px;
+            height: 200px;
+            border: 1px solid #000;
+        }
+        div{
+            display: flex;
+            flex-direction: column;
+            align-items: center
+        }
+        p{
+            display: flex;
+            flex-direction: column;
+            align-items: center
+        }
+
+        .p1 {
+            width: 50px;
+            background-color: pink;
+            margin: 5px 0;
+        }
+
+        .p2 {
+            width: 80px;
+            background-color: burlywood;
+            margin: 5px 0;
+        }
+        .p3 {
+            width: 110px;
+            background-color: rgb(133, 88, 29);
+            margin: 5px 0;
+        }
+        .p4 {
+            width: 140px;
+            background-color: rgb(172, 37, 48);
+            margin: 5px 0;
+        }
+        .p5 {
+            width: 170px;
+            background-color: rgb(17, 182, 31);
+            margin: 5px 0;
+        }
+        .p6 {
+            width: 200px;
+            background-color: rgb(90, 33, 155);
+            margin: 5px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="div1" class="div1">
+        <!-- 在h5中，如果想拖拽元素，就必须为元素添加draggable="true"。图片和超链接默认就可以拖拽 -->
+        <p id="pe3" class="p3" draggable="true">3</p>
+        <p id="pe2" class="p2" draggable="true">2</p>
+        <p id="pe5" class="p5" draggable="true">5</p>
+        <p id="pe1" class="p1" draggable="true">1</p>
+        <p id="pe6" class="p6" draggable="true">6</p>
+        <p id="pe4" class="p4" draggable="true">4</p>
+    </div>
+    <div id="div2" class="div2"></div>
+
+    <div id="div3" class="div3"></div>
+
+    <script>
+        /* 拖拽元素支持的事件
+            ondrag 应用于拖拽元素，整个拖拽过程都会调用
+            ondragstart 应用于拖拽元素，当拖拽开始时调用
+            ondragleave 应用于拖拽元素，当鼠标离开拖拽元素是调用
+            ondragend 应用于拖拽元素，当拖拽结束时调用
+
+            目标容器元素支持的事件
+            ondragenter 应用于目标元素，当拖拽元素进入时调用
+            ondragover 应用于目标元素，当停留在目标元素上时调用
+            ondrop 应用于目标元素，当在目标元素上松开鼠标时调用
+            ondragleave 应用于目标元素，当鼠标离开目标元素时调用
+        */
+
+        // var obj = null; /* 当前被拖拽的值*/
+
+        document.ondragstart = function (e) {
+            /*通过dataTransfer来实现数据的存储与获取
+                setData(format, data)
+                format: 数据的类型： text/html  text/uri-list
+                Data: 数据： 一般来说是字符串值
+            */
+            // e.dataTransfer.setData("Text", e.target.id);
+            e.target.style.opacity = 0.5
+            e.dataTransfer.setData("text", e.target.id);
+            console.log(e.target.id)
+        }
+
+        document.ondragend = function (e) {
+            e.target.style.opacity = 1;
+        }
+
+        /*浏览器默认会阻止ondrop事件：我们必须在ondropover中阻止默认行为*/
+        document.ondragover = function (e) {
+            e.preventDefault();
+        }
+
+        document.ondrop = function (e) {
+            /*通过e.dataTransfer.setData存储的数据，只能在drop事件中获取*/
+            var data = e.dataTransfer.getData("text");
+            e.target.appendChild(document.getElementById(data));
+        }
+
+    </script>
+</body>
+</html>
+```
+
