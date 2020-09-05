@@ -347,8 +347,20 @@ fun.renE();
 ```
 
 ## 2.3 Math
- ceil()、floor()和round()
-    向上舍入，向下舍入和四舍五入
+
+```js
+//舍入函数
+Math.ceil(num)//向上舍入
+Math.floor(num)//向下舍入
+Math.round(num)//四舍五入
+Math.max(...)//取参数中的最大值
+Math.min(...)//取参数中最小值
+Math.random()//0~1之间的随机数
+Math.pow(basic,times)//指数函数
+```
+
+
+
 ```js
 //保留n位小数
 function(src,n){
@@ -621,7 +633,7 @@ eventTarget.removeEventListener('eventType',handler,captureFlag)
 
 事件传播过程中，先经历捕获阶段，再经历冒泡阶段
 
-
+![鼠标点击的位置](./legend/鼠标的位置.png)
 
 # 7 Ajax
 
