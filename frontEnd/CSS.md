@@ -191,7 +191,16 @@ fatherLabel > sonLabel{
 - 动态伪类：只有当用户与页面进行交互时有效
 
   - 锚点伪类：链接中常用的样式，:link、:visited
+
   - 行为伪类：用户操作伪类，:hover、:activate、:focus
+
+    ```css
+    #wrapper div:nth-child(2n):hover{
+        background-color:red; 
+    }
+    ```
+
+    
 
 - 目标伪类
 
@@ -289,7 +298,7 @@ CSS盒模型本质上是一个盒子，封装周围的HTML元素，它包括：�
 
 用来设置width和height控制的是那些区域的宽高
 
-box-sizing:content-box border-box; 内容区宽高&emsp;边框+padding+content宽高
+box-sizing:content-box border-box; 内容区宽高&emsp;边框+padding+content宽高，默认值content-box
 
 <span style="color:red;font-size:17px">calc函数</span>
 
@@ -340,6 +349,24 @@ calc(一个+-*/表达式);
 hidden scroll auto 隐藏 滚动 超出时滚动。
 
 还有图片边框，渐变边框，自行研究。
+
+滚动条的宽度是包含在内容区的长度里面（内容区的宽度包含了滚动条的宽度）
+
+### [布局中的几个长度](<https://blog.csdn.net/qq_35430000/article/details/80277587>)
+
+**scrollHeight offsetHeight clientHeight scrollTop offsetTop**，height与之对应的还有宽，top与之对应的还有left。
+
+1. clientHeight：包括内容区和padding（padding感觉也不是很准，可见部分的大小，大致可以看做是content多一点的高度），不包括border、水平滚动条、margin的元素的高度。client代理，有代表的意思。只有实质的内容才有代表性。
+2. offsetHeight：包括padding、border、水平滚动条，不包括margin。单位px，只读。offset有平板印刷的意思，指元素在页面的印刷高度。
+3. scrollHeight：当没有滚动条的时候，scrollHeight 等于 clientHeight 。当有滚动条的时候，就等于clientHeight + 最大可滚动的内容高度scrollTop （包括当前可见和当前不可见部分的元素的高度）。
+4. scrollTop：代表在有滚动条时，滚动条向下滚动的距离也就是元素顶部被遮住部分的高度。在没有滚动条时scrollTop==0恒成立。单位px，可读可写。
+5. offsetTop: 当前元素顶部(border的外边界）距离最近使用（position属性，如果没有position属性，那就以body来定位）父元素顶部（border的内边界）的距离，页面印刷距离(能直接截图的距离）。如果当前元素的所有父元素（到有position的父元素为止），有滚动还需要加上所有父元素的滚动距离scrollTop。单位px，只读元素。
+
+大多数浏览器通过队列化修改并批量执行来优化重排过程
+
+对DOM的操作，会放入渲染树的变化排队和刷新，如果设置页面dom的长宽等信息，这些多个dom操作就会放入队列，但不会立即刷新。
+
+如果此时我们通过dom查询上面布局中的几个长度，那么就会立即执行队列，刷新页面，**尽量不要在布局信息改变时做查询**。不然会导致多次发生浏览器重排重绘。
 
 ## 5.2 元素背景(background)
 
@@ -430,17 +457,34 @@ columns-* width count rule gap fill span 栏宽 栏数 分隔条 栏隙 栏高 �
 
     确立子元素在主轴上的对齐方式
 
--  align-items: flex-start | flex-end | center | baseline | stretch;
+- align-items: flex-start | flex-end | center | baseline | stretch;
 
     确立子元素在交叉轴上的对齐方式
+
+- align-content：stretch|center|flex-start|flex-end|space-between|space-around|initial|inherit;
+
+    就如同名字content一样，把容器内的所有子元素当成一个content整体，来设置它的对齐方式
+
 
 子元素属性
 
 - align-self 覆盖align-items属性，定义自身的对齐方式
+
 - order 排列顺序。数越小，越靠前。
-- flex-grow 子元素放大比例
+
+- flex-grow 子元素放大比例，剩余长度除以总的flex-grow数得到分配的基本单位长度，然后再按照所flex-grow的大小*基本单位长度进行分配
+
+  - 如果所有项目的flex-grow属性都为1，则它们将等分剩余空间（如果有的话）。如果一个项目的flex-grow属性为2，其他项目都为1，则前者占据的剩余空间将比其他项多一倍。
+
 - flex-shrink 缩小比例
-- flex-basis 在分配多余空间之前，项目占据的主轴空间
+
+  - 如果所有项目的flex-shrink属性都为1，当空间不足时，都将等比例缩小。如果一个项目的flex-shrink属性为0，其他项目都为1，则空间不足时，前者不缩小。
+
+    负值对该属性无效。
+
+- flex-basis 在分配多余空间之前，项目占据的主轴空间。未缩放之前的长度。
+
+- flex： none | [ <'flex-grow'> <'flex-shrink'>? || <'flex-basis'> ]，默认值为0 1 auto。建议优先使用这个属性
 
 ## 6.3 响应式布局
     前端是面向用户的一端，面向用户的一端是多变的一端。由于显示媒体的多样性，我们需要根据媒体具体的属性，对我们的样式做相应的修改。
@@ -517,6 +561,115 @@ columns-* width count rule gap fill span 栏宽 栏数 分隔条 栏隙 栏高 �
 网格布局（Grid）是最强大的 CSS 布局方案。
 
 它将网页划分成一个个网格，可以任意组合不同的网格，做出各种各样的布局。
+
+```html
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>网格布局</title>
+    </head>
+    <body>
+       	<div id="wrapper">
+            <div>1</div>
+            <div>2</div>
+            <div>3</div>
+            <div>4</div>
+            <div>5</div>
+            <div>6</div>
+            <div>7</div>
+            <div>8</div>
+            <div>9</div>
+        </div>
+        <style>
+        #wrapper div:nth-child(2n){
+            background-color:aquamarine;
+        }
+         #wrapper div:nth-child(2n-1){
+             background-color:blue;
+             color:#fff;
+         }
+         /*1.容器属性*/
+        #wrapper{
+                width:500px;
+                height:500px;
+                background-color:peru;
+                /*grid 块元素，inline-grid 行内元素*/
+                display:grid;
+                /*例子以3x3的网格为例*/
+                /* 定义列 */
+                grid-template-columns:50px 50px 50px;/* 列宽 */
+                grid-column-gap:10px;/*列间距*/
+                    /* 
+                    33% 33% 33%;
+                    repeat(number of columns/rows, the column width we want);
+                    eg:
+                    repeat(3,20px);
+                    repeat(auto-fill, 100px);
+                    特殊的行列数：auto-fill：尽可能容纳更多的行或列。
+                    特殊长度单位：
+                    1.auto：
+                    2.fr：剩余长度按总共的fr均分，然后按具体fr数占据长度
+                    3.minmax(minl,maxl)：不小于minl，不大于maxl
+                    */
+                    
+                /* 定义行 */
+                grid-template-rows:50px 50px 50px;
+                grid-row-gap:10px;
+
+                /*定义区域*/
+                grid-template-areas:"a a b"
+                                    "c d d"
+                                    "f f f";
+                
+                /* 单元格内部的内容 */
+                place-items:stretch;
+                /*place-items:justify-items，align-items*/
+                /*属性值：start | end | center | stretch*/
+                /*默认值：strech*/
+
+                /* 容器content内容整体的对齐方式 */
+                place-content:center;
+                /* place-content:justify-content，align-content*/
+                /*属性值：start | end | center | stretch | space-around | space-between | space-evenly;*/
+            
+                /*
+                    grid-auto-columns 属性，
+                    grid-auto-rows 属性
+                */
+        }
+         /* 2.定义单元格属性 */
+         #wrapper div:nth-child(1){
+                /* 、
+                定义项目位置（单元格位置）
+                项目的位置是可以指定的，具体方法就是指定项目的四个边框，分别定位在哪根网格线。
+                 */
+                
+                /* grid-column:1/3;
+                grid-row:1/3; */
+                /* 
+                grid-row: <start-line> / <end-line>;
+                grid-column: grid-column-start / grid-column-end;
+
+                grid-column:1 / span 2;
+                span num 跨越几个单元格的意思
+
+                grid-column-start:1;
+                grid-column-end:3; 
+
+                */
+                grid-area:d;/*区域名*/
+                /* grid-area: <row-start> / <column-start> / <row-end> / <column-end>; */
+
+                /* place-self:<align-self> <justify-self>; */
+         
+            }
+        </style>
+    </body>
+</html>
+```
+
+
 
 # 7 变形和动画
 
@@ -606,6 +759,63 @@ transition：  transition-property     transition-duration    transition-timing-
    - n<0，过渡动作提前，从n的绝对值时间点开始过渡
 4. transition-timing-function：ease   |  linear   |   ease-in  |   ease-out  |   ease-in-out  | cubic-bezier，过渡的速度分配
 5. 
+
+```html
+<DOCTYPE html>
+<html>
+	<head>
+        <meta charset="utf-8">
+        <title>过渡与变形</title>
+    </head>    
+  	<body>
+    	<div id="wrapper">
+            
+            <div>1</div>
+            <div>2</div>
+            <div>3</div>
+            <div>4</div>
+            <div>5</div>
+            <div>6</div>
+            <div>7</div>
+            <div>8</div>
+            <div>9</div>
+        
+        </div>
+        <style>
+        #wrapper{
+            display:grid;
+            grid-template-columns:50px 50px 50px;/* 列宽 */
+            grid-column-gap:10px;/*列间距*/
+            grid-template-rows:50px 50px 50px;
+            grid-row-gap:10px;
+         }
+         #wrapper div:nth-child(2n){
+                background-color:aquamarine;
+                transition: transform 1s;
+            }
+           #wrapper div:nth-child(2n):hover{
+                background-color:red;
+                transform:rotate(90deg);
+            }
+            #wrapper div:nth-child(2n-1){
+                background-color:blue;
+                /* transition: transform,background-color 1s; transform-property采用属性列表的时候，不能在transform这里使用*/
+                transition-property: transform,background-color;
+                transition-duration: 1s;
+                color:#fff;
+            }
+            #wrapper div:nth-child(2n-1):hover{
+                background-color:green;
+                transform:rotate(-90deg);
+            }
+        </style>
+    </body>
+</html>
+```
+
+# 8 特殊技巧
+
+1. mix-blend-mode:multiply;把所有白色的部分转换成半透明的 png。
 
 # [Less(Leaner Style Sheets ) ](https://less.bootcss.com/#-)
 
