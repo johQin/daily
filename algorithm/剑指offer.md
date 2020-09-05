@@ -2,9 +2,9 @@
 
 基于python3.6
 
-# 1 数组
+# 数组
 
-## 1.1 数组基本操作
+## 数组基本操作
 
 ```python
 if __name__=='__main__':
@@ -2121,7 +2121,409 @@ if __name__=='__main__':
         mid=dfm.getMedium()
         # print(dfm.minHeap,dfm.maxHeap)
         print('中位数：%s' % (mid))
+```
 
+# 排序
+
+## 冒泡
+
+```js
+/**
+ * @method 
+ * @param {Array} target=[] 
+ * @param {string} sort ="asc"
+ * @returns {Array} target 排序后的数组
+ * @desc 冒泡法：比较数组相邻两个元素，遇到较大或较小的数，交换他们的值。
+ * 一轮比较完毕，数组的len-i-1存放一轮比较后的最大值或最小值.
+ * isSort 用来检测剩余的未检测的数组元素是否，已经排好序，如果没有做任何调整那么，说明剩余的数组元素已经是有序的了
+ * 时间复杂度O(n^2)
+ */
+//
+function bubbling( target=[],sort='asc'){
+        let len=target.length;
+        for(let i=0;i<len;i++){
+            let isSort=true;
+            for(let j=0;j<len-i-1;j++){
+                if(sort=='asc'){
+                    if(target[j]>target[j+1]){
+                        [target[j],target[j+1]]=[target[j+1],target[j]];
+                        isSort=false
+                    }
+                }else{
+                    if(target[j+1]>target[j]){
+                        [target[j],target[j+1]]=[target[j+1],target[j]];
+                        isSort=false;
+                    }
+                }
+
+            }
+            if(isSort){
+                break;
+            }
+        }
+        return target
+}
+let res=bubbling([10,2,1,5,6],'des')
+console.log(res)
+```
+
+## 选择
+
+```js
+/**
+ * 
+ * @param {Array} target=[] 原数组 
+ * @param {string} sort='asc' 排序方式
+ * @returns {Array} target 排序后的数组
+ * @desc 选择法：比较数组相邻两个元素，遇到较大或较小的数，交换他们数组下标索引。
+ * 一轮比较完毕，交换索引len-i-1与index对应元素的值，数组的len-i-1存放一轮比较后的最大值或最小值
+ * 时间复杂度O(n^2)
+ */
+function choose(target=[],sort='asc'){
+    let index=0,len=target.length;
+    for(let i=0;i<len;i++){
+        for(let j=0;j<=len-i-1;j++){
+            if(sort=='asc'){
+                if(target[j]>target[index]){
+                    index=j
+                }
+            }else{
+                if(target[index]>target[j]){
+                    index=j
+                }
+            }
+        }
+        [target[index],target[len-i-1]]=[target[len-i-1],target[index]];
+        index=0;
+    }
+    return target;
+}
+let res=choose([10,2,1,5,6],'des');
+console.log(res)
+
+```
+
+## 插入
+
+```js
+/**
+ * 
+ * @param {Array} target=[] 原数组 
+ * @param {string} sort='asc' 排序方式
+ * @returns {Array} target 排序后的数组
+ * @desc 插入法：如同打扑克摸牌，一边摸一边整理手上牌的顺序，手上的牌是有序的，将摸到的牌插入有序的牌中。
+ * 由于是数组，分成三步，
+ * 1.找到插入的位置
+ * 2.移动数组
+ * 3.插入
+ */
+function insert(target=[],sort='asc'){
+    let len=target.length,val=0;
+    for(let i=1;i<len;i++){//模拟摸牌所以从第二张牌开始
+        val=target[i];
+        let j=0;
+        for(j=i-1;j>=0;j--){//将摸到的牌与手上的有序数组比较，
+            if(val<target[j]){//找到较大或较小的值，向后移动一个
+                target[j+1]=target[j];
+            }else{//因为手上牌有序，所以一旦不再比当前位置的数较大或较小，那么不再移位，就找到位置
+                break;
+            }
+        }
+        target[j+1]=val;//插入数
+    }
+    return target;
+}
+let res=insert([10,2,1,5,6])
+console.log(res);
+
+```
+
+## 希尔
+
+```js
+/**
+ * 
+ * @param {Array} target=[]
+ * 希尔排序：事先定义一个区间，通过区间对数组分组（就像排队报一二三，报到一的一个组，报到二的一个组，报到三的一个组，这里的三就是区间大小）
+ * 在数组上从前至后，移动起始位置，以这个位置找组内元素。
+ * 跨区间移值：将组内元素按照插入法的方式排序（在原数组上进行操作的话，就是将区间的两头进行比较，最后保证第一个元素的下标大于零，比较结束）
+ * 
+ * 然后区间逐渐缩小，直到gap=0
+ */
+function hill(target){
+    let gap=1;
+    let len=target.length;
+    while(gap<len){//找到一个最大区间
+        gap=gap*3+1;
+    }
+    while(gap>0){
+        for(let i=gap;i<len;i++){//在数组上依次移动，起始位置。
+            let j=i-gap;
+            let tmp=target[i];
+            while(j>=0&&target[j]>tmp){//跨区间移值，跨区间移动
+                target[j+gap]=target[j];
+                j-=gap;
+            }
+            target[j+gap]=tmp;//插入
+        }
+        gap=Math.floor(gap/3);//区间逐渐缩小，直到等于1时，就是一个插入排序。
+    }
+    return target
+}
+let res=hill([10,2,1,5,6]);
+console.log(res);
+```
+
+## 归并
+
+```js
+//归并排序的核心思想是分治，分而治之，将一个大问题分解成无数的小问题进行处理，处理之后再合并
+function mergeSort(target){
+    let tmp=[];
+    target.map(()=>{
+        tmp.push(0);
+    })
+    sort(target,tmp,0,target.length-1);
+}
+function sort(target,tmp,start,end){
+    if(end<=start){
+        return ;
+    }
+    //迭代切分数组，这里只是找到切分位，没有将数组拆分为零散的数组。
+    let mid=start+Math.floor((end-start)/2);
+    sort(target,tmp,start,mid);
+    sort(target,tmp,mid+1,end);
+
+    merge(target,tmp,start,mid,end);
+}
+function merge(target,tmp,start,mid,end){
+    //复制需要合并的数组
+    for (let s = start; s <= end; s++) {
+        tmp[s] = target[s];
+    }
+    let left=start;
+    let right=mid+1;
+    //左右两个数据分叉，都是有序的，所以将两个有序数组，合并一个数组时，采用了双指针。
+    //将两个指针中较小的值放入，目标数组中，
+    //如果一个数据分叉走完了，另一个数据分叉还有数据，那么直接将剩余分叉上的数据直接赋值给目标数组。
+    for(let i=start;i<=end;i++){
+        if(left>mid){
+            target[i]=tmp[right++]
+        }else if(right>end){
+            target[i]=tmp[left++]
+        }else if(tmp[left]<tmp[right]){
+            target[i]=tmp[left++];
+        }else{
+            target[i]=tmp[right++];
+        }
+    }
+
+}
+let target=[10,2,1,86,12,5,6,9,4,8];
+mergeSort(target);
+console.log(target);
+```
+
+## 快速
+
+```js
+//快速排序的核心思想是分治法
+function quickSort(arr){
+    sort(arr,0,arr.length-1);
+}
+
+function sort(arr,start,end){
+    if(end<=start){
+        return;
+    }
+    let mid=bilateralScanPartition(arr,start,end);
+    sort(arr,start,mid-1);
+    sort(arr,mid+1,end);
+}
+//单边扫描法排序
+//把目标数组所有值都扫描一遍，以目标数组第一个值为std，以mark作为指针。
+//一旦找到比std小的，就与mark指针所指的元素做交换，交换后，mark自加一。
+//最后mark所指的位置就是左右序列的分界线（除数组第一个元素std外）
+function singleSideScanPartition(arr,start,end){
+    let std=arr[start];
+    let mark=start;
+    for(let i=start+1;i<=end;i++){
+        if(arr[i]<std){
+            mark+=1;
+            [arr[mark],arr[i]]=[arr[i],arr[mark]];
+        }
+    }
+    arr[start]=arr[mark];
+    arr[mark]=std;
+    return mark;
+}
+
+//双边扫描法排序
+//left和right两个指针，
+//左边序列放比std小的元素，右边序列存放比std大的元素。
+//所以一旦从左序列找到一个比std大的，从右边序列找到一个比std小的，交换二者的值。
+//因为std取的是start元素的值，所以，要把如果start的值比left元素大，那么就交换两个位置的值。这是为了保证左序列的值小于std。
+function bilateralScanPartition(arr,start,end){
+    let left=start;
+    let right=end;
+    let std=arr[start];
+    while(left<right){
+        while(left<right){
+            if(std<arr[left]){
+                break;
+            }
+            left++;
+        }
+        while(left<right){
+            if(arr[right]<std){
+                break;
+            }
+            right--;
+        }
+        if(left!=right){
+            [arr[left],arr[right]]=[arr[right],arr[left]]
+        }  
+    }
+    if(arr[left]<std){
+        [arr[left],arr[start]]=[arr[start],arr[left]];
+    }
+    return left;
+}
+let arr=[10,2,1,5,6];
+quickSort(arr);
+console.log(arr);
+```
+
+## 计数
+
+```js
+//计数排序只适用于正整数并且取值范围相差不大的数组排序使用，它的排序的速度是非常可观的。
+function count(arr){
+    //找出最大值
+    let max=Math.max(...arr);
+    //初始化计数数组
+    let countArr=[];
+    for(let i=0;i<=max;i++){
+        countArr.push(0);
+    }
+    //数组元素计数
+    arr.map((item)=>{
+        countArr[item]+=1;
+    })
+    //排序
+    let index=0;
+    for(let i=0;i<countArr.length;i++){
+        while(countArr[i]>0){
+            arr[index++]=i;
+            countArr[i]--;
+        }
+    }
+}
+let arr=[10,2,1,86,12,5,5,6,9,4,8];
+count(arr);
+console.log(arr);
+```
+
+## 桶排
+
+```js
+//高考总分 750 分，全国几百万人，我们只需要创建 751 个桶，循环一遍挨个扔进去，排序速度是毫秒级。
+function bucket(arr){
+    let min=arr[0],max=arr[0];
+    //计算数组的最大最小值
+    arr.forEach(item => {
+        if(item>max){
+            max=item
+        }else if(item<min){
+            min=item
+        }
+    });
+    //计算桶的数量
+    let bucketNum=Math.ceil((max-min)/10);
+    //生成桶
+    let buckets=[];
+    for(let i=0;i<bucketNum;i++){
+        buckets.push([]);
+    }
+    //数据入桶
+    arr.forEach((item)=>{
+        buckets[Math.floor((item-min)/10)].push(item)
+    })
+    //桶内排序
+    buckets.forEach((item,index)=>{
+        buckets[index]=item.sort((a,b)=>{return a-b})
+    })
+    let index=0;
+    //放入原数组。
+    buckets.forEach((item)=>{
+        item.forEach((it)=>{
+            arr[index++]=it;
+        })
+    })
+}
+let target=[10,2,1,86,12,5,6,9,4,8];
+bucket(target);
+console.log(target);
+```
+
+## 基数
+
+```js
+//基数排序是一种非比较型整数排序算法，其原理是将数据按位数切割成不同的数字，然后按每个位数分别比较。
+function radixSort(target){
+    let max=target[0];
+    target.forEach((item)=>{
+        if(item>max){
+            max=item;
+        }
+    })
+    let tenBucket=[];
+    for(let i=0;i<10;i++){
+        tenBucket.push([]);
+    }
+    let tempBucket=JSON.parse(JSON.stringify(tenBucket));
+    let location=0;
+    while(true){
+        let dd=Math.pow(10,location);
+        if(max<dd){
+            break;
+        }
+        target.forEach((item,index) => {
+            tenBucket[Math.floor(item/dd)%10].push(item);
+        });
+        let index=0;
+        tenBucket.forEach((item)=>{
+            item.forEach(it=>{
+                target[index++]=it;
+            })
+        })
+        
+        tenBucket=tempBucket;
+        location++;
+    }
+}
+let target=[10,2,1,86,12,5,6,9,4,8];
+radixSort(target);
+console.log(target);
+```
+
+## 堆排
+
+# 查找
+
+**查找算法分类：**
+
+1. 静态查找和动态查找；
+   - 静态或者动态都是针对查找表而言的。**动态表指查找表中有删除和插入操作的表。**
+2. 无序查找和有序查找。
+   - 无序查找：被查找数列有序无序均可；
+   - 有序查找：被查找数列必须为有序数列；
+
+## 顺序查找
+
+顺序查找适合于存储结构为顺序存储或链接存储的线性表。属于无序查找算法。
+
+```js
 
 ```
 
