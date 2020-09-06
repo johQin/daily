@@ -239,7 +239,33 @@ fatherLabel > sonLabel{
 
     1vh(1vw) 浏览器页面的宽度(高度)的1/100
 
+### 百分比%长度具体分析
+
+缺点计算困难，设计稿的长度px都要转换成%；
+
+1. 子元素height 和width 的百分比：
+   - 是相对于子元素的直接父元素
+   - width 相对于父元素的width，height 相对于父元素的height。
+2. top和bottom，left和right：
+   - 子元素的top 和bottom 如果设置百分比，则相对于直接非static 定位(默认定位)的父元素的高度
+   - 子元素的left 和right 如果设置百分比，则相对于直接非static 定位(默认定位的)父元素的宽度。
+3. padding和margin：
+   - 子元素的padding 如果设置百分比，不论是垂直方向或者是水平方向，都相对于直接父亲元素的width，而与父元素的height 无关。
+   - margin同样如此。
+4. border-radius：
+   - 相对于自身的宽高
+5. 
+
+### rem
+
+rem 单位无论嵌套层级如何，都只相对于浏览器的根元素（HTML 元素）的font-size。默认情况下，html 元素的font-size 为16px。
+
+响应式布局可以通过，修改根元素的字体大小，来控制rem的大小。
+
+在webpack中也可以
+
 ## 3.3 使用
+
     后面只要谈到颜色和长度（大小）均可使用前面的模型或单位。
 
 # 4 文本样式

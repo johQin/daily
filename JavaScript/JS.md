@@ -56,7 +56,7 @@
 
 8. 常见web安全及防护原理
 
-   - sql注入原理：就是通过把SQL命令插入到Web表单递交或输入域名或页面请求的查询字符串，最终达到欺骗服务器执行恶意的SQL命令。
+   - [sql注入原理](<https://blog.csdn.net/wodetian1225/article/details/82351752>)：就是通过把SQL命令插入到Web表单递交或输入域名或页面请求的查询字符串，最终达到欺骗服务器执行恶意的SQL命令。
    - Xss(cross-site scripting)攻击指的是攻击者往Web页面里插入恶意 html标签或者javascript代码。
 
 9. XSS是获取信息，不需要提前知道其他用户页面的代码和数据包。CSRF（Cross-site request forgery，跨域请求伪造）是代替用户完成指定的动作，需要知道其他用户页面的代码和数据包（登录受信任的a，在不登出a下，访问危险b）。
@@ -115,6 +115,8 @@
 
 21. cookie和session的区别：
 
+    - 二者都用于会话跟踪。**Cookie通过在客户端记录信息确定用户身份**，**Session通过在服务器端记录信息确定用户身份**。
+    - cookie用于弥补HTTP协议无状态的不足，不可跨域名性。
     - cookie数据存放在客户的浏览器上，session数据放在服务器上。
     - session会在一定时间内保存在服务器上。当访问增多，会比较占用你服务器的性能
 
