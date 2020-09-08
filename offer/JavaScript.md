@@ -62,9 +62,56 @@
    console.log(c())//{ account: 15, name: 'qin' }
    ```
 
-5. call()、apply()、bind()，[this](<https://www.cnblogs.com/evilliu/p/10816720.html>)
+5. function的call()、apply()、bind()，[this](<https://www.cnblogs.com/evilliu/p/10816720.html>)
+
+   - call和apply方法的作用：改变this指向，借用别的对象的方法，调用函数
+   - call和apply的第一个参数是this代表的上下文对象，call的第二个参数是以列表形式传入，apply的第二个参数是以数组形式传入。
+   - bind和call的参数的使用时一致的，不过bind函数返回的是一个函数，它并不执行，返回后加括号运行就可以达到和call一样的效果。
+
+   ```js
+   let obj1={
+       name:'qkh',
+       rename:function(newname){
+           this.name=newname
+       }
+   }
+   let obj2={
+       name:'lxx'
+   }
+   //obj2借用了obj1的rename方法，同时也改变了rename方法里的this指向，使其指向obj2
+   obj1.rename.call(obj2,'你好');
+   //fun.call(obj,'lxx','你好');
+   //fun.apply(obj,['lxx','你好']);
+   //fun.bind(obj,'lxx','你好')();
+   
+   //方法才可以调用call
+   console.log("obj1",obj1)//{name:'qkh',rename:f}
+   console.log("obj2",obj2)//{name:'你好'}
+   ```
 
 6. prototype
+
+   - prototype 属性使您有能力向对象添加属性和方法。
+   - prototype是函数才有的属性。`__proto__`是每个对象都有的属性
+   - 大多数情况下`__proto__`是`constructor.prototype`(构造器的原型)
+   - ![](./legend/__proto__.png)
+
+   ```js
+   //es5
+   function Animal(name){
+       this.name=name||'Animal';
+       this.sleep=function(){
+           console.log(this.name+"正在睡觉")
+       }
+   }
+   Animal.prototype.eat=function(food='食物'){
+       console.log(this.name+'正在吃:'+ food)
+   }
+   let dog=new Animal('dog');
+   dog.sleep();
+   dog.eat();
+   console.log(dog.name)
+   ```
 
 7. [属性和方法简写](<https://blog.csdn.net/qq_36145914/article/details/88688922>)
 
@@ -118,14 +165,16 @@
 
     - Promise.all(iterable) 方法用于将多个 Promise 实例，包装成一个新的 Promise 实例。
 
-      - 当迭代对象iterable中的所有promise都进入完成态（都执行resolve()）时，返回完成态的promise对象，resolve()获取到所有promise resolve()返回的参数的数组
+      - 当迭代对象iterable（字符串，数组等）中的所有promise都进入完成态（都执行resolve()）时，返回完成态的promise对象，resolve()获取到所有promise resolve()返回的参数的数组
       - 当迭代对象iterable中的任一promise都进入拒绝态时，返回拒绝态的promise对象，reject()获取到当前发生拒绝发生拒绝promise的reject()传入的参数
 
     - Promise.race 方法同样是将多个 Promise 实例，包装成一个新的 Promise 实例。
 
       - 当迭代对象iterable中有一个实例率先改变状态，p的状态就跟着改变，返回对应态的promise对象
 
-    - 
+    - all如果传入的参数是一个空的可迭代对象，则返回一个**已完成（already resolved）**状态
+
+    - race如果传入的参数是一个空的可迭代对象，则不执行任意一个状态
 
       
 
@@ -157,7 +206,7 @@
     //参数为可迭代对象，一般为数组。返回一个promise对象
     //当数组中不含任何promise对象时，立即进入完成态。
         Promise.all([1,2,3]).then((res)=>{
-            console.log('全部执行完毕结果为：',res)//打印1,2,3
+            console.log('全部执行完毕结果为：',res)//打印[1,2,3]
         }）
     //当数组中含有promise对象时，当所有promise对象全部进入完成态resolved时，返回promise对象的完成态
         let p1=new Promise((reslove,reject)=>{
@@ -345,11 +394,70 @@
 
       
 
-15. ahf
+15. [`Proxy`代理对象](<https://www.jianshu.com/p/c2a1aa2e2b14>)
+
+    - 监听对象
+    - 应用场景：实现私有变量，抽离校验模块，访问日志，预警拦截，过滤操作，中断代理
+
+    ```js
+    var proxy = new Proxy(target, handler);
+    //proxy在目标对象的外层搭建了一层拦截，外界对目标对象的某些操作，必须通过这层拦截
+    //target需要被代理的对象
+    //handler是target的事务处理对象
+    /*
+    
+    // 在读取代理对象的某个属性时触发该操作，比如在执行 proxy.foo 时。
+    handler.get(target, key)
+     
+    // 在给代理对象的某个属性赋值时触发该操作，比如在执行 proxy.foo = 1 时。
+    handler.set(target, key, value)
+    
+    // 在判断代理对象是否拥有某个属性时触发该操作，比如在执行 "foo" in proxy 时。
+    handler.has(target, key)
+    
+    
+    // 在读取代理对象的原型时触发该操作，比如在执行 Object.getPrototypeOf(proxy) 时。
+    handler.getPrototypeOf()
+    
+    // 在设置代理对象的原型时触发该操作，比如在执行 Object.setPrototypeOf(proxy, null) 时。
+    handler.setPrototypeOf()
+    
+     
+    // 在判断一个代理对象是否是可扩展时触发该操作，比如在执行 Object.isExtensible(proxy) 时。
+    handler.isExtensible()
+    
+     
+    // 在让一个代理对象不可扩展时触发该操作，比如在执行 Object.preventExtensions(proxy) 时。
+    handler.preventExtensions()
+    
+    // 在获取代理对象某个属性的属性描述时触发该操作，比如在执行 Object.getOwnPropertyDescriptor(proxy, "foo") 时。
+    handler.getOwnPropertyDescriptor()
+    
+     
+    // 在定义代理对象某个属性时的属性描述时触发该操作，比如在执行 Object.defineProperty(proxy, "foo", {}) 时。
+    andler.defineProperty()
+    
+    
+    // 在删除代理对象的某个属性时触发该操作，比如在执行 delete proxy.foo 时。
+    handler.deleteProperty()
+    
+    // 在获取代理对象的所有属性键时触发该操作，比如在执行 Object.getOwnPropertyNames(proxy) 时。
+    handler.ownKeys()
+    
+    // 在调用一个目标对象为函数的代理对象时触发该操作，比如在执行 proxy() 时。
+    handler.apply()
+    
+    // 在给一个目标对象为构造函数的代理对象构造实例时触发该操作，比如在执行new proxy() 时。
+    handler.construct()
+    */
+    
+    ```
+
+16. 
 
 
 
-## 1.2 数组方法
+## 1.2 Array方法
 
 ```js
 //可通过对this的访问，修改原数组
@@ -396,7 +504,33 @@
 19. array.toString()
 ```
 
-## 1.3 编程
+## 1.3 Object 方法
+
+```js
+Object.assign(origin,obj1,obj2)//合并对象属性到origin对象，如果有重复的属性，靠后的对象的重复属性会覆盖靠前对象的属性。
+Object.keys()//获取对象的可枚举属性key数组
+Object.getOwnPropertyNames()//获取对象的属性key数组，包括不可枚举属性
+Object.values()//获取对象的可枚举属性值value数组
+Object.entires()//获取对象的键值对数组的数组。
+Object.create(proto,caseobj)//第一个参数为新创建对象的原型对象，第二个参数新创建对象的实例对象（默认不可修改，不可枚举,也可在设置时修改默认配置)
+//定义对象的新属性的配置，
+Object.defineProperty(object, prop, descriptor)//descriptor：{value: 101,writable: true,enumerable: true,configurable: true}
+Object.defineProperties(object,{prop1:descriptor1,prop2:descriptor2})
+
+Object.preventExtensions(object)//阻止对象扩展新的属性
+Object.isExtensible(object)//判断对象是否可扩展
+Object.seal(object)//用于密封对象object。
+//密封对象是指那些不能添加新的属性，不能删除已有属性，以及不能修改已有属性的可枚举性、可配置性、可写性，但可能可以修改已有属性的值的对象。
+Object.isSealed(object)//判断对象是否已密封
+Object.freeze(object)//用于冻结对象，冻结对象是不可变得对象，值和配置都不可变
+Object.isFrozen(object)//判断对象是否已冻结
+
+obj.hasOwnProperty(pro)//判断对象是否包含pro属性
+```
+
+
+
+## 1.4 编程
 
 1. 使用解构，实现两个变量的值的交换
 
@@ -905,65 +1039,11 @@ render process 包含多个线程：
 
 # 6 CSS
 
-## 6.1 布局技巧
+1. css盒模型：
 
-### 6.1.1 水平垂直居中
-
-1. **[margin:auto;](<https://www.cnblogs.com/raind/p/10726591.html>)**。实现剩余宽度的自动计算，实现水平居中（单个元素）。配合绝对定位，实现水平垂直居中
-
-2. 流布局容器中：
-
-   ```css
-   .container{
-       display:flex;/*属性值flex容器宽度由自身width决定，属性值inline-flex容器的宽度由子元素决定*/
-   	justify-content: center;
-       align-items: center;
-       flex-direction:row;/*column*/
-       /*
-       place-content 是 align-content 和 justify-content 的简写属性；
-       place-items 是 align-items 和 justify-items 的简写属性。
-       */
-   }
-   ```
-
-3. 网格布局grid，[CSS 新的长度单位 fr ](<https://zhuanlan.zhihu.com/p/27502596>)
-
-### 6.1.2 等高布局
-
-1. display:flex; align-items 的默认值为 stretch。
-2. 容器内子元素：height:100%;
-
-# 7 笔试题
-
-1. [浏览器的重排和重绘](<https://zhuanlan.zhihu.com/p/148825597>)
-
-   - 浏览器下载完页面中的所有组件——HTML标记、JavaScript、CSS、图片之后会解析生成两个内部数据结构——`DOM树`和`渲染树`。
-
-   - DOM树表示页面结构，渲染树表示DOM节点如何显示。DOM树中的每一个需要显示的节点在渲染树种至少存在一个对应的节点（隐藏的DOM元素disply值为none 在渲染树中没有对应的节点）。渲染树中的节点被称为“帧”或“盒",符合CSS模型的定义，理解页面元素为一个具有填充，边距，边框和位置的盒子。一旦DOM和渲染树构建完成，浏览器就开始显示（绘制）页面元素。
-
-   - 重排：当DOM的变化影响了元素的几何属性（宽或高），浏览器需要重新计算元素的几何属性，同样其他元素的几何属性和位置也会因此受到影响。浏览器会使渲染树中受到影响的部分失效，并重新构造渲染树。
-
-   - 重绘：完成重排后，浏览器会重新绘制受影响的部分到屏幕
-
-   - 重排必然导致重绘
-
-   - 发生重排的情况：
-
-     - 添加或者删除可见的DOM元素
-     - 元素位置改变
-     - 元素尺寸改变
-     - 元素内容改变（例如：一个文本被另一个不同尺寸的图片替代）
-     - 页面渲染初始化（这个无法避免）
-     - 浏览器窗口尺寸改变
-
-   - 减少重排重绘：
-
-     - fragment元素的应用，document.createDocumentFragment()
-     - 让元素脱离文档流
-
-   - 
-
-     
+   - 盒模型：content，padding，border，margin
+   - 标准盒模型：content-box
+   - IE盒模型：border-box
 
 2. **scrollHeight offsetHeight clientHeight scrollTop offsetTop**，height与之对应的还有宽，top与之对应的还有left。
 
@@ -973,7 +1053,247 @@ render process 包含多个线程：
    - scrollTop：代表在有滚动条时，滚动条向下滚动的距离也就是元素顶部被遮住部分的高度。在没有滚动条时scrollTop==0恒成立。单位px，可读可写。
    - offsetTop: 当前元素顶部(border的外边界）距离最近使用（position属性，如果没有position属性，那就以body来定位）父元素顶部（border的内边界）的距离，页面印刷距离(能直接截图的距离）。如果当前元素的所有父元素（到有position的父元素为止），有滚动还需要加上所有父元素的滚动距离scrollTop。单位px，只读元素。
 
-3. 死锁：
+3. 水平垂直居中
+
+   - **[margin:auto;](<https://www.cnblogs.com/raind/p/10726591.html>)**。实现剩余宽度的自动计算，实现水平居中（单个元素）。配合绝对定位，实现水平垂直居中
+
+   - 流布局容器中：
+
+     ```css
+     .container{
+             display:flex;/*属性值flex容器宽度由自身width决定，属性值inline-flex容器的宽度由子元素决定*/
+             justify-content: center;
+             align-items: center;
+             flex-direction:row;/*column*/
+             /*
+             place-content 是 align-content 和 justify-content 的简写属性；
+             place-items 是 align-items 和 justify-items 的简写属性。
+             */
+         }
+     ```
+
+   - 网格布局grid，[CSS 新的长度单位 fr ](<https://zhuanlan.zhihu.com/p/27502596>)
+
+4. 等高布局
+   - display:flex; align-items 的默认值为 stretch。
+   - 容器内子元素：height:100%;
+
+5. 画0.5px粗的线：
+   - \<meta name="viewport" content="initial-scale:0.5,width:device-width">
+   - transform:scaleY(0.5)
+
+6. link标签与@import
+
+   - 所属关系：link 属于html 标签，而@import 是css 提供的
+   - 加载时间：加载页面时，`link`标签引入的 CSS 被同时加载；`@import`引入的 CSS 将在页面加载完毕后被加载。
+   - 样式优先级：link > @import
+   - dom可控：可以通过 JS 操作 DOM ，插入`link`标签来改变样式；而import不行
+
+7. %长度：
+
+   - 子元素height 和width 的百分比：
+     - 是相对于子元素的直接父元素
+     - width 相对于父元素的width，height 相对于父元素的height。
+   - top和bottom，left和right：
+     - 子元素的top 和bottom 如果设置百分比，则相对于直接非static 定位(默认定位)的父元素的高度
+     - 子元素的left 和right 如果设置百分比，则相对于直接非static 定位(默认定位的)父元素的宽度。
+   - padding和margin：
+     - 子元素的padding 如果设置百分比，不论是垂直方向或者是水平方向，都相对于直接父亲元素的width，而与父元素的height 无关。
+     - margin同样如此。
+   - border-radius：
+     - 相对于自身的宽高
+
+8. 如何画一个三角形：
+
+   - ```css
+     div {
+         width:0px;
+         height:0px;
+         border-top:10px solid red;
+         border-right:10px solid transparent;
+         border-bottom:10px solid transparent;
+         border-left:10px solid transparent;
+     }
+     ```
+
+9. transition和animation的区别
+
+   - 帧数：transition只可定义两帧的样式开始和结束。而animation可以通过定义关键帧@keyframes来指定多帧的样式
+   - 事件：transition需要事件触发，而animation不需要。
+
+   ```css
+   /* transition */
+   div{
+       background-color:blue;
+       /* transition: transform,background-color 1s; transform-property采用属性列表的时候，不能在transform这里使用*/
+       transition-property: transform,background-color;
+       transition-duration: 1s;
+       color:#fff;
+   }
+   div:hover{
+       background-color:green;
+       transform:rotate(-90deg);
+   }
+   /*animation*/
+   div
+   {
+   	width:100px;
+   	height:100px;
+   	background:red;
+   	position:relative;
+   	animation:mymove 5s infinite;
+   	-webkit-animation:mymove 5s infinite; /*Safari and Chrome*/
+   }
+   @keyframes mymove
+   {
+   	from {left:0px;}
+   	to {left:200px;}
+   }
+   ```
+
+10. [flex布局](<https://www.runoob.com/w3cnote/flex-grammar.html>)
+
+    - 流布局的优先级大于浮动float布局
+
+11. js动画和css动画的区别
+
+    - 渲染线程分为main thread 和compositor thread
+    - 如果只改变transform和opacity，css动画只调用compositor thread，而js会先调用main然后调用compositor。
+    - transform和opacity不会引起重排重绘。
+
+12. 块元素，行内块元素，行内元素
+
+    - 块级元素block（可设长宽，隔离元素，div，p）
+    - 行内-块元素inline-block（可~，无法~，img） ，margin/padding 水平垂直方向都有效
+    - 行内元素inline（无法~，无法~，只能适应内容，span），margin 在竖直方向上无效，padding 在水平方向垂直方向都有效
+
+13. 元素多行文本省略
+
+    - ```css
+      div{
+          display: -webkit-box;
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 4;            /*设置元素最大4行，父元素需填写宽度才明显*/
+          text-overflow: ellipsis;
+          /*text-overflow 属性，
+          值为clip 是修剪文本；
+          ellipsis 为显示省略符号来表被修剪的文本；
+          string 为使用给定的字符串来代表被修剪的文本。*/
+          overflow: hidden;
+      }
+      ```
+
+14.  opacity=0，visibility=hidden , display:none
+
+    - opacity=0，隐藏不改变布局，可触发其上的点击事件
+    - visibility=hidden，隐藏不改变布局，不可触发其上的点击事件
+    - display:none，不渲染，没有dom对象。
+
+15. [margin为负数](<https://www.jianshu.com/p/549aaa5fabaa>)：
+
+    - margin-left为负值：元素增加宽度并位置会向左偏移
+
+    - margin-right为负值：元素增加宽度
+
+    - margin-top为负值：不会增加高度，位置向上偏移
+
+    - margin-bottom为负值：减小高度
+
+    - ```html
+      <!--双飞翼-->
+      <div class="main">
+           <div class="main-content">main content</div>
+      </div>
+      <div class="left">left</div>
+      <div class="right">right</div>
+      <style>
+          html
+          body{
+              margin:0;
+              padding: 0
+          }
+          .main{
+              float: left;
+              width: 100%;
+      
+          }
+          .main .main-content{
+              margin: 0 210px;
+              background-color: rgba(33, 114, 214, 0.8);
+              height: 500px
+          }
+          .left{
+              width: 200px;
+              float: left;
+              background-color: rgba(255, 82, 0, 0.8);
+              margin-left: -100%;
+              height: 200px
+      
+          }
+          .right{
+              width: 200px;
+              height: 200px;
+              margin-left: -200px;
+              float: left;
+              background-color: rgba(90, 243, 151, 0.8);
+          }
+      </style>
+      ```
+
+    - 
+
+16. 双边距重叠问题
+
+    - 多个相邻（兄弟或者父子关系）普通流的块元素垂直方向marigin 会重叠（
+
+17. position
+
+    - absolute：相对于最近的position不为static的父元素的margin外边缘进行定位，不占据原来空间
+    - fixed：相对浏览器窗口，不占据原来空间
+    - relative：相对于自身正常文档流进行定位，占据原来空间
+    - stick：越界悬停
+      - 元素定位表现为在跨越特定阈值前为相对定位relative，之后为固定定位fixed。
+      - 当然悬停的效果，是子元素（悬停元素）相对于父元素的。如果父元素都消失在屏幕中，那么子元素的悬停效果就会消失。
+    - z-index 属性设置元素的堆叠顺序，只能在定位元素上奏效，可以为负数，数值越大离用户越近，数值越小离用户越远，默认为0
+
+18. css样式优先级：
+
+    - 选择器：id 选择器>class 选择器>标签选择器>伪元素选择器>伪类选择器
+    - 多样式：同一元素引用了多个样式时，排在后面的样式属性的优先级高；
+    - 来源：!important > 元素内嵌（行内样式） > 文档内嵌（< style >） > 外部引入（< link >） > 浏览器
+
+19. float 的元素
+
+    - 默认display为block，可设长宽，但不隔离元素
+
+20. calc()函数
+
+    - Calc 用户动态计算长度值，任何长度值都可以使用calc()函数计算
+    - 注意：calc(100px - 10%)，例如此例中，减号前后必须保留一个空格，否则样式计算失效
+
+21. background-color
+
+    - 设置的背景颜色：会填充元素的content、padding、border。如果边框有透明部分（如虚线边框），会透过这些透明部分显示出背景色。
+
+22. css 预处理器有什么
+
+    - less、sass
+
+23. 
+
+    ```css
+    
+    ```
+
+    
+
+## css布局
+
+圣杯布局、双飞翼布局、Flex 布局、绝对定位布局、表格布局、网格布局。
+
+# 7 操作系统
+
+1. 死锁：
 
    - 所谓死锁就是多个进程因竞争资源而造成的一种僵局，若无外力作用，这些进程都无法向前推进。
    - 死锁产生的原因
@@ -986,35 +1306,17 @@ render process 包含多个线程：
        - 循环等待条件
      - 死锁避免：银行家算法（计算进程最大需要，查看现有资源，满足则分配，不满足则推迟分配），系统安全状态。
 
-4. 进程与线程
+2. 进程与线程
 
    - **进程是资源分配的最小单位，线程是CPU调度的最小单位**
    - 一个进程可包含多个线程，
    - **进程就是上下文切换之间的程序执行的部分。是运行中的程序的描述，也是对应于该段CPU执行时间的描述。**
    - **线程是共享了进程的上下文环境，的更为细小的CPU时间段。线程主要共享的是进程的地址空间。**
 
-5. 操作系统中采用缓冲技术是为了增强系统的并行操作能力。
+3. 操作系统中采用缓冲技术是为了增强系统的并行操作能力。
 
-6. js中!!用于变量前，将变量强行转化为对应的boolean值。
+   
 
-   - false：
-
-     ```js
-     undefined,null,"",-0,0,NaN,false
-     ```
-
-   - true：
-
-     ```js
-     true,1,Infinity,"string",[],{},function(){}
-     
-     ```
-
-7. 
-
-8. 
-
-   - 
 
 # 8 http与浏览器
 
@@ -1047,6 +1349,7 @@ render process 包含多个线程：
    - 关于安全性：post比get要好一点，但这个在安全问题面前影响很小，一般情况下，私密数据传输用POST + body就好。
    - 关于编码：GET的参数只能支持ASCII（url上只支持ASCII），而POST能支持任意binary（body支持任意编码），包括中文。但用作接口时，GET实际上也可以带body，POST也可以在url上携带数据。
    - 关于url长度：http没有做长度限制，只是说浏览器做了长度显示，2048个字符。GET数据有长度限制。
+   - GET 产生一个TCP 数据包；POST 产生两个TCP 数据包。
 
 4. [http状态码](<https://www.cnblogs.com/xflonga/p/9368993.html>)：
 
@@ -1059,10 +1362,18 @@ render process 包含多个线程：
      - 403（Forbidden）：服务器已经得到请求，但是拒绝执行。常用于一个资源只允许在特定时间段内访问，或者允许特定IP地址的用户访问的情况。
      - 404（Not Found）：服务器无法把客户端请求的URI转换为一个资源。
    - 5xx：服务端错误，这些代码意味着服务器处于不能执行客户端请求的状态，此时客户端应稍后重试。
+   - 重点了解：
+     - 304：Not Modified 未修改。所请求的资源未修改，服务器返回此状态码时，不会返回任何资源。客户端通常会缓存访问过的资源，通过提供一个头信息指出客户端希望只返回在指定日期之后修改的资源。
+     - 301 Moved Permanently 永久移动。请求的资源已被永久的移动到新URI，返回信息会包括新的URI，浏览器会自动定向到新URI。今后任何新的请求都应使用新的URI 代替。
+   - 
 
    
 
-5. [http与https](<https://blog.csdn.net/xiaoming100001/article/details/81109617>)
+5. [HTTP消息头](<https://blog.csdn.net/qq_30553235/article/details/79282113>)
+
+   - 用来准确描述正在获取的资源、服务器或者客户端的行为，定义了HTTP事务中的具体操作参数。
+
+6. [http与https](<https://blog.csdn.net/xiaoming100001/article/details/81109617>)
 
    - http：
 
@@ -1082,7 +1393,7 @@ render process 包含多个线程：
      - 基于HTTP协议+SSL或TLS协议，通过提供SSL或TLS加密处理数据(采用混合加密技术)、验证对方身份(通过证书认证)以及数据完整性保护(防止篡改和冒充)
      - 安全低效，有偿享用。
 
-6. http三次握手四次挥手
+7. http三次握手四次挥手
 
    - 三次握手
      - 客户端c发起连接请求syn=1
@@ -1094,7 +1405,7 @@ render process 包含多个线程：
      - 若服务器没有要向客户端发送的数据，就发送Fin=1，Ack=1
      - 客户端收到连接释放报文后，发出确认Ack=1，等待2MSL后，连接释放。
 
-7. [http2.0](<https://www.zhihu.com/question/34074946>)
+8. [http2.0](<https://www.zhihu.com/question/34074946>)
 
    - 多路复用
      - http1.1浏览器客户端在同一时间，针对同一域名下的请求有一定数量限制。超过限制数目的请求会被阻塞，可以通过多CDN(content delivery network）解决同一域名请求的数量限制。
@@ -1110,7 +1421,7 @@ render process 包含多个线程：
      - 实现低延迟和高吞吐量
    - 首部压缩
 
-8. Websocket
+9. Websocket
 
    - HTTP 的生命周期通过Request 来界定，也就是Request 一个Response。http1.1 connection:keep-alive可以保持一个连接，发送多个请求。
    - 是基于http协议的，握手阶段采用http协议。
@@ -1118,18 +1429,18 @@ render process 包含多个线程：
    - 服务器可以主动向客户端推送信息，客户端也可以主动向服务器发送信息，是真正的双向平等对话。
    - Upgrade:webSocket     Connection:Upgrade多这两个属性。
 
-9. Web Quality - 无障碍
+10. Web Quality - 无障碍
 
    - 能够被残障人士使用的网站才能称得上一个易用的（易访问的）网站。
    - 例如：字体大小调节，alt媒体文件转换（图片无法展示：语音浏览器）
 
-10. BOM浏览器对象
+11. BOM浏览器对象
 
     - location：当前文档地址URL
     - history：浏览历史
     - navigator：浏览器信息
 
-11. 常见web安全及防护原理
+12. 常见web安全及防护原理
 
     - [sql注入原理](<https://blog.csdn.net/wodetian1225/article/details/82351752>)：就是通过把SQL命令插入到Web表单递交或输入域名或页面请求的查询字符串，最终达到欺骗服务器执行恶意的SQL命令。防范措施：
       - 权限严格区分（普通用户和管理者用户）
@@ -1142,7 +1453,82 @@ render process 包含多个线程：
         - Secure=true，那么这个cookie只能用https协议发送给服务器，用http协议是不发送的。
     - CSRF( Cross-site request forgery )：利用已登录用户在网站A生成的cookie，在不退出的情况下访问危险网站B，B就可以获取A的cookie，去请求网站A的api。
 
-12. 
+13. FastClick：
+
+    - 移动设备上的浏览器默认会在用户点击屏幕大约延迟300毫秒后才会触发点击事件，这是为了检查用户是否在做双击。
+    - 为了能够立即响应用户的点击事件，才有了FastClick。
+
+14. [强缓存和协议缓存](<https://www.jianshu.com/p/fb59c770160c>)
+
+    - 浏览器而言，一般缓存我们分为四类，按浏览器读取优先级顺序依次为：`Memory Cache`、`Service Worker Cache`、`HTTP Cache`、`Push Cache`
+
+    - http Cache 又分为强缓存和协商缓存
+
+    - 强缓存：
+
+      - 不请求服务器，直接从从缓存取。状态码200（from cache）
+      - 主要包括 `expires`（过期时间，响应头） 和 `cache-control`（缓存的控制，请求头）。后者优先级高于前者。
+
+    - 协商缓存：
+
+      - **会去服务器比对**，若没改变才直接读取本地缓存。状态码304（not modified）
+      - 如果cache-control设置了`no-cache` 和 `no-store`则本地缓存会被忽略，会去**请求服务器验证**资源是否更新，如果没更新才继续使用本地缓存，此时返回的是 304，这就是协商缓存。协商缓存主要响应头里包括 `last-modified（记录资源最后修改的时间。只要编辑了，不管内容是否有改变）` 和 `etag`（会基于资源的内容编码生成一串唯一的标识字符串）。etag的优先级高于last-modified
+
+    - 因为服务器上的资源并不是一成不变的，我们希望服务器上的资源更新了浏览器就请求新的资源，没有更新就使用本地的缓存，以最大程度的减少因网络请求而产生的资源浪费。
+
+    - ![](./legend/缓存.png)
+
+      
+
+15. [前端性能优化汇总](<https://www.cnblogs.com/lanxiansen/p/10972802.html>)：
+
+    - 减少请求资源的大小和次数：
+      - 合并和压缩css和js文件，
+      - 尽量使用svg（代码编写而成，放大不变形）和雪碧图（多张图合为一张，用background-position调整展现位置）
+      - 减少cookie的使用（前后端来回传）
+    - 代码优化：
+      - 减少使用闭包
+      - 减少dom操作
+      - 多用link（异步）加载样式，少用@import（同步）
+    - 缓存：localStorage，sessionStorage，对静态资源做缓存
+
+16. 在地址栏里输入一个URL,到这个页面呈现出来，中间会发生什么？
+
+    - DNS 解析、TCP 连接、发送HTTP 请求、服务器处理请求并返回HTTP 报文、浏览器解析渲染页面、连接结束
+
+    - 找服务器：输入url 后，首先需要找到这个url 域名的服务器ip,为了寻找这个ip，浏览器首先会寻找缓存，查看缓存中是否有记录，缓存的查找记录为：浏览器缓存-》系统缓存-》路由器缓存，缓存中没有则查找系统的hosts 文件中是否有记录，如果没有则查询DNS 服务器，得到服务器的ip 地址。
+    - 发起http请求：得到ip后，浏览器根据这个ip 以及相应的端口号，构造一个http 请求，这个请求报文会包括这次请求的信息，主要是请求方法，请求说明和请求附带的数据，并将这个http 请求封装在一个tcp 包中，这个tcp 包会依次经过传输层，网络层，数据链路层，物理层到达服务器，服务器解析这个请求来作出响应，返回相应的html 给浏览器。
+    - 渲染html。因为html 是一个树形结构，浏览器根据这个html 来构建DOM 树，在dom 树的构建过程中如果遇到JS 脚本和外部JS 连接，则会停止构建DOM 树来执行和下载相应的代码，这会造成阻塞，这就是为什么推荐JS 代码应该放在html代码的后面，之后根据外部央视，内部央视，内联样式构建一个CSS 对象模型树CSSOM 树，构建完成后和DOM 树合并为渲染树，这里主要做的是排除非视觉节点，比如script，meta 标签和排除display 为none 的节点，之后进行布局，布局主要是确定各个元素的位置和尺寸，之后是渲染页面，因为html 文件中会含有图片，视频，音频等资源，在解析DOM 的过程中，遇到这些都会进行并行下载，浏览器对每个域的并行下载数量有一定的限制，一般是4-6 个，当然在这些所有的请求中我们还需要关注的就是缓存，缓存一般通过Cache-Control、Last-Modify、Expires等首部字段控制。Cache-Control 和Expires 的区别在于Cache-Control 使用相对时间，Expires使用的是基于服务器端的绝对时间，因为存在时差问题，一般采用Cache-Control，在请求这些有设置了缓存的数据时，会先查看是否过期，如果没有过期则直接使用本地缓存，过期则请求并在服务器校验文件是否修改，如果上一次响应设置了ETag 值会在这次请求的时候作为If-None-Match 的值交给服务器校验，如果一致，继续校验Last-Modified，没有设置ETag 则直接验证Last-Modified，再决定是否返回304
+
+17. [浏览器的重排和重绘](<https://zhuanlan.zhihu.com/p/148825597>)
+
+    - 浏览器下载完页面中的所有组件——HTML标记、JavaScript、CSS、图片之后会解析生成两个内部数据结构——`DOM树`和`渲染树`。
+
+    - DOM树表示页面结构，渲染树表示DOM节点如何显示。DOM树中的每一个需要显示的节点在渲染树种至少存在一个对应的节点（隐藏的DOM元素disply值为none 在渲染树中没有对应的节点）。渲染树中的节点被称为“帧”或“盒",符合CSS模型的定义，理解页面元素为一个具有填充，边距，边框和位置的盒子。一旦DOM和渲染树构建完成，浏览器就开始显示（绘制）页面元素。
+
+    - 重排：当DOM的变化影响了元素的几何属性（宽或高），浏览器需要重新计算元素的几何属性，同样其他元素的几何属性和位置也会因此受到影响。浏览器会使渲染树中受到影响的部分失效，并重新构造渲染树。
+
+    - 重绘：完成重排后，浏览器会重新绘制受影响的部分到屏幕
+
+    - 重排必然导致重绘
+
+    - 发生重排的情况：
+
+      - 添加或者删除可见的DOM元素
+      - 元素位置改变
+      - 元素尺寸改变
+      - 元素内容改变（例如：一个文本被另一个不同尺寸的图片替代）
+      - 页面渲染初始化（这个无法避免）
+      - 浏览器窗口尺寸改变
+
+    - 减少重排重绘：
+
+      - fragment元素的应用，document.createDocumentFragment()
+      - 让元素脱离文档流
+
+    - 
+
+      
 
 # 9 HTML
 
@@ -1193,7 +1579,419 @@ render process 包含多个线程：
    - 通信：worker线程必须通过消息完成数据交互。
    - Dom限制：无法获取document，window，parent对象，但可以获取navigator和location对象，通常用作数据处理计算。
    - 同源限制：分配给 Worker 线程运行的脚本文件，必须与主线程的脚本文件同源。
-2. cookie和session的区别：
+
+2. cookie
+
+   最大空间4kb，有些浏览器规定，一个站点最多可保存20个不同path的cookie
+
+   - name    必需。规定 cookie 的名称。
+   - value   必需。规定 cookie 的值。
+   - expire  可选。规定 cookie 的有效期。
+   - path    可选。规定 cookie 的服务器路径。不同path对应不同cookie。
+   - domain  可选。规定 cookie 的域名。
+   - secure  可选。规定是否通过安全的 HTTPS 连接来传输 cookie。
+
+3. cookie和session的区别：
+
    - 二者都用于会话跟踪。**Cookie通过在客户端记录信息确定用户身份（克服http无状态）**，**Session通过在服务器端记录信息确定用户身份**。
    - cookie数据存放在客户的浏览器上，session数据放在服务器上。
    - session会在一定时间内保存在服务器上。当访问增多，会比较占用你服务器的性能
+
+4. cookie、sessionStorage、localStorage 区别：
+
+   - 分属对象：cookie-document，sessionStorage和localStorage-window
+   - 存储空间大小：cookie数据不能超过4k，sessionStorage和localStorage可以达到5M或者更大
+   - 时间限制：cookie过期时间之前一直有效，sessionStorage仅在当前浏览器窗口关闭之前有效
+   - 作用域：cookie和localStorage-同源窗口共享，sessionStorage-同一浏览器窗口同源域名共享
+   - http请求：每次都会携带Cookie在http 头中，其余二者不参与服务器通信
+
+5. script标签的async和defer
+
+   - defer 指定脚本延迟执行，必须等整个页面载入之后，解析完毕之后才执行该script脚本
+   - async指定脚本是否异步执行，回启动新线程，异步执行script元素。
+
+6. js中!!用于变量前，将变量强行转化为对应的boolean值。
+
+   - false：
+
+     ```js
+     undefined,null,"",-0,0,NaN,false
+     ```
+
+   - true：
+
+     ```js
+     true,1,Infinity,"string",[],{},function(){}
+     ```
+
+7. 闭包
+
+   - 闭包就是能够读取其他函数内部变量的函数
+   - javascript中，只有函数内部的子函数才能读取局部变量，所以闭包可以理解成“定义在一个函数内部的函数“。在本质上，闭包是将函数内部和函数外部连接起来的桥梁。
+
+8. 类的创建和继承
+
+   - **es5创建和继承**
+
+   - ```js
+     //es5
+     
+     //创建
+     function Animal(name){
+         this.name=name||'Animal';
+         this.sleep=function(){
+             console.log(this.name+"正在睡觉")
+         }
+     }
+     Animal.prototype.eat=function(food='食物'){
+         console.log(this.name+'正在吃:'+ food)
+     }
+     let dog=new Animal('dog');
+     console.log(dog.name);
+     dog.sleep();
+     dog.eat();
+     
+     //继承
+     function Cat(name){
+         this.name=name
+         this.love='fish';
+     }
+     //原型链继承
+     Cat.prototype=new Animal()//到new 了一个空对象,这个空对象指向Animal 并且Cat.prototype指向了这个空对象
+     let cat=new Cat('cat');
+     console.log(cat.name,cat.love);
+     cat.eat('fish');
+     cat.sleep();
+     
+     ```
+
+   - **es6的类的创建与继承**
+
+   - ```js
+     //es6
+     class Animal{
+         constructor(name){
+             this.name=name||"Animal";
+         }
+         sleep(){
+             console.log(this.name+"正在睡觉")
+         }
+     }
+     Animal.prototype.eat=function(food="食物"){
+         console.log(this.name+"正在吃"+food)
+     }
+     let dog=new Animal('dog');
+     dog.sleep();
+     dog.eat();
+     console.log(dog.name);
+     //在es6中,类本身的类型是function，它指向constructor()函数。他依旧可以用原型链prototype来添加或修改属性和方法。
+     //类不像函数一样（存在变量提升）
+     
+     class Dog extends Animal {
+         constructor(name,love){
+             //子类必须在constructor方法中调用super方法，否则新建实例时会报错。
+             //这是因为子类自己的this对象，必须先通过父类的构造函数完成塑造，得到与父类同样的实例属性和方法，
+             //然后再对其进行加工，加上子类自己的实例属性和方法。如果不调用super方法，子类就得不到this对象。
+             super(name);
+             
+             this.love=love;
+         }
+         sleep(){//方法重写
+             super.sleep()//调用父类方法
+             console.log('并且睡得很香')
+         }
+         smile(){
+             console.log("笑的很可爱")
+         }
+     }
+     let dog=new Dog("狗","骨头")
+     console.log(dog);
+     dog.sleep()
+     dog.eat()
+     dog.smile()
+     ```
+
+   - ![](./legend/__proto__.png)
+
+9. 异步回调地狱：
+
+   - 有一个按时间顺序执行的异步操作序列，我们每增加一个异步请求，就会多添加一层回调函数的嵌套
+
+   - eg:
+
+     ```js
+     //文件读取
+     fs.readFile('./sample.txt', 'utf-8', (err, content) => {
+         let keyword = content.substring(0, 5);
+         //数据查询
+         db.find(`select * from sample where kw = ${keyword}`, (err, res) => {
+             //http请求
+             get(`/sampleget?count=${res.length}`, data => {
+                console.log(data);
+             });
+         });
+     });
+     ```
+
+   - 回调嵌套所带来的一个重要问题就是代码不易阅读与维护。
+
+   - [解决方案](<https://www.jianshu.com/p/bc7b8d542dcd>)
+
+     - 函数拆解
+
+     - 事件发布和监听模式
+
+     - Promise
+
+     - generator：
+
+       ```js
+       function *fun{ yield }
+       ```
+
+     - async/await  (ES7)
+
+10. 事件流
+
+    - 事件流描述的是从页面中接收事件的顺序
+    - 事件流的几个阶段：事件捕获阶段，处于目标阶段，事件冒泡阶段
+    - 指定事件处理的程序的操作addEventListener（事件名，事件处理函数，boolean（事件处理阶段））
+
+11. 事件先冒泡后捕获
+
+    - 对于同一个事件，监听捕获和冒泡，分别对应相应的处理函数，监听到捕获事件，先暂缓执行，直到冒泡事件被捕获后再执行捕获事件。
+
+12. 事件委托（事件代理）
+
+    - 通过事件冒泡，父元素可以监听到子元素上事件的触发，通过判断事件发生元素DOM 的类型，来做出不同的响应。
+
+    - 比较合适动态元素的绑定，新添加的子元素也会有监听函数，也可以有事件触发机制。
+
+    - ```html
+      <ul id="ul">
+          <li data-index=1>你好</li><!--这里是自定义属性，可以在该元素的dom上的dataset对象上获取到index属性-->
+          <li data-index=2>lxx</li>
+          <li data-index=3>再见，恋人</li>
+      </ul>
+      <script>
+          let ul=document.getElementById("ul")
+                  ul.addEventListener("click",queryIndex);
+                  function queryIndex(event){
+                      console.log(event.srcElement.dataset.index)
+                  }
+      </script>
+                  
+      ```
+
+13. 懒加载和预加载
+
+    - 懒加载：迟缓甚至不加载，减少请求数或延迟请求数。缓解前端服务器的压力。
+    - 预加载：提前加载图片，当用户需要查看时可直接从本地缓存中渲染。预加载则会增加服务器前端压力。
+
+14. mouseover与mouseenter：
+
+    - mouseover：当鼠标移入元素或其子元素都会触发事件（子元素的over会冒泡到父元素上，导致重复触发），对应移出事件mouseout
+    - mouseenter：当鼠标移入元素本身（不包含元素的子元素）会触发事件，对应移出事件mouseleave
+
+15. new 操作符
+
+    - 新建了一个空对象，这个对象原型指向构造函数的prototype，执行构造函数后返回这个对象。
+
+16. [防抖和节流](<https://www.jianshu.com/p/b5fcb9a04b17>)
+
+    - 防抖：触发高频事件后n秒内函数只会执行一次，如果n秒内高频事件再次被触发，则重新计算时间。
+
+      - 将多次操作合并为一次操作进行。原理是维护一个计时器，规定在delay时间后触发函数，但是在delay时间内再次触发的话，就会取消之前的计时器而重新设置。这样一来，只有最后一次操作能被触发。
+
+      - ```js
+        //防抖debounce代码：
+        //防抖分两种：延后执行和立即执行
+        //延后执行
+        function debounce(func,wait) {
+            let timeout = null; 
+            return function () {
+                clearTimeout(timeout); 
+                timeout = setTimeout(() => {
+                    fn.apply(this, arguments);
+                }, wait);
+            };
+        }
+        //立即执行
+        function debounce(func,wait) {
+            let timeout;
+            return function () {
+                if (timeout) clearTimeout(timeout);
+                let callNow = !timeout;
+                timeout = setTimeout(() => {
+                    timeout = null;
+                }, wait)
+        
+                if (callNow) func.apply(this, arguments)
+            }
+        }
+        // 处理函数
+        function handle() {
+            console.log(Math.random());
+        }
+        // 滚动事件
+        window.addEventListener('scroll', debounce(handle));
+        ```
+
+        
+
+    - 节流：**指连续触发事件但是在 n 秒中只执行一次函数**
+
+      ```js
+      function throttle(fn,wait) {
+          let canRun = true; 
+          return function () {
+              if (!canRun) return;
+              canRun = false;
+              setTimeout(() => { 
+                  fn.apply(this, arguments);
+                  canRun = true;
+              }, wait);
+          };
+      }
+      ```
+
+17. js垃圾回收机制：
+
+    - 必要性：由于字符串、对象和数组没有固定大小，所有当他们的大小已知时，才能对他们进行动态的存储分配。JavaScript 程序每次创建字符串、数组或对象时，解释器都必须分配内存来存储那个实体。只要像这样动态地分配了内存，最终都要释放这些内存以便他们能够被再用，否则，JavaScript 的解释器将会消耗完系统中所有可用的内存，造成系统崩溃。
+    - 机制：标记清除，引用计数
+
+18. eval函数：
+
+    - 将对应的字符串解析成js 并执行
+
+    - ```js
+      eval("console.log(\"hahhf\");console.log(\"你好\")")
+      ```
+
+    - 应尽量避免使用eval，因为很耗性能，一次需要解析字符串，一次需要执行字符串
+
+19. [前端模块化](<https://www.jianshu.com/p/67ce52c93392>)
+
+    - 前端模块化就是将复杂的文件分成一个个独立的模块，解决命名冲突、文件依赖、按需加载
+
+    - AMD（异步加载，依赖前置），CMD（异步加载，就近依赖），CommonJS（同步加载模块，就近依赖）是目前最常用的三种模块化书写规范。以及用于js 打包（编译等处理）的工具webpack
+
+    - Commonjs：开始于服务器端的模块化，同步定义的模块化，每个模块都是一个单独的作用域，模块输出，modules.exports，模块加载require()引入模块。
+
+      ```js
+      //CommonJS定义的模块分为: 模块标识(module)、模块定义(exports) 、模块引用(require)
+      //a.js
+      module.exports={
+          age:20,
+          sayhello:()=>{
+              console.log(`你好，我今年${this.age}岁了`)
+          }
+      }
+      
+      let a=require('./a');
+      console.log(a)//{ age: 20, sayhello: [Function: sayhello] }
+      
+      //b.js
+      function sayhello(){console.log("hello")}
+      function smile(){console.log("smile")}
+      exports.sayhello=sayhello;
+      exports.smile=smile;
+      
+      let b=require('./b');
+      console.log(b)//{ sayhello: [Function: sayhello], smile: [Function: smile] }
+      
+      //c.js
+      module.exports = class Cat{
+          constructor(){
+              this.name="cat"
+          }
+          sayhello(){
+              console.log(`my name is ${this.name}`);
+          }
+      }
+      
+      let Cat=require('./c');
+      let cat=new Cat();
+      console.log(Cat)//[Function: Cat]
+      console.log(cat.__proto__)//Cat {}
+      console.log(cat)//Cat { name: 'cat' }
+      ```
+
+    - AMD：是"Asynchronous Module Definition"的简写，也就是异步模块定义。它采用异步方式加载模块。通过define方法去定义模块，require方法去加载模块。
+
+    - ```js
+      //定义模块
+      define(['module'], function() {
+        let name = 'hello';
+        function sayName() {
+          console.log(name);
+        }
+        return { sayName }
+      })
+      
+      //引入
+      require(['module'], function(mod) {
+         mod.sayName(); // likang
+      })
+      ```
+
+    - 
+
+20. 深拷贝
+
+    ```js
+    function deepClone(obj){
+        var newObj= obj instanceof Array ? []:{};
+        for(var item in obj){
+        var temple= typeof obj[item] == 'object' ? deepClone(obj[item]):obj[item];
+        newObj[item] = temple;
+        }
+        return newObj;
+    }
+    let obj={a:1,b:function(){console.log("hah")},c:{d:"qin",e:[1,2,3]},f:[7,8,9]}
+    let co=deepClone(obj)
+    console.log(co)
+    ```
+
+21. once函数
+
+    ```js
+    let once = function (fn) {
+        let once = true;
+        console.log("1haha")
+        return function () {
+          if (once) {
+            once = !once;
+            fn.apply(this,arguments);
+          }
+        };
+      };
+      function one(){
+          console.log("hahah")
+      }
+      let b=once(one)
+      b()
+      b()
+    ```
+
+22. 将原生的ajax封装成promise：
+
+    ```js
+    let myNewAjax=function(url){
+        return new Promise(function(resolve,reject){
+            let xhr = new XMLHttpRequest();
+            xhr.open('get',url);
+            xhr.send(data);
+            xhr.onreadystatechange=function(){
+            if(xhr.status==200&&readyState==4){
+                let json=JSON.parse(xhr.responseText);
+                    resolve(json)
+                }else if(xhr.readyState==4&&xhr.status!=200){
+                    reject('error');
+                }
+            }
+        })
+    }
+    ```
+
+23. 

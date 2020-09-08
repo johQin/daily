@@ -375,19 +375,37 @@ function(src,n){
 ## 2.5 Object
     keys和values()用于返回对象的键和值的数组
 ```js
-const obj={a:1,b:[2,3,4],c:{d:1,e:2}}
-Object.keys(obj)    //["a","b","c"] 
-Object.values(obj)  //[1,[2, 3, 4],{d:1, e:2}]
+
+Object.assign(origin,obj1,obj2)//合并对象属性到origin对象，如果有重复的属性，靠后的对象的重复属性会覆盖靠前对象的属性。
+Object.keys()//获取对象的可枚举属性key数组
+Object.getOwnPropertyNames()//获取对象的属性key数组，包括不可枚举属性
+Object.values()//获取对象的可枚举属性值value数组
+Object.entires()//获取对象的键值对数组的数组。
+obj.hasOwnProperty(pro)//判断对象是否包含pro属性
+
+Object.create(proto,caseobj)//第一个参数为新创建对象的原型对象，第二个参数新创建对象的实例对象（默认不可修改，不可枚举,也可在设置时修改默认配置)
+//定义对象的新属性的配置，
+Object.defineProperty(object, prop, descriptor)//descriptor：{value: 101,writable: true,enumerable: true,configurable: true}
+Object.defineProperties(object,{prop1:descriptor1,prop2:descriptor2})
+
+Object.preventExtensions(object)//阻止对象扩展新的属性
+Object.isExtensible(object)//判断对象是否可扩展
+Object.seal(object)//用于密封对象object。
+//密封对象是指那些不能添加新的属性，不能删除已有属性，以及不能修改已有属性的可枚举性、可配置性、可写性，但可能可以修改已有属性的值的对象。
+Object.isSealed(object)//判断对象是否已密封
+Object.freeze(object)//用于冻结对象，冻结对象是不可变得对象，值和配置都不可变
+Object.isFrozen(object)//判断对象是否已冻结
+
 ```
 ## 2.6 Console
-    Console 对象提供了访问浏览器调试模式的信息到控制台。
-1. clear()
-清除控制台信息
-2. info()和log()
-向控制台输出一条信息
-3. time()和timeEnd()
-计算代码（块）运行所需要的时间
 
+Console 对象提供了访问浏览器调试模式的信息到控制台。
+
+```js
+console.clear()//清除控制台信息
+console.info();console.log()//向控制台输出信息
+console.time();console.timeEnd();计算代码（块）运行所需要的时间
+```
 ## 2.7 JSON
 ```js
 JSON.parse(str)//将JSON字符串转换为JS Object
@@ -565,6 +583,14 @@ window对象也包含一些属性，主要有：
     - url 页面url
 
 go方法会改变地址栏并跳转刷新页面，而pushState，replaceState，仅仅改变地址栏内容
+## 4.3 window
+
+## 4.4 screen
+
+## 4.5 navigator
+
+
+
 # 5.文档对象模型(DOM)
 
     借助DOM模型，可以将结构化的文档转换成DOM树。以便在程序中可以增删改查树里的节点。
