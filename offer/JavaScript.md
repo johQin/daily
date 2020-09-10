@@ -14,6 +14,10 @@
 
 2. 闭包
 
+   - 就是能够读取其他函数内部变量的函数
+   - javascript中，只有函数内部的子函数才能读取局部变量，所以闭包可以理解成“定义在一个函数内部的函数“。在本质上，闭包是将函数内部和函数外部连接起来的桥梁。
+   - 应用场景：结果缓存，实现类和继承
+
    ```js
    const c=(function(){
        var a=0;
@@ -1506,9 +1510,9 @@ render process 包含多个线程：
 
     - DOM树表示页面结构，渲染树表示DOM节点如何显示。DOM树中的每一个需要显示的节点在渲染树种至少存在一个对应的节点（隐藏的DOM元素disply值为none 在渲染树中没有对应的节点）。渲染树中的节点被称为“帧”或“盒",符合CSS模型的定义，理解页面元素为一个具有填充，边距，边框和位置的盒子。一旦DOM和渲染树构建完成，浏览器就开始显示（绘制）页面元素。
 
-    - 重排：当DOM的变化影响了元素的几何属性（宽或高），浏览器需要重新计算元素的几何属性，同样其他元素的几何属性和位置也会因此受到影响。浏览器会使渲染树中受到影响的部分失效，并重新构造渲染树。
+    - 重排：当DOM的变化影响了元素的几何属性（宽或高），浏览器需要重新计算元素的几何属性，同样其他元素的几何属性和位置也会因此受到影响。浏览器会使渲染树中受到影响的部分失效，并重新构造渲染树。当渲染树中的一部分(或全部)因为元素的规模尺寸，布局，隐藏等改变而需要重新构建, 这就称为回流(reflow)。每个页面至少需要一次回流，就是在页面第一次加载的时候。
 
-    - 重绘：完成重排后，浏览器会重新绘制受影响的部分到屏幕
+    - 重绘（repaint 或redraw）：当盒子的位置、大小以及其他属性，例如颜色、字体大小等都确定下来之后，浏览器便把这些原色都按照各自的特性绘制一遍，将内容呈现在页面上。重绘是指一个**元素外观属性的改变**所触发的浏览器行为，浏览器会根据元素的新属性重新绘制，使元素呈现新的外观。
 
     - 重排必然导致重绘
 
@@ -1609,6 +1613,7 @@ render process 包含多个线程：
 
    - defer 指定脚本延迟执行，必须等整个页面载入之后，解析完毕之后才执行该script脚本
    - async指定脚本是否异步执行，回启动新线程，异步执行script元素。
+   - 这是js 加载过程阻塞的解决方法。
 
 6. js中!!用于变量前，将变量强行转化为对应的boolean值。
 
@@ -1764,6 +1769,8 @@ render process 包含多个线程：
 12. 事件委托（事件代理）
 
     - 通过事件冒泡，父元素可以监听到子元素上事件的触发，通过判断事件发生元素DOM 的类型，来做出不同的响应。
+
+    - 如果将事件代理用在捕获阶段，可以在父元素层面阻止事件向子元素传播，也可代替所有子元素执行某些公共的操作。
 
     - 比较合适动态元素的绑定，新添加的子元素也会有监听函数，也可以有事件触发机制。
 
@@ -1994,4 +2001,350 @@ render process 包含多个线程：
     }
     ```
 
-23. 
+23. 对象属性配置项
+
+    - 可枚举性enumerable：对象的属性分为可枚举和不可枚举之分，它们是由属性的enumerable值决定的，可影响下面几个操作是否可以获取属性
+      - for…in
+      - Object.keys()
+      - JSON.stringify
+    - 可配置性Configurable：设置属性是否可以被删除,属性是否可更改
+    - 可写writable：属性值是否可修改
+
+24. 手写bind
+
+25. [代码的执行顺序Event Loop](<https://segmentfault.com/a/1190000016278115?utm_source=tag-newest>)
+
+    - 执行所有同层代码，同层代码中有同步和异步代码，同步代码实时在调用stack中运行（同步代码也包括异步声明代码）。
+    - 特殊的同步代码，Promise.resolve().then()，以及promise对象里同步执行的代码。
+    - 执行到异步代码会加入相应队列，队列分两种：宏队列macrotask-tasks和微队列microtask-jobs。
+    - 在一个Event-loop中，先执行所有同层同步代码，再执行微队列所有job，最后执行宏队列的队首task（仅队首），然后再执行微队列所有job，再执行宏队列队首task，依次循环执行。在这个过程中如遇到异步代码，就往相应队列添加。直到调用stack、microtask、macrotask队列都为空
+    - 加入到macrotask队列中的代码
+      - setTimeout，最小时间间隔为1，小于1的时间自动调整为1
+      - setInterval
+      - setImmediate (Node独有)
+      - requestAnimationFrame (浏览器独有)
+      - I/O
+      - UI rendering (浏览器独有)
+    - 加入到microtask队列中的代码
+      - process.nextTick (Node独有)
+      - Promise
+      - *Object*.observe
+      - *MutationObserver*
+
+26. setTimeout实现setInterval
+
+    ```js
+    setTimeout(function(){
+    //do something
+    setTimeout(arguments.callee,200);
+    },200);
+    ```
+
+    
+
+27. sleep()
+
+    - 本质上都是利用promise
+
+    - ```js
+      function wakeUp(){
+          console.log('睡醒')
+      }
+      //1.promise
+      function sleep(ms){
+          return new Promise((resolve)=>{
+              console.log("ahh")
+              setTimeout(resolve,ms)
+          })
+      }
+      sleep(2000).then(wakeUp)
+      
+      //2.利用async/await 
+      async function sleep(ms){
+          let back= await new Promise((resolve)=>{
+              setTimeout(resolve,ms)
+          })
+          return back;
+      }
+      sleep(2000).then(wakeUp)
+      
+      //3.利用生成器generator
+      function *sleep(ms){
+          yield new Promise((resolve)=>{
+              setTimeout(resolve,ms)
+          })
+      }
+      sleep(2000).next().value.then(wakeUp);
+      ```
+
+    - 
+
+28. [手写promise](<https://www.cnblogs.com/sugar-tomato/p/11353546.html>)
+
+    ```js
+    class promise{
+        constructor(executor){
+            this.state="pending";
+            this.value=undefined;
+            this.error=undefined;
+            try{
+                executor(this.resolve,this.reject)
+            }catch(e){
+                this.reject(e)
+            }
+            
+        }
+        resolve(value){
+            if(this.state=="pending"){
+                this.state="fulfilled";
+                this.value=value;
+            }
+        }
+        reject(error){
+            if(this.state=="pending"){
+                this.state="rejected";
+                this.error=error;
+            }
+        }
+        then(onFulfilled,onRejected) {
+            // 状态为fulfilled，执行onFulfilled，传入成功的值
+            if (this.state === 'fulfilled') {
+              onFulfilled(this.value);
+            };
+            // 状态为rejected，执行onRejected，传入失败的原因
+            if (this.state === 'rejected') {
+              onRejected(this.error);
+            };
+        }
+    }
+    ```
+
+29. 简单实现node中的Events模块
+
+    - 观察者模式或者说订阅模式，它定义了对象间的一种一对多的关系，让多个观察者对象同时监听某一个主题对象，当一个对象发生改变时，所有依赖于它的对象都将得到通知。
+
+    - node 中的Events 模块就是通过观察者模式来实现的
+
+    - ```js
+      //node中
+      var events=require('events');
+      var eventEmitter=new events.EventEmitter();
+      eventEmitter.on('say',function(name){
+      console.log('Hello',name);
+      })
+      eventEmitter.emit('say','Jony yu');
+      ```
+
+    - ```js
+      //手写
+      class Events{
+          constructor(){
+              this.on=function(eventName,callBack){
+                  //当handles不存在时，初始化为{}
+                  if(!this.handles){
+                      this.handles={};
+                  }
+                  //事件名对应的事件是否存在，如果不存在初始化为[]
+                  if(!this.handles[eventName]){
+                      this.handles[eventName]=[];
+                  }
+                  this.handles[eventName].push(callBack);
+              }
+              this.emit=function(eventName,obj){
+                  if(this.handles[eventName]){
+                      for(var i=0;i<this.handles[eventName].length;i++){
+                      this.handles[eventName][i](obj);
+                      }
+                  }
+              }
+          }
+      }
+      let ev=new Events();
+      ev.on("say",function(name){console.log("hello"+name)});
+      ev.on("say",function(name){console.log("hello"+name+'先生')});
+      ev.emit("say",'li')
+      ```
+
+    - 
+
+30. 数组去重
+
+    ```js
+    //indexOf
+    function dupRemoval1(target){
+        return target.filter((item,index)=>{
+            return target.indexOf(item)==index;
+        })
+    }
+    //Set
+    function dupRemoval2(target){
+        let set=new Set(target)
+        return [...set]
+    }
+    ```
+
+31. 数据类型区分
+
+    ```js
+    let arr=[1,"f",true,function(){return false},undefined,null,{},[]]
+    
+    console.log('---------Object.prototype.toString.call(target)--------')
+    arr.map((item)=>{
+        console.log(Object.prototype.toString.call(item))
+    })
+    
+    console.log('-----------typeof(target)------------------------')
+    arr.map((item)=>{
+        let type=typeof(item)
+        if(type=='object'){
+            if(item instanceof Object && Array.isArray(item)){
+                type='array';
+            }else if(item instanceof Object){
+                type='object';
+            }else{
+                type='null'
+            }
+        }
+        console.log(type)
+    })
+    
+    /*
+    
+    ---------Object.prototype.toString.call(target)--------
+    [object Number]
+    [object String]
+    [object Boolean]
+    [object Function]
+    [object Undefined]
+    [object Null]
+    [object Object]
+    [object Array]
+    
+    -----------typeof(target)------------------------
+    number
+    string
+    boolean
+    function
+    undefined
+    null
+    object
+    array
+    
+    */
+    
+    ```
+
+32. [跨域](<https://segmentfault.com/a/1190000011145364>)
+
+    - 问题：因为浏览器的同源策略，造成浏览器不能执行其他网站的脚本。
+
+    - 浏览器的同源策略：协议+域名+端口号，三项相同即为同源。
+
+    - 域名相同：包括主域+子域相同，ip和对应域名的在浏览器看来域名也是不同的。
+
+    - 解决方案：
+
+      1、 通过jsonp跨域
+      2、 document.domain + iframe跨域
+      3、 location.hash + iframe
+      4、 window.name + iframe跨域
+      5、 postMessage跨域
+      6、 跨域资源共享（CORS）
+      7、 nginx代理跨域
+      8、 nodejs中间件代理跨域
+      9、 WebSocket协议跨域
+
+33. [js不同数据类型的值的比较，是怎么转换的，有什么规则，x==y](<https://www.jianshu.com/p/ace2c71bec3b>)
+
+    - `==` 允许在相等比较中进行强制类型转换，而 `===` 不允许。
+    - ToNumber操作：`true` 转换为 1， `false` 转换为 0。 `undefined` 转换为 `NaN`， `null` 转换为 0。ToNumber 对字符串的处理基本遵循数字常量的相关规则 / 语法。
+    - ToPrimitive操作：
+      - 首先检查该值是否有 valueOf() 方法。如果有并且返回基本类型值，就使用该值进行强制类型转换。
+      - 如果没有就使用 toString() 的返回值（如果存在）来进行强制类型转换。
+      - 如果 valueOf() 和 toString() 均不返回基本类型值，会产生 TypeError 错误。
+      - 转换的优先级是 布尔 > 字符串 > 对象
+
+    - 基本数据类型：number，boolean，string，null，undefined
+    - x与y的类型相同：
+      - 都为undefined：true
+      - null：true
+      - string：字符序列完全相同时，返回true
+      - boolean：都为相同值时，返回true
+      - object：**对象（包括函数和数组）的宽松相等（==）**：两个对象指向同一个值时即视为相等，不发生强制类型转换。
+      - number：
+        - 任意一个为NaN：false
+        - x与y为相等的数值：true
+        - +0与-0：true
+    - 不同类型时：显然会进行类型转换，基本数据类型ToNumber，对象类型进行 ToPrimitive 操作
+      - null与undefined：true
+      - number与其他类型：
+        - string：number==toNumber(string)
+        - boolean：number==toNumber(boolean)，true转为1，false转为0
+        - 0==[]，true
+        - object，false
+      - []与{}：false
+
+34. this指向：
+
+    - 默认绑定：全局环境中，this指向window
+    - 隐式绑定：函数的上下文。
+    - 隐式丢失：bind()，apply()，call()
+    - new绑定：构造函数构造的对象，或者构造器中return的对象
+
+35. 暂停死区：
+
+    - 在代码块内，使用let、const 命令声明变量之前，该变量都是不可用的。这在语法上，称为“暂时性死区”（没有变量提升）
+
+36. 虚拟DOM:
+
+    - 用js对象表示真实DOM结构，当状态变更时，构造新的js对象，与旧有js对象进行比较，记录两棵树的差异应用到所构建的真DOM树上。
+
+37. antd
+
+    - 优点：组件全面，
+    - 缺点：框架自定义程度低，默认ui风格修改困难
+
+38. 继承实现方式：
+
+    - 原型链继承
+    - 
+
+39. prototype，`__proto__`
+
+40. 下划线命名与驼峰命名之间的转换
+
+    ```js
+    function camel2_(target){
+        return target.replace(/[A-Z]/g,(str)=>{
+            return '_'+str.toLowerCase();
+        })
+    }
+    function _2Camel(target){
+        return target.replace(/_[a-z]/g,(str)=>{
+            return str.charAt(1).toUpperCase();
+        })
+    }
+    
+    let str1='getElementById';
+    let str2='get_element_by_id';
+    console.log(camel2_(str1))
+    console.log(_2Camel(str2))
+    ```
+
+41. `setTimeOut(fn,100)`其中100ms如何权衡
+
+    - setTimeout()函数只是将事件插入了任务列表，必须等到当前代码执行完，主线程才会去执行它指定的回调函数，有可能要等很久，所以没有办法保证回调函数一定会在setTimeout 指定的时间内执行，100 毫秒至少是插入队列的时间+等待的时间
+
+42. 页面之间传参：
+
+    - url的query参数，localstroage和sessionStroage
+    - 框架内的话：vue的vuex，react的react-redux，也可以通过代参跳路由
+
+43. [继承的方式](<https://www.jianshu.com/p/0580a641eee7>)
+
+    - 原型链继承：将父类实例作为子类的原型，实例是子类的实例也是父类的实例
+    - 构造函数继承：使用父类的构造函数来增强子类实例，等于是复制父类的实例属性给子类（没用到原型）
+    - 组合式继承：通过调用父类构造，继承父类的属性并保留传参的优点，然后通过将父类实例作为子类原型，实现函数复用
+
+44. 
+

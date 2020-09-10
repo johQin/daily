@@ -373,7 +373,6 @@ function(src,n){
     num.toFixed(n)//数字转为字符串，四舍五入保留n位小数
 ```
 ## 2.5 Object
-    keys和values()用于返回对象的键和值的数组
 ```js
 
 Object.assign(origin,obj1,obj2)//合并对象属性到origin对象，如果有重复的属性，靠后的对象的重复属性会覆盖靠前对象的属性。
@@ -419,6 +418,7 @@ JSON.stringify(Object||Array)//将JS Object 转化为JSON字符串
 - 数值
 - 布尔
 - 字符串
+- symbol
 - undefined 表示没有为变量设置值或属性不存在；
 - null 表示变量有值，但其值为null
 
