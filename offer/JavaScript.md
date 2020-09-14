@@ -1,4 +1,4 @@
-# 1 ES6
+# ``1 ES6
 
 ## 1.1 新增
 
@@ -771,13 +771,194 @@ vue-router是Vue.js官方的路由插件，它和vue.js是深度集成的，适�
    - import()
    - webpack的异步块
 
-   
 
 ## 3.3 Vuex
 
 Vuex 是一个专为 Vue.js 应用程序开发的**状态管理模式**。它采用集中式存储管理应用的所有组件的状态。
 
+1. vuex有哪几种属性：
 
+   - State , Getter , Mutation , Action , Module
+
+   - state：存放数据（各组件状态）的仓库。
+
+   - getter：用来获取数据，类似于页面的计算属性。
+
+   - mutation：修改数据的同步方法。
+
+     - ```js
+       //组件中，提交mutation
+       this.$store.commit('addCount')
+       //mutation方法
+       addCount(state){state.count++}
+       ```
+
+   - action：提供异步方法，提交mutation修改仓库数据。
+
+     - ```js
+       //组件中，提交mutation请求
+       this.$store.dispatch('queryWeather',{address:'chengdu',type:'now'})
+       //store仓库中，并提交mutation
+       queryWeather:function({ commit, state },params){
+           //fetch浏览器自带请求方法
+                   let url=`https://free-api.heweather.net/s6/weather/now?location=chengdu&key=db7f3a13f1ef48168d4045817776ffb2`
+                   fetch(url,{method:"GET"}).then((res)=>res.json()).then((res)=>{
+                       console.log('action的天气数据',res)
+                       commit('setWeather',res)
+                   })
+       }
+       ```
+
+   - module：仓库的模块化。
+
+   - 支持各种映射方法将仓库中的状态或方法**单向**映射到组件：`mapState，mapGetters，mapActions，mapMutations`
+
+## 3.4 基本问题
+
+1. v-if和v-show的区别
+
+   - v-if依赖于控制DOM节点，而v-show是依赖于控制DOM节点的display属性。
+   - **v-if 有更高的切换开销，v-show有更高的初始渲染开销。**
+   - v-if判断是否加载，可以减轻服务器的压力。v-show调整DOM元素的CSS的dispaly属性，可以使客户端操作更加流畅。
+
+2. 父子组件传值
+
+   - 父to子：props
+   - 子to父：
+     - `触发当前实例的方法：this.$emit( eventName, […args] )`
+     - 调用父组件传递给子组件的方法。
+
+3. 让css样式只在本组件中生效
+
+   - `<style scoped>`
+
+4. 获取dom
+
+   - 原生：`document.getElementById()`
+   - 框架：`this.$refs.refname`
+
+5. vue-loader
+
+   - 基于webpack的一个的loader，解析和转换 .vue 文件，提取出其中的逻辑代码 script、样式代码 style、以及 HTML 模版 template
+   - 再分别把它们交给对应的 Loader 去处理，核心的作用，就是提取。
+
+6. v-modal
+
+   - v-model 在内部为不同的输入元素使用不同的 property 并抛出不同的事件
+   - 以此实现数据的双向绑定
+
+7. computed与watch：
+
+   - computed：计算属性，是存放在data外的一种属性，其值依赖其他一些属性的值，当其他一些属性发生变化时，它的值也会根据计算式发生相应的变化。
+   - watch：用于监听某个属性，一旦某个属性发生变化，就会触发某个方法。
+
+8. vue组件中data为什么必须是一个函数
+
+   - 每个实例可以返回一份被返回对象的独立拷贝。可以使同一组件之间的状态互不影响
+
+9. `this.$nextTick(callback)`
+
+   - 将回调延迟到下次 DOM 更新循环之后执行。
+   - 它跟全局方法 `Vue.nextTick` 一样，不同的是回调的 `this` 自动绑定到调用它的实例上。
+
+10. v-on 可以监听多个事件吗
+
+    - ```html
+      <button v-on="{mouseenter: onEnter,mouseleave: onLeave}">鼠标进来1</button>
+      <button @mouseenter="onEnter" @mouseleave="onLeave">鼠标进来2</button>
+      ```
+
+11. 事件对象$event
+
+    - ```html
+      <button v-on:click="warn('Form cannot be submitted yet.', $event)">
+        	Submit
+      </button>
+      <script>
+           export default{
+              data(){
+                  return{}
+              },
+              methods:{
+                  warn: function (message, event) {
+          			// 现在我们可以访问原生事件对象
+                      if (event) {
+                          event.preventDefault()
+                      }
+                      alert(message)
+                  }
+              }
+          }
+      </script>
+      ```
+
+    - 
+
+12. [单页面与多页面应用的优缺点](<https://blog.csdn.net/jiang7701037/article/details/93243545>)：
+
+    - 单页面：一个html页面容器+很多组件，单页面是一次性把web应用的所有代码（HTML，JavaScript和CSS）全部请求过来（首次加载太慢会考虑按需加载。加载某个组件时，js会动态切换html容器中的内容。
+    - 多页面应用：每次进入新的页面，都需要向服务器发送请求，要整个页面的所有代码。而且，多次操作后，再次进入该页面时，还得再次请求。不但浪费了网络流量，更重要的是有延迟，用户友好性，用户体验不好。
+
+13. [过滤器](<https://www.cnblogs.com/qdwds/p/11564467.html>)
+
+    - Vue.js允许自定义过滤器，可被用于一些常见的文本格式化。过滤器可以用在两个地方：双花括号插值和v-bind表达式。过滤器应该被添加在JavaScript表达式的尾部，由“管道”符号指示；
+
+    - ```js
+      //  template
+        <div>{{str | length(9) }}</div>
+        <div>{{str1 | length(9) | toUpperCase}}</div>
+        
+      //  script
+       data() {
+          return {
+            str: "公众号“前端伪大叔”，欢迎大家前来关注！",
+            str1:'qianduanweidashu'
+          };
+        },
+      //  这里filters是这个对象
+        filters: {
+      //  自行输入长度
+          length(e, num) {
+            return e.slice(0, num) + "...";
+          },
+      //  转为大写
+          toUpperCase(e) {
+            return e.toUpperCase();
+          }
+        }
+      ```
+
+    - 
+
+14. v-if和v-for的优先级
+
+    - `v-for > v-if，它会遍历数组所有元素，然后再执行条件渲染。`
+    - v-if应该用函数去过滤数组，然后遍历数组中所有元素。
+
+15. assets和static的区别
+
+16. vue常用的修饰符
+
+    - 事件处理修饰符：`.once，.stop，`
+    - 按键修饰符：`.enter，.left`
+
+17. vue数组/对象的更新检测
+
+    - `vm.$set( target, propertyName/index, value )`
+    - `vm.$delete( target, propertyName/index )`
+
+    - 数组更新检测：
+      - 变异方法（push），无须再进行赋值操作。
+      - 非变异方法（filter）：需要再进行赋值操作。
+      - vue不能检测到：
+        - `vm.items[0]=value，解决：vm.$set(vm.items, indexOfItem, newValue)`
+        - `vm.items.length=0，解决：vm.items.splice(newLength)`
+    - 对象更新检测：
+      - Vue不能检测到对象的添加或者删除
+      - `Vue.set(vm.object, key, value)`
+      - `vm.object=Object.assign({},vm.object,{key1:val1,key2:val2})`
+
+18. 
 
 ## 3. 编程
 
