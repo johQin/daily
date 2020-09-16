@@ -1386,3 +1386,82 @@ export default new Vuex.Store({
 
 mapState，mapGetters，mapMutations，mapActions可以直接将状态管理中的同步异步方法以及状态映射到组件中去
 
+# 6 其他
+
+## 6.1 [过滤器](<https://www.cnblogs.com/qdwds/p/11564467.html>)
+
+Vue.js允许自定义过滤器，可被用于一些常见的文本格式化。过滤器可以用在两个地方：双花括号插值和v-bind表达式。过滤器应该被添加在JavaScript表达式的尾部，由“管道”符号指示；
+
+```js
+//  template
+  <div>{{str | length(9) }}</div>
+  <div>{{str1 | length(9) | toUpperCase}}</div>
+  <a v-bind:href="info.id|getHref" >你好，阳光</a>
+//  script
+ data() {
+    return {
+      str: "公众号“前端伪大叔”，欢迎大家前来关注！",
+      str1:'qianduanweidashu'
+    };
+  },
+//  这里filters是这个对象
+  filters: {
+//  自行输入长度
+    length(e, num) {
+      return e.slice(0, num) + "...";
+    },
+//  转为大写
+    toUpperCase(e) {
+      return e.toUpperCase();
+    },
+// 为链接添加域名 
+    getHref:function(val){
+      return 'https://cnodejs.org/topic/' + val 
+    }
+  }
+```
+
+## 6.2 自定义指令
+
+代码复用和抽象的主要形式依然是组件。然而，有的情况下，你仍然需要**对普通DOM元素进行低层操作**，这时候就会用到自定义指令。
+
+```js
+
+//1.定义自定义指令
+Vue.directives(directName,{
+    //钩子函数
+    bind:function(el, binding, vnode){},//只调用一次，指令第一次绑定到元素时调用。在这里可以进行一次性的初始化设置。
+    inserted:function(el, binding, vnode){},//被绑定元素插入父节点时调用 
+    update:function(el, binding, vnode, oldVnode){},//所在组件的 VNode 更新时调用
+    componentUpdated:function(el, binding, vnode, oldVnode){},//指令所在组件的 VNode 及其子 VNode 全部更新后调用。
+    unbind:function(el, binding, vnode){},//只调用一次，指令与元素解绑时调用。
+})
+
+
+//binding对象包含许多参数，
+<div id="hook-arguments-example" v-demo:foo.a.b="message"></div>
+
+Vue.directive('demo', {
+  bind: function (el, binding, vnode) {
+    var s = JSON.stringify
+    el.innerHTML =
+      'name: '       + s(binding.name) + '<br>' +
+      'value: '      + s(binding.value) + '<br>' +
+      'expression: ' + s(binding.expression) + '<br>' +
+      'argument: '   + s(binding.arg) + '<br>' +
+      'modifiers: '  + s(binding.modifiers) + '<br>' +
+      'vnode keys: ' + Object.keys(vnode).join(', ')
+  }
+})
+...
+
+/*
+    name: "demo"
+    value: "hello!"
+    expression: "message"
+    argument: "foo"
+    modifiers: {"a":true,"b":true}
+    vnode keys: tag, data, children, text, elm, ns, context, fnContext, fnOptions, fnScopeId, key, componentOptions, componentInstance, parent, raw, isStatic, isRootInsert, isComment, isCloned, isOnce, asyncFactory, asyncMeta, isAsyncPlaceholder
+*/
+```
+

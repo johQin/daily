@@ -1,4 +1,4 @@
-# ``1 ES6
+# 1 ES6
 
 ## 1.1 新增
 
@@ -958,7 +958,41 @@ Vuex 是一个专为 Vue.js 应用程序开发的**状态管理模式**。它采
       - `Vue.set(vm.object, key, value)`
       - `vm.object=Object.assign({},vm.object,{key1:val1,key2:val2})`
 
-18. 
+18. [过滤器](<https://www.cnblogs.com/shenjianping/p/11330126.html>)：
+
+    - Vue.js允许自定义过滤器，可被用于一些常见的文本格式化。过滤器可以用在两个地方：双花括号插值和v-bind表达式。过滤器应该被添加在JavaScript表达式的尾部，由“管道”符号指示；
+
+19. [自定义指令](<https://cn.vuejs.org/v2/guide/custom-directive.html#ad>)：
+
+    - 有的情况下，你仍然需要**对普通DOM元素进行低层操作**，这时候就会用到自定义指令。
+
+20. vue两个核心点：
+
+    - 组件
+    - 数据驱动
+
+21. jquery和vue的区别：
+
+    - jquery本质上还是操作dom来改变页面，数据和视图是在一起的。
+    - vue基于mvvm（并不完全遵循），将视图和模型通过vue对象双向绑定在一起。
+    - react是一个单向数据流的库（`state->view->new state->new view`)
+
+22. [引入组件的步骤](<https://www.cnblogs.com/e0yu/p/10795176.html>)：
+
+    - 首先通过import引入，其次在components中注册，最后在template中使用。
+    - 注意组件中的大写，需要用短横线+对应小写替代。
+
+23. vue router和location.href的用法区别：
+
+    - 页面是否重新加载：vue-router使用**history.pushState**进行路由更新，**静态跳转，页面不会重新加载**；location.href会触发浏览器，页面重新加载一次
+    - vue-router使用diff算法，实现按需加载，减少dom操作
+    - vue-router是路由跳转或同一个页面跳转；location.href是不同页面间跳转；
+
+24. Vue2中注册在router-link上事件无效解决方法：
+
+    - <Son @click.**native**=‘handler1’>
+
+25. 
 
 ## 3. 编程
 
@@ -1070,9 +1104,7 @@ Vuex 是一个专为 Vue.js 应用程序开发的**状态管理模式**。它采
 
 # 4 项目经验
 
-## 4.1 项目
-
-### 4.1.1 书法培训学校线上教育小程序
+## 4.1 书法培训学校线上教育小程序
 
 书法培训机构的信息管理系统，主要用于学生的家庭作业的管理、课程打卡、家校聊天室以及学习用品的选购超市。
 
@@ -1090,7 +1122,22 @@ Vuex 是一个专为 Vue.js 应用程序开发的**状态管理模式**。它采
 1. 改善了家校沟通交流混乱无序的现状，进一步提高了家校交流的效率。
 2. 消除了学习用品领取浪费的现象，简化了学习用品购买和缴费的流程，大大减轻了工作人员的工作强度
 
-### 4.1.2 **民航二所通用航空作业系统**
+### 问题
+
+1. 学习用品商城在加载商品图片时，图片由小到指定长度不规则突显：
+   - 开始以为是小程序计算能力不行，但是看了大型网站的小程序，别人的页面是如此的优雅，我们意识到这应该是不是计算的问题，查了多方的资料，最后问题目标指向：
+     - 商品列表过长，一次性渲染整个数组，页面计算有压力。
+     - 图片批量加载，对网络加载有压力。
+   - 解决：
+     - 上拉加载，新的内容。`vue-virtual-scroll-list`
+     - 懒加载，采用微信小程序，image标签的`lazy-load`，进行上下三屏的懒加载。
+2. 聊天系统
+   - 聊天气泡的三角形：伪元素选择器 + `border的透明与非透明`
+   - 光标与键盘的距离：cursor-spacing
+   - 来消息一直处在消息框的底部：`chatbox.scrollTop=chatbox.scrollHeight- chatbox.clientHeight;`
+   - 高度宽度的变化：vh和%的运用。
+
+## 4.2 **民航二所通用航空作业系统**
 
 近年来，由于民航二所通用航空业务市场的进一步扩张，以前由人工处理航空作业业务的效率已无法满足当前业务的需要。航空作业系统是面向实际航空作业流程的系统，覆盖了飞行员、飞行器、后勤人员和任务派发人员的航空作业所有要素。同时还增加了民航二所旗下加盟的全国通用航空业务战略合作伙伴的管理，至此信息化程度发生了质的飞跃。
 
@@ -1109,7 +1156,9 @@ Vuex 是一个专为 Vue.js 应用程序开发的**状态管理模式**。它采
 1. 加盟公司管理实现了无纸化全流程在线管理。
 2. 任务执行过程更加有序，保证了通用航空作业更加安全。
 
-### 4.1.3 德阳国际航空航天展览会
+
+
+## 4.3 德阳国际航空航天展览会
 
 2019德阳国际航空航天展览会，是德阳市政府和德阳高新发展公司，联合主办的民用航空展览会。为了改善观展的游客体验以及前期筹备展览会的招商引资，为此，量身定制信息系统。此系统涉及到航空航天展览会的方方面面，观展门票、人员证件、航天峰会管理、参展商管理、现场人员流动预测和管理和招商引资的登记管理。是互联网+的一次深度融合。
 
@@ -1129,7 +1178,7 @@ Vuex 是一个专为 Vue.js 应用程序开发的**状态管理模式**。它采
 2. 动态表单系统的动态适应性极大方便了业务人员收集相关信息。
 3. 在线购票方便了观展人员购票。
 
-### 4.1.4 湖北省国家电网智慧运营中心
+## 4.4 湖北省国家电网智慧运营中心
 
 为推进国家电网的进一步信息化，衔接国家一级部署和省二级部署的信息一体化，加快旧信息系统的迭代更新。为湖北省国家电网开发智慧运营中心，对大量历史数据进行大数据可视化分析，尤其对物资部分进行大量信息化定制化开发工作。
 
@@ -1140,7 +1189,7 @@ Vuex 是一个专为 Vue.js 应用程序开发的**状态管理模式**。它采
 1. 清洗历史数据，采用百度的Echarts图表分析以及莱信云大数据分析工具，按需求进行数据可视化
 2. 对物资部分的物资调配，物资采购，物资库存进行系统升级。
 
-### 4.1.5 **便民在线服务系统**
+## 4.5 **便民在线服务系统**
 
 小区式的在线便民服务系统，提供多种便民服务，包括饮用水，水电气充值、家政服务、美容美发和超市选购配送等便民服务。
 
@@ -1239,43 +1288,18 @@ render process 包含多个线程：
    - scrollTop：代表在有滚动条时，滚动条向下滚动的距离也就是元素顶部被遮住部分的高度。在没有滚动条时scrollTop==0恒成立。单位px，可读可写。
    - offsetTop: 当前元素顶部(border的外边界）距离最近使用（position属性，如果没有position属性，那就以body来定位）父元素顶部（border的内边界）的距离，页面印刷距离(能直接截图的距离）。如果当前元素的所有父元素（到有position的父元素为止），有滚动还需要加上所有父元素的滚动距离scrollTop。单位px，只读元素。
 
-3. 水平垂直居中
-
-   - **[margin:auto;](<https://www.cnblogs.com/raind/p/10726591.html>)**。实现剩余宽度的自动计算，实现水平居中（单个元素）。配合绝对定位，实现水平垂直居中
-
-   - 流布局容器中：
-
-     ```css
-     .container{
-             display:flex;/*属性值flex容器宽度由自身width决定，属性值inline-flex容器的宽度由子元素决定*/
-             justify-content: center;
-             align-items: center;
-             flex-direction:row;/*column*/
-             /*
-             place-content 是 align-content 和 justify-content 的简写属性；
-             place-items 是 align-items 和 justify-items 的简写属性。
-             */
-         }
-     ```
-
-   - 网格布局grid，[CSS 新的长度单位 fr ](<https://zhuanlan.zhihu.com/p/27502596>)
-
-4. 等高布局
-   - display:flex; align-items 的默认值为 stretch。
-   - 容器内子元素：height:100%;
-
-5. 画0.5px粗的线：
+3. 画0.5px粗的线：
    - \<meta name="viewport" content="initial-scale:0.5,width:device-width">
    - transform:scaleY(0.5)
 
-6. link标签与@import
+4. link标签与@import
 
    - 所属关系：link 属于html 标签，而@import 是css 提供的
    - 加载时间：加载页面时，`link`标签引入的 CSS 被同时加载；`@import`引入的 CSS 将在页面加载完毕后被加载。
    - 样式优先级：link > @import
    - dom可控：可以通过 JS 操作 DOM ，插入`link`标签来改变样式；而import不行
 
-7. %长度：
+5. %长度：
 
    - 子元素height 和width 的百分比：
      - 是相对于子元素的直接父元素
@@ -1288,8 +1312,15 @@ render process 包含多个线程：
      - margin同样如此。
    - border-radius：
      - 相对于自身的宽高
+   - line-height：
+     - 相对于自身字体大小
+   - font-size：
+     - 相对于继承字体的大小
+   - 
 
-8. 如何画一个三角形：
+   
+
+6. 如何画一个三角形：
 
    - ```css
      div {
@@ -1302,7 +1333,7 @@ render process 包含多个线程：
      }
      ```
 
-9. transition和animation的区别
+7. transition和animation的区别
 
    - 帧数：transition只可定义两帧的样式开始和结束。而animation可以通过定义关键帧@keyframes来指定多帧的样式
    - 事件：transition需要事件触发，而animation不需要。
@@ -1337,23 +1368,23 @@ render process 包含多个线程：
    }
    ```
 
-10. [flex布局](<https://www.runoob.com/w3cnote/flex-grammar.html>)
+8. [flex布局](<https://www.runoob.com/w3cnote/flex-grammar.html>)
 
-    - 流布局的优先级大于浮动float布局
+   - 流布局的优先级大于浮动float布局
 
-11. js动画和css动画的区别
+9. js动画和css动画的区别
 
-    - 渲染线程分为main thread 和compositor thread
-    - 如果只改变transform和opacity，css动画只调用compositor thread，而js会先调用main然后调用compositor。
-    - transform和opacity不会引起重排重绘。
+   - 渲染线程分为main thread 和compositor thread
+   - 如果只改变transform和opacity，css动画只调用compositor thread，而js会先调用main然后调用compositor。
+   - transform和opacity不会引起重排重绘。
 
-12. 块元素，行内块元素，行内元素
+10. 块元素，行内块元素，行内元素
 
     - 块级元素block（可设长宽，隔离元素，div，p）
     - 行内-块元素inline-block（可~，无法~，img） ，margin/padding 水平垂直方向都有效
     - 行内元素inline（无法~，无法~，只能适应内容，span），margin 在竖直方向上无效，padding 在水平方向垂直方向都有效
 
-13. 元素多行文本省略
+11. 元素多行文本省略
 
     - ```css
       div{
@@ -1369,13 +1400,13 @@ render process 包含多个线程：
       }
       ```
 
-14. opacity=0，visibility=hidden , display:none
+12. opacity=0，visibility=hidden , display:none
 
     - opacity=0，隐藏不改变布局，可触发其上的点击事件
     - visibility=hidden，隐藏不改变布局，不可触发其上的点击事件
     - display:none，不渲染，没有dom对象。
 
-15. [margin为负数](<https://www.jianshu.com/p/549aaa5fabaa>)：
+13. [margin为负数](<https://www.jianshu.com/p/549aaa5fabaa>)：
 
     - margin-left为负值：元素增加宽度并位置会向左偏移
 
@@ -1428,13 +1459,13 @@ render process 包含多个线程：
 
     - 
 
-16. 双边距重叠问题
+14. 双边距重叠问题
 
     - 多个相邻（兄弟或者父子关系）普通流的块元素垂直方向marigin 会重叠
     - 相邻外边距都为正时，上下相距以较大的margin为准。同为负，以绝对值较大的为准
     - 一正一负，为两者相加的和。
 
-17. position
+15. position
 
     - absolute：相对于最近的position不为static的父元素的margin外边缘进行定位，不占据原来空间
     - fixed：相对浏览器窗口，不占据原来空间
@@ -1444,30 +1475,51 @@ render process 包含多个线程：
       - 当然悬停的效果，是子元素（悬停元素）相对于父元素的。如果父元素都消失在屏幕中，那么子元素的悬停效果就会消失。
     - z-index 属性设置元素的堆叠顺序，只能在定位元素上奏效，可以为负数，数值越大离用户越近，数值越小离用户越远，默认为0
 
-18. css样式优先级：
+16. css样式优先级：
 
     - 选择器：id 选择器>class 选择器>标签选择器>伪元素选择器>伪类选择器
     - 多样式：同一元素引用了多个样式时，排在后面的样式属性的优先级高；
     - 来源：!important > 元素内嵌（行内样式） > 文档内嵌（< style >） > 外部引入（< link >） > 浏览器
 
-19. float 的元素
+17. float 的元素
 
+    - 定义元素的水平方向的浮动
     - 默认display为block，可设长宽，但不隔离元素
 
-20. calc()函数
+18. calc()函数
 
     - Calc 用户动态计算长度值，任何长度值都可以使用calc()函数计算
     - 注意：calc(100px - 10%)，例如此例中，减号前后必须保留一个空格，否则样式计算失效
 
-21. background-color
+19. background-color
 
     - 设置的背景颜色：会填充元素的content、padding、border。如果边框有透明部分（如虚线边框），会透过这些透明部分显示出背景色。
 
-22. css 预处理器有什么
+20. css 预处理器有什么
 
     - less、sass
 
-23. 
+21. [BFC和IFC](<https://www.cnblogs.com/zyl-Tara/p/7079708.html>)
+
+    - Formatting Context：它是页面中的一块渲染区域，并且有一套渲染规则，它决定了其子元素将如何定位，以及和其他元素的关系和相互作用。最常见的 Formatting context 有 Block fomatting context (简称BFC)和 Inline formatting context (简称IFC)。
+
+    - BFC，块级格式化上下文，就是页面上的一个隔离的独立容器，容器里面的子元素不会影响到外面的元素
+
+    - BFC布局规则：
+
+      - BFC的区域不会与float box重叠。
+
+      - 计算BFC的高度时，内部浮动元素也参与计算（不给父节点设置高度，子节点设置浮动的时候，会发生高度塌陷）。
+      - 属于**同一个**BFC的两个相邻Box的margin会发生重叠。
+      - 如何创建BFC：
+        - float的值不是none。
+        - position的值不是static或者relative。
+        - display的值是inline-block、table-cell、flex、table-caption或者inline-flex
+        - overflow的值不是visible
+
+    - 
+
+22. 
 
     ```css
     
@@ -1510,7 +1562,8 @@ render process 包含多个线程：
 
 1. http报文结构：
 
-   - 开始行：用于区分是请求报文还是，响应报文。请求报文的开始行称为请求行，响应报文的开始行为状态行
+   - 开始行：用于
+   - 是请求报文还是，响应报文。请求报文的开始行称为请求行，响应报文的开始行为状态行
      - 请求行：方法（get，post、connect、head...）、URL、http版本
      - 状态行：版本，状态码、短语
    - 首部行：用来说明浏览器，服务器或请求报文主体的一些信息
@@ -1543,7 +1596,7 @@ render process 包含多个线程：
 
    - 1xx：通知，系列响应状态码仅在与HTTP服务器沟通时使用。
    - 2xx：成功，系列响应状态码表明操作成功了
-   - 3xx：重定向，客户端需要做些额外工作才能得到所需要的资源。
+   - 3xx：重定向，客户端需要做些额外工作才能得到所需要的资源。 
      - 301：Moved Permanently 永久移动。请求的资源已被永久的移动到新URI，返回信息会包括新的URI，浏览器会自动定向到新URI。今后任何新的请求都应使用新的URI 代替。
      - 302：Found，服务器目前从不同位置的网页响应请求，但请求者应继续使用原有位置来继续以后的请求。
      - 304：Not Modified 未修改。所请求的资源自上次访问后，请求的内容未修改，服务器返回此状态码时，不会返回任何资源。客户端通常会缓存访问过的资源，通过提供一个头信息指出客户端希望只返回在指定日期之后修改的资源。
@@ -1553,6 +1606,8 @@ render process 包含多个线程：
      - 403（Forbidden）：服务器已经得到请求，但是拒绝执行。常用于一个资源只允许在特定时间段内访问，或者允许特定IP地址的用户访问的情况。
      - 404（Not Found）：服务器无法把客户端请求的URI转换为一个资源。
    - 5xx：服务端错误，这些代码意味着服务器处于不能执行客户端请求的状态，此时客户端应稍后重试。
+     - 500（Internal Server Error）：服务器如果在执行请求处理代码时遇到了异常，它们就发送此响应代码。
+     - 502 （bad gateway）：表明代理方面出现问题，或者代理与上行服务器之间出现问题，而不是上行服务器本身有问题。
    - 
 
    
@@ -1567,8 +1622,6 @@ render process 包含多个线程：
 
      - 超文本传输协议，互联网上应用最为广泛的一种网络协议,所有的WWW文件都必须遵守这个标准。设计HTTP的初衷是为了提供一种发布和接收HTML页面的方法。
      - HTTP 协议有一个缺陷：通信只能由客户端发起。
-     - HTTP 协议有一个缺陷：通信只能由客户端发起。
-
      - 是一个基于请求与响应，无状态的，无连接应用层的协议，常基于TCP/IP协议传输数据。
        - 无状态：协议对客户端没有状态存储，对事务处理没有“记忆”能力。第一次访问和第二次访问同一个服务器响应相同。通常用Cookie/Session加数据库的方式类跟踪用户的行动
        - 无连接：在http1.1以前，每次访问都需要通过Tcp的三次握手四次挥手，和服务器重新建立连接。HTTP/1.1持久连接Connection：keep-alive，手动断连。
@@ -1635,6 +1688,7 @@ render process 包含多个线程：
       - 加强对用户输入的验证（前后端验证）
       - 不将用户的输入直接嵌入到sql语句中。
     - [Xss(cross-site scripting)](<https://blog.csdn.net/i_dont_know_a/article/details/80560940>)：攻击指的是攻击者往Web页面里插入恶意 html标签或者javascript代码，篡改网站的内容。
+      - 一般被分为存储型（恶意代码被当做正常数据插入到数据库中，用户访问时，从数据库中拿出，在页面上触发），反射型（恶意链接，恶意代码在url中），DOM型（直接前台处理，不过后端）
       - 防范XSS攻击最主要的方法是对用户输入的内容进行HTML转义，转义后可以确保用户输入的内容在浏览器中作为文本显示，而不是作为代码解析。
       - cookie防范xss攻击：需要在http头部配set-cookie属性，
         - 设置了HttpOnly属性，那么通过js脚本将无法读取到cookie信息。
@@ -1655,7 +1709,7 @@ render process 包含多个线程：
     - 强缓存：
 
       - 不请求服务器，直接从从缓存取。状态码200（from cache）
-      - 主要包括 `expires`（过期时间，响应头） 和 `cache-control`（缓存的控制，请求头）。后者优先级高于前者。
+      - 主要包括 `expires`（过期时间，响应头） 、`cache-control`（缓存的控制，请求头）、`pragma`。后者优先级高于前者。
 
     - 协商缓存：
 
@@ -2195,6 +2249,19 @@ render process 包含多个线程：
     - 可写writable：属性值是否可修改
 
 24. 手写bind
+
+    - ```js
+      Function.prototype.mybind=function(){
+          let self=this;//保存函数体中的this
+          let context=Array.prototype.slice.call(arguments)[0]//要本函数的第一个参数
+          let args=Array.prototype.slice.call(arguments,1);//要本函数除了第一个参数以外的其他参数
+          return function(){
+      
+              return self.apply(context,args.concat(Array.prototype.slice.call(arguments)))//结合这个函数的参数列表
+          }
+      }
+      apple.say.mybind(leaf,1)()
+      ```
 
 25. [代码的执行顺序Event Loop](<https://segmentfault.com/a/1190000016278115?utm_source=tag-newest>)
 

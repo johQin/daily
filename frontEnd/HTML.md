@@ -228,8 +228,8 @@ gopher|访问远程Gopher服务器上的文件
     项目中很少用，看看就行了
 - table 表格 
 - tr 记录行
-- td 单元格
-- th 加粗文字单元格
+- td 单元格（数据）
+- th 加粗文字单元格，常用作表头（姓名，年龄等规定内容栏目的项）（colspan，rowspan）
 - thead 表头
 - tbody 表体
 - tfoot 表尾

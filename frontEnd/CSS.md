@@ -261,6 +261,82 @@ fatherLabel > sonLabel{
 
     1vh(1vw) 浏览器页面的宽度(高度)的1/100
 
+**100vw相对于浏览器的`window.innerWidth`，是浏览器的内部宽度，注意，滚动条宽度也计算在内！**
+
+**如果在页面的最外层：`100%`是可用宽度，是不含滚动条的宽度。**
+
+上面的结论会影响下面这个例子
+
+```html
+<body>
+    <div id="header">头部</div>
+    <div id="parent">
+        <div id="middle">
+            <div>中间自适应</div>
+        </div>
+        <div id="left">左列定宽</div>
+        <div id="right">右列定宽</div>
+    </div>
+    <div id="footer">底部</div>
+    <style>
+        /* css */
+        html
+        body{
+            padding:0;
+            margin:0;
+            color:#686de0;
+            width:100%;
+            /*
+            如果设置为100vw，而且里层宽度如果为100%，表示页面实际内容部分宽度为100vw。
+            那么当垂直滚动条出现的时候，滚动条是有宽度的，由于页面实际内容宽度为100vw，再加上滚动条宽度，那么整体宽度就会大于100vw，此时就会出现水平滚动条
+            这是我们不想看到的，故这里设置为100%；
+            */
+            background-color: #dff9fb;
+        }
+        #parent{
+            box-sizing: border-box;
+            width:100%;
+        }
+        #header{
+            height:100px;
+            background-color:#22a6b3;
+        }
+        #left {
+            height:100vh;
+            background-color: #badc58;
+
+            width: 200px;
+            margin-left:-100%;
+            float:left;
+        }
+        #middle{
+            height:100vh;
+            background-color: #ffbe76;
+
+            width:100%;
+            float:left;
+        }
+        #middle>div{
+            margin:0 200px;
+        }
+        #right {
+            height:100vh;
+            width:200px;
+            background-color: #ff7979;
+            float:left;
+            margin-left:-200px;
+        }
+        #footer{
+            clear: both;
+            background-color: #be2edd;
+            height:100px;
+        }
+    </style>
+    </body>
+```
+
+
+
 ### 百分比%长度具体分析
 
 缺点计算困难，设计稿的长度px都要转换成%；
@@ -276,7 +352,10 @@ fatherLabel > sonLabel{
    - margin同样如此。
 4. border-radius：
    - 相对于自身的宽高
-5. 
+5. line-height：
+   - 相对于自身字体大小
+6. font-size：
+   - 相对于继承字体的大小
 
 ### rem
 
@@ -590,7 +669,7 @@ columns-* width count rule gap fill span 栏宽 栏数 分隔条 栏隙 栏高 �
 - device-height ~的高度
 - device-aspect-ratio ~的宽高比
 
-    都支持min/max前缀
+    **都支持min/max前缀**
 
 使用示例
 ```css
@@ -931,7 +1010,477 @@ div
 }
 ```
 
-# 8 特殊技巧
+# 8 [布局技巧](<https://github.com/Sweet-KK/css-layout/tree/master/docs>)
+
+前三节都是`parent+son`
+
+## 8.1 水平居中
+
+### 8.1.1 文本/行内/行内块
+
+```css
+/*普通行内块*/
+#parent{
+    text-align:center;
+}
+/*多个行内块*/
+#parent{
+	text-align: center;
+}
+.son{
+    display:inline-block;
+    width:30%;
+}
+```
+
+`原理：text-align只控制行内内容(文字、行内元素、行内块级元素)如何相对他的块父元素对齐`
+
+优缺点
+
+- 优点：简单快捷，容易理解，兼容性非常好
+- 缺点：只对行内内容有效；属性会继承影响到后代行内内容；如果子元素宽度大于父元素宽度则无效，但是后代行内内容中宽度小于设置text-align属性的元素宽度的时候，也会继承水平居中
+
+### 8.1.2 单个块元素
+
+```css
+#son{
+    width: 100px; /*必须定宽*/
+    margin: 0 auto;
+}
+```
+
+原理：在margin有节余的同时如果左右margin设置了auto，将会均分剩余空间。另外，如果上下的margin设置了auto，其计算值为0
+
+优缺点
+
+- 优点：简单；兼容性好
+- 缺点：必须定宽，并且值不能为auto；宽度要小于父元素，否则无效
+
+### 8.1.3 任意个块元素flex
+
+```css
+#parent{
+    display:flex
+}
+.son{
+    flex:1 1 auto;
+}
+```
+
+优缺点
+
+- 优点：功能强大；简单方便；容易理解
+- 缺点：PC端[兼容性不好](https://caniuse.com/#search=flex)，移动端（Android4.0+）
+
+## 8.2 垂直居中
+
+### 8.2.1 单行/多行  文本/行内/行内块
+
+```css
+/*单行*/
+#parent{
+    height: 150px;
+    line-height: 150px;  /*与height等值*/
+}
+/*多行*/
+#parent{  /*或者用span把所有文字包裹起来，设置display：inline-block转换成图片的方式解决*/
+        height: 150px;
+        line-height: 30px;  /*元素在页面呈现为5行,则line-height的值为height/5*/
+}
+```
+
+```html
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>招银</title>
+    </head>
+    <body>
+    <div id="textAlign">
+        <div>父元素text-align:center</div>
+        <div>父元素text-align:center</div>
+        <div>父元素text-align:center</div>
+    </div>
+    <hr/>
+    <div id="singleMargin">单个块元素margin:auto</div>
+    <hr/>
+    <div id="flexhorizon">
+        <div>flex,justify-content</div>
+        <div>flex,justify-content</div>
+        <div>flex,justify-content</div>
+    </div>
+    <hr/>
+    <div id="lineHeight">单行多行 行内元素垂直居中</div>
+        <style>
+            /* css */
+            html
+            body{
+                padding:0;
+                margin:0;
+                color:aliceblue;
+                width:100vw;
+                background-color: aqua;
+            }
+            #textAlign{
+                text-align: center;
+                width: 100%;
+                color:aliceblue;
+            }
+            #textAlign > div{
+                display: inline-block;
+                width:30%;
+                background-color: blue;
+            }
+            #singleMargin{
+                margin:auto;
+                background-color: red;
+                width:90%;
+            }
+            #flexhorizon{
+                display: flex;
+                justify-content: center;
+            }
+            #flexhorizon > div{
+                flex:1 1 auto;
+                background-color: green;
+                margin:0 5px;
+            }
+            #lineHeight{
+                height:150px;
+                line-height: 150px;
+                background-color: blue;
+            }
+        </style>
+    </body>
+</html>
+```
+
+
+
+## 8.4 两列布局
+
+### 8.4.1 左列定宽 右列自适应
+
+```css
+1.float+margin
+
+#left{
+    width:200px;/*左列的固定宽度*/
+    height:100vh;
+    float:left;/*使其脱离文档流，不会把right放到下一行*/
+    background-color: #badc58;
+}
+#right{
+    margin-left: 200px;/*预留left的宽度位置*/
+    background-color: #ff7979;
+    height:100vh;
+}
+
+2.float+overflow
+
+#left {
+    background-color: #badc58;
+    float: left;
+    width: 200px;
+    height: 100vh;
+}
+#right {
+    background-color: #ff7979;
+    height: 100vh;
+    overflow: hidden; /*触发bfc,不与float元素重叠，并隔离元素达到自适应*/
+}
+
+3.position
+
+#left {
+    background-color: #badc58;
+    width:200px;
+    height: 100vh;
+
+    position:absolute;
+    left:0;
+    top:0;
+}
+#right {
+    background-color: #ff7979;
+    height: 100vh;
+
+    position:absolute;
+    left:200px;/*预留左栏宽度*/
+    top:0;
+    right:0;/*右栏宽度自适应*/
+}
+
+4.flex
+
+#parent{
+    display: flex;
+}
+#left {
+    background-color: #badc58;
+    width:200px;
+    height: 100vh;
+}
+#right {
+    background-color: #ff7979;
+    height: 100vh;
+    flex:1;/*均分了父元素剩余空间，达到了自适应*/
+}
+
+5.grid
+
+#parent{
+    display: grid;
+    grid-template-columns: 200px auto;
+    grid-template-rows: 100vh;
+}
+#left{
+    background-color: #badc58;
+}
+#right{
+    background-color: #ff7979;
+}
+
+```
+
+### 8.4.2 左列自适应 右列定宽
+
+```css
+1.float+margin
+#parent{
+    height: 500px;
+    padding-left: 200px;  /*抵消#left的margin-left,*/
+}
+#left {
+    width: 100%;
+    /*父元素的content的宽度=100vw-padding-left的100px*/
+    /*自适应，100%是相对于parent的content宽度，并且长度是包含了margin-left的-200px的长度，所以left总宽度等于content的宽度*/
+    /*margin-left为负值，使left发生了200px的偏移，故在右侧会余出200px的空缺*/
+    height: 500px;
+    margin-left: -200px; /*发生偏移，绝对值等于#right的宽度*/
+    float:left;/*使right能在同行显示*/
+    background-color: #f00;
+}
+#right{
+    float:right;
+    width: 200px;
+    height:500px;
+}
+
+2.float+overflow
+
+<div id="right">右列定宽</div>
+<div id="left">左列自适应</div>   /*顺序要换一下*/
+
+#left {
+    height:100vh;
+    background-color: #badc58;
+    overflow: hidden;/*触发bfc，不与float重叠*/
+}
+#right {
+    height:100vh;
+    width:200px;
+    background-color: #ff7979;
+    float:right;
+}
+
+3.position
+
+#left {
+    height:100vh;
+    background-color: #badc58;
+    position: absolute;
+    left:0;
+    top:0;
+    right:200px;
+}
+#right {
+    height:100vh;
+    width:200px;
+    background-color: #ff7979;
+    position: absolute;
+    top:0;
+    right:0;
+}
+
+4.flex
+#parent{
+    display: flex;
+    justify-content: flex-end;
+}
+#left {
+    height:100vh;
+    background-color: #badc58;
+    flex:1;
+}
+#right {
+    height:100vh;
+    width:200px;
+    background-color: #ff7979;
+}
+5.grid
+#parent{
+    display: grid;
+    grid-template-columns: auto 200px;
+    grid-template-rows:100vh;
+}
+#left {
+    background-color: #badc58;
+}
+#right {
+    background-color: #ff7979;
+}
+```
+
+### 8.4.3 一列不定 一列自适应
+
+盒子宽度随着内容增加或减少发生变化,另一个盒子自适应
+
+```css
+1.float+overflow
+
+#left {
+    height:100vh;
+    background-color: #badc58;
+    float:left;
+    margin-right:10px;
+}
+#right {
+    height:100vh;
+    background-color: #ff7979;
+    overflow: auto;/*bfc，不与float重叠*/
+}
+
+2.flex
+
+#parent{
+    display: flex;
+}
+#left {
+    height:100vh;
+    background-color: #badc58;
+    float:left;
+    margin-right:10px;
+}
+#right {
+    height:100vh;
+    background-color: #ff7979;
+    flex:1;
+}
+
+3.grid
+
+#parent{
+    display: grid;
+    grid-template-columns: auto 1fr;/*auto和1fr换一下顺序就是左列自适应,右列不定宽了*/
+    grid-template-rows:100vh;
+}
+#left {
+    background-color: #badc58;
+}
+#right {
+    background-color: #ff7979;
+}
+```
+
+小结：
+
+- 两列布局我们用得比较多的就是浮动，然后最简单就是把另外那个不是浮动的盒子触发bfc以达到自适应效果就O了。其次就是设置对应固宽值的的一些margin、padding去改变盒子的排布以达到我们的目的；
+- 除了浮动，我们还可以用绝对定位，计算好宽高、位置去设置样式，这个简单也容易理解，就是脱离文档流并且代码稍微多了一点；
+- 移动端兼容性允许的情况下能用flex就用flex，务必带上兼容，写法可参考文末阅读推荐，也可以使用Autoprefixer；
+
+## 8.5 三列布局
+
+### 8.5.1 左两列定宽 一列自适应
+
+```css
+1.float+margin
+#left {
+    height:100vh;
+    background-color: #badc58;
+    width: 200px;
+    float:left;
+}
+#middle{
+    width:200px;
+    height:100vh;
+    background-color: #ffbe76;
+    float:left;
+}
+#right {
+    height:100vh;
+    background-color: #ff7979;
+    margin-left:400px;/*左两列宽度之和*/
+}
+2.float+overflow
+#left {
+    height:100vh;
+    background-color: #badc58;
+    width: 200px;
+    float:left;
+}
+#middle{
+    width:200px;
+    height:100vh;
+    background-color: #ffbe76;
+    float:left;
+}
+#right {
+    height:100vh;
+    background-color: #ff7979;
+    overflow:auto;/*触发bfc，不重叠float*/
+}
+3.position
+略
+4.flex
+#parent{
+    display: flex;
+}
+#left {
+    height:100vh;
+    background-color: #badc58;
+    width: 200px;
+}
+#middle{
+    width:200px;
+    height:100vh;
+    background-color: #ffbe76;
+}
+#right {
+    height:100vh;
+    background-color: #ff7979;
+    flex:1;/*自适应*/
+}
+5.grid
+#parent{
+    display: grid;
+    grid-template-columns: 200px 200px 1fr;/*1fr自适应*/
+    grid-template-rows:100vh;
+}
+#left {
+    background-color: #badc58;
+}
+#middle{
+    background-color: #ffbe76;
+}
+#right {
+    height:100vh;
+    background-color: #ff7979;
+    flex:1;
+}
+```
+
+### 8.5.2 两侧固定 中间自适应
+
+#### 双飞翼
+
+```css
+
+```
+
+
+
+# 9 特殊技巧
 
 1. mix-blend-mode:multiply;把所有白色的部分转换成半透明的 png。
 

@@ -407,11 +407,48 @@ console.time();console.timeEnd();计算代码（块）运行所需要的时间
 ```
 ## 2.7 JSON
 ```js
-JSON.parse(str)//将JSON字符串转换为JS Object
-JSON.stringify(Object||Array)//将JS Object 转化为JSON字符串
+//将JS Object 转化为JSON字符串,
+JSON.stringify(Object||Array[,function||Array[,space]])
+//function(key,val){}，从最外层对象开始，最外层对象的key为"",然后从得到的最外层对象的返回值开始stringify，如果返回为undefined，那么就不返回。
+//array,将数组中元素有的键，进行stringify并返回。
+//space,文本添加缩进
+
+//将JSON字符串转换为JS Object
+JSON.parse(str[,function])
+//function(key,val){}，从最里层对象开始。如果返回undefined，那么就不解析。	
+
 ```
 
+```js
+//eg:
+let str={name:"qin",age:15};
+let i=0
+let j=JSON.stringify(str,function(key,val){
+    console.log('key:',key)
+    console.log('val:',val)
+    i++
+    if(key==""){
+        return val//注意最外层对象这里返回值，对后面迭代的影响。
+    }else{
+        return "val"+val
+    }
+})
+console.log("res",j,i)
+/*
+key:
+val: { name: 'qin', age: 15 }
+key: name
+val: qin
+key: age
+val: 15
+res {"name":"valqin","age":"val15"} 3
+*/
+```
+
+
+
 # 3. 项目高级语法需要
+
 ## 3.1 数据类型
 
 ### 3.1.1 基本数据类型
