@@ -712,7 +712,13 @@ obj.hasOwnProperty(pro)//判断对象是否包含pro属性
    - beforeCreate()，created()
    - deforeMount()，mounted()
 
-3. 
+3. 父子组件生命周期的执行顺序：
+
+   - 挂载过程：父beforeCreate->父created->父beforeMount->子beforeCreate->子created->子beforeMount->子mounted->父mounted
+   - 更新过程：父beforeUpdate->子beforeUpdate->子updated->父updated
+   - 销毁过程：父beforeDestroy->子beforeDestroy->子destroyed->父destroyed
+
+4. 
 
 ## 3.2 Vue-router
 
