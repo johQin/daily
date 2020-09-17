@@ -763,6 +763,8 @@ columns-* width count rule gap fill span 栏宽 栏数 分隔条 栏隙 栏高 �
                     1.auto：
                     2.fr：剩余长度按总共的fr均分，然后按具体fr数占据长度
                     3.minmax(minl,maxl)：不小于minl，不大于maxl
+            		CSS函数minmax()定义了一个长宽范围的闭区间， 它与CSS网格布局一起使用。
+            		每个参数分别是<length>、<percentage>、<flex>的一种，或者是max-content、min-content、或auto之一。
                     */
                     
                 /* 定义行 */
@@ -1191,7 +1193,7 @@ div
 }
 
 3.position
-
+/*记住定位是相对于第一个position非static的元素*/
 #left {
     background-color: #badc58;
     width:200px;
@@ -1472,10 +1474,243 @@ div
 
 ### 8.5.2 两侧固定 中间自适应
 
-#### 双飞翼
+<h3>双飞翼
+
+双飞翼布局其实只有中间的三列，下图为圣杯布局，其实道理相通。
+
+![双飞翼布局.png](./legend/双飞翼布局.png)
 
 ```css
+<div id="header">头部</div>
+<div id="parent">
+	<div id="middle">中间自适应</div>
+    <div id="left">左列定宽</div>
+    <div id="right">右列定宽</div>
+</div>
+<div id="footer">底部</div>
+<style>
+html
+body{
+    padding:0;
+    margin:0;
+    color:#686de0;
+    width:100%;
+    background-color: #dff9fb;
+}
+#parent{
+    height:calc(100vh - 200px);
+    width:100%;
+}
+#header{
+    height:100px;
+    background-color:#22a6b3;
+}
+#left {
+    height:100%;
+    background-color: #badc58;
 
+    width: 200px;
+    margin-left:-100%;
+    /*
+    由于middle的width：100%，并且如果不加margin-left:-100%;
+    middle和left分属两行，middle在left的上方。
+    margin为-100%，故发生100%的偏移刚好坐在middle的开头位置，
+    这里margin并没有增大内容区宽度
+    */
+    float:left;
+}
+#middle{
+    height:100%;
+    background-color: #ffbe76;
+
+    width:100%;
+    float:left;
+    padding:0 200px;/*预留左右两固定列的宽度*/
+    box-sizing: border-box;/*将padding的宽度纳入宽度100%中*/
+}
+#right {
+    height:100%;
+    width:200px;
+    background-color: #ff7979;
+
+    float:left;
+    margin-left:-200px;
+    /*
+    如果不加margin-left，那么，right在middle的下边。
+    那么它只需要发生自身宽度的偏移，就可以在middle的右边占据相应的定宽
+    */
+}
+#footer{
+    background-color: #be2edd;
+    height:100px;
+}
+</style>
+
+2.grid
+
+<div id="parent">
+	<div id="header">头部</div>
+	<div id="left">左列定宽</div>
+	<div id="middle">
+		中间自适应
+	</div>
+	<div id="right">右列定宽</div>
+	<div id="footer">底部</div>
+</div>
+<style>
+html
+body{
+    padding:0;
+    margin:0;
+    color:#686de0;
+    width:100%;
+    background-color: #dff9fb;
+}
+#parent{
+    height:100vh;
+    width:100%;
+    display: grid;
+    grid-template-columns: 200px auto 200px;
+    grid-template-rows: 100px minmax(calc(100vh - 200px),auto) 100px ;
+    grid-template-areas:"a a a"
+        				"b c d"
+        				"e e e";
+}
+#header{
+    height:100px;
+    background-color:#22a6b3;
+    grid-area:a;
+}
+#left {
+    background-color: #badc58;
+
+    grid-area:b;
+}
+#middle{
+    background-color: #ffbe76;
+
+    grid-area:c;
+}
+#right {
+    background-color: #ff7979;
+
+    grid-area:d;
+}
+#footer{
+    background-color: #be2edd;
+    grid-area:e;
+}
+</style>
+
+3.flex
+<div id="parent">
+	<div id="left">左列定宽</div>
+	<div id="middle">中间定宽</div>
+	<div id="right">右列定宽</div>
+</div>
+<style>
+#parent{
+    height:100vh;
+    width:100%;
+    display: flex;
+}
+
+#left {
+    background-color: #badc58;
+    width:200px;
+
+}
+#middle{
+    background-color: #ffbe76;
+    flex:1;
+}
+#right {
+    background-color: #ff7979;
+    width:200px;
+}
+</style>
+
+
+```
+
+## 8.6 全屏布局
+
+![全屏布局.png](./legend/全屏布局.png)
+
+```css
+1.flex
+<div id="container">
+	<div id="header">头部</div>
+	<div id="middle">
+		<div id="left">左列定宽</div>
+		<div id="right">右列自适应</div>
+	</div>
+	<div id="footer">尾部</div>
+</div>
+<style>
+#container{
+    height:100vh;
+    width:100%;
+    display: flex;
+    flex-direction: column;
+}
+
+#header{
+    height:70px;
+    background-color:#22a6b3;
+}
+#middle{
+    display: flex;
+    flex:1;
+}
+#left {
+    background-color: #badc58;
+    width:200px;
+}
+#right {
+    background-color: #ff7979;
+    flex:1;
+}
+#footer{
+    background-color: #be2edd;
+    height:70px;
+}
+</style>
+
+2.grid
+
+<div id="container">
+    <div id="header">头部</div>
+    <div id="left">左列定宽</div>
+    <div id="right">右列自适应</div>
+    <div id="footer">尾部</div>
+</div>
+<style>
+#container{
+    height:100vh;
+    width:100%;
+    display: grid;
+    grid-template-columns: 200px auto;
+    grid-template-rows: 70px auto 70px;
+    grid-template-areas: "a a" "b c" "d d";
+}
+#header{
+    background-color:#22a6b3;
+    grid-area:a;
+}
+#left {
+    background-color: #badc58;
+    grid-area:b;
+}
+#right {
+    background-color: #ff7979;
+    grid-area:c;
+}
+#footer{
+    background-color: #be2edd;
+    grid-area:d;
+}
+</style>
 ```
 
 
