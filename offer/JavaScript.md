@@ -96,8 +96,9 @@
 6. prototype
 
    - prototype 属性使您有能力向对象添加属性和方法。
-   - prototype是函数才有的属性。`__proto__`是每个对象都有的属性
-   - 大多数情况下`__proto__`是`constructor.prototype`(构造器的原型)
+   - prototype是函数才有的属性。`__proto__`是每个对象都有的属性。
+   - 函数的`prototype`的构造函数是`Object.prototype`
+   - `__proto__`指向的是`constructor.prototype`(构造器的原型)
    - ![](./legend/__proto__.png)
 
    ```js
@@ -151,6 +152,20 @@
    let b=2;
    [a,b]=[b,a];
    console.log(a,b);//2,1
+   
+   //典型例题
+   let obj={
+       p:[
+           'hello',
+           {
+               y:'abc'
+           }
+       ]
+   }
+   let {p,p:[x,{y}]}=obj;//这里两个p，会有点疑虑
+   console.log(p)//[ 'hello', { y: 'abc' } ]
+   console.log(x)//hello
+   console.log(y)//abc
    ```
 
 9. Object.assign()
@@ -373,30 +388,58 @@
 
     - async 是 ES7 才有的与异步操作有关的关键字，和 Promise ， Generator 有很大关联的。
 
-    - async 函数返回一个 Promise 对象，可以使用 then 方法添加回调函数。
+    - async 函数返回一个 Promise 对象，可以使用 then 方法添加回调函数。then的resolve回调函数获取的是return返回的值
 
     - await 只能在异步函数 async function 内部使用。
 
-      - 如果一个 Promise 被传递给一个 await 操作符，await 将等待 Promise 正常处理完成并返回其处理结果。
+      - 如果一个 Promise 被传递给一个 await 操作符，**await 将等待 Promise 正常处理完成并返回其处理结果。**
 
       - 如果一个非promise被传递给一个await操作符，直接返回对应的值。
 
-      ```js
-      async function serviceFun(){
-          let x=await new Promise((resolve)=>{
-              setTimeout(()=>{
-                  resolve(100)
-              },2000)
-          })
-          console.log("x:",x)//100
-          return x;
-      }
-      serviceFun().then((val)=>{
-          console.log("你好",val)//100
-      })
-      ```
+      - ```js
+        async function serviceFun(){
+            let x=await new Promise((resolve)=>{
+                setTimeout(()=>{
+                    resolve(100)
+                },2000)
+            })
+            console.log("x:",x)//100
+            return x;
+        }
+        serviceFun().then((val)=>{
+            console.log("你好",val)//100
+        })
+        ```
 
+    - 应用场景：
+
+      - 有一个按时间顺序执行的异步操作序列，我们每增加一个异步请求，就会多添加一层回调函数的嵌套。（解决异步回调地狱）
+
+      - ```js
+        async function fn1() {
+            const base64Data = await download('http://1.jpg');
+            const result = await saveToLocal(base64Data); 
+            return result;
+        }    
+        async function fn2() {
+            // 同时处理两张
+            const promise1 = convertToBase64Data('http://1.jpg');
+            const promise2 = convertToBase64Data('http://2.jpg');
+            const [data1, data2] = await Promise.all([promise1, promise2]);
+            // 先保存第一张
+            const result = await saveToLocal(data1);
+            // 再保存第二张
+            const result2 = await saveToLocal(data2);
+        }
+        ```
+
+      - 
+
+      - 
+
+      ```js
       
+      ```
 
 15. [`Proxy`代理对象](<https://www.jianshu.com/p/c2a1aa2e2b14>)
 
@@ -1568,8 +1611,7 @@ render process 包含多个线程：
 
 1. http报文结构：
 
-   - 开始行：用于
-   - 是请求报文还是，响应报文。请求报文的开始行称为请求行，响应报文的开始行为状态行
+   - 开始行：用于区分是请求报文还是，响应报文。请求报文的开始行称为请求行，响应报文的开始行为状态行
      - 请求行：方法（get，post、connect、head...）、URL、http版本
      - 状态行：版本，状态码、短语
    - 首部行：用来说明浏览器，服务器或请求报文主体的一些信息
@@ -1629,7 +1671,7 @@ render process 包含多个线程：
      - 超文本传输协议，互联网上应用最为广泛的一种网络协议,所有的WWW文件都必须遵守这个标准。设计HTTP的初衷是为了提供一种发布和接收HTML页面的方法。
      - HTTP 协议有一个缺陷：通信只能由客户端发起。
      - 是一个基于请求与响应，无状态的，无连接应用层的协议，常基于TCP/IP协议传输数据。
-       - 无状态：协议对客户端没有状态存储，对事务处理没有“记忆”能力。第一次访问和第二次访问同一个服务器响应相同。通常用Cookie/Session加数据库的方式类跟踪用户的行动
+       - 无状态：协议对客户端没有状态存储，对事务处理没有“记忆”能力。第一次访问和第二次访问同一个服务器响应相同。通常用Cookie/Session加数据库的方式来跟踪用户的行动
        - 无连接：在http1.1以前，每次访问都需要通过Tcp的三次握手四次挥手，和服务器重新建立连接。HTTP/1.1持久连接Connection：keep-alive，手动断连。
        - 基于请求和响应，客户端发起请求，服务器响应
        - 优点：简单快速灵活
@@ -1700,6 +1742,8 @@ render process 包含多个线程：
         - 设置了HttpOnly属性，那么通过js脚本将无法读取到cookie信息。
         - Secure=true，那么这个cookie只能用https协议发送给服务器，用http协议是不发送的。
     - CSRF( Cross-site request forgery )：利用已登录用户在网站A生成的cookie，在不退出的情况下访问危险网站B，B就可以获取A的cookie，去请求网站A的api。
+      - 在请求地址中添加 token 并验证
+      - 在http头中自定义属性并验证
 
 13. FastClick：
 
@@ -1752,11 +1796,11 @@ render process 包含多个线程：
 
     - 浏览器下载完页面中的所有组件——HTML标记、JavaScript、CSS、图片之后会解析生成两个内部数据结构——`DOM树`和`渲染树`。
 
-    - DOM树表示页面结构，渲染树表示DOM节点如何显示。DOM树中的每一个需要显示的节点在渲染树种至少存在一个对应的节点（隐藏的DOM元素disply值为none 在渲染树中没有对应的节点）。渲染树中的节点被称为“帧”或“盒",符合CSS模型的定义，理解页面元素为一个具有填充，边距，边框和位置的盒子。一旦DOM和渲染树构建完成，浏览器就开始显示（绘制）页面元素。
+    - **DOM树表示页面结构，渲染树表示DOM节点如何显示。**DOM树中的每一个需要显示的节点在渲染树种至少存在一个对应的节点（隐藏的DOM元素disply值为none 在渲染树中没有对应的节点）。渲染树中的节点被称为“帧”或“盒",符合CSS模型的定义，理解页面元素为一个具有填充，边距，边框和位置的盒子。**一旦DOM和渲染树构建完成，浏览器就开始显示（绘制）页面元素。**
 
-    - 重排：当DOM的变化影响了元素的几何属性（宽或高），浏览器需要重新计算元素的几何属性，同样其他元素的几何属性和位置也会因此受到影响。浏览器会使渲染树中受到影响的部分失效，并重新构造渲染树。当渲染树中的一部分(或全部)因为元素的规模尺寸，布局，隐藏等改变而需要重新构建, 这就称为回流(reflow)。每个页面至少需要一次回流，就是在页面第一次加载的时候。
+    - 重排：当DOM的变化影响了元素的几何属性（宽或高），浏览器需要重新计算元素的几何属性，同样其他元素的几何属性和位置也会因此受到影响。浏览器会使渲染树中受到影响的部分失效，并重新构造渲染树。当渲染树中的一部分(或全部)因为元素的**规模尺寸，布局，隐藏等改变而需要重新构建**, 这就称为回流(reflow)。每个页面至少需要一次回流，就是在页面第一次加载的时候。
 
-    - 重绘（repaint 或redraw）：当盒子的位置、大小以及其他属性，例如颜色、字体大小等都确定下来之后，浏览器便把这些原色都按照各自的特性绘制一遍，将内容呈现在页面上。重绘是指一个**元素外观属性的改变**所触发的浏览器行为，浏览器会根据元素的新属性重新绘制，使元素呈现新的外观。
+    - 重绘（repaint 或redraw）：当盒子的位置、大小以及其他属性，例如颜色、字体大小等都确定下来之后，浏览器便把这些元素都按照各自的特性绘制一遍，将内容呈现在页面上。重绘是指一个**元素外观属性的改变**所触发的浏览器行为，浏览器会根据元素的新属性重新绘制，使元素呈现新的外观。
 
     - 重排必然导致重绘
 
@@ -1818,7 +1862,13 @@ render process 包含多个线程：
    - 严格模式：浏览器支持的最高标准运行。
    - 混杂模式：向后兼容，模拟老式浏览器，防止浏览器无法兼容页面。
 
-5. 
+5. [`<script>`标签放在body的最后的原因](<https://blog.csdn.net/qq_42532128/article/details/102979020>):
+
+   - 避免JavaScript操作DOM失效
+   - script脚本阻塞html的解析，导致浏览器显示空白的时间增长。
+   - ![](./legend/html解析.png)
+
+6. 
 
 # 10 Javascript
 
@@ -1828,15 +1878,26 @@ render process 包含多个线程：
    - Dom限制：无法获取document，window，parent对象，但可以获取navigator和location对象，通常用作数据处理计算。
    - 同源限制：分配给 Worker 线程运行的脚本文件，必须与主线程的脚本文件同源。
 
-2. cookie
+2. [cookie](<https://www.cnblogs.com/little-ab/articles/7123858.html>)
 
    最大空间4kb，有些浏览器规定，一个站点最多可保存20个不同path的cookie
 
    - name    必需。规定 cookie 的名称。
+
    - value   必需。规定 cookie 的值。
+
    - expire  可选。规定 cookie 的有效期。
+
    - path    可选。规定 cookie 的服务器路径。不同path对应不同cookie。
+
+     - `path`默认值为设置该`cookie`的网页所在的目录
+
    - domain  可选。规定 cookie 的域名。
+
+     - `domain`的默认值为设置该`cookie`的网页所在的域名。
+
+     - `domain`是域名，`path`是路径，两者加起来就构成了 URL，`domain`和`path`一起来限制 cookie 能被哪些 URL 访问。
+
    - secure  可选。规定是否通过安全的 HTTPS 连接来传输 cookie。
 
 3. cookie和session的区别：
@@ -1920,6 +1981,7 @@ render process 包含多个线程：
      //es6
      class Animal{
          constructor(name){
+             console.log(this)//这里的this指向一个空对象{}
              this.name=name||"Animal";
          }
          sleep(){
@@ -2026,10 +2088,10 @@ render process 包含多个线程：
       </ul>
       <script>
           let ul=document.getElementById("ul")
-                  ul.addEventListener("click",queryIndex);
-                  function queryIndex(event){
-                      console.log(event.srcElement.dataset.index)
-                  }
+          ul.addEventListener("click",queryIndex);
+          function queryIndex(event){
+              console.log(event.srcElement.dataset.index)
+          }
       </script>
                   
       ```
@@ -2046,7 +2108,7 @@ render process 包含多个线程：
 
 15. new 操作符
 
-    - 新建了一个空对象，这个对象原型指向构造函数的prototype，执行构造函数后返回这个对象。
+    - 新建了一个空对象，这个对象原型`__proto__`指向构造函数的prototype，执行构造函数后返回这个对象。
 
 16. [防抖和节流](<https://www.jianshu.com/p/b5fcb9a04b17>)
 
@@ -2311,7 +2373,7 @@ render process 包含多个线程：
       function sleep(ms){
           return new Promise((resolve)=>{
               console.log("ahh")
-              setTimeout(resolve,ms)
+              setTimeout(resolve,ms)//睡完之后，执行resolve，然后.then中才能执行wakeUp
           })
       }
       sleep(2000).then(wakeUp)
@@ -2341,39 +2403,57 @@ render process 包含多个线程：
     ```js
     class promise{
         constructor(executor){
-            this.state="pending";
+            //executor=(resolve,reject)=>{
+            this.state='pending';
+            console.log(this.state);
             this.value=undefined;
             this.error=undefined;
+    
             try{
-                executor(this.resolve,this.reject)
+                //将this.resolve.bind(this)传递给形参resolve
+                executor(this.resolve.bind(this),this.reject.bind(this))
+                //注意这里必须写bind(this),否则执行时，函数内获取不到对象p的信息，也就是this指向不再是p。
             }catch(e){
                 this.reject(e)
             }
-            
         }
+    
         resolve(value){
-            if(this.state=="pending"){
-                this.state="fulfilled";
+            if(this.state=='pending'){
+                this.state='fulfilled'
                 this.value=value;
             }
-        }
-        reject(error){
-            if(this.state=="pending"){
-                this.state="rejected";
-                this.error=error;
+        }    
+        reject(e){
+            if(this.state=='pending'){
+                this.state='rejected';
+                this.error=e;
             }
         }
-        then(onFulfilled,onRejected) {
-            // 状态为fulfilled，执行onFulfilled，传入成功的值
-            if (this.state === 'fulfilled') {
-              onFulfilled(this.value);
-            };
-            // 状态为rejected，执行onRejected，传入失败的原因
-            if (this.state === 'rejected') {
-              onRejected(this.error);
-            };
+        then(onFulfilled,onRejected){
+            if(this.state=='fulfilled'){
+                onFulfilled(this.value)
+            }
+            if(this.state=='rejected'){
+                onRejected(this.error)
+            }
         }
     }
+    let flag=1;
+    let p=new promise((resolve,reject)=>{
+        if(flag==1){
+            console.log('成功')
+            resolve(flag)
+        }else{
+            console.log('失败')
+            reject(flag);
+        }
+    })
+    p.then((info)=>{
+        console.log(info)
+    },(info)=>{
+        console.log(info)
+    })
     ```
 
 29. 简单实现node中的Events模块
@@ -2483,6 +2563,8 @@ render process 包含多个线程：
     boolean
     function
     undefined
+    
+    ----Object---
     null
     object
     array
@@ -2501,7 +2583,33 @@ render process 包含多个线程：
 
     - 解决方案：
 
-      1、 通过jsonp跨域
+      1、 通过jsonp跨域，利用`<script>`标签没有跨域限制，但只能实现get请求
+
+      ```js
+          //1.原生js实现 
+          <script>
+              var script = document.createElement('script');
+              script.type = 'text/javascript';
+      
+              // 传参一个回调函数名给后端，方便后端返回时执行这个在前端定义的回调函数
+              script.src = 'http://www.domain2.com:8080/login?user=admin&callback=handleCallback';
+              document.head.appendChild(script);
+      
+              // 回调执行函数
+              function handleCallback(res) {
+                  alert(JSON.stringify(res));
+              }
+           </script>
+          //2.vuejs中jsonp的实现
+          this.$http.jsonp('http://www.domain2.com:8080/login', {
+              params: {},
+              jsonp: 'handleCallback'
+          }).then((res) => {
+              console.log(res); 
+          })
+      
+      ```
+
       2、 document.domain + iframe跨域
       3、 location.hash + iframe
       4、 window.name + iframe跨域
@@ -2514,7 +2622,7 @@ render process 包含多个线程：
 33. [js不同数据类型的值的比较，是怎么转换的，有什么规则，x==y](<https://www.jianshu.com/p/ace2c71bec3b>)
 
     - `==` 允许在相等比较中进行强制类型转换，而 `===` 不允许。
-    - ToNumber操作：`true` 转换为 1， `false` 转换为 0。 `undefined` 转换为 `NaN`， `null` 转换为 0。ToNumber 对字符串的处理基本遵循数字常量的相关规则 / 语法。
+    - ToNumber操作：`true` 转换为 1， `false` 转换为 0。ToNumber 对字符串的处理基本遵循数字常量的相关规则 / 语法。
     - ToPrimitive操作：
       - 首先检查该值是否有 valueOf() 方法。如果有并且返回基本类型值，就使用该值进行强制类型转换。
       - 如果没有就使用 toString() 的返回值（如果存在）来进行强制类型转换。
@@ -2523,8 +2631,8 @@ render process 包含多个线程：
 
     - 基本数据类型：number，boolean，string，null，undefined
     - x与y的类型相同：
-      - 都为undefined：true
-      - null：true
+      - **都为undefined：true**
+      - **null：true**
       - string：字符序列完全相同时，返回true
       - boolean：都为相同值时，返回true
       - object：**对象（包括函数和数组）的宽松相等（==）**：两个对象指向同一个值时即视为相等，不发生强制类型转换。
@@ -2532,41 +2640,70 @@ render process 包含多个线程：
         - 任意一个为NaN：false
         - x与y为相等的数值：true
         - +0与-0：true
-    - 不同类型时：显然会进行类型转换，基本数据类型ToNumber，对象类型进行 ToPrimitive 操作
-      - null与undefined：true
+    - 不同类型时：显然会进行类型转换，**基本数据类型ToNumber，对象类型进行 ToPrimitive 操作**
+      - **null与undefined：true**
       - number与其他类型：
         - string：number==toNumber(string)
         - boolean：number==toNumber(boolean)，true转为1，false转为0
-        - 0==[]，true
+        - **0==[]，true**
         - object，false
-      - []与{}：false
+      - **[]与{}：false**
 
-34. this指向：
+34. `if`判断语句：
+
+    ```js
+    let arr=[1,"str",function(){return false},{},[],0,NaN,undefined,null]
+    arr.forEach((item)=>{
+        if(item){
+            console.log(item+"：true")
+        }else{
+            console.log(item+"：false")
+        }
+    })
+    /*
+    ------true-----
+    1：true
+    str：true
+    function(){return false}：true
+    [object Object]：true
+    []：true
+    
+    -----false-----
+    0：false
+    NaN：false
+    undefined：false
+    null：false
+    */
+    ```
+
+    
+
+35. this指向：
 
     - 默认绑定：全局环境中，this指向window
     - 隐式绑定：函数的上下文。
     - 隐式丢失：bind()，apply()，call()
     - new绑定：构造函数构造的对象，或者构造器中return的对象
 
-35. 暂停死区：
+36. 暂停死区：
 
     - 在代码块内，使用let、const 命令声明变量之前，该变量都是不可用的。这在语法上，称为“暂时性死区”（没有变量提升）
 
-36. 虚拟DOM:
+37. 虚拟DOM:
 
     - 用js对象表示真实DOM结构，当状态变更时，构造新的js对象，与旧有js对象进行比较，记录两棵树的差异应用到所构建的真DOM树上。
 
-37. antd
+38. antd
 
     - 优点：组件全面，
     - 缺点：框架自定义程度低，默认ui风格修改困难
 
-38. 继承实现方式：
-
-    - 原型链继承
-    - 
-
 39. prototype，`__proto__`
+
+    - prototype 属性使您有能力向对象添加属性和方法。
+    - prototype是函数才有的属性。`__proto__`是每个对象都有的属性。
+    - 函数的`prototype`的构造函数是`Object.prototype`
+    - `__proto__`指向的是`constructor.prototype`(构造器的原型)
 
 40. 下划线命名与驼峰命名之间的转换
 
@@ -2594,7 +2731,7 @@ render process 包含多个线程：
 
 42. 页面之间传参：
 
-    - url的query参数，localstroage和sessionStroage
+    - url的query参数，localstorage和sessionStorage
     - 框架内的话：vue的vuex，react的react-redux，也可以通过代参跳路由
 
 43. [继承的方式](<https://www.jianshu.com/p/0580a641eee7>)
@@ -2603,7 +2740,22 @@ render process 包含多个线程：
     - 构造函数继承：使用父类的构造函数来增强子类实例，等于是复制父类的实例属性给子类（没用到原型）
     - 组合式继承：通过调用父类构造，继承父类的属性并保留传参的优点，然后通过将父类实例作为子类原型，实现函数复用
 
-44. 
+44. 对象的键名计算：
+
+    ```js
+    //[]用于计算键名，就如同数组arr[i]一样。
+    let a='aa';
+    let obj={
+        [a]:true,
+        ['a'+'bc']:123
+    };
+    console.log(obj.aa,obj[a],obj['abc'],obj.abc)//true true 123 123
+    
+    ```
+
+    
+
+45. 
 
 # 11 计算机网络
 
@@ -2646,3 +2798,14 @@ render process 包含多个线程：
    - 协商缓存：浏览器发送请求到服务器，服务器判断是否可使用本地缓存。
 
 6. 
+
+
+
+
+
+
+
+
+
+1. [event loop await](<https://blog.csdn.net/roamingcode/article/details/85052590>)
+2. 内存泄漏和内存溢

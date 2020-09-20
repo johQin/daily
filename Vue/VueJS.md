@@ -605,7 +605,11 @@ vue实例的一般键
 </script>
 ```
 
+### 父子组件生命周期执行顺序
 
+1. 挂载过程：父beforeCreate->父created->父beforeMount->子beforeCreate->子created->子beforeMount->子mounted->父mounted
+2. 更新过程：父beforeUpdate->子beforeUpdate->子updated->父updated
+3. 销毁过程：父beforeDestroy->子beforeDestroy->子destroyed->父destroyed
 
 ## 2.8 [VueCli](<https://cli.vuejs.org/zh/guide/>)
 
@@ -660,6 +664,7 @@ $ npm run serve
 ## 3.1 组件传值
 
 <h3>父传子
+
 通过props传递，在子组件中注册props属性。
 
 子传父同样可以用此方法，通过props传递父组件的方法给子组件，子组件调用方法，达到子传父的效果
@@ -741,8 +746,11 @@ $ npm run serve
 ```
 
 <h3>子传父
-通过触发当前实例的事件，绑定父组件的事件处理函数，然后将值传给父组件。
+
+    通过触发当前实例的事件，绑定父组件的事件处理函数，然后将值传给父组件。
+
 **this.$emit( eventName, […args] )**触发当前实例上的事件，this.$emit通常也用作自定义事件。
+
 
 子传父同样可以用props方法，通过props传递父组件的方法给子组件，子组件调用方法，达到子传父的效果。**这种方法最常用**
 
