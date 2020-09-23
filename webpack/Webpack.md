@@ -1341,10 +1341,11 @@ tree  shaking有一点问题他会把一些代码当做fuzuo
 js文件的懒加载
 
 ```js
+//预加载（prefetch）：会在使用之前，提前加载js文件,
 //懒加载：通过使用import()，当文件使用的时候才加载，
-//预加载（prefetch）：会在使用之前，提前加载js文件
 //正常加载可以认为是并行加载（同一时间加载多个文件），
-//预加载是等其他文件资源加载完毕，浏览器空闲了，再偷偷加载资源
+//预加载是在网页全部加载之前，对一些主要内容进行加载，以提供给用户更好的体验，减少等待的时间。
+//两者主要区别是一个是提前加载，一个是迟缓甚至不加载。懒加载对服务器前端有一定的缓解压力作用，预加载则会增加服务器前端压力。
 document.getElementById('btn').onClick=function(){
     import(/*webpackChunkName:'print',webpcakPrefetch:true*/'./test').then((mul)=>{
         console.log(mul(4,10))
