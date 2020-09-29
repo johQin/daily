@@ -263,9 +263,53 @@ let|const|var [变量名] : [类型] = 值;
     }
     ```
 
-    
 
-### 联合类型
+### 类型别名type
+
+起别名不会新建一个类型 - 它创建了一个新名字来引用那个类型。
+
+类型别名和接口相似，但无法extends和implements。
+
+```typescript
+//属性接口
+type User = {
+ name: string
+ age: number
+};
+//函数接口
+type SetUser = (name: string, age: number): void;
+
+//泛型接口
+type container<t>={value:t};
+let c:container<string>={value:'nihao'}
+
+//通过&符进行扩展
+type Name = { 
+ name: string; 
+}
+type User = Name & { age: number };
+
+
+//type 可以声明基本类型别名，联合类型，元组等类型
+// 基本类型别名
+type Name = string
+
+// 联合类型
+interface Dog {
+ wang();
+}
+interface Cat {
+ miao();
+}
+type Pet = Dog | Cat | Name
+
+// 具体定义数组每个位置的类型
+type PetList = [Dog, Pet]
+```
+
+
+
+### 联合类型 ' | '
 
 为变量指定多类型
 
@@ -275,6 +319,23 @@ console.log(dyn);//undefined
 dyn=1;
 dyn=true;
 ```
+
+### 交叉类型 ' & '
+
+交叉类型是将多种类型叠加到一起成为一种类型。
+
+```typescript
+interface Person {
+  name: string;
+  age: number;
+}
+interface Worker {
+  companyId: string;
+}
+type Employee = Person & Worker;
+```
+
+
 
 ## 1.3 函数
 
@@ -419,9 +480,19 @@ Child3.prototype=new Person();//继承原型链上的属性和方法
 class Person{
     name:string;
     age:number;
-    constructor(name:string,age:number){
+    
+    //readonly修饰的是只读属性，
+    readonly id:number=0;
+    //使用 readonly关键字将属性设置为只读的。 只读属性必须在声明时或构造函数里被初始化。
+    //最简单判断该用readonly还是const的方法是看要把它做为变量使用还是做为一个属性。 做为变量使用的话用const，若做为属性则使用readonly。
+    
+    constructor(name:string,age:number,id?:number){
         this.name=name;
         this.age=age;
+        if(id){
+            this.id=id;
+        }
+        
     }
     run():string{//实例方法
         return `${this.name}在奔跑`
@@ -496,6 +567,8 @@ d.food();
 
 ## 2.6 接口interface
 
+
+
 接口是一种规范的定义，它定义了行为和动作的规范，在程序设计里面，接口起到一种限制和规范的作用。接口定义了某一批类所需要遵守的规范，接口不关心这些类的内部状态数据，也不关心这些类里方法的实现细节，它只规定这批类里必须提供某些方法，提供这些方法的类就可以满足实际需要。 
 
 typescript中的接口分为：
@@ -509,7 +582,7 @@ typescript中的接口分为：
 
 ### 2.6.1 接口分类
 
-####  属性类接口
+#### 属性类接口
 
 ```typescript
 interface FullName{
@@ -525,6 +598,9 @@ let NAME={
     secondname:'xin'
 }
 console.log(getName(NAME))
+
+//额外的属性检查
+//如果一个对象字面量存在任何“目标类型”不包含的属性时，你会得到一个错误。
 // getName({
 //     age:12,//这里编译报错，直接写就必须和接口的规范一致
 //     firstname:'lee',
@@ -558,6 +634,17 @@ let info1={
     secondname:'xin'
 }
 console.log(getInfo(info1))
+```
+
+##### 接口的只读属性
+
+```typescript
+interface Point {
+    readonly x: number;
+    readonly y: number;
+}
+let p1: Point = { x: 10, y: 20 };
+p1.x = 5; // error!
 ```
 
 #### 函数类型接口
@@ -647,7 +734,7 @@ class Adult implements Person{
 }
 ```
 
-#### 继承类与实现接口
+### 2.6.3 继承类与实现接口
 
 ```typescript
 interface Animal{
