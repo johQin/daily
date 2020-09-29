@@ -8,8 +8,6 @@
 <p style='text-indent:2em;'>
 组件是React的核心概念，是React应用程序的基石。组件将应用的UI拆分成独立的、可复用的模块，React应用程序正是由一个一个组件搭建而成的。
 </p> 
-
-
 <p style='text-indent:2em;'>
 定义一个组件有两种方式，使用<span style='color:red'>ES6 class（类组件，动态组件）和使用函数（函数组件，静态组件）</span>。</p>
 
@@ -404,14 +402,14 @@ const Greet=<div style={greeting}>how its' going ? my Sweet</div>
 <p style='text-indent:2em;'>
 在组件被挂载到DOM后调用，且只会被调用一次。<span style='color:red;'>这时候已经可以获取到DOM结构，因此依赖DOM节点的操作可以放到这个方法中。这个方法通常还会用于向服务器端请求数据。在这个方法中调用this.setState会引起组件的重新渲染。这个方法是比较适合添加订阅的地方。如果添加了订阅，请不要忘记在 componentWillUnmount() 里取消订阅</span>
 </p>
- 
+
 ## 3.2 更新阶段
  组件被挂载到DOM后，组件的props或state可以引起组件更新。
- 
+
  &emsp;&emsp;<span style='color:red;'>props引起的组件更新</span>，本质上是由渲染该组件的父组件引起的，也就是当父组件的render方法被调用时，组件会发生更新过程，这个时候，组件props的值可能发生改变，也可能没有改变，因为父组件可以使用相同的对象或值为组件的props赋值。但是，无论props是否改变，父组件render方法每一次调用，都会导致组件更新。
- 
+
  &emsp;&emsp;<span style='color:red;'>State引起的组件更新</span>，是通过调用this.setState修改组件state来触发的。
- 
+
  组件更新阶段，依次调用的生命周期方法有：
 ### 3.2.1 componentWillReceiveProps(nextProps)
 
@@ -445,7 +443,7 @@ const Greet=<div style={greeting}>how its' going ? my Sweet</div>
 
 ## 3.3 卸载阶段
     组件在被卸载前调用
-    
+
 componentWillUnmount
 <p style='text-indent:2em;'>
 通常用来清除组件中使用的定时器，恢复数据仓库中的初始数据参数。
@@ -603,7 +601,7 @@ class Baby extends React.Component{
 
 ## 4.4 服务器通信
     通常建议在componentDidMount去请求后台数据，而在componentWillReceive去更新后台数据。
-    
+
 与后台接口打交道，通常使用<span style='color:red;'>fetch，ajax（XMLHttpRequest），axios</span>，就antd pro项目框架来说，它有封装好的请求方法，并且更加简单实用。这里只做了解。
 ## 4.5 [ref](https://www.jianshu.com/p/56ace3e7f565)
 
@@ -677,7 +675,7 @@ class Welcome extends React.Component{
        static getDerivedStateFromProps(props, state)  注：state 的值在任何时候都取决于 props 时
        render() 
        componentDidMount()
-
+    
        UNSAFE:
        componentWillMount()
 
@@ -687,9 +685,9 @@ class Welcome extends React.Component{
         static getDerivedStateFromProps() 
         shouldComponentUpdate() 
         getSnapshotBeforeUpdate(prevProps, prevState) 
-
+    
         componentDidUpdate(prevProps, prevState, snapshot)
-
+    
         UNSAFE：
         componentWillUpdate()  
         componentWillReceiveProps()
@@ -709,5 +707,8 @@ class Welcome extends React.Component{
 ## 5.2 [高阶组件--HOC](https://zh-hans.reactjs.org/docs/higher-order-components.html)
 
     高阶组件是参数为组件，返回值为新组件的函数。
-
+    
     组件是将 props 转换为 UI，而高阶组件是将组件转换为另一个组件。
+# 6 其他
+
+`React.FC< >`
