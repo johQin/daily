@@ -1,8 +1,11 @@
 # 1.前言
 ## 1.1what 
+
+Node.js是一个基于Chrome V8引擎的JavaScript运行时。
+
 ### 特点
 - chrome v8 runtime
-- 时间驱动
+- 事件驱动
 - 非阻塞的I/O
   
     同时大量的数据处理性能好——高并发特别好。

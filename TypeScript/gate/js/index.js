@@ -2,3 +2,9 @@
 let a = { name: 'qin' };
 let b = { name: 'kang', age: 12 };
 let c = { value: 'nihao' };
+let row;
+console.log(row === null || row === void 0 ? void 0 : row.name);
+const person = {};
+person.name = 'John';
+console.log(person.age);
+let g = false;

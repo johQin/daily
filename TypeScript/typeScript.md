@@ -1,4 +1,4 @@
-# TypeScript
+# [TypeScript](<https://chinese.freecodecamp.org/forum/t/topic/506>)
 
 ## 0.1 概述
 
@@ -335,6 +335,100 @@ interface Worker {
 type Employee = Person & Worker;
 ```
 
+### 类型断言
+
+TypeScript 允许你以任何方式**覆盖其推断的类型**。当你比编译器本身能更好地理解变量类型时，可以使用它。
+
+```typescript
+const friend = {};
+friend.name = 'John';  // Error! Property 'name' does not exist on type '{}'
+
+interface Person {
+  name: string;
+  age: number;
+}
+
+const person = {} as Person;
+person.name = 'John';
+console.log(person.age)//undefined
+```
+
+### 类型推论
+
+没有明确指定出类型时，TypeScript 会推断变量类型。
+
+```typescript
+let a = "some string";
+let b = 1;
+a = b;  // Error! Type 'number' is not assignable to type 'string'.
+
+// 如果是复杂的对象，TypeScript 会用最常见的类型
+// 来推断对象类型。
+const arr = [0, 1, false, true];  // (number | boolean)[]
+```
+
+### 类型兼容
+
+类型兼容性是基于结构类型的，结构类型只使用其成员来描述类型。
+
+结构化类型系统的基本规则是：如果 x 要兼容 y，那么 y 至少具有与 x 相同的属性。
+
+```typescript
+interface Person {
+name: string;
+}
+
+let x: Person;  // 正确，尽管不是Person接口的实现
+let y = { name: 'John', age: 20 };  // type { name: string; age: number }
+x = y;
+```
+
+### 类型保护
+
+类型保护可以在条件块中缩小对象类型的范围。
+
+`typeof、instanceof、in`
+
+### 字面量类型
+
+`literal types`
+
+字面量正是 JavaScript 原始数据类型具体的值，它们可以与 union (联合) 类型搭配使用，构造一些实用的概念。
+
+```typescript
+type Orientation = 'landscape' | 'portrait';//字符串字面量，这里犹如枚举的使用
+function changeOrientation(x: Orientation) {
+  // ...
+}
+changeOrientation('portrait'); // 正确
+changeOrientation('vertical'); /* Error! Argument of type '"vertical"' is not 
+assignable to parameter of type 'Orientation'. /
+```
+
+### 映射类型
+
+映射类型，通过在属性类型上建立映射，从现有的类型创建新类型。具有已知类型的每个属性都会根据你指定的规则进行转换。
+
+```typescript
+//Partial
+type Partial<T> = {
+  [P in keyof T]?: T[P];
+}
+//Exclude<T, U> 
+//Exclude 可以从其他类型中排除某些类型。排除的是可以赋值给 T 的属性。
+type User = {
+  _id: number;
+  name: string;
+  email: string;
+  created: number;
+};
+type UserNoMeta = Exclude<keyof User, '_id' | 'created'>
+
+//Pick<T, K extends keyof T>
+//Pick 可以从其他类型中选取某些类型。 挑选的是可以赋值给 T 的属性。
+type UserNoMeta = Pick<User, 'name' | 'email'>
+```
+
 
 
 ## 1.3 函数
@@ -411,6 +505,7 @@ ts为了兼容es5以及es6，通过为同一个函数提供多个函数类型定
 作用：实现参数的类型校验，使函数实现多种功能
 
 ```typescript
+//重载的多个函数，除最后一个函数需要实现前面n-1个函数的功能（即函数体），其余函数只需要书写函数名和参数列表
 function getInfo(name:string):void;
 function getInfo(name:string,age:number):void;
 function getInfo(name:string,age?:number):void{
