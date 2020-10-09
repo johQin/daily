@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>about</title>
+</head>
+<body>
+    <div id="container">
+        <div id="header">头部</div>
+        <div id="middle">
+            <div id="left">左列定宽</div>
+            <div id="right">右列自适应</div>
+        </div>
+        <div id="footer">尾部</div>
+        
+    </div>
+    <style>
+        #container{
+            height:100vh;
+            width:100%;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        #header{
+            height:70px;
+            background-color:#22a6b3;
+        }
+        #middle{
+            display: flex;
+            flex:1;
+        }
+        #left {
+            background-color: #badc58;
+            width:200px;
+        }
+        #right {
+            background-color: #ff7979;
+            flex:1;
+        }
+        #footer{
+            background-color: #be2edd;
+            height:70px;
+        }
+        </style>
+</body>
+</html>

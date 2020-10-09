@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>dynview-EJS</title>
+</head>
+<body>
+        <div id="container">
+            <div id="header">尊敬的先生</div>
+            <div id="middle">
+                <div id="left">您好！！！</div>
+                <!-- 不支持标准语法 -->
+                <!-- <div id="right">我叫{{name}}，年龄{{age}}</div> -->
+                <!-- 原始写法 -->
+                <div id="right">我叫<%=name%>，年龄<%=age%></div>
+                
+            </div>
+            <div id="footer">谢谢</div>
+            
+        </div>
+        <style>
+            #container{
+                height:100vh;
+                width:100%;
+                display: flex;
+                flex-direction: column;
+            }
+            
+            #header{
+                height:70px;
+                background-color:#22a6b3;
+            }
+            #middle{
+                display: flex;
+                flex:1;
+            }
+            #left {
+                background-color: #badc58;
+                width:200px;
+            }
+            #right {
+                background-color: #ff7979;
+                flex:1;
+            }
+            #footer{
+                background-color: #be2edd;
+                height:70px;
+            }
+        </style>
+
+</body>
+</html>

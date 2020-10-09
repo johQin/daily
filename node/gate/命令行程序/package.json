@@ -1,0 +1,14 @@
+{
+  "name": "selfcommonder",
+  "version": "1.0.0",
+  "description": "自定义的命令程序",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "bin": {
+    "mycli": "index.js"
+  },
+  "author": "qin",
+  "license": "ISC"
+}
