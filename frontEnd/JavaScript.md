@@ -344,6 +344,8 @@ fun.renE();
 14. string.toUpperCase()
 15. string.trim()
 16. string.length
+
+17. regex.test(string)//判断字符串string是否符合regex
 ```
 
 ## 2.3 Math

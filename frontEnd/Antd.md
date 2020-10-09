@@ -1,4 +1,4 @@
-# [antd pro](https://pro.ant.design/docs/getting-started-cn) 项目入门 
+# 1 [antd pro](https://pro.ant.design/docs/getting-started-cn) 项目入门 
 
 &emsp;&emsp;antd pro项目的技术栈基于[ES2015+](http://es6.ruanyifeng.com/)、[React](https://reactjs.org/)、[UmiJS](https://umijs.org/zh/guide/)、[dva](https://dvajs.com/guide/)、[g2](https://antv.alipay.com/zh-cn/index.html) 和 [antd](https://ant.design/index-cn)，本地环境需要[node](https://nodejs.org/zh-cn/)(最基本的环境要求)、[yarn](https://yarnpkg.com/zh-Hant/)，提前了解和学习这些知识会非常有帮助。
 
@@ -9,7 +9,7 @@
     在这里我仅罗列一些JavaScript的重要的知识点，[DOM](https://www.runoob.com/htmldom/htmldom-tutorial.html)，BOM和事件处理等知识点供查询。
 
 - React
-    
+  
     作为项目的基础前端框架，antd pro所有的封装都是基于React框架，最少应掌握指南的React基础部分，须认真理解和掌握组件，生命周期，数据通信等知识点。
 
 - UmiJs 
@@ -109,7 +109,7 @@ export default {
     插件的配置信息，具体我也没怎么看，项目开发到现在，还没碰过这个文件。有兴趣的可以深入了解，补充该指南。
 
 3. router.config.js
-    
+   
 <p style='text-indent:2em'>
 默认导出路由信息数组，每个数组元素是由一个对象构成，<span style='color:red;'>常用的字段：path、redirect、name、component、routes、request</span>。
 </p>
@@ -150,7 +150,7 @@ export default{
     网址：ApiHost + path。ApiHost在config.js中的proxy中已定义，网址中除开ApiHost,就是我们这里的path部分。它主要用作页面唯一的地址标识，方便编译和页面跳转
     
 - redirect
-    
+  
     当browser匹配到数组元素对象中的path，他会自动跳转到目标地址（redirect定义的地址），通常此对象中，只包含path和redirect两个字段。
 
 - name
@@ -163,7 +163,7 @@ export default{
     组件——顾名思义，这里就是我们实体页面文件的地址所在。框架默认此地址是pages文件夹下，所以“./” 代表路径为/src/pages的文件夹下，项目所有的前端页面都默认写在pages下，后面会有说到。
 
 - routes
-    
+  
     子路由。在实际的业务场景中，页面相同的部分我们都会提取到页面布局之中，像页面的侧边导航栏、页头的消息提示栏等等，相同的部分不需要重复开发，提高了我们开发的效率。会有很多不同业务的页面都会在同一个页面布局当中，我们开发的业务页面只会占据布局中的主要部分。
 
     在布局页面中，我们可以从this.props中解析出children，然后将children放置在页面的某个位置，也就实现了，布局的效果。
@@ -372,7 +372,7 @@ export default{
         return state.namespace.field;
     }
 ```
-    
+
 ### 1.4 services
 
     对应业务页面结构，每个js文件负责一个业务页面的请求服务模块。里面存放着，直接向后台请求数据的方法，通过使用utils里的request方法，就可以直接向后台请求数据了
@@ -417,17 +417,39 @@ JSON 语法规则
 - 花括号保存对象
 - 方括号保存数组
 
-</p>
+### 1.8 package-lock.json
 
-### 1.8 其余
-    不做过多的解读，有了上述基础就开启antd pro前端项目开发之旅吧 ！！
+其实用一句话来概括很简单，就是锁定安装时的包的版本号。
+
+根据官方文档，这个package-lock.json 是在 `npm install`时候生成一份文件，用以记录当前状态下实际安装的各个npm package的具体来源和版本号。
+
+```json
+"dependencies": {
+    "accepts": "~1.3.7",
+    "array-flatten": "1.1.1",
+    "body-parser": "^1.19.0",
+    "content-disposition": ">0.5.3",
+    "content-type": "~1.0.4",
+    "cookie": "^0.4.0",
+    "cookie-signature": "<1.0.6",
+    "debug": ">=2.6.9",
+    "depd": "~1.1.2",
+    "encodeurl": "<1.0.2"
+  }
+```
+
+- **插入符号^**： 匹配的是最新次要版本号，也就是第二个数字。比如：^ 1.2.3将匹配任何1.x.x版本，包括1.3.0，但将在2.0.0上停止。
+- **波浪号〜**：匹配最新补丁版本号，也就是版本号的第三个数字。比如~1.2.3将匹配所有1.2.x版本，但将在1.3.0上停止。
+- **星号*：**那意思就是匹配任何版本。
+- **latest：**安装的永远是最新发布的版本。
+- **>，>=，<，<=**：意思也很简单，就是大于，或者大于等于，小于或者小于等于后面的版本号。
 
 # 2 antd pro项目实践--数据增删改查
 
 ## 2.1 [UmiJS](https://umijs.org/zh/guide/)
 
 ### 2.1.1 路由跳转
-   
+
 
 单页面应用可以通过此进行页面传参和页面跳转。
 
@@ -448,7 +470,7 @@ router.goBack();
 //声明式跳转
 <Link to="/list?a=1&b=2">Go to list page</Link>
 //从this.props的location里解析出query对象或search字符串
-``` 
+```
 ### 2.1.2 动态路由
 
 除了通过上面的方式给页面传参，还可以通过动态路由的方式为页面传参
