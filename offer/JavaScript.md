@@ -2,7 +2,7 @@
 
 ## 1.1 ES6新增
 
-1. let const var比较
+1. `let const var`比较
 
    - 所谓提升就是将变量和函数提升到当前代码块的开头，这也就是为什么定义函数的位置可以放在使用函数位置的后面
      - let和const不存在变量提升。所以需要先声明后使用，不然会报错。
@@ -10,7 +10,7 @@
      - js先提升函数，后提升var变量。
    - 重复声明：let 和 const 不支持重复声明，var可以。
    - 块级作用域：let和const作用域在块级，而var在全局。
-   - const声明常量，常量指向的值不可改变（包括基本类型直接量和引用类型所指向的地址值），let 声明变量
+   - const声明常量，常量指向的值不可改变（包括基本类型直接量和引用类型所指向的地址值），let 声明变量。
 
 2. 闭包
 
@@ -1796,7 +1796,7 @@ obj.hasOwnProperty(pro)//判断对象是否包含pro属性
 
    更新阶段：组件被挂载到DOM后，组件的props或state可以引起组件更新。
 
-   - componentWillReceiveProps(nextProps)——porps改变会执行次函数，即将过时
+   - componentWillReceiveProps(nextProps)——porps改变会执行此函数，即将过时
    - shouldComponentUpdate(nextProps,nextState)——props改变后或state改变都会执行此生命周期，return true执行更新，返回false不执行更新操作
    - componentWillUpdate(nextProps,nextState)——更新前，即将过时
    - render()——渲染
@@ -1817,7 +1817,7 @@ obj.hasOwnProperty(pro)//判断对象是否包含pro属性
    - componentWillMount即将过时，且时间和componentDidMount发生时间相差无几。
    - 挂载阶段只发生一次
 
-4. react 性能优化是哪个周期函数——componentShouldUpdate(nextProps,nextState)
+4. react 性能优化是哪个周期函数——shouldComponentUpdate(nextProps,nextState)
 
    - 默认返回true执行页面的渲染更新
    - 更新的props和state通过对比历史的props和state来决定是否重新渲染页面，如果返回为true，执行渲染更新
@@ -1843,7 +1843,7 @@ obj.hasOwnProperty(pro)//判断对象是否包含pro属性
    - component diff：
      - 同类型两个组件
        - 按照层级比较虚拟DOM
-       - 从A变到B，通过shouldComponent()判断是否需要更新
+       - 从A变到B，通过shouldComponentUpdate()判断是否需要更新
      - 不同类型组件：替换组件
    - element diff：当节点处于同一层级时，diff提供三种节点操作：**删除、插入、移动**。
      - 新节点就插入，少节点就删除
@@ -1970,7 +1970,7 @@ vue-router是Vue.js官方的路由插件，它和vue.js是深度集成的，适�
 
    在this.$route.params，this.$route.query
 
-3. 导航钩子
+3. 导航钩子（路由守卫）
 
    - 全局级：beforeEach，afterEach
    - 路由级：beforeEnter
@@ -2137,7 +2137,7 @@ Vuex 是一个专为 Vue.js 应用程序开发的**状态管理模式**。它采
 12. [单页面与多页面应用的优缺点](<https://blog.csdn.net/jiang7701037/article/details/93243545>)：
 
     - 单页面：一个html页面容器+很多组件，单页面是一次性把web应用的所有代码（HTML，JavaScript和CSS）全部请求过来（首次加载太慢会考虑按需加载。加载某个组件时，js会动态切换html容器中的内容。
-    - 多页面应用：每次进入新的页面，都需要向服务器发送请求，要整个页面的所有代码。而且，多次操作后，再次进入该页面时，还得再次请求。不但浪费了网络流量，更重要的是有延迟，用户友好性，用户体验不好。
+    - 多页面应用：每次进入新的页面，都需要向服务器发送请求，要整个页面的所有代码。而且，多次操作后，再次进入该页面时，还得再次请求。不但浪费了网络流量，更重要的是有延迟，用户友好性和用户体验都不好。
 
 13. [过滤器](<https://www.cnblogs.com/qdwds/p/11564467.html>)
 
@@ -2676,7 +2676,7 @@ Vuex 是一个专为 Vue.js 应用程序开发的**状态管理模式**。它采
        - externals：忽略不用的包。
        - dll：对某些包进行单独的打包。
      - 优化代码运行的性能
-       - 文件资源缓存（`hash-chunkhash-contenthash`）：浏览器指挥加载文件名已修改的文件，这个优化会使，已更新的文件文件名会修改，
+       - 文件资源缓存（`hash-chunkhash-contenthash`）：浏览器只会加载文件名已修改的文件，这个优化会使，已更新的文件文件名会修改，
        - tree shaking：树摇去除应用程序中没有用到的代码。production模式和es6模块化
        - code split：文件分割，多入口多出口/import动态导入/配置优化项splitChunks。
        - lazy loading：延迟加载或不加载文件，通过import动态引入。
@@ -2856,3 +2856,53 @@ render process 包含多个线程：
 效果：
 
 1. 在线提供选购便民服务
+
+# 12 设计模式
+
+## 七大原则
+
+1. 单一职责原则：粒度分解（类级别和方法级别）
+2. 接口隔离原则：客户端不应该依赖它不需要的接口，即一个类对另一个类的依赖应该建立在最小的接口上。
+3. 依赖倒转原则：依赖抽象而不依赖细节，面向接口编程。
+4. 里氏替换原则：指导如何使用继承的原则，子类尽量不要重写父类的方法，引用基类的地方可以使用子类透明的替换，尽量少使用继承。
+5. 开闭原则ocp：扩展而不是修改已有细节
+6. 迪米特法则：只与直接的朋友通信，最少知道原则。
+7. 合成复用原则：尽量少使用继承，而使用组合和聚合的方式。
+
+谐音记忆：丹姐依你，开底盒
+
+## 模式
+
+1. [装饰器模式](<https://www.cnblogs.com/of-fanruice/p/11565679.html>)：
+   - 原则：里氏替换、合成复用原则。
+   - 应用：奶茶店单杯奶茶（奶茶加各种调料）计算价格和输出描述
+2. 
+
+# 13 mysql
+
+## 13.1 三范式
+
+1. 原子性，表的列具有原子性，不可再分解，列不可再分性。
+2. 区分性，表的行必须可以被唯一的区分，我们通常设置一个主键（主键 不包含业务逻辑）来实现。行可唯一区分性
+3. 一个数据表中应不包含已在其他表中已包含的非主键字段，能推导尽量推导（通过join连接查询）
+
+三范式从前至后满足必要不充分关系，范式不是绝对要求，有时为了方便，还要违反三范式。
+
+## 13.2 查询语句执行顺序
+
+sql执行顺序 
+
+```sql
+1. from 
+2. join 
+3. on 
+4. where 
+5. group by(开始使用select中的别名，后面的语句中都可以使用)
+6. avg,sum
+7. having 
+8. select 
+9. distinct 
+10. order by 
+11. limit
+```
+
