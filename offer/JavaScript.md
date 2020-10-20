@@ -659,7 +659,7 @@ obj.hasOwnProperty(pro)//判断对象是否包含pro属性
 
 7. 闭包
 
-   - 闭包就是能够读取其他函数内部变量的函数
+   - 闭包就是能够读取其他函数内部变量的函数。
    - javascript中，只有函数内部的子函数才能读取局部变量，所以闭包可以理解成“定义在一个函数内部的函数“。在本质上，闭包是将函数内部和函数外部连接起来的桥梁。
 
 8. 类的创建和继承
@@ -974,6 +974,10 @@ obj.hasOwnProperty(pro)//判断对象是否包含pro属性
     - 
 
 20. 深拷贝
+
+    - `JSON.stringify()和JSON.parse()`
+    - `Objcet.assign()`
+    - 迭代方式，如下：
 
     ```js
     function deepClone(obj){
@@ -1344,10 +1348,17 @@ obj.hasOwnProperty(pro)//判断对象是否包含pro属性
       5、 postMessage跨域
       6、 跨域资源共享（CORS）
       7、 nginx代理跨域
-      8、 nodejs中间件代理跨域
-      9、 WebSocket协议跨域
+      8、 nodejs中间件（cors）代理跨域
+      9、 WebSocket协议跨域 
 
-33. [js不同数据类型的值的比较，是怎么转换的，有什么规则，x==y](<https://www.jianshu.com/p/ace2c71bec3b>)
+33. [`CORS`](<http://www.ruanyifeng.com/blog/2016/04/cors.html>)
+
+    - Cross Origin Resource Sharing 跨域资源共享，
+    - 它允许浏览器向跨源服务器，发出XMLHttpRequest请求，从而克服了AJAX只能同源使用的限制。
+    - 分两种请求，简单请求（get post head 请求，并且头信息只有几个），非简单请求（其他请求方法）
+    - 请求头信息中要写`Origin：发起请求的源域名`，服务器的响应头中`Access-Control-Allow-Origin`要允许源站发起请求，即可实现跨域资源共享
+
+34. [js不同数据类型的值的比较，是怎么转换的，有什么规则，x==y](<https://www.jianshu.com/p/ace2c71bec3b>)
 
     - `==` 允许在相等比较中进行强制类型转换，而 `===` 不允许。
     - ToNumber操作：`true` 转换为 1， `false` 转换为 0。ToNumber 对字符串的处理基本遵循数字常量的相关规则 / 语法。
@@ -1376,7 +1387,7 @@ obj.hasOwnProperty(pro)//判断对象是否包含pro属性
         - object，false
       - **[]与{}：false**
 
-34. `if`判断语句：
+35. `if`判断语句：
 
     ```js
     let arr=[1,"str",function(){return false},{},[],Infinity,0,NaN,undefined,null]
@@ -1406,34 +1417,34 @@ obj.hasOwnProperty(pro)//判断对象是否包含pro属性
 
     
 
-35. this指向：
+36. this指向：
 
     - 默认绑定：全局环境中，this指向window
     - 隐式绑定：函数的上下文。
     - 隐式丢失：bind()，apply()，call()
     - new绑定：构造函数构造的对象，或者构造器中return的对象
 
-36. 暂停死区：
+37. 暂停死区：
 
     - 在代码块内，使用let、const 命令声明变量之前，该变量都是不可用的。这在语法上，称为“暂时性死区”（没有变量提升）
 
-37. 虚拟DOM:
+38. 虚拟DOM:
 
     - 用js对象表示真实DOM结构，当状态变更时，构造新的js对象，与旧有js对象进行比较，记录两棵树的差异应用到所构建的真DOM树上。
 
-38. antd
+39. antd
 
     - 优点：组件全面，
     - 缺点：框架自定义程度低，默认ui风格修改困难
 
-39. prototype，`__proto__`
+40. prototype，`__proto__`
 
     - prototype 属性使您有能力向对象添加属性和方法。
     - prototype是函数才有的属性。`__proto__`是每个对象都有的属性。
     - 函数的`prototype`的构造函数是`Object.prototype`
     - `__proto__`指向的是`constructor.prototype`(构造器的原型)
 
-40. 下划线命名与驼峰命名之间的转换
+41. 下划线命名与驼峰命名之间的转换
 
     ```js
     function camel2_(target){
@@ -1453,22 +1464,22 @@ obj.hasOwnProperty(pro)//判断对象是否包含pro属性
     console.log(_2Camel(str2))
     ```
 
-41. `setTimeOut(fn,100)`其中100ms如何权衡
+42. `setTimeOut(fn,100)`其中100ms如何权衡
 
     - setTimeout()函数只是将事件插入了任务列表，必须等到当前代码执行完，主线程才会去执行它指定的回调函数，有可能要等很久，所以没有办法保证回调函数一定会在setTimeout 指定的时间内执行，100 毫秒至少是插入队列的时间+等待的时间
 
-42. 页面之间传参：
+43. 页面之间传参：
 
     - url的query参数，localstorage和sessionStorage
     - 框架内的话：vue的vuex，react的react-redux，也可以通过代参跳路由
 
-43. [继承的方式](<https://www.jianshu.com/p/0580a641eee7>)
+44. [继承的方式](<https://www.jianshu.com/p/0580a641eee7>)
 
-    - 原型链继承：将父类实例作为子类的原型，实例是子类的实例也是父类的实例（`Child.prototype=new Parent();`）
-    - 构造函数继承：使用父类的构造函数来增强子类实例，等于是复制父类的实例属性给子类（没用到原型）（`super()`）
+    - 原型链继承：将父类实例作为子类的原型，实例是子类的实例也是父类的实例（`Child.prototype=new Parent();`）。缺点：实例化子类的时候没法给父类传参
+    - 构造函数继承：使用父类的构造函数来增强子类实例，等于是复制父类的实例属性给子类（没用到原型）（`super()`）。缺点：没法继承原型链上的属性和方法
     - 组合式继承：通过调用父类构造，继承父类的属性并保留传参的优点，然后通过将父类实例作为子类原型，实现函数复用
 
-44. 对象的键名计算：
+45. 对象的键名计算：
 
     ```js
     //[]用于计算键名，就如同数组arr[i]一样。
@@ -1478,12 +1489,17 @@ obj.hasOwnProperty(pro)//判断对象是否包含pro属性
         ['a'+'bc']:123
     };
     console.log(obj.aa,obj[a],obj['abc'],obj.abc)//true true 123 123
-    
     ```
 
-    
+46. Json
 
-45. 
+    - **JavaScript Object Notation**，轻量级的数据交换格式
+    - 值：数组，对象，数字，字符串，boolean，null。
+    - JSON 是 JS 对象的字符串表示法
+    - 解析容易，传输速度快
+    - XML：数据的描述性更好
+
+47. 
 
 # 2 CSS
 
@@ -1825,7 +1841,7 @@ obj.hasOwnProperty(pro)//判断对象是否包含pro属性
 
 5. React 中 keys 的作用是什么？
 
-   - 是 React 用于追踪哪些列表中元素被修改、被添加或者被移除的辅助标识。
+   - 是 React 用于追踪列表中哪些元素被修改、被添加或者被移除的辅助标识。
    - 在 React Diff 算法中 React 会借助元素的 Key 值来判断该元素是新近创建的还是被移动而来的元素，
 
 6. Refs
@@ -2568,7 +2584,7 @@ Vuex 是一个专为 Vue.js 应用程序开发的**状态管理模式**。它采
     - 移动设备上的浏览器默认会在用户点击屏幕大约延迟300毫秒后才会触发点击事件，这是为了检查用户是否在做双击。
     - 为了能够立即响应用户的点击事件，才有了FastClick。
 
-14. [强缓存和协议缓存](<https://www.jianshu.com/p/fb59c770160c>)
+14. [强缓存和协商缓存](<https://www.jianshu.com/p/fb59c770160c>)
 
     - 浏览器而言，一般缓存我们分为四类，按浏览器读取优先级顺序依次为：`Memory Cache`、`Service Worker Cache`、`HTTP Cache`、`Push Cache`
 
@@ -2596,6 +2612,7 @@ Vuex 是一个专为 Vue.js 应用程序开发的**状态管理模式**。它采
       - 合并和压缩css和js文件，
       - 尽量使用svg（代码编写而成，放大不变形）和雪碧图（多张图合为一张，用background-position调整展现位置）
       - 减少cookie的使用（前后端来回传）
+      - 使用缓存
     - 代码优化：
       - 减少使用闭包
       - 减少dom操作
@@ -2641,7 +2658,28 @@ Vuex 是一个专为 Vue.js 应用程序开发的**状态管理模式**。它采
 
 # 8 数据结构与算法
 
-## 8.1 排序
+## 8.1 数据结构
+
+数据结构=逻辑结构+存储结构+数据的运算
+
+逻辑结构：
+
+- 线性结构（一对一）：线性表，栈，队列，串
+- 非线性结构：树（一对多），图（多对多）
+
+存储结构：
+
+- 顺序存储：逻辑和存储都是相邻的
+- 链式存储：强调元素之间的逻辑关系
+- 索引存储：建立索引表
+- 散列存储：hash存储
+
+数据的运算：
+
+- 运算的定义是针对逻辑结构的
+- 运算的实现是针对存储结构的
+
+## 8.2 排序
 
 不稳定：选择，希尔，快速，堆
 
@@ -2670,9 +2708,24 @@ Vuex 是一个专为 Vue.js 应用程序开发的**状态管理模式**。它采
 7. 基数排序：数字按位比较
    - 基数排序是一种非比较型整数排序算法，其原理是将数据按位数切割成不同的数字，然后按每个位数分别比较。
 
-## 8.2 查找
+`Array.sort()底层算法实现`：V8 引擎 sort 函数只给出了两种排序 InsertionSort 和 QuickSort，数组长度小于等于 22 的用插入排序 InsertionSort，比22大的数组则使用快速排序 QuickSort。
 
+## 8.3 查找
 
+查找算法分类：
+
+- 动态查找和静态查找：有无插入和删除记录的操作
+- 无序查找和有序查找：被查找数列是否有序
+
+算法实现：
+
+1. 顺序查找：
+2. 二分查找：折半查找
+3. 插值查找：区间自适应
+4. 斐波那契查找：按照斐波那契序列的特点对有序表进行分割的
+5. 树表查找：b树，b+树，红黑树
+6. 分块查找：区间之间有序，区间内无序
+7. 哈希查找：
 
 # 9 webpack
 
@@ -2720,7 +2773,7 @@ Vuex 是一个专为 Vue.js 应用程序开发的**状态管理模式**。它采
 它主要包含四个进程（其它辅助进程不计入）：
 
 1. 浏览器进程（Browser Process）：负责浏览器的TAB的前进、后退、地址栏、书签栏的工作和处理浏览器的一些不可见的底层操作，比如网络请求和文件访问。
-2. 渲染进程（Render Process）：负责TAB业内的显示工作，也成渲染引擎。
+2. 渲染进程（Render Process）：负责TAB页内的显示工作，也称渲染引擎。
 3. 插件进程（Plugin Process）：负责控制页面使用的插件。
 4. GPU进程：负责处理整个应用程序的GPU任务。
 
@@ -2908,7 +2961,9 @@ render process 包含多个线程：
 1. [装饰器模式](<https://www.cnblogs.com/of-fanruice/p/11565679.html>)：
    - 原则：里氏替换、合成复用原则。
    - 应用：奶茶店单杯奶茶（奶茶加各种调料）计算价格和输出描述
-2. 
+2. 单例模式：
+   - 懒汉式，双重校验，内部类
+3. 
 
 # 13 mysql
 
