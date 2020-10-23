@@ -18,7 +18,7 @@ sign in注册，sign up登录，注册后验证邮箱，如果邮箱里没收到
 
 ## 1.3 个人主页
 
-![个人主页](E:/note/gitHub/legend/%E4%B8%AA%E4%BA%BA%E4%B8%BB%E9%A1%B5.png)
+![个人主页](/legend/%E4%B8%AA%E4%BA%BA%E4%B8%BB%E9%A1%B5.png)
 
 
 

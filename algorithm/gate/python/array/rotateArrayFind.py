@@ -17,7 +17,7 @@ class RotateArrayFind():
                 return arr[mid]
             elif arr[mid]<arr[end]:#当前这种情况说明旋转的步数还未过半，最小的数在mid的左侧，所以end=mid-1，让他去左边查找。
                 end=mid-1
-            else:#当前这种情况说明旋转的步数还已过半，最小的数在mid的右侧，
+            else:#当前这种情况说明旋转的步数已过半，最小的数在mid的右侧，
                 start=mid+1
         return 0
 

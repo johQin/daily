@@ -98,8 +98,6 @@ div[class=female]{
 label,#id,.class,[attr]{
 同时匹配，labal元素选择器选中的，id选择器选中的，，，选择器匹配到的元素之间求并集，而不是交集
 }
-
-
 2. 后代元素选择器
 <pre>
 fatherLabel offspringLabel{
@@ -437,7 +435,7 @@ box-sizing:content-box border-box; 内容区宽高&emsp;边框+padding+content�
 
 calc(一个+-*/表达式);
 
-通常计算calc( 50% - 20px );
+通常计算calc( 50% - 20px );，运算符号与参与运算的数之间必须留有空格，否则计算不生效
 
 
 2. padding

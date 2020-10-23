@@ -47,6 +47,7 @@
 
    - 箭头函数内部的this指向函数**定义时**所在的上下文对象，而不是函数**执行时的上下文**（调用者）
    - 箭头函数是[lexically scoped](http://stackoverflow.com/questions/1047454/what-is-lexical-scope)（词法作用域），这意味着其this绑定到了附近scope的上下文。
+   - 箭头函数没有arguments对象，如果有，那也是父函数的arguments对象。
 
    ```js
    //讨论点：参数个数，函数体的语句数，返回值
@@ -975,6 +976,7 @@ obj.hasOwnProperty(pro)//判断对象是否包含pro属性
 
 20. 深拷贝
 
+    - 深拷贝和浅拷贝最根本的区别在于是否真正获取一个对象的复制实体，而不是引用。
     - `JSON.stringify()和JSON.parse()`
     - `Objcet.assign()`
     - 迭代方式，如下：
@@ -1751,6 +1753,14 @@ obj.hasOwnProperty(pro)//判断对象是否包含pro属性
 
 常用布局方式：`float+margin、float+overflow，position，flex，grid`
 
+1. 响应式设计和自适应设计
+   - 前者只需要开发一套界面就可以而后者需要开发多套界面来适应不同的终端；
+   - 响应式设计：它会自动适应屏幕大小，响应式使用CSS @media完成设备判断。
+   - 自适应设计：采取多个不同的布局设计，多个屏幕的尺寸，使用哪个布局取决于屏幕类型。其不太灵活
+   - 自适应布局通过检测视口分辨率，来判断当前访问的设备是：pc端、平板、手机，从而请求服务层，返回不同的页面；
+   - 响应式布局通过检测视口分辨率，针对不同客户端在客户端做代码处理，来展现不同的布局和内容。
+2. 
+
 # 3 HTML
 
 1. 拖放api
@@ -1773,7 +1783,7 @@ obj.hasOwnProperty(pro)//判断对象是否包含pro属性
 2. html语义化
 
    - HTML5 语义化标签是指正确的标签包含了正确的内容，结构良好，便于阅读，比如nav 表示导航条，类似的还有article、header、footer 等等标签。
-   - 便于解析页面，有利于爬虫爬取数据。
+   - 便于解析页面，有利于爬虫爬取数据。对搜索引擎友好，更容易被搜索引擎抓取，有利于推广。
 
 3. iframe
 
@@ -1797,7 +1807,11 @@ obj.hasOwnProperty(pro)//判断对象是否包含pro属性
    - script脚本阻塞html的解析，导致浏览器显示空白的时间增长。
    - ![](E:/gitRepository/daily/offer/legend/html%E8%A7%A3%E6%9E%90.png)
 
-6. 
+6. data-属性
+
+   - 用户自定义属性，通过对象的dataset属性获取
+
+7. 
 
 # 4 React
 
@@ -1912,7 +1926,8 @@ obj.hasOwnProperty(pro)//判断对象是否包含pro属性
 
 18. React 性能优化
 
-    - 列表渲染一定要指定key
+    - 列表渲染一定要指定key，避免将后面的子结点移动到前面的操作
+    - 多个state数据变化时，集中setState，减少使用setState
     - shouldComponentUpdate减少不必要的渲染
 
 19. f
@@ -1974,6 +1989,41 @@ obj.hasOwnProperty(pro)//判断对象是否包含pro属性
 ## 5.2 Vue-router
 
 vue-router是Vue.js官方的路由插件，它和vue.js是深度集成的，适合用于构建单页面应用。vue的单页面应用是基于路由和组件的，路由用于设定访问路径，并将路径和组件映射起来。传统的页面应用，是用一些超链接来实现页面切换和跳转的。在vue-router单页面应用中，则是路径之间的切换，也就是组件的切换。
+
+```js
+import Home from './src/home'
+const router = new VueRouter({
+  mode: 'history',
+    routes: [
+        {
+            path:'/home',
+            component:Home
+        },
+        { 
+            //嵌套路由
+            path: '/user/:id', component: User,
+      		children: [
+        		{
+          			// 当 /user/:id/profile 匹配成功，
+          			// UserProfile 会被渲染在 User 的 <router-view> 中
+          			path: 'profile',
+          			component: UserProfile
+        		},
+            ]
+        },
+        {
+            path:'/home-*',//匹配以home-开头的路由
+            component:Home
+        }
+        {
+            path:'*',//匹配所有路由，用于404页面提示
+            component:NotFound
+        }
+    ]
+})
+```
+
+
 
 1. vue-router提供了什么组件？
 
@@ -2679,7 +2729,11 @@ Vuex 是一个专为 Vue.js 应用程序开发的**状态管理模式**。它采
 - 运算的定义是针对逻辑结构的
 - 运算的实现是针对存储结构的
 
-## 8.2 排序
+## 8.2 基本算法思想
+
+[迭代与递归](<https://www.jianshu.com/p/32bcc45efd32>)
+
+## 8.3 排序
 
 不稳定：选择，希尔，快速，堆
 
@@ -2710,7 +2764,7 @@ Vuex 是一个专为 Vue.js 应用程序开发的**状态管理模式**。它采
 
 `Array.sort()底层算法实现`：V8 引擎 sort 函数只给出了两种排序 InsertionSort 和 QuickSort，数组长度小于等于 22 的用插入排序 InsertionSort，比22大的数组则使用快速排序 QuickSort。
 
-## 8.3 查找
+## 8.4 查找
 
 查找算法分类：
 
@@ -2726,6 +2780,8 @@ Vuex 是一个专为 Vue.js 应用程序开发的**状态管理模式**。它采
 5. 树表查找：b树，b+树，红黑树
 6. 分块查找：区间之间有序，区间内无序
 7. 哈希查找：
+
+
 
 # 9 webpack
 
@@ -2902,7 +2958,7 @@ render process 包含多个线程：
 
 ### 问题
 
-1. 数据大盘布局：设置在页面的最外层，宽100%+滚动条的宽度=100vw
+1. 数据大盘布局：设置在页面的最外层，宽100%+滚动条的宽度=100vw。布局的专题研究
 2. 
 
 ## 11.4 湖北省国家电网智慧运营中心
@@ -2993,3 +3049,24 @@ sql执行顺序
 11. limit
 ```
 
+# 综合
+
+1. 渐进增强与优雅降级
+   - 渐进增强：先解决页面基本布局，再逐渐根据需求进行完善
+   - 优雅降级：先搭建一套针对于最高级浏览器最完善的功能的设计，再慢慢向下兼容
+2. **假若你有5个不同的 CSS 文件, 加载进页面的最好方式是?**
+   - 文件拼合压缩，较少http请求次数。考虑请求数量的同时也要考虑请求文件的大小。
+3. 网站的文件资源进行优化
+   - 文件合并压缩
+   - 使用CDN托管（缓存服务器，最近响应）
+   - 使用缓存
+4. 测试代码性能的工具
+   - profiler：基于web的内存分析工具
+   - jsperf：代码片段性能测试工具
+5. 无样式内容闪烁
+   - 以无样式显示页面内容的瞬间闪烁,这种现象称之为文档样式短暂失效
+   - 原因：
+     - 在css中通过import导入样式，执行时机是在页面完全加载完毕后进行解析
+     - `<style>`标签放在页面底部
+   - 解决：在head中通过link标签引入样式文件
+6. 
