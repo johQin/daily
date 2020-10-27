@@ -580,9 +580,11 @@ Object.isFrozen(object)//判断对象是否已冻结
 obj.hasOwnProperty(pro)//判断对象是否包含pro属性
 ```
 
+## 1.4 String 方法
 
 
-## 1.4 编程
+
+## 1.5 编程
 
 1. 使用解构，实现两个变量的值的交换
 
@@ -601,7 +603,7 @@ obj.hasOwnProperty(pro)//判断对象是否包含pro属性
    //规范最初起草在ECMAScript 6草案中，但在第27版（2014年8月）中被移除
    ```
 
-## 1.5 Javascript
+## 1.6 Javascript
 
 1. Web Worker 
 
@@ -1377,7 +1379,7 @@ obj.hasOwnProperty(pro)//判断对象是否包含pro属性
       - boolean：都为相同值时，返回true
       - object：**对象（包括函数和数组）的宽松相等（==）**：两个对象指向同一个值时即视为相等，不发生强制类型转换。
       - number：
-        - 任意一个为NaN：false
+        - **任意一个为NaN：false**
         - x与y为相等的数值：true
         - +0与-0：true
     - 不同类型时：显然会进行类型转换，**基本数据类型ToNumber，对象类型进行 ToPrimitive 操作**
@@ -1501,7 +1503,13 @@ obj.hasOwnProperty(pro)//判断对象是否包含pro属性
     - 解析容易，传输速度快
     - XML：数据的描述性更好
 
-47. 
+47. DOM树和渲染树（DOM tree和Render tree）
+
+    - **DOM树表示页面结构，渲染树表示DOM节点如何显示。**
+    - DOM树中的每一个需要显示的节点在渲染树种至少存在一个对应的节点（隐藏的DOM元素disply值为none 在渲染树中没有对应的节点）。
+    - 渲染树中的节点被称为“帧”或“盒"
+
+48. 
 
 # 2 CSS
 
@@ -1601,7 +1609,7 @@ obj.hasOwnProperty(pro)//判断对象是否包含pro属性
    }
    ```
 
-8. [flex布局](<https://www.runoob.com/w3cnote/flex-grammar.html>)
+8. [flex布局（弹性布局）](<https://www.runoob.com/w3cnote/flex-grammar.html>)
 
    - 流布局的优先级大于浮动float布局
 
@@ -1811,7 +1819,19 @@ obj.hasOwnProperty(pro)//判断对象是否包含pro属性
 
    - 用户自定义属性，通过对象的dataset属性获取
 
-7. 
+7. html5新特性
+
+   - 新API
+     - Web Worker 多线程环境
+     - Geolocation 地理位置
+     - Drag&Drop 拖动
+     - Application Cache 通常用于静态资源（静态页面）的缓存。
+     - Local Storage 本地存储（又分sessionStorage和localStorage）
+     - SSE（Server-sent Events）服务器推送事件。可以用来从服务端实时推送数据到浏览器端。（即时通讯技术：**短轮询、Comet、Websocket、SSE**）
+   - 新的多媒体标签：svg和canvas、video、audio
+   - 结构和语义化标签
+
+8. 
 
 # 4 React
 
@@ -2309,7 +2329,12 @@ Vuex 是一个专为 Vue.js 应用程序开发的**状态管理模式**。它采
 
     - <Son @click.**native**=‘handler1’>
 
-24. 
+24. vue双向绑定原理
+
+    - view->data，通过事件监听，即可绑定
+    - data->view，通过`Object.defineProperty()`对属性设置一个set函数，通过数据改变时，函数式的更新view
+
+25. 
 
 ## 5.5. 编程
 
