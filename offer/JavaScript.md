@@ -582,7 +582,32 @@ obj.hasOwnProperty(pro)//判断对象是否包含pro属性
 
 ## 1.4 String 方法
 
+```js
+//1.截取子字符串
+stringObject.substr(start,length)//参数可负
+stringObject.substring(start,stop)//参数非负
+stringObject.slice(start,end)//参数可负
+stringObject.charAt(index)//返回指定位置的一个字符
 
+//2.正则表达式
+stringObject.match(searchvalue|regexp)
+stringObject.replace(regexp | substr,repStr|repFunction)
+
+//3.位置
+stringObject.search(regexp | substr)//返回第一个匹配子串的位置。不执行全局匹配，它将忽略标志 g。总是从开始位置进行匹配
+stringObject.indexOf(searchvalue,fromindex)
+stringObject.lastIndexOf(searchvalue,fromindex)
+
+//4.字符串与数组的转换
+stringObject.split( separator|regexp,maxlength)//分割字符串为数组
+
+//5.字符串的样式
+stringObject.toLowerCase()
+stringObject.toUpperCase()
+stringObject.strike()//加删除线
+
+
+```
 
 ## 1.5 编程
 
@@ -1509,7 +1534,28 @@ obj.hasOwnProperty(pro)//判断对象是否包含pro属性
     - DOM树中的每一个需要显示的节点在渲染树种至少存在一个对应的节点（隐藏的DOM元素disply值为none 在渲染树中没有对应的节点）。
     - 渲染树中的节点被称为“帧”或“盒"
 
-48. 
+48. undefined 与 null ：undefined表示声明但未赋初值，null表示未存在的对象，通常用作对象的垃圾回收。
+
+    - undefined：
+      - 声明但未赋初值
+      - 调用函数时，应该提供的参数没有提供（函数未传参）
+      - 访问对象里没有的属性
+      - 函数没有返回值，默认值为undefined
+    - null：
+      - 通常用作对象的垃圾回收
+
+49. 内存泄漏：指任何对象在您不再拥有或需要它之后仍然存在。造成原因：对象循环引用，定时器忘回收，DOM 引用，闭包中的变量
+
+50. 作用域链：当前作用域没有定义的变量，叫做自由变量，函数访问自由变量，是从祖辈作用域中一层层搜索，这样就叫做作用域链。
+
+51. 测试代码性能的工具
+
+    - profiler：基于web的内存分析工具
+    - jsperf：代码片段性能测试工具
+
+52. 
+
+    
 
 # 2 CSS
 
@@ -1831,7 +1877,24 @@ obj.hasOwnProperty(pro)//判断对象是否包含pro属性
    - 新的多媒体标签：svg和canvas、video、audio
    - 结构和语义化标签
 
-8. 
+8. 无样式内容闪烁
+
+   - 以无样式显示页面内容的瞬间闪烁,这种现象称之为文档样式短暂失效
+   - 原因：
+     - 在css中通过import导入样式，执行时机是在页面完全加载完毕后进行解析
+     - `<style>`标签放在页面底部
+   - 解决：在head中通过link标签引入样式文件
+
+9. 渐进增强与优雅降级
+
+   - 渐进增强：先解决页面基本布局，再逐渐根据需求进行完善
+   - 优雅降级：先搭建一套针对于最高级浏览器最完善的功能的设计，再慢慢向下兼容
+
+10. **假若你有5个不同的 CSS 文件, 加载进页面的最好方式是?**
+
+    - 文件拼合压缩，较少http请求次数。考虑请求数量的同时也要考虑请求文件的大小。
+
+11. 
 
 # 4 React
 
@@ -2513,11 +2576,15 @@ Vuex 是一个专为 Vue.js 应用程序开发的**状态管理模式**。它采
 
 5. HTTP的缓存机制
 
-   - HTTP 缓存即是浏览器第一次向一个服务器发起HTTP 请求后，服务器会返回请求的资源，并且在响应头中添加一些有关缓存的字段如：cache-control，expires,last-modifed，ETag,Date等，之后浏览器再向该服务器请求资源就可以视情况使用强缓存和协商缓存，
+   - HTTP 缓存即是浏览器第一次向一个服务器发起HTTP 请求后，服务器会返回请求的资源，并且在响应头中添加一些有关缓存的字段如：cache-control，expires，last-modifed，ETag,Date等，之后浏览器再向该服务器请求资源就可以视情况使用强缓存和协商缓存，
    - 强缓存：浏览器直接从本地缓存中获取数据，不与服务器进行交互。
    - 协商缓存：浏览器发送请求到服务器，服务器判断是否可使用本地缓存。
 
-6. 
+6. 网站的文件资源进行优化
+
+   - 文件合并压缩
+   - 使用CDN托管（缓存服务器，最近响应）
+   - 使用缓存
 
 ## http与浏览器
 
@@ -2690,7 +2757,7 @@ Vuex 是一个专为 Vue.js 应用程序开发的**状态管理模式**。它采
       - 使用缓存
     - 代码优化：
       - 减少使用闭包
-      - 减少dom操作
+      - 减少dom操作，合并dom操作。
       - 多用link（异步）加载样式，少用@import（同步）
     - 缓存：localStorage，sessionStorage，对静态资源做缓存
 
@@ -2734,6 +2801,8 @@ Vuex 是一个专为 Vue.js 应用程序开发的**状态管理模式**。它采
 # 8 数据结构与算法
 
 ## 8.1 数据结构
+
+程序=数据结构+算法
 
 数据结构=逻辑结构+存储结构+数据的运算
 
@@ -3074,24 +3143,3 @@ sql执行顺序
 11. limit
 ```
 
-# 综合
-
-1. 渐进增强与优雅降级
-   - 渐进增强：先解决页面基本布局，再逐渐根据需求进行完善
-   - 优雅降级：先搭建一套针对于最高级浏览器最完善的功能的设计，再慢慢向下兼容
-2. **假若你有5个不同的 CSS 文件, 加载进页面的最好方式是?**
-   - 文件拼合压缩，较少http请求次数。考虑请求数量的同时也要考虑请求文件的大小。
-3. 网站的文件资源进行优化
-   - 文件合并压缩
-   - 使用CDN托管（缓存服务器，最近响应）
-   - 使用缓存
-4. 测试代码性能的工具
-   - profiler：基于web的内存分析工具
-   - jsperf：代码片段性能测试工具
-5. 无样式内容闪烁
-   - 以无样式显示页面内容的瞬间闪烁,这种现象称之为文档样式短暂失效
-   - 原因：
-     - 在css中通过import导入样式，执行时机是在页面完全加载完毕后进行解析
-     - `<style>`标签放在页面底部
-   - 解决：在head中通过link标签引入样式文件
-6. 
