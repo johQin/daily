@@ -100,6 +100,7 @@
    - prototype是函数才有的属性。`__proto__`是每个对象都有的属性。
    - 函数的`prototype`的构造函数是`Object.prototype`
    - `__proto__`指向的是`constructor.prototype`(构造器的原型)
+   - 原型链：当我们访问对象的一个属性或方法时，它会先在对象自身中寻找，如果有则直接使用，如果没有则会去原型对象中寻找，如果找到则直接使用。如果没有则去原型的原型中寻找,直到找到Object对象的原型，Object对象的原型没有原型，如果在Object原型中依然没有找到，则返回undefined。
    - ![](./legend/__proto__.png)
 
    ```js
