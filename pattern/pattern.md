@@ -568,7 +568,7 @@ private static Runtime{//饿汉式
 
 # 5 工厂模式
 
-## 5.1 简单工厂模式
+## 5.1 传统创建模式
 
 具体例子：
 
@@ -579,3 +579,463 @@ private static Runtime{//饿汉式
 3. 完成披萨店的订购功能
 
 ![披萨选购的传统实现.png](legend/披萨选购的传统实现.png)
+
+```java
+//1.披萨店
+//相当于一个客户端，发出订购
+public class PizzaStore {
+
+	public static void main(String[] args) {
+		new OrderPizza();
+    }
+}
+//2.披萨订单
+public class OrderPizza {
+	// 构造器
+	public OrderPizza() {
+		Pizza pizza = null;
+		String orderType; // 订购披萨的类型
+		do {
+			orderType = getType();
+			if (orderType.equals("greek")) {
+				pizza = new GreekPizza();
+				pizza.setName(" 希腊披萨 ");
+			} else if (orderType.equals("cheese")) {
+				pizza = new CheesePizza();
+				pizza.setName(" 奶酪披萨 ");
+			} else if (orderType.equals("pepper")) {
+				pizza = new PepperPizza();
+				pizza.setName("胡椒披萨");
+			} else {
+				break;
+			}
+			//输出pizza 制作过程
+			pizza.prepare();
+			pizza.bake();
+			pizza.cut();
+			pizza.box();
+			
+		} while (true);
+	}
+    // 写一个方法，可以获取客户希望订购的披萨种类
+	private String getType() {
+		try {
+			BufferedReader strin = new BufferedReader(new InputStreamReader(System.in));
+			System.out.println("input pizza 种类:");
+			String str = strin.readLine();
+			return str;
+		} catch (IOException e) {
+			e.printStackTrace();
+			return "";
+		}
+	}
+}
+
+//3.披萨基类
+//将Pizza 类做成抽象
+public abstract class Pizza {
+    //披萨的名字
+	protected String name; 
+
+	//准备原材料, 不同的披萨不一样，因此，我们做成抽象方法
+	public abstract void prepare();
+
+	public void bake() {
+		System.out.println(name + " baking;");
+	}
+
+	public void cut() {
+		System.out.println(name + " cutting;");
+	}
+
+	//打包
+	public void box() {
+		System.out.println(name + " boxing;");
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+}
+
+//4.披萨子类
+//希腊披萨，其他披萨亦如是
+public class GreekPizza extends Pizza {
+
+	@Override
+	public void prepare() {
+		// TODO Auto-generated method stub
+		System.out.println(" 给希腊披萨 准备原材料 ");
+	}
+
+}
+```
+
+传统模式的优缺点：
+
+1. 优点：比较好理解，简单易操作
+2. 缺点：违反了开闭原则（OCP），即对扩展开放，对修改关闭。即当我们给类增加新功能时，尽量不要修改代码，或者尽量少修改代码
+3. 如果用传统模式，新建pepperPizza类，在订购那里需要修改相应的逻辑，这是不符合要求的。
+
+## 5.2 简单工厂模式
+
+简单工厂模式属于创建型模式，是工厂模式的一种。
+
+简单工厂模式是由一个工厂对象决定创建出哪一种产品类的实例。
+
+简单工厂模式：定义了一个创建对象的类，由这个类来封装实例化对象的行为。
+
+应用场景：当我们用到大量的创建某种某类或者某批对象时，就会使用到工厂模式。
+
+![简单工厂模式.png](legend/简单工厂模式.png)
+
+```java
+public class PizzaStore {
+
+	public static void main(String[] args) {
+		new OrderPizza(new SimpleFactory());
+		System.out.println("~~退出程序~~");
+    }
+}
+
+public class OrderPizza {
+    //定义一个简单工厂对象
+	SimpleFactory simpleFactory;
+	Pizza pizza = null;
+	
+	//构造器
+	public OrderPizza(SimpleFactory simpleFactory) {
+		setFactory(simpleFactory);
+	}
+	
+	public void setFactory(SimpleFactory simpleFactory) {
+		String orderType = ""; //用户输入的
+		
+		this.simpleFactory = simpleFactory; //设置简单工厂对象
+		
+		do {
+			orderType = getType(); 
+			pizza = this.simpleFactory.createPizza(orderType);
+			
+			//输出pizza
+			if(pizza != null) { //订购成功
+				pizza.prepare();
+				pizza.bake();
+				pizza.cut();
+				pizza.box();
+			} else {
+				System.out.println(" 订购披萨失败 ");
+				break;
+			}
+		}while(true);
+	}
+	
+	// 命令行获取订购的披萨种类
+	private String getType() {
+		...
+	}
+
+}
+
+//简单工厂类
+public class SimpleFactory {
+
+	//更加orderType 返回对应的Pizza 对象
+	public Pizza createPizza(String orderType) {
+
+		Pizza pizza = null;
+
+		System.out.println("使用简单工厂模式");
+		if (orderType.equals("greek")) {
+			pizza = new GreekPizza();
+			pizza.setName(" 希腊披萨 ");
+		} else if (orderType.equals("cheese")) {
+			pizza = new CheesePizza();
+			pizza.setName(" 奶酪披萨 ");
+		} else if (orderType.equals("pepper")) {
+			pizza = new PepperPizza();
+			pizza.setName("胡椒披萨");
+		}
+		
+		return pizza;
+	}
+}
+
+```
+
+简单工厂模式也叫静态工厂模式，静态工厂模式可以将createPizza作为一个静态方法，通过类直接调用
+
+## 5.3 工厂方法模式
+
+扩展需求：
+
+客户在点披萨时，可以点不同口味的披萨，比如北京cheesepizza，北京pepperpizza或伦敦cheesepizza，伦敦pepperpizza
+
+从简单工厂模式思考：
+
+使用简单工厂模式，创建不同的简单工厂类，比如我们会建立一个BJSimpleFactory，LDSimpleFactory两个工厂。**但是这样会导致工厂类变多**
+
+**工厂方法模式**
+
+工厂方法模式：定义一个创建对象的抽象方法，由子类决定要实例化的类。**工厂方法模式将对象的实例化推迟到子类**
+
+工厂方法模式的设计方案：将披萨项目的实例化功能，抽象成抽象方法，在不同的口味点餐子类中具体实现。
+
+![工厂方法模式.png](legend/工厂方法模式.png)
+
+OrderPizza在这里就是工厂，createPizza()就是那个抽象方法。
+
+```java
+//1.订购
+public class PizzaStore {
+
+	public static void main(String[] args) {
+		String loc = "bj";
+		if (loc.equals("bj")) {
+			//创建北京口味的各种Pizza
+			new BJOrderPizza();
+		} else {
+			//创建伦敦口味的各种Pizza
+			new LDOrderPizza();
+		}
+		// TODO Auto-generated method stub
+	}
+
+}
+//2.含抽象方法的工厂
+public abstract class OrderPizza {
+
+	//定义一个抽象方法，createPizza , 让各个工厂子类自己实现
+	abstract Pizza createPizza(String orderType);
+	
+	// 构造器
+	public OrderPizza() {
+		Pizza pizza = null;
+		String orderType; // 订购披萨的类型
+		do {
+			orderType = getType();
+			pizza = createPizza(orderType); //抽象方法，由工厂子类完成
+			//输出pizza 制作过程
+			pizza.prepare();
+			pizza.bake();
+			pizza.cut();
+			pizza.box();
+			
+		} while (true);
+	}
+    
+    public String getType(){
+        ...
+    }
+}
+
+//3.工厂子类
+public class BJOrderPizza extends OrderPizza {
+
+	
+	@Override
+	Pizza createPizza(String orderType) {
+	
+		Pizza pizza = null;
+		if(orderType.equals("cheese")) {
+			pizza = new BJCheesePizza();
+		} else if (orderType.equals("pepper")) {
+			pizza = new BJPepperPizza();
+		}
+		return pizza;
+	}
+
+}
+```
+
+## 5.4 抽象工厂模式
+
+抽象工厂模式：定义了一个interface用于创建相关或有依赖关系的对象簇，而无需指明具体的类
+
+将工厂抽象成两层，AbsFactory（抽象工厂）和具体实现的工厂子类。程序员可以根据创建对象类型使用对应的工厂子类。这样将单个的简单工厂变成了工厂簇，更利于代码的维护和扩展。
+
+抽象工厂模式可以将简单工厂模式和工厂方法模式进行整合。
+
+从设计层面上看，抽象工厂就是对简单工厂模式的改进（或称进一步的抽象）。
+
+![抽象工厂模式.png](legend/抽象工厂模式.png)
+
+```java
+public class PizzaStore {
+
+	public static void main(String[] args) {
+		new OrderPizza(new LDFactory());
+	}
+
+}
+//一个抽象工厂模式的抽象层(接口)
+public interface AbsFactory {
+	//让下面的工厂子类来 具体实现
+	public Pizza createPizza(String orderType);
+}
+
+//这是工厂子类
+public class BJFactory implements AbsFactory {
+
+	@Override
+	public Pizza createPizza(String orderType) {
+		System.out.println("~使用的是抽象工厂模式~");
+		// TODO Auto-generated method stub
+		Pizza pizza = null;
+		if(orderType.equals("cheese")) {
+			pizza = new BJCheesePizza();
+		} else if (orderType.equals("pepper")){
+			pizza = new BJPepperPizza();
+		}
+		return pizza;
+	}
+
+}
+
+public class OrderPizza {
+
+	AbsFactory factory;
+
+	// 构造器
+	public OrderPizza(AbsFactory factory) {
+		setFactory(factory);
+	}
+
+	private void setFactory(AbsFactory factory) {
+		Pizza pizza = null;
+		String orderType = ""; // 用户输入
+		this.factory = factory;
+		do {
+			orderType = getType();
+			// factory 可能是北京的工厂子类，也可能是伦敦的工厂子类
+			pizza = factory.createPizza(orderType);
+			if (pizza != null) { // 订购ok
+				pizza.prepare();
+				pizza.bake();
+				pizza.cut();
+				pizza.box();
+			} else {
+				System.out.println("订购失败");
+				break;
+			}
+		} while (true);
+	}
+
+	// 获取披萨的种类
+	private String getType(){
+       ...   
+    }
+
+}
+```
+
+## 5.5 JDK源码分析
+
+1. Calender类使用了简单工厂模式。
+
+## 5.6 工厂模式小结
+
+1. 工厂模式的意义：将实例化对象的代码提取出来，放到一个类中统一管理和维护，达到和主项目的依赖关系的解耦，从而提高项目的扩展性和维护性。
+2. 工厂模式遵循了设计原则中的**依赖抽象（依赖倒转）**原则。
+
+一般设计思路
+
+1. 创建对象实例时，不要直接new类，而是把这个new类的动作放在一个工厂的方法中，并返回。变量不要直接持有具体类的引用。
+2. 不要让类继承具体的类，而是继承抽象类或是实现interface接口。
+3. 不要覆盖基类中已经实现的方法。
+
+# 6 原型模式
+
+克隆羊问题：
+
+现在有一只羊tom，姓名为：tom，年龄：1，颜色：白色，请编写程序创建和tom羊属性完全相同的10只羊。
+
+## 6.1 传统创建模式
+
+由客户端直接创建十次。
+
+![原型-克隆羊传统模式.png](legend/原型-克隆羊传统模式.png)
+
+```java
+//羊类
+public class Sheep {
+	private String name;
+	private int age;
+	private String color;
+	public Sheep(String name, int age, String color) {
+		super();
+		this.name = name;
+		this.age = age;
+		this.color = color;
+	}
+	public String getName() {
+		return name;
+	}
+	public void setName(String name) {
+		this.name = name;
+	}
+	public int getAge() {
+		return age;
+	}
+	public void setAge(int age) {
+		this.age = age;
+	}
+	public String getColor() {
+		return color;
+	}
+	public void setColor(String color) {
+		this.color = color;
+	}
+	@Override
+	public String toString() {
+		return "Sheep [name=" + name + ", age=" + age + ", color=" + color + "]";
+	}
+	
+	
+}
+public class Client {
+
+	public static void main(String[] args) {
+		// TODO Auto-generated method stub
+		//传统的方法
+		Sheep sheep = new Sheep("tom", 1, "白色");
+		
+		Sheep sheep2 = new Sheep(sheep.getName(), sheep.getAge(), sheep.getColor());
+		Sheep sheep3 = new Sheep(sheep.getName(), sheep.getAge(), sheep.getColor());
+		//....
+		
+		System.out.println(sheep);
+		System.out.println(sheep2);
+		System.out.println(sheep3);
+		//...
+	}
+
+}
+```
+
+传统方式的优缺点：
+
+1. 好理解，易操作
+2. 在创建新对象时，总是需要获取原始对象的属性。如果创建对象比较复杂时（有许多属性时，要get很多次），效率低下。
+3. 总是需要重新初始化对象，而不是动态地获取对象运行时的状态（如果我临时又增加了一个属性，那么我还需要添加一个get方法），不够灵活
+
+## 6.2 原型模式
+
+原型模式：用原型实例指定创建对象的种类，并且通过拷贝这些原型，创建新的对象
+
+原型模式是一种创建型设计模式，允许一个对象，在创建另一个可定制的对象，无需知道，如何创建的细节。
+
+工作原理：通过将一个原型对象传给那个要发动创建的对象，这个要发动创建的对象通过请求原型对象拷贝自身来实施创建。即：对象.clone()
+
+![原型模式原理结构.png](legend/原型模式原理结构.png)
+
+原理结构图说明：
+
+1. prototype：原型类，声明一个克隆自己的接口
+2. concreteprototype：具体的原型类，实现一个克隆自己的操作。
+3. client：让一个原型对象克隆自己，从而创建一个新的对象。
+
+```java
+public class Sheep implements Cloneable {
+```
+
