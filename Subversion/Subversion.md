@@ -40,7 +40,7 @@ mkdir proj_oa #项目版本库名
 cd proj_oa
 
 #2. 创建svn的版本库，前面只是创建了相应的目录，但没有把它设置为svn版本库
-svnadmin create /var/svn/repository/proj_oa
+svnadmin create /var/svn/repository/proj_oa #这里也可以写相对地址
 ##这个命令，会在proj_oa 初始化一个版本仓库，里面会生成相应的文件，有下
 ## conf 存放proj_oa版本库的配置文件
 ## db 数据库目录
@@ -55,15 +55,23 @@ svnadmin create /var/svn/repository/proj_oa
 
 #3.1服务状态
 #查看SVnserve的服务状态（这里并不是改变服务当前的状态，而是下一次开机后的服务是否自启的状态）
-chkconfig | grep svn 
+systemctl list-units --type=service
+#也可以使用 chkconfig | grep svn 
 #chkconfig命令主要用来更新（启动或停止）和查询系统服务的运行级信息。
 #命令输出 svnserve 0:关闭 1:关闭 2:关闭 3:关闭 4:关闭 5:关闭 6:关闭 
+
 #svnserve默认不是开机自启，我们在此设置为开机自启，也可以不用设置为开机自启，开机后手动自启
-chkconfig svnserve on #将svn服务设置为开机自启
+systemctl enable svnserve.service #将svn服务设置为开机自启，
+#也可以使用chkconfig svnserve on 如果出现如下的提示，可以换用上面的命令
+#Note: Forwarding request to 'systemctl enable svnserve.service'.
+
 chkconfig | grep svn #再次查看svn的服务状态
 # svnserve 0:关闭 1:关闭 2:启用 3:启用 4:启用 5:启用 6:关闭
 
-#3.2配置服务
+#3.2配置服务开机时自启动
+
+# 方法一：这里是之前配置服务的方法，现在在此路径下找不到svnserve文件，如果能找到直接使用即可。如果不能找到，尝试方法2
+
 #svn服务配置文件的路径，/etc/rc.d/init.d/svnserve，这里也是可执行脚本文件的路径，里面可以配置可执行文件的参数等
 cd /etc/rc.d/init.d
 vim svnserve
@@ -72,18 +80,70 @@ vim svnserve
 #将上面一行修改为
 args="--daemon --root /var/svn/repository --listen-port 2255 --pid-file=${pidfile} $OPTIONS"
 #--root 参数为版本库的根目录，由上面的图我们可以知道，我们服务指向的应是各个版本库上级的repository，而不是某个具体的版本库
-#--listen-port 服务的端口号，默认为
+#--listen-port 服务的端口号，默认为3690
 
-#3.3开启svnserve服务
+#当前就开启服务，不需要重启以开启服务
+#开启svnserve服务
 service svnserve start
 #查看是否启动
 service svnserve status
 #查看2255端口是不是被svnserve占用着
 netstat -anp | grep :2255
-#查看svnserve进程的信息
+#查看svnserve进程的信息，并过滤掉关于grep的信息
 ps -ef | grep svnserve|grep -v grep
 #查看svnserve的pid信息
 cat /var/run/serve.pid
+
+#方法二
+#/etc/init.d下新建文件svnboot，这个文件最终用于开机自启动的脚本文件
+touch svnboot
+vim svnboot
+#将下面的文本进行粘贴
+#!/bin/bash
+# chkconfig: 2345 85 15
+# description: svn server
+SVN_HOME=/var/svn/repository
+SVN_PORT=3690
+SVN_SERVER=/usr/bin/svnserve
+
+
+if [ ! -x $SVN_SERVER ]; then
+    echo "svnserver startup: cannot start"
+    exit
+fi
+
+case "$1" in
+    start)
+        echo "Starting svnserve…"
+        $SVN_SERVER -d -r $SVN_HOME --listen-port $SVN_PORT
+        echo "Finished!"
+        ;;
+    stop)
+        echo "Stoping svnserve…"
+        killall svnserve
+        echo "Finished!"
+        ;;
+    restart)
+        $0 stop
+        $0 start
+        ;;
+    *)
+        echo "Usage: svn { start | stop | restart } "
+        exit 1
+esac
+
+#添加服务
+chkconfig --add svnboot
+#设置为开机自行执行
+chkconfig svnboot on
+
+#开启服务
+svnserve -d -r /var/svn/repository --listen-port 3690
+#记得在阿里云控制台的安全组配置里面开放3690端口
+#查看开启状态
+ps -aux | grep svnserve
+
+
 
 ```
 
@@ -198,7 +258,10 @@ g_developer = wmz,hhq
 1.检出checkout
 mkdir proj_oa
 cd proj_oa
-svn checkout svn://192.168.71.140/proj_oa ./
+svn checkout svn://192.168.71.140/biye ./
+#svn checkout svn://路径(目录或文件的全路径)　[本地目录全路径] --username　用户名
+#之后会提示让你输入密码
+
 ls -al
 #当前目录下多了一个.svn目录
 #.svn目录所在的目录就是服务器版本库的工作副本，版本控制相关操作都需要在工作副本目录下进行，eg:更新，提交等等

@@ -268,7 +268,9 @@ Unix Software Resource
    - -f，强制，如有则覆盖
    - -i，询问后，覆盖
    - -u，文件较新，则覆盖
-5. 
+5. touch：创建新文件
+   - touch 文件名
+6. 
 
 ## 5.3 文件内容查阅
 
@@ -296,25 +298,57 @@ vim视作vi的高级版本。
 
 ## vi模式
 
-1. 一般模式：以vi打开一个文件就是一般模式（删除，复制，粘贴）
+1. 一般模式（Normal）：以vi打开一个文件就是一般模式（删除，复制，粘贴）
 
    - 可以使用上下左右键移动光标，你可以删除字符或删除整行，也可以复制、粘贴你的整行文件数据
    - 一般模式下输入**:wq**保存内容并离开vi
-
-2. 编辑模式：一般模式+编辑内容
+   - **Esc**：由其他模式进入一般模式
+2. 编辑模式（Insert）：一般模式+编辑内容
 
    - 输入**i**：由一般模式进入编辑模式
-   - esc：由编辑模式进入一般模式
-
-3. 命令行模式：提供命令操作的额外功能
-
+3. 命令行模式（Command）：提供命令操作的额外功能
    - **输入：号**：进入命令行模式
-   - esc：由命令行模式进入一般模式
    - 查找数据、替换字符等命令操作
+4. 可视模式（Visual）：
+   - 输入v：进入可视模式
+   - 通过移动上下左右，选中文本，y复制，p粘贴，^选中光标当前位置到行首，$选中光标当前位置到行末
+5. 选择模式（select）
+   - 在gvim的常用模式
+   - 输入gh：进入选择模式
+   - 用鼠标拖选区域，选择完了高亮区域后，敲任何按键就直接输入并替换选择的文本了
 
-4. 
+## 按键说明
 
-   
+| 按键              | 说明                             |
+| ----------------- | -------------------------------- |
+|                   |                                  |
+| 一般模式          |                                  |
+| 【**home**】      | 光标移至行首                     |
+| 【**end**】       | 光标移至行末                     |
+| 【**↑ ↓ ← →**】   | 上下左右移动一个字符             |
+| 【 **u** 】       | 撤销操作                         |
+| 【**Ctrl + r**】  | 还原上一步操作                   |
+| 【**p**】         | 将已复制数据，粘贴在光标后       |
+| 【**P**】         | 将已复制数据，粘贴在光标前       |
+|                   |                                  |
+| 命令行模式        |                                  |
+| 【**:w**】        | 将数据写入硬盘                   |
+| 【**:q**】        | 离开vim                          |
+| 【**:q!**】       | 修改了文本，不想保存，想强制离开 |
+| 【**:wq**】       | 保存并离开                       |
+|                   |                                  |
+| 编辑模式          |                                  |
+| 【 **i** 】       | 一般模式切换到编辑模式           |
+| 【**dd**】        | 删除光标所在行                   |
+| 【**yy**】        | 复制光标所在行                   |
+|                   |                                  |
+| 可视模式          |                                  |
+| 【**↑ ↓ ← →**】   | 从光标处选中内容                 |
+| 【**y**】         | 复制选中的内容                   |
+| 【**^ or home**】 | 从光标处到行首选中内容           |
+| 【**$ or end** 】 | 从光标处到行末选中内容           |
+|                   |                                  |
+|                   |                                  |
 
 
 
@@ -354,6 +388,52 @@ vim视作vi的高级版本。
    - 通过pid查看进程占用的端口：【 netstat -anp | grep pid 】
 7. 查询rpm包管理工具中是否安装某个软件：【 rpm -qa | grep software】
 8. 查看ubantu系统中APT包管理系统中安装的软件：【 apt list --installed 】
+
+
+<table cellpadding="2" cellspacing="2"> 
+ <tbody> 
+  <tr> 
+   <td style="word-wrap: break-word; margin: 0px; padding: 0px;">任务</td> 
+   <td style="word-wrap: break-word; margin: 0px; padding: 0px;">旧指令</td> 
+   <td style="word-wrap: break-word; margin: 0px; padding: 0px;">新指令</td> 
+  </tr> 
+  <tr> 
+   <td style="word-wrap: break-word; margin: 0px; padding: 0px;">使某服务自动启动</td> 
+   <td style="word-wrap: break-word; margin: 0px; padding: 0px;">chkconfig --level 3 httpd on</td> 
+   <td style="word-wrap: break-word; margin: 0px; padding: 0px;">systemctl enable httpd.service</td> 
+  </tr> 
+  <tr> 
+   <td style="word-wrap: break-word; margin: 0px; padding: 0px;">使某服务不自动启动</td> 
+   <td style="word-wrap: break-word; margin: 0px; padding: 0px;">chkconfig --level 3 httpd off</td> 
+   <td style="word-wrap: break-word; margin: 0px; padding: 0px;">systemctl disable httpd<span style="word-wrap: break-word; font-style: italic;"></span>.service</td> 
+  </tr> 
+  <tr> 
+   <td style="word-wrap: break-word; margin: 0px; padding: 0px;">检查服务状态</td> 
+   <td style="word-wrap: break-word; margin: 0px; padding: 0px;">service httpd status</td> 
+   <td style="word-wrap: break-word; margin: 0px; padding: 0px;">systemctl status&nbsp;<span style="word-wrap: break-word; line-height: 1.5;">httpd</span>.service （服务详细信息） systemctl is-active httpd.service （仅显示是否 Active)</td> 
+  </tr> 
+  <tr> 
+   <td style="word-wrap: break-word; margin: 0px; padding: 0px;">显示所有已启动的服务</td> 
+   <td style="word-wrap: break-word; margin: 0px; padding: 0px;">chkconfig --list</td> 
+   <td style="word-wrap: break-word; margin: 0px; padding: 0px;">systemctl list-units --type=service</td> 
+  </tr> 
+  <tr> 
+   <td style="word-wrap: break-word; margin: 0px; padding: 0px;">启动某服务</td> 
+   <td style="word-wrap: break-word; margin: 0px; padding: 0px;">service httpd start</td> 
+   <td style="word-wrap: break-word; margin: 0px; padding: 0px;">systemctl start httpd.service<span style="word-wrap: break-word; font-style: italic;"></span></td> 
+  </tr> 
+  <tr> 
+   <td style="word-wrap: break-word; margin: 0px; padding: 0px;">停止某服务</td> 
+   <td style="word-wrap: break-word; margin: 0px; padding: 0px;">service httpd stop</td> 
+   <td style="word-wrap: break-word; margin: 0px; padding: 0px;">systemctl stop httpd.service</td> 
+  </tr> 
+  <tr> 
+   <td style="word-wrap: break-word; margin: 0px; padding: 0px;">重启某服务</td> 
+   <td style="word-wrap: break-word; margin: 0px; padding: 0px;">service httpd restart</td> 
+   <td style="word-wrap: break-word; margin: 0px; padding: 0px;">systemctl restart httpd.service</td> 
+  </tr> 
+ </tbody> 
+</table>
 
 # Ubantu
 
