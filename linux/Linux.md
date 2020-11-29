@@ -1145,6 +1145,7 @@ cat > catfile < introduce
 
 - 管道命令仅会处理stdout，对stderr会予以忽略
 - 管道命令必须要能够处理来自前一个命令的stdout作为自己的stdin才行。
+- 在管道命令里**“  -  ”**可以表示stdin或者stdout
 
 ### 9.6.1 选取命令
 
@@ -1159,7 +1160,302 @@ cat > catfile < introduce
    - **grep [ -acinv ] [ --color=auto ]  '查找字符串'  filename**
    - i，忽略大小写
    - n，顺便输出行号
-3. 
+   - v，反向选择，即显示出没有"查找字符串"的行
+   - c，计算“关键字”在所在行出现的次数
+
+### 9.6.2 排序去重统计命令
+
+计算数据里相同类型的数据总数，类似于数据库里的聚合函数般。
+
+1. **sort**
+   - **sort[ -tkuf ] filename**
+   - t，分隔符，默认tab
+   - k，以分割符分割的第几个字段排序
+   - u，相同数据取其一，去重
+   - f，忽略大小写
+2. **uniq**
+   - 内容排序完成，去重
+   - uniq [ -ic ]
+     - i，忽略大小写
+     - c，重复项计数
+3. **wc**
+   - 统计内容数据（word count）
+   - **wc [-lwm]**
+   - l，列出行数
+   - w，流出单词数
+   - m，列出字符数
+
+### 9.6.3 字符转换命令
+
+比如说将内容中大写改小写，tab转空格键
+
+1. **tr**
+   - 删除或替换
+   - **tr [ -ds ] SET_OR_STR**
+   - d，删除
+   - s，替换
+2. **col**
+   - **col [ -xb ]**
+   - x，将tab转换成对等的空格键
+3. **join**
+   - 处理两个文件之间的关联数据，将两个文件中有相同数据的那一行续接在一起。类似于数据库中的**关联查询**
+   - **join [ -ti12 ] file1 file2**
+   - t，分隔符，默认以空格，并且对比两个文件的第一个字段
+   - i，忽略大小写
+   - 1，第一个文件用哪个字段
+   - 2，第二个文件用哪个字段
+4. **paste**
+   - 直接将两个文件的同行，连接在一起
+   - **paste [-d] file1 file2**
+   - d，分割符，默认tab
+   - -，如果file写成-，表示stdin
+
+### 9.6.4 切割命令
+
+如果一个文件太大，导致一个携带式设备无法复制的问题，通过split，就可以将一个大文件依据文件的**大小或行数分割成小文件**
+
+**split [-bl] file prefix_name**
+
+- b，按文件内存大小进行分割，例如b，k，m等
+- l，按行数进行分割
+- prefix_name，小文件名的前缀
+
+### 9.6.5 参数代换
+
+xargs可以产生某个命令的参数，xargs 可以读入stdin的数据，并且以空格符或断行字符进行分辨，将stdin的数据分割成arguments。
+
+**xargs [ -0epn ] command**
+
+- 将stdin的内容经xargs分析后，处理成参数（或者多组参数），一组参数作为command的参数使用
+- eof，停止分析符
+- n，多少个参数为一组
+- p，每输入一组参数执行command前询问用户是不是要执行，执行输入y
+
+### 9.6.6 双向重定向
+
+**tee**
+
+- **tee会同时将数据流送予文件与屏幕**
+- **tee [-a] file**
+- a，以累加（append）的方式
+
+## 9.7 shell script
+
+shell script 是利用shell的功能所写的一个“程序”，这个程序是使用纯文本文件，将一些shell的语法与命令（含外部命令）写在里面，搭配正则表达式，管道命令与数据流重定向等功能，以达到我们所想要批处理的目的。
+
+### 9.7.1 script 基本
+
+注意：
+
+1. 命令的执行从上而下，从左而右。
+2. 命令、参数间的多个空白，空白行会被忽略，tab会视为空白
+3. 读到enter就会执行，"\\[enter]"让一条命令扩展至下一行
+4. #用来做批注
+
+#### 1 第一个script
+
+```bash
+#!/bin/bash
+# Program:
+# This program shows ...
+# History：
+# 2005/08/23
+PATH=/bin:/sbin:/usr/sbin/:/usr/local/sbin
+export PATH
+echo -e "Hello World! \a \n"
+exit 0
+```
+
+1. **#!/bin/bash**：第一行是声明这个script使用的shell名称
+   - 通过这一句，当这个程序被执行时，它就能够加载bash的相关配置环境配置文件
+2. **PATH**：
+   - 主要环境变量的声明
+   - 这里相当于一般程序里的**import**的功能
+   - 建议务必要将一些重要的环境变量设置好（设置PATH与LANG等)，如此一来，则可让我们这个程序在进行时直接执行一些外部命令，而不必写绝对路径。
+3. **echo**
+   - 主要程序部分
+4. **exit**
+   - 告知执行结果。
+   - 讨论一个命令执行成功与否，可以使用**$?**这个变量来看看。
+   - exit n相当于一个return flag，我们可以通过查看$?这个flag来查看程序的执行情况如何
+
+#### 2 script执行方式
+
+假设现在写了一个程序文件名是/home/scripts/myshell.sh
+
+1. 直接命令执行：myshell.sh文件必须要具备可读与可执行**（rx）**的权限
+   - 绝对路径：命令行直接输入：**/home/scripts/myshell.sh**
+   - 相对路径：假设工作目录在/home/scripts，则命令行直接输入：**./myshell.sh**
+   - 变量PATH的功能：将myshell.sh放到PATH指定的目录内，例如：/bin。然后在命令行直接输入：**myshell.sh**即可
+2. 以bash进程来执行
+   - 假设工作目录在/home/scripts，命令行直接输入：**bash myshell.sh** 或者 **sh myshell.sh**
+3. 利用source来执行脚本
+   - 假设工作目录在/home/scripts，命令行直接输入：**source myshell.sh**
+
+**区别：**
+
+1. 前二者：他们都会使用一个新的bash环境来执行script（**子进程的bash内执行**），script执行完毕后，bash内的数据都会被删除
+2. 后者：**在父进程中执行**，各项操作数据都会在原本的bash内生效
+
+![script执行方式的区别.jpg](./legend/script执行方式的区别.jpg)
+
+### 9.7.2 判断式
+
+判断式就如同其他程序语言中用于输出true or false的条件判断句，然而在bash中是通过执行命令，命令返回**$?**这个变量来判断的。
+
+这里还有其他一些常用的判断式
+
+#### 1. 判断命令test
+
+1. 判断文件名的类型，
+   - **test [ -efdbcSpL ] filename**，
+   - e—filename是否存在，f一判断是否存在并为file类型，d—directory，b—block device，c一character device，S一socket文件
+2. 检验文件的权限
+   - **test [ -rwxugks ] filename**
+   - r一判断文件是否存在并具有可读权限，w一可写，x—可执行，u一SUID属性，g—SGID属性，s—非空白文件
+3. 两个文件之间比较
+   - **test file1 [-nt ot ef] file2**
+   - nt—newer than判断file1是否比file2更新，ot一older than，ef一判断是否为同一个文件
+4. 关于两个整数之间的判定
+   - **test n1 [-eq nq gt lt ge le] n2**
+   - eq一equal，ne一not equal，gt一greater than，lt一less than，ge—greater or equal，le—less or equal
+5. 判定字符串的数据
+   - **test [-zn] string**
+   - z一若为为空字符串，则true，n一若为非空字符串，则true
+   - **test str1[!]=str2**
+   - 判断两个字符串是否相等
+6. 多重条件判定
+   - **test cond1 [-ao] cond2**
+   - a—and 两个条件必须同时成立，则为true。o—or 任一条件成立，则为true
+   - **test ! cond**
+   - 条件取非
+7. 
+
+#### 2. 判断符号[ ]
+
+中括号就相当于test，上面的命令判断语句，可以通过让中括号括起来而去掉test关键字，形成判断句。
+
+中括号常用在条件判断式中if...then...fi中
+
+注意：
+
+1. **中括号[ ]内的每一个组件都需要有空格键来分割**
+2. 中括号内的变量和常量，都需要用双引号括起来（否则有可能会出现一些意想不到的错误）
+
+```bash
+eg:
+[ "$HOME" == "/bin" ]
+```
+
+### 9.7.3 命令的位置参数
+
+这个概念就如同javascript，或python函数的参数列表一样，只不过在bash中这个函数概念换成了命令。当然bash中也有函数这个概念，后面会说到。
+
+shell script 可以在脚本文件名后面带参数。而不需要像read命令在执行过程中再去输入参数。
+
+eg：**/~/scripts/myshell.sh param1 param2 param3 param4**
+
+在script脚本中可以使用以下变量去引用位置参数的值
+
+- $0：这个变量用于获取执行脚本的名字
+- $#：获取参数的个数
+- $@：获取整个参数字符串，每个参数间通过空格键分割
+- $n：n为位置的索引，$1，$2
+
+**shift未知参数的移除和偏移**
+
+**shift [n]**，这个就如同javascript数组的shift函数功能，用于移除位置参数序列的前n个元素。
+
+### 9.7.4 条件语句
+
+条件书写：
+
+```bash
+[cond1 -a cond2 ] && [ cond3 ] || [ cond4 ]
+```
+
+
+
+```bash
+#单判断条件语句
+if [ cond1 ]; then
+	程序段1
+else
+	程序段2
+fi #条件语句结束
+
+#多判断条件语句
+if [ cond1 ]; then
+	程序段1
+elif [ cond2 ]; then
+	程序段2
+else
+	程序段3
+fi #条件语句结束
+
+case $var in
+"state1")
+ 	程序段1
+ 	;;
+"state2")
+ 	程序段2
+ 	;;
+*)#用*表示其他状态
+ 	程序段n
+ 	exit 1
+ 	;;
+esac
+```
+
+### 9.7.5 循环语句
+
+```bash
+#while循环
+while [ condition ]
+do
+	程序段
+done
+
+#do循环
+until [ condition ]
+do
+	程序段
+done
+
+#foreach循环
+for var in constant1 constant2 constant3
+do
+	程序段$var可以获取constant列表的内容
+done
+
+#for循环
+s=0
+for ((i=0; i<$var; i=i+1 ))
+do
+	s=$(($s+$i))
+done
+```
+
+### 9.7.6 函数
+
+```bash
+#函数声明
+function fname(){
+    程序段,同样程序段里可以获取位置参数
+    #$1,$2
+}
+#函数调用
+fname one two three
+
+```
+
+### 9.7.7 script调试
+
+**sh [ -nvx ] myshell.sh**
+
+- n，不要执行script，仅检查语法的问题
+- v，在执行script前，先将script的内容输出到屏幕
+- x，将使用到的script内容显示到屏幕
 
 # 补充
 
@@ -1170,7 +1466,9 @@ cat > catfile < introduce
    - **w**命令，用于显示目前登录系统的用户信息，
      - **w**：登录系统的用户列表
    - 
-2. 
+2. 模板字符串
+   - \`pwd\`/test.sh，pwd执行返回的结果，当做前缀，执行该script脚本
+3. 
 
 # 命令集合
 
