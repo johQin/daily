@@ -177,6 +177,17 @@ windows操作系统将用户名和密码放在：C:\Windows\System32\config\SAM�
 7. 第六列文件最后修改时间
 8. 第七列文件名
 
+### 权限rwx
+
+1. rwx对文件的意义
+   - r，可读取此文件的实际内容
+   - w，编辑文件的实际内容，不具备删除文件的能力
+   - x，可被系统执行的权限
+2. rwx对目录的意义
+   - r，读取目录结构列表的权限
+   - w，新建或删除，重命名，移动文件位置
+   - x，可否cd，称为工作目录
+
 **改变文件权限：**
 
 1. **chgrp**：改变文件用户组，`格式：chgrp [-R] 用户组 文件或目录`
@@ -1457,7 +1468,7 @@ fname one two three
 - v，在执行script前，先将script的内容输出到屏幕
 - x，将使用到的script内容显示到屏幕
 
-# 10 账户管理
+# 10 系统用户管理
 
 ## 10.1 用户与用户组
 
@@ -1483,7 +1494,7 @@ root:x:0:0:root:/root:/bin/bash
 #系统账户
 mail:x:8:12:mail:/var/spool/mail:/sbin/nologin
 
-#用户名:密码占位符:UID:GID:用户描述信息:用户主文件夹:shell
+#1.用户名:2.密码占位符:3.UID:4.GID:5.用户描述信息:6.用户主文件夹:7.shell
 
 #密码占位符，为防止密码数据被窃取所以用x代替并占位
 ```
@@ -1530,12 +1541,698 @@ daemon:x:2:
 
 有效用户组与初始用户组
 
-1. /etc/passwd中的GID就是初始用户组，
+1. /etc/passwd中的GID就是**初始用户组**，
+   - 一登录就会立刻拥有此用户组的权限
+   - 创建的时候若指定用户组，那么初始用户组就是此用户组。
+   - 若没有指定那么初始用户组，就是系统就会创建一个与用户名同名的用户组，
+2. 当用户加入一个非初始用户组的时候，**需要在/etc/group的该非初始用户组上的第四列添上该用户组支持的用户名**
+3. 当用户拥有多个用户组时，那么在创建文件的时候，文件所属用户组该是哪一个用户组呢？这时的用户组指向**有效用户组**
+
+#### 当前用户的用户组相关命令
+
+1. **groups**
+   - 查看当前登录用户的有效用户组与支持用户组
+   - 输出的信息中，第一个用户组名为登录用户的有效用户组，其余为该登录用户的所支持的用户组
+2. **newgrp**
+   - **newgrp switch_group**
+   - 有效用户组的切换
+   - 用户只能在支持的用户组中切换
+   - 这个命令是启动了一个**子shell**来提供此功能的，要想回到原来的环境需要通过**exit**回到原本的用户组
+   - 如何**修改用户的支持用户组**，通过系统管理员（root）usermod帮你定义多个用户组。
+
+## 10.2 账号管理
+
+### 10.2.1 系统管理员管理用户列表
+
+系统管理员能够使用的命令
+
+#### 1 新增用户
+
+登录系统会输入账号与密码，**账号可以用useradd来新建，密码的给予则使用passwd**
+
+##### 增加用户名
+
+**useradd**
+
+- **useradd [-ugGmMcds] 用户名**
+- u一UID，g—初始用户组，G—支持用户组列表，m—要创建用户主文件夹，M—不要创建用户主文件夹，
+- c—用户描述文本，d—用户主文件夹的绝对路径（不使用默认值），s—shell环境，e—账号失效日期
+- r—创建系统用户（不会创建主文件夹）
+- 此时账号创建后，账号是暂时封锁的，该账号无法登录
+
+**useradd 默认值**
+
+- **useradd -D**：default，查看useradd默认值
+- 数据在**/etc/default/useradd**，默认值在这个文件中
+- GROUP：两种机制
+  - 私用用户组机制（创建一个与用户名的同名用户组，代表性distribution为Rhel，Fedora，Centos等，此项在centos不生效）
+  - 公共用户组机制（创建用户的GID默认值，就是此项设置的值，代表性的distribution为SuSe）
+- HOME：用户主文件夹基准目录
+- INACTIVE：密码过期后是否会失效的设置值，-1代表密码永远不会失效，如果是正整数，那么在过期后对应天数会失效
+- EXPIRE：账号失效日期
+- SHELL：默认使用的shell程序名（/bin/bash）
+- SKEL：用户组文件夹内的内容参考文件
+  - 新建用户主文件夹内的各项数据都是有**/etc/skel** 所复制过去的
+  - 将来如果我想要新增用户是，该用户的~/.bashrc设置妥当的话，你可以去/etc/skel/.bashrc编辑一下，新建一个文件，以后新增用户后，就会默认在它的主文件夹内就会有那个文件
+- PASS_xxx_xxx：密码相关的默认设置
+- UID_xxx、GID_xxx：UID/GID相关默认设置
+- USERGROUPS_ENAB：使用userdel删除用户时，是否会删除初始用户组
+
+
+
+##### 给予密码
+
+**passwd**
+
+- passwd [ --stdin ] 所有人均可使用此来修改自己的密码
+- passwd [ -luSnxwi] 用户名
+- l—lock使密码失效，u—unlock，**S—列出该用户密码相关参数，**
+- n—修改密码最小间隔（天数），x—密码过期时间（天数），w—密码过期前警告（天数），i—密码失效日期
+
+**chage**
+
+- 查看详细的用户密码相关信息
+- **chage [-ldEImMW] 账户**
+- l—列出该账号详细密码参数，d—最近改密时间，E—账号失效日（日期），I—密码失效日（天数）
+- 天数：m—密码修改最短间隔，M—密码过期日，W—密码警告提醒日
+
+#### 2 删除用户
+
+目的在于删除用户的相关数据，而用户的数据有/etc/passwd，/etc/shadow，/etc/group，/etc/gshadow，/home/username等
+
+**userdel [ -r ] username**
+
+- r，连同用户的主文件夹一并删除
+- 如果用户只是暂时不启用该账户，在/etc/shadow 里面的账号的第八个字段置为0（失效日期）即可，
+- 如果用户在系统上用过一段时间后，会产生一些其他文件，可以查到这些文件后再删除（**find / -user username**）
+
+#### 3 修改用户
+
+**usermod [ - cdegGlsuLU ] username**
+
+- c—用户描述，d—主文件夹绝对路径，e—失效日期，f—过期后宽限日期，g—初始用户组，G—支持用户组
+- l—账号名称，s—shell，u—UID，L—lock，U—unlock
+
+### 10.2.2 一般用户功能
+
+一般用户身份常用的账号数据修改与查询命令
+
+1. **finger**
+   - 描述，**查阅**自身用户相关信息，大部分都是**/etc/passwd里的**
+   - **finger [ -s ] username**
+   - s—仅列出账号，全名，终端机代号与登录时间等
+2. **chfn**
+   - **chfn [ -foph ] username**
+   - 修改的是用户描述信息（/etc/passwd的第五个字段）
+   - f—全名，o—office，p—phone，h—座机
+3. **chsh**
+   - change shell
+   - **chsh [ -ls ]**
+   - l—列出目前系统上面可用的shell
+   - s—setting，设置修改自己的shell
+4. **id**
+   - **id [ username ]**
+   - 查询自己或某人的UID或GID的相关信息（uid，gid，groups）
+
+### 10.2.3 用户组管理
+
+用户组的内容与这两个文件有关：**/etc/group、/etc/gshadow**
+
+1. **groupadd**
+   - 新增用户组
+   - **groupadd [ -gr] group_name**
+   - g—指定GID，r—指定新建系统用户组
+2. **groupmod**
+   - 修改用户组
+   - **groupmod [ -gn ] group_name**
+   - g—修改GID，n—修改用户组名
+3. groupdel
+   - 删除用户组
+   - **你必须确认/etc/passwd内的账号没有任何人使用该用户组作为初始用户组**
+
+#### 用户组管理员
+
+就是让某个用户组具有一个或多个管理员，这个用户组管理员可以管理哪些账户加入或移除该用户组
+
+**gpasswd**
+
+- **gpasswd group_name**：没有任何参数时，用于给该用户组一个密码**/etc/gshadow**
+- **gpasswd [-A user1 , user2 , ... ] [ -M user3 , ... ] group_name**
+  - A——将group_name的管理权授予后面的列表用户
+  - M——将某些账号加入到这个用户组
+- **gpasswd [ -rR]**
+  - r—将密码删除，R—让密码栏失效
+- **gpasswd [ -ad ] user group_name**
+  - a—将用户加入用户组中，d—将用户移除出用户组
+- 
+
+## 10.3 ACL
+
+ACL是**Access Control List** 的缩写，主要目的是提供**传统的**owner、group、others的read、write、execute**权限之外的具体权限设置。**
+
+ACL是unix-like操作系统权限的额外支持项目，要使用ACL必须要有文件系统的支持才行，包括EXT2/EXT3，JFS，XFS这些文件系统。
+
+ACL可以针对某个具体的user，group，mask来设置权限
+
+### 权限设置
+
+1. **setfacl**
+   -  设置某个目录/文件的ACL
+   -  **setfacl [ -bkRd ] [ { -m | -x } acl参数 ]  文件名**
+   -  acl参数
+     - **u​:[ 用户列表 ]:​[rwx]**，rwx如果没有那么就写**" - "**占位
+     - **g:[ 用户组列表 ]:[rwx]**
+     - **m:[rwx]**，**用户或组所设置的权限必须要存在于mask的权限设置范围内才会生效，此即有效权限**
+   -  m—为文件设置acl参数，x—删除acl参数，b—删除所有acl，k—删除mask的默认权限，
+   -  R—递归设置acl，d—设置默认acl，只对目录有效，在该目录里新建的数据会引用此默认值
+
+## 10.4 用户切换
+
+su 做身份切换，sudo以不同身份去执行命令
+
+### 10.4.1 su
+
+su是最简单的身份切换命令，他可以进行任何身份的切换。
+
+**su [ -lm ]  [ -c "命令" ] user_name**
+
+- **su -  [ user_name ]**  ：代表使用login shell方式登录shell，如果user_name省略，那么默认登录root用户
+- l—以login shell 的方式登录
+- c—如果我只想要执行一个只有root才能进行的命令，且执行完毕就恢复原本的身份，
+- 无法切换no-login用户
+- 若要**完整的切换到新用户的环境**，必须要使用 **su -username or su -l username**
+- root用户切换为任何用户不需要知道其它用户密码
+- **一般用户切换root用户需要知道root的密码。**那么不就每个人都得要知道root密码了吗？不妥当
+- exit 退出su环境，使用多个su需要对称的输入多个exit才能回到原来的环境
+
+### 10.4.2 sudo
+
+一般用户切换root用户需要知道root的密码。那么不就每个人都得要知道root密码了吗？不妥当。
+
+sudo的执行仅需知道自己的密码，甚至可以设置不需密码就可执行。
+
+但并非所有人都能够执行sudo，而是仅有**/etc/sudoers**内的用户才能够执行sudo这个命令。
+
+**sudo [ -b ] [ -u user_name ] sffix_cmd** 
+
+- 默认sudo仅有root能使用，sudo的执行流程如下
+  - 当用户执行sudo，系统于**/etc/sudoers**查找该用户是否有执行sudo的权限
+  - 若有sudo的权限，就会让用户输入自己的密码来确认
+  - 若密码输入正确（root不需要执行密码），便开始执行sudo 后续接的命令
+- u—欲切换的用户
+- b—
+
+#### visudo 与 /etc/sudoers
+
+一般用户若需要执行root的权限命令，则需要**root使用visudo去修改 /etc/sudoers**，让该账号能够使用全部或部分的root命令
+
+```bash
+#通过visudo这个命令可以直接打开/etc/sudoers
+visudo
+#visudo只是利用vi将/etc/sudoers文件调出来而已，里面的修改和vim的用法相同
+
+#通过上下键，光标调到下面的文字
+
+## Allow root to run any commands anywhere
+
+###1. 单一用户调整
+
+#用户账户	登录者来源主机=可切换的身份	   可执行的命令
+root  		  ALL=(ALL)    			   ALL
+qin			  ALL=(root,kang)			!/usr/bin/passwd,/usr.bin/passwd [A-Za-z]*,!/usr/bin/passwd root
+#用户账户：系统的哪个账户可以使用sudo这个命令
+#登录者来源主机：限制这个用户账户的ip地址等去访问sudo
+#可切换的身份：这个用户账户可以切换成什么身份来执行后续的命令
+#可执行的命令：一定务必使用绝对路径编写
+#ALL是一个特殊的关键字，代表任何身份，任何主机，任何命令的意思
+
+#感叹号!代表不可执行的意思
+# 这一句是!/usr/bin/passwd,/usr.bin/passwd [A-Za-z]*,!/usr/bin/passwd root
+#防止qin修改root的密码
+
+###2. 用户组以及免密码使用sudo
+
+##2.1 用户组
+## Allows people in group wheel to run all commands
+#组符 组名		登录者来源主机=可切换的身份	   可执行的命令
+%wheel 			 ALL=(ALL)     				  ALL
+%admin			 ALL=(ALL)     				  ALL		#eg
+#最左边的%代表后面接的是用户组的意思
+#%后面是用户组名
+
+## 2.2 免密使用sudo
+## Same thing without a password
+%wheel        ALL=(ALL)       NOPASSWD: ALL
+
+### 3.别名（类似于变量的玩意）
+User_Alias ADMINS = jsmith, mikem
+Cmnd_Alias NETWORKING = /sbin/route, /sbin/ifconfig
+#等号两边要有空格
+#可以用ADMINS去代替后面一长串的内容，有了类似于变量的别名，我们可以改一处，做到所有引用该变量的地方都修改的目的
+#别名都必须用大写字母，别名前要用关键字做声明，User_Alias,Cmnd_Alias,Host_Alias
+
+### 4.sudo 时间间隔问题
+# 连续执行的两个sudo 在5分钟内，不需要再次输入密码，超过5分钟需要再次输入密码
+
+### 5.sudo 搭配 su，切换root身份
+User_Alias ADMINS = qin,kang
+
+ADMINS ALL = (root) /bin/su -
+#这样就不会泄露root的密码
+```
+
+## 10.5 PAM
+
+PAM（Pluggable Authentication Modules 可嵌入认证模块）是一套独立的验证机制。
+
+- 它提供了一连串验证机制，只要用户将验证阶段的需求告知PAM后，它就能够回传用户的验证结果（成功or失败）。
+- 它可以供其他程序所调用，因此不论你使用什么程序，都可以使用PAM来进行验证。
+
+### 10.5.1 配置PAM
+
+PAM的**配置文件在/etc/pam.d/**
+
+PAM通过一个与程序相同文件名的配置文件来进行一连串的认证分析需求。
+
+执行passwd命令后，这个程序调用PAM的流程是：
+
+1. 执行/usr/bin/passwd程序，输入密码
+2. passwd调用PAM执行验证
+3. PAM到/etc/pam.d/找程序同名（passwd）的配置文件
+4. 依据/etc/pam.d/passwd内的设置，引用相关PAM模块逐步验证分析
+5. 将验证结果（成功or失败or其他）返回给passwd
+6. passwd根据PAM回传结果执行其他操作
+
+```bash
+#在/etc/pam.d/passwd的内容
+#%PAM-1.0
+# This tool only uses the password stack.
+#验证类型	控制标准		PAM模块与该模块的参数
+password   substack     system-auth
+-password   optional    pam_gnome_keyring.so use_authtok
+password   substack     postlogin
+```
+
+#### 验证类型
+
+常用为四种
+
+- auth：验证用户身份，通常是需要密码来检验的
+- account：验证是否具有正确的权限
+- session：
+- password：
+
+#### 控制标准
+
+验证通过的标准
+
+- required
+- requisite
+- sufficient
+- optional
+
+![](./legend/PAM控制标志造成的回报流程.png)
+
+## 10.6 用户间信息传递
+
+### 10.6.1 查询登录信息
+
+1. **w**
+
+   - 当前在系统上已登录的用户信息
+
+   - ```bash
+     USER     TTY      FROM             LOGIN@   IDLE   JCPU   PCPU WHAT
+     root     pts/0    222.18.126.102   19:36    1.00s  0.02s  0.00s w
+     ```
+
+   - **who -h 也可以**
+
+2. **last**
+
+   - 命令用于显示用户最近登录信息。
+   - **last -n num**，用于获取最近登录记录的num条
+
+3. **lastlog**
+
+   - 用于显示系统上每个用户最近登录的时间
+
+### 10.6.2 用户对谈
+
+在线用户间交流
+
+1. write
+
+   - 发消息
+
+   - **write 用户账户 [ 用户所在终端tty ]**
+
+   - 先查看在线用户情况w，再通过write写给对应在线用户
+
+   - root可以发给任何人，所有人不可拒收消息
+
+   - ```bash
+     write qin pts/2
+     hello，qin
+     will shut down linux
+     #使用ctrl + d 结束输入
+     #然后对应用户就会收到消息
+     ```
+
+2. mesg
+
+   - **mesg [ ny ]**
+   - n—拒收消息，y—允许接收消息，无—查看当前消息接收状态
+   - 对root消息无拒收能力。
+
+3. wall
+
+   - 群发消息
+
+### 10.6.3 邮件信箱
+
+1. 发邮件
+   - **mail username@ip -s "邮件标题" < 信件内容文件**
+   - mail username@ip -s "邮件标题" ，然后，在命令行输入信件内容，小数点为结束，出现Cc：回车即可
+   - 如果寄给本机用户，那么不需要ip
+2. 收邮件
+   - mai 查看邮件，相关命令可以查书
+   - 还可以调qq邮箱的接口，具体百度
+3. 
+
+# 11 例行性工作
+
+linux的两种工作调度种类
+
+1. 例行性的，每隔一个周期就要执行的（每天中午12点吃饭）。
+   - crontab这个命令所设置的工作将会循环下去
+   - crontab命令执行也可编辑/etc/crontab来支持。
+   - 让crontab可以生效的服务则是crond这个服务。
+2. 突发性的，偶尔一次执行的（就相当于在日历上记录，下周要在会议厅开会这样的工作）。
+   - at是个可以处理仅执行一次就结束调度的命令
+   - 让at生效的服务则是atd（在某些新版的distributions中），atd可能默认并没有启动
+
+linux常见例行工作：
+
+- 新建locate数据库（用于locate查找文件）
+- 建立whatis数据库
+- 日志文件分析logwatch以及日志文件轮替
+- 删除临时文件（tmpwatch）
+- RPM软件日志文件新建
+- apache www 网络服务有关分析行为
+
+## 11.1 突发性at
+
+并非所有linux distributions都会默认打开atd这个调度的服务
+
+```bash
+/etc/init.d/atd restart
+
+#开机自启
+chkconfig atd on
+```
+
+### 11.1.1 at工作方式配置
+
+at工作方式
+
+- 我们使用at这个命令来生成所要运行的工作，并将这个工作已文本文件的方式写入**/var/spool/at/目录内**，该工作便能等待atd这个服务的取用与执行。
+- 不过因为安全的原因，不是所有的人都可以进行at工作调度。我们利用/etc/at.allow或/etc/at.deny这两个文件来进行at的使用限制。加上这两个文件后，工作情况如下：
+  - 先找/etc/at.allow，写在这个文件中的用户才能使用at，没有在则不能使用at（即使用户不在at.deny文件里）
+  - 若/etc/at.allow不存在，就会再找/etc/at.deny这个文件，在at.deny中的用户不能使用at，没有在则可以使用at
+  - 如果两个文件都不存在，那么只有root可以使用at这个命令
+- at.allow为管理严格的方式，at.deny为较为松散的方式，书写方式为每行写一个username
+
+### 11.1.2 运行at
+
+1. **安排at** 
+
+   - **at [ -mldv ] TIME**
+
+   - **at -c 工作命令**
+
+   - **at now + 5 minutes**，通过now的方式设定
+
+   - m—工作完成后，以email通知用户该工作完成
+
+   - l—列出目前系统上面所有该用户的at调度，相当于**atq**
+
+   - d—取消在at调度中的工作，相当于**atrm**
+
+   - v—以较明显的时间格式列出at调度中的任务列表
+
+   - c—列出后面可以接的该项工作的实际命令内容
+
+   - TIME——
+
+     - HH:MM ex>hh:mm(今天的某时某分执行，若时间已过，则在第二天执行)，
+     - HH:MM YYYY-MM-DD ex>hh:mm yyyy-mm-dd(在某年某月某天 某时某分执行，若时间已过，则在某年某月某天 某时某分)
+
+   - ```bash
+     at 23:00 2022-08-29
+     /bin/sync #建议使用绝对路径来执行命令
+     /sbin/shutdown -h now
+     #ctrl+d
+     ```
+
+   - 工作完成后的stdout、stderr都会输出到mailbox中，如果想输出到屏幕则需要重定向 >/dev/tty1
+
+   - at 的任务是后台执行的。
+
+     
+
+2. 管理工作at
+
+   - 万一执行at后，发现命令错误，就需要将它删除
+
+   - **atq**
+
+     ```bash
+     atq
+     #jobnumber	 time				 执行者
+     5           2022-08-29 11:00  a  root
+     ```
+
+   - **atrm [ jobnumber ]**
+
+      删除对应jobnumber的工作
+
+   - 
+
+3. **batch 系统有空是才进行后台任务**
+
+   - **batch是利用at来进行命令的执行，只是加了一些控制参数而已**
+
+   - **batch 安排的任务只会在CPU工作负载小于0.8的时候，才进行你所执行的工作任务**（工作负载：指的是单一时间点负责的工作任务数量，而不是CPU的使用率）
+
+   - ```bash
+     batch 23:00 2023-08-29
+     /sbin/shutdown -h now
+     #ctrl+d
+     ```
+
+   - 
+
+4. 
+
+## 11.2 例行性crontab
+
+crond（ cron）这个系统服务是默认启动的，不需要想atd那样去开启
+
+### 11.2.1 用户例行任务
+
+**用户限制**
+
+同样为了安全，我们需要限制使用crontab的账号，**会/etc/cron.allow以及/etc/cron.deny两个文件**，前者优先级大于后者，系统默认有/etc/cron.deny，一个账号一行。
+
+**crontab**
+
+- 这个命令是针对用户来设计的，不是系统的例行任务命令
+
+- 当用户使用crontab这个命令来新建工作调度之后，该项工作就会被记录到**/var/spool/cron/**里面去，并且以账户名做区分，不同用户的例行工作在不同的文件里面，但切忌不要使用vi直接编辑该文件，因为可能由于输入的原因导致无法执行。
+
+- cron执行的每一项工作都会记录到**/var/log/cron**
+
+- **crontab [ -u username ] [ -l | -e | -r ]**
+
+- u——只有root能用这个u参数，用于帮其他用户新建删除crontab工作调度
+
+- e——编辑crontab的工作内容
+
+- l——查阅crontab的工作内容
+
+- r——删除所有的crontab的工作内容
+
+- ```bash
+  crontab -e
+  #分（0~59）  时（0~23）	日（0~31）	月（1~12）	周（0~7）		例行执行的命令
+  0	 		 12	 		10	  		*	   	  *				mail qin -s "工资到账" < /home/qin/hello.txt
+  #编辑完后:wq保存后离开，每项工作（每行）都具有六个字段
+  #时间的特殊字符
+  #星号*：代表任何时刻
+  #逗号,：代表时间列表的分隔
+  #减号-：代表一段时间范围
+  #/n: 每隔几个时间单位的意思，*/n（每隔n个单位时间）
+  ```
+
+### 11.2.2 系统例行任务
+
+crond这个服务的最低检测限制是"分钟"，所以crond会每分钟去读取一次/etc/crontab与var/spool/cron/来更新例行工作任务。
+
+如果是系统执行例行性任务，只需要编辑**/etc/crontab**这个文件就可以。
+
+```bash
+cat /etc/crontab
+#内容
+
+SHELL=/bin/bash
+#执行文件的查找路径，当然使用默认路径已经很足够
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+#stdout/stderr输出给哪个邮箱
+MAILTO=root
+
+#runparts
+#分	时	日	月	周	执行者身份	命令串
+01 	*	 *	  *	   *     root      run-parts /etc/cron.hourly
+01 	4	 *	  *	   *     root      run-parts /etc/cron.daily
+22 	4	 *	  *	   0     root      run-parts /etc/cron.weekly
+01 	4	 1	  *	   *     root      run-parts /etc/cron.monthly
+
+#目录规划的命令
+01 	*	 *	  *	   *     root      run-parts /home/qin/qincron
+#直接执行命令
+01 	*	 *	  *	   *     root      mail -s "hello wqq" qin < /home/qin/hello.txt
+
+#几乎和crontab -e相似，多了个执行者，系统默认执行者身份是root
+#命令串，那里用于直接执行命令，或是以目录的形式来规划
+#run-parts，可以帮你执行某个路径下的.sh，可以自定义，也可以使用/etc/cron.*,hourly（每时），daily（每天），weekly（每周），monthly（每月）
+#将要需要每小时执行的文件放在/etc/cron.hourly，其余文件同意思
+```
+
+由于centos提供run-parts这个sript的辅助，因此/etc/crontab这个文件支持两种命令的方式，**一种是直接执行命令，一种则是以目录来规划**
+
+**注意事项：**
+
+1. **周与日月不可同时并存**
+2. 例行性工作注意时间规划，别让多个任务同时开始，这样会很繁忙
+3. 安全的检验
+4. 取消不必要的输出选项：MAILTO 设置的账号给/dev/null
+
+## 11.3 任务补漏anacron
+
+当linux主机全年无休之用，那么只需atd、crond这两个服务来管理你的例行性工作调度就行。
+
+但如果，我的服务器突然断电或关机，那么在关机的这段时间的例行工作是无法执行的。这时候就需要用到anacron了。
+
+anacron其实也是通过crontab来运行的，因此anacron运行的时间通常有两个，
+
+- 一个是系统开机后运行（执行完成后关闭），anacron的进行其实是在开机完成后才进行的一项工作任务，
+
+- 一个是写入crontab调度中（在/etc/cron.daily，weekly，monthly文件夹下都有0anacron的执行文件），它只做执行时间更新，辅助判断主机是否关机。
+
+  ```bash
+  cat /etc/cron.daily/0anacron
+  if [! -e var/run/anacron.pid ]; then
+  	anacron -u cron.daily  #仅用于更新anacron执行时间
+  fi
+  ```
+
+在crontab调度中，anacron会以一天、七天、一个月为期去检测系统未进行的crontab任务。
+
+crontab调度下，在/etc/cron.daily下执行0anacron，它会更新anacron执行时间戳（放在/var/spool/anacron/cron.daily，cron.weekly，cron.monthly），当anacron检测到现在的时间与cron.daily（weekly，monthly）时间相差超过1天（超过7天，超过30天），就说明主机未执行那些例行工作。
+
+### anacron
+
+**anacron**
+
+-  **anacron [ -sfn ] [ job ]**
+- **anacron -u job**
+- s——开始执行各项工作（job），会依据时间记录文件的数据判断是否执行
+- f——强制执行，而不去依据时间记录文件判断是否执行
+- n——立刻进行未进行的任务，而不延迟等待时间
+- u——仅更新时间戳，不进行任何工作
+- job——由/etc/anacrontab定义的各项工作名
+
+### /etc/anacrontab
+
+```bash
+#period in days（命令执行周期，单位：天）   delay in minutes   job-identifier(job名称)   		command
+1       								5       			cron.daily              nice run-parts /etc/cron.daily
+7       								25      			cron.weekly             nice run-parts /etc/cron.weekly
+@monthly 								45     				cron.monthly            nice run-parts /etc/cron.monthly
+```
+
+anacron并不需要额外的设置。
+
+当执行这个命令 **anacron -s cron.daily**，它的工作流程如下：
+
+1. 由/etc/anacrontab分析到名为cron.daily的任务，它的周期为1天，也就是需要每天执行的
+2. 再由/var/spool/anacron/cron.daily取出最近执行anacron的时间戳
+3. 当前时间与最近执行的anacron的时间戳对比，若差异超过周期，则就准备执行后面的命令，
+4. 根据延迟时间，到时执行
+5. 执行完毕，anacron程序完毕
+
+# 12 程序管理
+
+## 12.1 进程
+
+1. 程序（program）：通常为二进制程序放置在存储媒介中，以物理文件的形式存在
+
+2. 进程（process）：进程就是一个正在运行的程序。程序被触发后，执行者的权限与属性、程序的程序代码与所需数据等都会加载到内存中，操作系统并给予这个内存内的单元一个标识符PID
+
+   ![](./legend/程序与进程.png)
+
+3. 子进程与父进程：
+
+   - 连续执行的两个bash，第二个bash的父进程就是前一个bash，每个进程都有PID，某个进程的父进程通过**Parent PID（PPID)**
+
+   - 有时候，你杀掉一个子进程，父进程就会主动再生一个（这就是有时候，你关不掉某个进程的原因），杀父进程可以解决这个问题
+
+   - 父进程调用子进程的流程
+
+     ![](./legend/父进程调用子进程.png)
+
+4. 服务
+
+   - 服务就是常驻在内存中的进程，通常是负责系统所提供的的功能以服务用户各项任务的
+   - 有些命令被触发后所产生的PID很快就会终止，而服务不会
+
+5. 
+
+## 12.2 工作管理
+
+工作管理——当我们登录系统取得bash shell之后，在**单一终端机下**同时进行多个工作的行为管理。
+
+想要在**一个终端**内同时进行多个操作，比如说数据查找，编译，vi编辑文本等就需要用到工作管理。
+
+首先理解两个概念：
+
+1. 前台（foreground）：
+   - 出现提示符，用户能够操作的环境。
+   - 前台进程是属于某个终端的进程，如果终端退出，那么这个进程就会被kill掉
+   - Ctrl + c可以停止前台的进程。
+2. 后台（background）：
+   - 独立的不可见的运行环境。
+   - 后台进程是独立与任何终端的进程，除非自行退出或关机或kill，它不能与用户互动
+   - 使用**bg/fg**调用该工作
+
+要进行bash的job control 必须要注意以下限制：
+
+- 这些工作所触发的进程必须来自于自身shell的子进程（只能管理自己bash的工作，不能管理其他bash的工作）
+- 后台中执行的进程不能收到来自terminal/shell的输入
+
+### job control
+
+bash只能够管理自己的工作而不能管理其他bash的工作
+
+后台的工作又有两种状态：暂停（stop）与运行中（running）
+
+
 
 # 补充
 
 1. 关于终端
-   - 目前我只谈两种：tty和pts
+   - 目前我只谈两种：tty和ptsl
    - **tty**：打字机（teletype），现在泛指各种类型的终端设备，你坐在主机前，接了键盘和显示器，启动时就是那种黑框框没有图形界面的地方直接登录，这种登录终端我们叫他 TTY（终端控制台）
    - **pts**：伪终端（pseudo terminal slave），远程登录（使用telnet或者ssh），或者是你开机之后，用图形界面登录，然后打开的gnome等终端
    - **w**命令，用于显示目前登录系统的用户信息，
