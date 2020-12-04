@@ -2557,10 +2557,103 @@ linux是多用户、多任务的环境，系统同时间有非常多的进程在
 
 4. **netstat**
 
-   - 跟踪网络 
-   - 
+   - **跟踪网络，查看进程对外和对内通信情况。**输出分两部分，分别是网络与系统进程相关性部分
 
-5. 
+   - **netstat -[ atunlp ]**
+
+   - a—列出系统当前所有的连接、监听、sockete数据。（包括监听与未监听）
+
+   - t—列出tcp连接，u—列出udp连接
+
+   - n—不列进程的服务名称，以端口号显示，会影响Local Adress分号后面是端口号还是服务名
+
+   - l—列出正在网络监听的服务
+
+   - ```bash
+     netstat -a
+     Active Internet connections (servers and established)	#正在活跃的internet连接，用于网络中进程通信
+     Proto Recv-Q Send-Q Local Address           Foreign Address         State      
+     tcp        0      0 0.0.0.0:svn             0.0.0.0:*               LISTEN	#listen状态与established状态参看下面的tcp包交换机制 
+     tcp        0      0 0.0.0.0:ssh             0.0.0.0:*               LISTEN 
+     tcp        0      0 iZbp1a1nnstgr4w2b:35010 100.100.30.26:http      ESTABLISHED
+     udp        0      0 localhost:323           0.0.0.0:* 
+     Active UNIX domain sockets (servers and established)	#正在活跃的Unix域套接口，用于本机通信
+     Proto RefCnt Flags       Type       State         I-Node   Path
+     unix  2      [ ACC ]     STREAM     LISTENING     19475    /run/dbus/system_bus_socket
+     unix  3      [ ]         STREAM     CONNECTED     9232566  /var/lib/sss/pipes/nss
+     Active Bluetooth connections (servers and established)	#正活跃的蓝牙连接
+     Proto  Destination       Source            State         PSM DCID   SCID      IMTU    OMTU Security
+     Proto  Destination       Source            State     Channel
+     #Proto：protocol协议
+     #Local Address：服务进程在本地ip端口情况，
+     #Foreign Address：服务进程对外开放端口（远程主机可访问该服务的ip范围）
+     #现在几乎所有应用程序都依靠socket通信编程
+     
+     #RefCnt：表示连接到本套接口socket上的进程数量
+     #state：CONNECTED表示多个进程之间已经连接建立，listen监听
+     #Path：连接到此socket的相关程序的路径，或者相关数据输出路径
+     
+     ```
+
+   - **tcp包交换机制**
+
+   - ![](./legend/tcp连接中的包交换.jpg)
+
+5. **dmesg**
+
+   - 分析内核产生的信息，内核会去**检测系统硬件**等等信息。
+   - **dmesg | 管道命令 **，由于内核相关信息太多了，需要采用管道命令来查看。
+
+6. **vmstat**：
+
+   - 动态检测系统资源变化
+
+   - **vmstat [ -a ] [检测的时间间隔 [ 检测的次数 ]]** ，a—使用active/inactive代替下面的memory替代buffer/cache的内存输出信息
+
+   - ```bash
+     vmstat 1 3
+     procs  -----------memory---------- ---swap-- -----io---- -system-- ------cpu-----
+      r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs  us sy id wa st
+      3  0      0 147320     84 1461592    0    0     2    15    7   12  1  1 99  0  0
+      0  0      0 147260     84 1461592    0    0     0     0  269  556  0  2 98  0  0
+      0  0      0 149016     84 1461596    0    0     0     0  258  546  1  0 99  0  0
+      
+      #procs，r——等待运行中的进程数量，b——不可被唤醒的进程数量，两个选项越多，代表系统越繁忙
+      #memory，swpd——虚拟内存使用量，free——未被使用的内存容量，buff——用于缓存存储器，cache——高速缓存
+      #swap，si——由磁盘中将程序取出的量，so——由于内存不足，将没用到的程序写入磁盘中的程序量。
+      #		si/so越大，导致内存内的进程数据频繁在磁盘与内存之间传递，系统性能越差
+      #io ， bi——由磁盘写入的块数量，bo——写入磁盘的块数量，这部分值越高，系统越忙碌
+      #system，in——每秒被中断的进程次数，cs——每秒进行的事件切换次数，这部分值越大，表示系统与接口设备的通信非常频繁
+      #cpu，us——非内核层cpu使用状态，sy——内核层cpu状态，id——闲置的状态，wa——等待i/o所耗费的cpu状态，st——被虚拟机盗用的cpu使用状态
+     ```
+
+   - vmstat [-S] 设置数据单位
+
+   - vmstat [ -d ]，列出磁盘的读写总量统计表
+
+   - ```bash
+     disk- ------------reads------------ ------------writes----------- -----IO------
+            total merged sectors      ms  total merged sectors      ms    cur    sec
+     vda    39549    150 5756755  134133 4263009 221359 54824738 6638685      0   1278
+     ```
+
+   - vmstat [ -p 分区 ] ，磁盘分区读写总量统计表
+
+7. 
+
+## 12.4 特殊文件与程序
+
+
+
+## 12.5 SELinux基础
+
+
+
+# 13 系统服务（daemon）
+
+服务：常驻内存中的进程。
+
+daemon——守护神，守护程序
 
 # 补充
 
