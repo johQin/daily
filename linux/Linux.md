@@ -2649,11 +2649,104 @@ linux是多用户、多任务的环境，系统同时间有非常多的进程在
 
 
 
-# 13 系统服务（daemon）
+# 13 系统服务
 
 服务：常驻内存中的进程。
 
-daemon——守护神，守护程序
+daemon——守护神，守护程序，service与daemon基本上同样的意思，不要去特意的区别
+
+## 13.1 daemon
+
+### 13.1.1 分类
+
+按daemon的启动与管理方式来分，可以分为
+
+1. **stand alone** ：自行单独启动的服务daemon
+   - 这类daemon自启动并加载到内存就一直占用内存与系统资源，
+   - 启动后，自行监听客户端请求并提供相应服务，优点：响应快。
+   - 就相当于银行的单一窗口提供单一存钱业务
+2. **super daemon**：由super daemon来统一管理的服务daemon
+   - 这类daemon的启动依靠super daemon这个特殊的daemon——**xinetd**
+   - 当没有客户端的请求时，各项服务都是未启动的情况，等到有来自客户端的请求时，super daemon 才会唤醒被它管理的服务
+   - 就相当于银行的统一窗口提供各种贷款，提现等多种业务
+   - super daemon 的处理模式：
+     - 多线程，多个client请求对应多个daemon服务。
+     - 单线程，client请求需要排队获取daemon服务
+
+按提供的工作状态来分，可分为
+
+1. signal control：请求进来立即启动并处理
+2. interval control：每隔一段时间启动处理
+
+daemon的命名规则：
+
+每一个服务的开发者通常在服务的名称之后会加一个**“d”**，这个d代表的是daemon的意思
+
+### 13.1.2 服务与端口
+
+每个服务都会对应一个端口。
+
+系统的所有服务都可以在/etc/services中看到，**不建议修改此文件**
+
+```bash
+cat /etc/services
+#daemon名称	   端口/协议
+...
+ftp             21/tcp
+ftp             21/udp          fsp fspd
+ssh             22/tcp                          # The Secure Shell (SSH) Protocol
+ssh             22/udp                          # The Secure Shell (SSH) Protocol
+http            80/tcp          www www-http    # WorldWideWeb HTTP
+http            80/udp          www www-http    # HyperText Transfer Protocol
+http            80/sctp                         # HyperText Transfer Protocol
+...
+```
+
+### 13.1.3 启动
+
+系统会记录每一个daemon启动后所取得进程的PID并记录在**/var/run/*.pid**
+
+#### 启动脚本与配置文件位置
+
+1. /etc/init.d/*：启动脚本放置处
+   - **系统几乎所有的服务启动脚本都放置在这里**
+2. /etc.sysconfig/*：各服务的初始化环境配置文件
+   - 几乎所有的服务都会将初始化的一些参数设置写入到这个目录里
+3. /etc/xinetd.conf，/etc/xinet.d/*：super daemon配置文件
+   - xinetd服务的配置在/etc/xinetd.conf，而被它管理的服务则放在/etc/xinetd.d/*
+4. /etc/*：各服务各自的配置文件
+5. /var/lib/*：各服务产生的数据库
+6. /var/run/*.pid：各服务的进程pid
+
+#### stand alone的启动
+
+我们可以通过/etc/init.d/* status | start | restart | stop来执行查看服务的状态 | 开启 | 重启 | 停止 服务
+
+也可以通过一个stand alone 服务脚本 ——service进程，**提供service命令，去操作/etc/init.d/下的服务service**
+
+**service**
+
+- **service [ service_name ] ( status | start | restart | stop )**
+- **service --status-all**
+- service_name—需要操作的服务名称了，需与/etc/init.d/下的服务名相对应
+- start | ...——服务需要执行的动作
+- **status-all将系统所有的stand alone 的服务状态全部列出来**
+
+#### super daemon的启动
+
+super daemon本身也是一个stand alone的服务。super daemon 的启动方式和stand alone是相同的，
+
+但是它所管理的daemon 就不是这么做的。必须要在/etc/xinetd.d/*做配置。
+
+先修改/etc/xinetd.d/下面的配置文件，然后再重启xinetd就对了
+
+## 13.2 super daemon 的配置文件
+
+super daemon它是一个可以管理多个daemon的进程，，这个super daemon是xinetd这个进程所实现的。
+
+如果在/etc下没有xinetd.conf，说明你没有安装此服务。通过yum install xinetd安装即可
+
+
 
 # 补充
 
