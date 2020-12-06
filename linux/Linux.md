@@ -2746,7 +2746,136 @@ super daemon它是一个可以管理多个daemon的进程，，这个super daemo
 
 如果在/etc下没有xinetd.conf，说明你没有安装此服务。通过yum install xinetd安装即可
 
+```bash
+#默认参数文件
+defaults
+{
+...
+# Define access restriction defaults
+#
+#       no_access       =
+#       only_from       =
+#       max_load        = 0
+        cps             = 50 10 #每秒发起的“新”连接（建立连接的请求）最多仅能有50条，若超过50条，该服务会暂停10秒钟。
+        instances       = 50 #一个服务最多可以有50个同时连接，
+        per_source      = 10 #统一个来源的用户最多仅能达成10条连接
+...
+}
 
+includedir /etc/xinetd.d #具体服务，更多具体细节，设置值在/etc/xinetd.d/*
+```
+
+/etc/xinetd.d/*文件的一般格式
+
+```bash
+service <service_name>
+#service_name要与etc/service一致
+{
+    <attribute> <assign_op> <value>
+    #参数名  		赋值的符	值
+    #assign_op = | += | -= 直接赋值 | 追加赋值 | 减法赋值
+    
+    #1 一般设置选项：
+    #1.1 服务的识别，启动与程序
+    Disable=[ yes|no ] #服务是否启动
+    id=[ 服务识别id ]
+    Server=[ 启动程序 ] #支出服务的启动程序，eg：/usr/bin/rsync
+    server=[ 程序参数 ] #续接在启动程序之后的参数，eg：/usr/bin/rsync --daemon，这里的--daemon就是参数
+    User=[ user_name ]
+    group=[ group_name ]
+    
+    #1.2 连接方式与连接数据包协议
+    socket_type=[ stream | dgram | raw ]，
+    	#stream为连接机制较为可靠的tcp数据包
+    	#dgram为UDP数据包
+    	#raw代表server需要与ip直接交互
+    protocol=[ tcp | udp ] #与上面重复，通常此项不设定
+    Wait=[ 连接机制 ] # yes（sinle） | no（multi），使用单线程还是多线程
+    instance=[ 最大连接数 ]# 这个服务科接受的最大连接数量
+    per_source=[ 单ip最大连接数量 ]
+    Cps=[ 新连接的限制 ]
+    	# 为避免短时间内大量的连接请求导致系统出现忙碌的状态，
+    	#cps第一个值为一秒内建立新连接的最大请求数量
+    	#第二个数字则为超过第一个数字时，关闭该服务的秒数
+    
+    #1.3 日志记录
+    log_type=[ 日志选项等级 ]
+    log_on_success=[ PID | HOST | USERID | EXIT | DURATION ]
+    log_on_failure=[ PID | HOST | USERID | EXIT | DURATION ]
+    	#在成功登录或失败后，需要记录的选项
+    	
+    #高级设置选项
+    #2.1 环境、网络端口与连接机制等
+    env=[]# 设置环境变量
+    Port=[ 非正规端口号 ]#若服务名称是你自定义的，那么这个端口可以随你指定，如果不是，那么请按照/etc/services中的服务名与端口相对应。
+    redirect=[ 服务转址 ] #将client对我们server的请求转到另一台主机上去。
+    includedir=[ 调用外部设置 ]# 表示将某个目录下的所有文件都塞进到xinetd.conf这个设置里面。
+    
+    #2.2 安全管控选项
+    bind=[ 可服务ip ]# 可以享受此服务的ip
+    interface=[ 可服务ip ]#与bind相同
+    only_from=[ 可登录防火墙0.0.0.0,192.168.1.0/24,hostname,domainname ]# 只有这里面规定的ip或主机名是可以登录
+    no_access=[ 不可登录防火墙 ]
+}
+```
+
+## 13.3 服务的防火墙
+
+系统的防火墙分析主要通过数据包过滤或者是通过软件分析。
+
+有的主机支持/usr/sbin/tcpd这个软件来分析进入系统的TCP网络数据包，TCP数据包并搭配/etc/hosts.allow、hosts.deny规则处理，决定该连接是否内能够进入我们的主机
+
+**任何以xinetd管理的服务或者该服务的程序支持TCP Wrapper 函数功能，都可以通过/etc/hosts.allow、/etc/hosts.deny来设置防火墙，**
+
+配置文件的语法
+
+```bash
+service_name:<ip,domain,hostname>:action
+#服务名：ip | 域 | 主机：deny|allow
+#在hosts.allow中，action可以不写，默认allow
+#在hosts.deny中，action可以不写，默认deny
+
+#第一个字段或第二个字段有一些特殊参数可使用
+#ALL（全部）,LOCAL（本机）,UNKNOWN（不可解析）,KNOWN（可解析）
+
+```
+
+两个文件优先级：hosts.allow>hosts.deny
+
+## 13.4 系统开启的服务
+
+**可以使用ps与top来查找已经启动的服务的进程及其PID，不过我们怎么知道该服务启动的port是哪一个呢——netstat**
+
+**设置开机自启服务——chkconfig**
+
+### 查看系统已启动的服务
+
+**netstat -tlup**，**参数n可以查看端口号**
+
+```bash
+Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name    
+tcp        0      0 0.0.0.0:3690            0.0.0.0:*               LISTEN      830/svnserve 
+tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN      977/sshd  
+```
+
+### 开机立即启动服务
+
+netstat仅能查看到目前已经开启的daemon，使用service或者 “/etc/init.d/* start”的方法仅能在目前环境下立即启动某个服务。如何在重启后，进行自启动服务？
+
+1. **chkconfig** 
+   - **chkconfig --list [ 服务名称 ]**
+   - **chkconfig [ --level [ 0123456 ] ] [ 服务名称 ] [ on | off ]**
+   - list—列出在目前各项服务的自启动状态
+   - level—设置某个服务在该level下启动 or 关闭
+   - chkconfig仅是设置开机时默认启动的服务而已，
+
+#### 设置自己的系统服务
+
+**如果我自己写了一个程序并且想要让该程序成为系统服务好让chkconfig来管理，我们只需要将该服务加入init可以管理的script当中，即是/etc/init.d/。并且将服务通过chkconfig加入服务管理序列中即可**
+
+**chkconfig [ --add | del ] [ 服务名称 ]**
+
+**服务名称必须和/etc/init.d/下的script脚本名称相同**
 
 # 补充
 
