@@ -2877,6 +2877,233 @@ netstat仅能查看到目前已经开启的daemon，使用service或者 “/etc/
 
 **服务名称必须和/etc/init.d/下的script脚本名称相同**
 
+# 14 软件安装
+
+厂商现在他们的系统上面编译好了我们用户所需要的软件，然后将这个编译好的可执行软件直接发布给用户来安装。
+
+在我们系统的本地通过建立相关软件安装数据库，用于记录安装等行为。就可以对这些软件进行安装，卸载，升级与验证等相关功能。
+
+在linux系统上至少就有两种常见的软件管理器，分别是RPM与Debian 的DPKG。
+
+| distribution代表  | 软件管理机制                  | 使用命令      | 在线升级机制（命令） |
+| ----------------- | ----------------------------- | ------------- | -------------------- |
+| Red Hat \| Fedora | RPM（RedHat Package Manager） | rpm，rpmbuild | YUM（yum）           |
+| Debian \| Ubuntu  | DPKG                          | dpkg          | APT（apt-get）       |
+
+centos用的是RPM。
+
+## 14.1 RPM
+
+RPM 全名 RedHat Package Manager
+
+RPM的特点是将你要安装的软件先编译，并打包成RPM机制的安装包，根据安装包内的数据库文件，进行依赖属性软件进行检查，若满足则予以安装，否则不安装。
+
+### 14.1.1 RPM默认安装路径
+
+在依赖的软件已安装，环境检查通过，那么RPM安装包就开始被安装，在安装完成后，软件的相关信息就会写入**/var/lib/rpm/**目录下的数据库文件中。
+
+| 路径                               | 文件功能                                 |
+| ---------------------------------- | ---------------------------------------- |
+| /etc                               | 一些软件的设置文件                       |
+| /usr/bin                           | 一些可执行文件                           |
+| /usr/lib                           | 一些程序使用动态函数库                   |
+| /usr/share/doc<br />/usr/share/man | 软件使用手册与帮助文档，一些man page文件 |
+
+### 14.1.2 安装
+
+**RPM安装包需要自行下载，安装软件是root的工作，因此需要root才有权操作rpm 命令**
+
+**rpm -ivh package_name**
+
+- i—install，v—查看详细的安装信息，h—安装进度条
+
+- ```bash
+  #一次性安装多个软件
+  rpm -ivh a.rpm b.rpm *.rpm
+  #通过网络地址直接安装软件
+  rpm -ivh http://website.name/path/pkgname.rpm
+  ```
+
+| 可执行参数      | 代表意义                                                     |
+| --------------- | ------------------------------------------------------------ |
+| --nodeps        | 使用时机：当发生软件属性依赖问题而无法安装，但你执意安装时<br />危险性：可能造成软件无法使用 |
+| --replacefiles  | 使用时机：“某个文件已经被安装在你的系统上面”，又或许出现版本不和（conflict files），可以使用此参数直接覆盖原有文件。<br />危险性：覆盖操作无法复原 |
+| --replacepkgs   | 使用时机：如果需要安装一大堆rpm软件文件（rpm -ivh *.rpm），其中某些软件已安装。若出现“某软件已安装”，此时可以用此参数重新安装此rpm |
+| --force         | 使用时机：是replacefiles与replacepkgs的综合体                |
+| --test          | 使用时机：测试软件是否能够通过环境与属性依赖检查             |
+| --justdb        | 使用时机：RPM数据库损坏或产生错误，使用此参数更新软件在数据库内的信息 |
+| --nosignature   | 使用时机：略过数字证书的检查                                 |
+| --prefix 新路径 | 使用时机：要将软件**安装到其他非正规目录**时。例如：你想将某软件安装到/usr/local 下，而非正规的/bin，/etc |
+| --noscripts     | 使用时机：不想让软件在安装过程中自行执行某些系统命令         |
+|                 |                                                              |
+
+### 14.1.3 升级与更新
+
+**rpm -Uvh package_name**
+
+- U—upgrade，无论后面的软件有没有安装
+
+**rpm -Fvh package_name**
+
+- F—freshen，只有后面的软件安装过，才会进行更新操作
+
+### 14.1.4 查询
+
+查询的时候，就会去/var/lib/rpm/这个目录下查询。
+
+**rpm -q[a] [ 已安装软件的名称 ]**
+
+- q——查询后面的软件是否安装
+- qa——query all，查询由RPM管理的所有已安装软件
+
+**rpm -q[ licdR ] 已安装软件名称**
+
+- qi—information，列出软件的详细信息，包括开发商，版本说明等
+- ql—list，列出该软件所有的文件与目录所在的完整文件名（安装路径里存的文件，包括/etc，/usr/lib，/usr/bin）
+- qc—etc，列出该软件所有的设置文件（包括/etc）
+- qd—列出该软件所有的帮助文件（说明或man page）
+- qR—Required，列出该软件相关的依赖软件所含文件。
+
+**rpm -qf 文件名**
+
+- f—由文件名查找归属于哪个软件
+
+**rpm -qp[ licdR ] rpm包名**
+
+- p—package，仅在查找某个rpm包内的信息。
+
+### 14.1.5 卸载
+
+**rpm -e 软件关键词**
+
+- e—erase，擦除，卸载
+- 软件的卸载必须符合由上层往下层进行卸载，如果所需卸载的软件还存在依赖，那么将卸载失败，除非你使用--nodeps
+
+### 14.1.6 重建数据库
+
+**rpm --rebuilddb**
+
+- 某些操作可能会导致RPM数据库/var/lib/rpm/下的文件损坏，那么可以通过此命令重建一下数据库
+
+### 14.1.7 RPM验证
+
+使用/var/lib/rpm下面的**数据库内容**来比较目前Linux系统环境下的所有**软件文件**
+
+当你误删了某软件的文件，或不小心修改了某个软件的文件内容，你想查看到底修改了哪些文件的数据
+
+**rpm -V 已安装软件名称**
+
+- V—verify，列出该软件被改动的文件列表
+- Va—列出系统上所有可能被改动的文件。
+
+**rpm -Vf 文件名**
+
+- 判断这个文件名是否被修改过
+
+**rpm -Vp 软件名**
+
+- 列出某个软件内可能被改动的文件
+
+```bash
+rpm -V logrotate
+..5...T c /etc/logrotate.conf
+#最前面的八个字符，“.”作为占位符，如果没有变动则为"."
+#S：file size differs，文件大小发生了改变
+#M：Modediffers，文件类型or文件权限rwx发生改变
+#5：MD5 sum differs，MD5这一种指纹码的内容已经不同
+#D：Device major/minor number mis-match ,设备的主次代码已经改变
+#L：readLink（2） path mis-match ，Link路径已被改变。
+#U：user Owership differs，文件所有者发生改变
+#G：group Owership differs，文件所属用户组已被改变
+#T：mTime differs，文件创建时间已被改变
+
+#其次的一个字符为文件的类型，如上是一个c
+#c：设置文件（config file）
+#d：文档（documentation）
+#g：ghost file
+#l：授权文件（license file）
+#r：自述文件（read me）
+```
+
+## 14.2 SRPM
+
+一般RPM的安装包它的后缀名为**XXX.rpm**，安装包是已经编译的文件，可以直接安装。
+
+然而，RPM的软件安装环境必须与打包时的环境相同，需要满足软件的依赖属性需求，可移植性弱。
+
+**SRPM（source RPM）所提供的软件内容并没有经过编译，它提供的是源代码**，扩展名通常是以**XXX.src.rpm**这种格式。
+
+它与RPM不同的是，要安装此软件必须
+
+1. 先将该软件以RPM管理的方式进行编译，此时SRPM会被编译成RPM文件
+2. 然后将RPM文件安装到Linux系统中
+
+## 14.3 yum
+
+### 14.3.1 软件管理
+
+yum（ Yellow dog Updater, Modified）
+
+yum 替你下载软件，替你解决依赖关系，替你安装 
+
+**yum [ option ] [ 查询工作项目 ] [ 相关参数 ]**
+
+- option：
+
+  * list—列出目前主机上yum所管理的所有软件，类似于rpm -qa
+  * info—类似于rpm -qai
+  * provides—通过文件搜索软件，类似于rpm -qf
+  * search—搜索后面工作项目关键字
+  * install—接需要安装的软件
+  * update—接需要更新的软件
+  * remove—接需要删除的软件
+  * clean—清除缓存目录下的。[ packages | headers | all ]
+
+- 相关参数
+
+  - -y—当yum要等待用户输入时，这个选项可以自动提供yes的响应输入
+  - **--installroot=/some/path**，将软件安装在/some/path中而不使用默认路径
+
+  
+
+### 14.3.2 yum配置
+
+容器设置
+
+在/etc/yum.repos.d/文件夹下放有多个容器设置
+
+```bash
+cat CentOS-Base.repo 
+
+[BaseOS]
+name=CentOS-$releasever - Base
+baseurl=http://mirrors.cloud.aliyuncs.com/$contentdir/$releasever/BaseOS/$basearch/os/
+gpgcheck=1
+enabled=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-centosofficial
+
+#[container_name]：容器名，在容器列表中充当repo id
+#name：repos name，容器，在容器列表中充当repo name
+#mirrorlist：列出这个容器可以使用的镜像站点，如果不用可注释。mirrorlist是由yum程序自行去找进行站点，
+#baseurl：容器的实际网址，baseurl是指定固定的一个容器网址
+#enable：1容器启用，0容器关闭，在容器列表中充当status
+#gpgcheck：1指定是否需要查阅RPM文件内的数字证书
+#gpgkey：数字证书的公钥文件所在位置。
+
+#查看主机的容器列表
+yum repolist all
+
+repo id                                            repo name                                                                       status
+AppStream                                          CentOS-8 - AppStream                                                           enabled
+AppStream-source                                   CentOS-8 - AppStream Sources                                                  disabled
+BaseOS                                             CentOS-8 - Base                                                                enabled
+BaseOS-source                                      CentOS-8 - BaseOS Sources                                                     disabled
+```
+
+
+
+
+
 # 补充
 
 1. 关于终端
