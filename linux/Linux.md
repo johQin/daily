@@ -596,6 +596,9 @@ windows即使物理内存没有用完也会去用到虚拟内存，而Linux不�
 
 linux的swap类似于windows的虚拟内存，不同之处在于，Windows可以设置在windows的任何盘符下面，默认是在C盘，可以和系统文件放在一个分区里。而linux则是独立占用一个分区，方便由于内存需求不够的情况下，把一部分内容放在swap分区里，待内存有空余的情况下再继续执行，也称之为交换分区，交换空间是其中的部分
 
+## 6.5 磁盘配额
+
+
 
 # 7 文件压缩与备份
 
@@ -3099,8 +3102,6 @@ AppStream-source                                   CentOS-8 - AppStream Sources 
 BaseOS                                             CentOS-8 - Base                                                                enabled
 BaseOS-source                                      CentOS-8 - BaseOS Sources                                                     disabled
 ```
-
-
 
 
 
