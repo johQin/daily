@@ -36,3 +36,6 @@
 1. everything else：任何别的事情，其他一切
 2. posting：消息，帖子
 3. the ease of：轻松
+4. placing an emphasis on
+5. cutting edge technology 尖端科技
+6. As the term suggests 顾名思义
