@@ -55,6 +55,34 @@ Axure RP 是一个专业的快速原型设计工具，Axure是一个公司，RP�
 - image，可以裁剪crop，分割slice
 - **hot spot热区**：用于对一个整体的组件其上分割成不同的区域，对其上覆盖的不同区域做不同的事件处理
 
+#### Dynamic Panel
+
+动态面板主要用于做一些动态效果
+
+1. 显示隐藏（弹出框，对话框的显示隐藏）
+2. 滑动效果
+3. 拖动效果
+4. 状态切换
+
+右击功能项：
+
+1. fit to content：自适应内容
+2. scrollbars：滚动条
+3. pin to browser：固定到浏览器，在浏览器固定位置展示、
+4. 100%width(broswer only)：用于自适应浏览器宽度
+5. break away first state：从首个状态脱离，将状态脱离动态面板形成一个独立的元件
+6. create master：转换为模板
+
+##### 登录模块设计实例
+
+**1.需要实现的效果**
+
+![](./legend/RP/登录模块效果.png)
+
+**2.实施**
+
+![](./legend/RP/登录模块设计.png)
+
 ### 2.1.2 表单型
 
 ![](./legend/RP/表单型元件.png)
@@ -108,7 +136,7 @@ Axure RP 是一个专业的快速原型设计工具，Axure是一个公司，RP�
 
 ## 2.5 个人简历
 
-
+![](./legend/RP/个人简历制作.png)
 
 # 其他
 
@@ -118,6 +146,12 @@ Axure RP 是一个专业的快速原型设计工具，Axure是一个公司，RP�
 
 ![](./legend/RP/interactions.png)
 
+## 格式刷
+
+CTRL + M
+
+![](./legend/RP/格式刷.png)
+
 ## 词汇
 
 1. interactions：交互，
@@ -125,3 +159,7 @@ Axure RP 是一个专业的快速原型设计工具，Axure是一个公司，RP�
 3. toggle：切换，转换
 4. style：样式
 5. note：说明
+
+## 惯用手法
+
+1. 边框不显示：线宽设置为0
