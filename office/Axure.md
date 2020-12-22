@@ -178,6 +178,70 @@ onLoadVariable是系统的全局变量，作为项目中最少有一个全局变
 
 ## 3.2 简易计算器
 
+enable case 启用情形
+
+![](./legend/RP/事件触发情形.png)
+
+# 4 母版
+
+## 4.1 创建母版
+
+master，像导航菜单，版权信息等部分为多个页面共有，就可以建立母版使用。
+
+1. 通过在母版区新建
+
+   ![](./legend/RP/母版区新建母版.png)
+
+2. 通过元件右击转换为模板（create master）
+
+## 4.2 drop behavior
+
+拖放行为
+
+在应用母版到页面时，里面有一个**“固定到模板的位置（lock to location in master ）”**，应用到页面后，页面中的母版部分按在原模板的位置放置并无法拖动，除非右击去掉**lock to master location**的勾选。
+
+在页面中右击母版部分->脱离母版（break away），即可与母版断开关系，母版再有任何改变，都不会同步到页面上
+
+## 4.3 实例
+
+**效果图**
+
+![](./legend/RP/蓝月亮导航效果图.png)
+
+**效果实现**
+
+![](./legend/RP/蓝月亮导航的实现.png)
+
+# 5 link action
+
+## 5.1 open link
+
+打开链接
+
+![](./legend/RP/链接打开的方式.png)
+
+
+
+## 5.2 open link in frame
+
+内联框架
+
+类似于iframe标签的元件inline frame
+
+![](./legend/RP/内联框架打开页面.png)
+
+
+
+## 5.3 scroll to widget
+
+滚动到元件（anchor link），页面常常有锚点可以用这个
+
+![](./legend/RP/锚点anchor.png)
+
+## 5.4 自适应视图
+
+**project->adaptive views sets**
+
 
 
 # 其他
