@@ -376,6 +376,12 @@ excel有多种粘贴方式，行列转置、公式、值、格式、值和格式
   - 单列条件单列求和，`=SUMIF(A$7:A$12,D8,B$7:B$12)`
   - 多列条件多列求和，=SUMIF(A$16:F$21,H17,B$16)
 - `SUMIFS(sum_range求和区域, criteria_range1条件区域1, criteria1条件1,[criteria_range2条件区域2, criteria2条件2],...)`
+  - 多个条件同时成立才进行求和运算
+- `ABS(number),int(number),`
+- `round(number,num_digits)四舍五入,roundup(number,num_digits)向上,rounddown(number,num_digits)向下，num_digits保留的位数`
+- `mround(number需要舍入的数字,multiple数字舍入的基数)，如果number除以指定的multiple的余数大于或等于multiple值的一半，mround将向上舍入`
+- `mod(number,divider)`，应用：判断奇偶（隔行填充），周期性产生数字，条件格式
+- 注：**日期也可以用`int和round处理`**
 
 #### 计数
 
@@ -383,14 +389,60 @@ excel有多种粘贴方式，行列转置、公式、值、格式、值和格式
   - 只数数字的个数，不会数文本型的单元格
   - 支持多个参数，列，行，区域的数字单元格进行计数
 - `COUNTIF()`
+  - `COUNTIF(COUNT_range,count_criterial)`
+  - 应用场景：找重复（是否签到），**条件格式**
+  - **条件格式**：如果条件为真，格式生效，如果条件为假，格式忽略
+  - ![](./legend/excel/条件格式.png)
+  - 数据有效性
+  - ![](./legend/excel/数据有效性.png)
+  - 
 - `COUNTIFS()`
+  - `COUNTIFS(count_range1,count_criterial1,count_range1,count_criterial2,...)`
+  - 多个条件同时成立才进行计数
+  - COUNTIFS向COUNTIF转换，采用辅助列，把多个判定的内容连接在一起形成一个判定条件
+- `COUNTA()对非空单元格进行计数，COUNTBLANK()对空单元格进行计数`
+
+### 3.1.5 多表引用与subtotal
+
+在表中引用其他表中的数据。
+
+引用单张表：`'sheet_name'!单元格引用，eg：A!E:E，代表表A的E列`，**表名的引号在表名有非英文字符的时候使用**
+
+引用多张连续表：`'start_sheet_name:end_sheet_name'!单元格引用，eg:A:C!E:E,代表表A到表C的E列`
+
+#### subtotal
+
+返回列表或数据库中的分类汇总,例如筛选后的数据。
+
+`SUBTOTAL(function_number,统计区域)`，统计区域为没有分类汇总前的数据区域。
+
+| 忽略隐藏值 | 函数    | 函数作用       |
+| ---------- | ------- | -------------- |
+| 101        | AVERAGE |                |
+| 102        | COUNT   |                |
+| 103        | COUNTA  |                |
+| 104        | MAX     |                |
+| 105        | MIN     |                |
+| 106        | PRODUCT | 括号内数据累乘 |
+| 107        | STDEV   | 标准差         |
+| 108        | STDEVP  |                |
+| 109        | SUM     |                |
+| 110        | VAR     | 方差           |
+| 111        | VARP    |                |
+
+![](./legend/excel/subtotal.png)
+
+应用：筛选数据后，重新排列序列号
+
+![](./legend/excel/筛选后重新排列序列号.png)
 
 # 技巧
 
-1. **公式选项卡->公式审核->公式求值->步入计算，可以看到求值的过程**
-2. F9抹黑计算：在公式处通过鼠标选中需要计算的部分（抹黑），再按F9可以计算出选中的这部分的内容
-3. char(10)是一个换行符，用于公式中输入换行符
-4. 连续单元格向上向下选中单行或单列：【CTRL + SHIFT + ↓ or →】，选中行或列之后，再【CTRL + SHIFT + →  or  ↓ 】就可以选中单元格区域
+1. F4切换单元格引用方式
+2. **公式选项卡->公式审核->公式求值->步入计算，可以看到求值的过程**
+3. F9抹黑计算：在公式处通过鼠标选中需要计算的部分（抹黑），再按F9可以计算出选中的这部分的内容
+4. char(10)是一个换行符，用于公式中输入换行符
+5. 连续单元格向上向下选中单行或单列：【CTRL + SHIFT + ↓ or →】，选中行或列之后，再【CTRL + SHIFT + →  or  ↓ 】就可以选中单元格区域
 
 # 实践
 
