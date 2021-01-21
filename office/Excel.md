@@ -350,7 +350,9 @@ excel有多种粘贴方式，行列转置、公式、值、格式、值和格式
 
 - `LOWER(text)，UPPER(text)， PROPER(text)首字母大写，`
 - `LEN(text)字符长度， LENB(text)字节长度，一个字符等于两个字节，在excel中默认的单位是字符，所有汉字，字母，数字都是字符，长度为1`
-- ` LEFT(text,num_chars)， RIGHT(text,num_chars)， MID(text,start_num,num_chars)`
+- ` LEFT(text,num_chars)， RIGHT(text,num_chars)， MID(text,start_num,num_chars)，` 
+- `FIND(find_text,within_text,[start_num])返回一个字符串在另一个字符串的起始位置`
+- `REPLACE(old_text,start_num,num_chars,new_text)`将一个字符串中的部分字符用另外的字符串替换
 - `CHAR(numberid),eg:char(10)是一个换行符`
 - `EXACT(TEXT1,TEXT2)`比较两个字符串是不是完全相同
 
@@ -381,6 +383,8 @@ excel有多种粘贴方式，行列转置、公式、值、格式、值和格式
 - `round(number,num_digits)四舍五入,roundup(number,num_digits)向上,rounddown(number,num_digits)向下，num_digits保留的位数`
 - `mround(number需要舍入的数字,multiple数字舍入的基数)，如果number除以指定的multiple的余数大于或等于multiple值的一半，mround将向上舍入`
 - `mod(number,divider)`，应用：判断奇偶（隔行填充），周期性产生数字，条件格式
+- `ISNUMBER()`判断一个值是否为一个数
+- `N()`将不是数值型的值转换为数值形式
 - 注：**日期也可以用`int和round处理`**
 
 #### 计数
@@ -588,6 +592,43 @@ excel有多种粘贴方式，行列转置、公式、值、格式、值和格式
 
 - **区间匹配**：lookup采用的是模糊匹配，数值类都是找比目标值小且最近的值。`LOOKUP(B22,{0,60,70,80,90},{"E","D","C","B","A"})`
 
+### 3.2.6 其他函数
+
+`FIND(find_text,within_text,[start_num])返回一个字符串在另一个字符串的起始位置`
+
+- 截取字符串：结合MID，LEFT，RIGHT使用
+- 关键字匹配：`SUM(ISNUMBER(FIND("电视机",A21:A27,1))*B21:B27)`
+- FIND与SEARCH功能相同，
+  - 区分大小写：FIND支持，而SEARCH不支持。
+  - 通配符：FIND不支持，而SEARCH不支持。
+- 
+
+`REPLACE(old_text,start_num,num_chars,new_text)将一个字符串中的部分字符用另外的字符串替换`
+
+- 替换字符-电话号码打码：`REPLACE(B34,4,4,"****")`
+- 插入字符：`REPLACE(B34,4,,"HAH")`，省略第三个参数。
+
+`SUBSTITUTE(text,old_text,new_text,[instance_num])`将一个字符串中的部分字符用另外的字符串替换
+
+- instance_num，为匹配到第几个的old_text要被替换。其余和REPLACE用法相同。
+- 第四个参数不写，就全部替换掉。
+
+`REPT(text,num_times)`，指定重复text文本num_times次。
+
+- 趋势分析，评星级
+
+### 3.2.7 OFFSET
+
+INDEX函数用于取某个单元格的值或引用。
+
+而OFFSET可以取某个单元格区域。
+
+`OFFSET(reference,rows,cols,[height],[width])`
+
+- rows，cols为偏移量，可以为负数
+- height，width为所取区域的大小，默认为1
+- 
+
 ## 3.3 数组
 
 ### 3.3.1 数组初识
@@ -599,6 +640,8 @@ excel有多种粘贴方式，行列转置、公式、值、格式、值和格式
 数组公式里面不能选中整列，excel对数组长度是有限制的。
 
 在excel里面的**数组间的运算其实是对位运算。**
+
+数组操作的优点在于能将中间步骤省略掉。
 
 数组运算结果的展开显示：
 
