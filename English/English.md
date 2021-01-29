@@ -57,3 +57,5 @@
 4. placing an emphasis on
 5. cutting edge technology 尖端科技
 6. As the term suggests 顾名思义
+7. It's plain and simple 显而易见
+8. My Lord【英】，Your Honor【美】大法官
