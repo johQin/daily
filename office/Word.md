@@ -103,4 +103,35 @@
 
 1. 公式中的空格如何击出
    - **【Ctrl + Alt + Space】**
-2. 
+2. 快捷键
+   - 上标：Ctrl+H  下标：Ctrl+L，选中文本加快捷键
+   - 积分号：Ctrl+I
+   - 根式：Ctrl+R
+   - 上横线：Ctrl+Shift+连字符（就是减号），矢量箭头：Ctrl+Alt+连字符，选中文本加快捷键
+   - 单撇：Ctrl+Alt+'，双撇：为单撇加两个单引号
+   - 小括号：Ctrl+9或Ctrl+0  中括号：Ctrl+[ 或Ctrl+]  大括号：Ctrl+{ 或 Ctrl+}
+   - 分子分母的分式：垂直分式：Ctrl+F  斜杠（水平）分式：Ctrl+/
+3. 微调符号
+   - 选中文本，上下左右平移：Ctrl+箭头键，仅做微调，偏移过多会导致文本显示不全
+   - 空格占位：【Ctrl + Alt + Space】
+4. 公式缩放：公式整体缩放，不是单个文本缩放
+   - 100%：Ctrl+1
+   - 200%：Ctrl+2
+   - 400%：Ctrl+4
+   - 800%：Ctrl+8
+5. 批量修改公式的字号和大小
+   - 双击一个公式，打开MathType，进入编辑状态；
+   - 设置大小：点击size菜单——define——字号对应的pt值，一般五号对应10pt，小四对应12pt；
+   - 生成配置文件：点击preference->equation preference -> save to file ->存一个与默认配置文件不同的名字；
+   - 关闭MathType回到word文档，点击word界面上的MathType——format equation——load equation preferrence选项下面的browse按钮，选中刚才存的配置文件，点选whole document选项，点确定
+6. 公式的自动编号
+   - 提供四种类型的公式输入
+   - inline（文本中的公式）
+   - display style 没有编号的单行公式
+   - left numbered display style 编号在左边
+   - right numbered display style编号在右边
+7. 自定义常用公式
+   - ![](./legend/word/mathtype界面.png)
+   - 编辑常使用的公式，选中该公式，左击拖动至工具栏即可
+   - 不需要时，可以在工具栏该公式处右击删除即可
+8. 
