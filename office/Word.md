@@ -99,7 +99,7 @@
 
 10. 
 
-# MathType技巧
+# [MathType技巧](https://zhuanlan.zhihu.com/p/25580133)
 
 1. 公式中的空格如何击出
    - **【Ctrl + Alt + Space】**
