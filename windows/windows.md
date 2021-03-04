@@ -41,3 +41,4 @@ win+r->mstsc->输入被控电脑ip->输入用户名和电脑密码即可连接
 3. 软件应用分屏：【Win + ← →】
 4. 命令行：【 Win + R ，输入CMD，Enter 】
 5. 选中当前单词：【Ctrl + Shift + ← →】
+6. 新建文件夹：【Ctrl + Shift + N】
