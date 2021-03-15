@@ -850,14 +850,14 @@ with tf.name_scope("Model"):
 #迭代轮次
 train_epochs=50
 #学习率
-learn_rate=0.01
+learning_rate=0.01
 
 #定义均方差损失函数
 with tf.name_scope("LossFunction"):
     loss_function=tf.reduce_mean(tf.pow(y-pred,2))#均方误差、
 
 #创建优化器
-optimizer = tf.train.GradientDescentOptimizer(learning_rate).minizie(loss_function)
+optimizer = tf.train.GradientDescentOptimizer(learning_rate).minimize(loss_function)
 
 init=tf.global_variables_initializer()
 

@@ -306,17 +306,21 @@ with EXPR as VAR:
 ```python
 class Sample:
   def __enter__(self):
-    print "In __enter__()"
+    print("In __enter__()")
     return "Foo"
   
   def __exit__(self, type, value, trace):
-    print "In __exit__()"
+    print("In __exit__()")
   
 def get_sample():
   return Sample()
   
 with get_sample() as sample:
-  print "sample:", sample
+    print("sample:%s" % sample)
+    ha = 5
+print("ha = %s" % ha)
+#ha = 5
+#主程序段依然能访问到，with里面声明的变量
 ```
 
 运行代码后，输出如下：
