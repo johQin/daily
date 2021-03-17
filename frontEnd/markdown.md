@@ -79,6 +79,14 @@
 
 参数式图片：这里是![博客园]
 
+如果图片不在服务器上，图片的引用也可以使用相对路径。
+
+比如在当前文件路径之下有一个pictures文件夹，文件夹中有你需要的图片girl.png。
+
+你可敲代码`![](./pictrues/girl.png)`。就可以在此md文件中引用相对路径中的图片。
+
+一个点代表当前路径下，两个点代表上一层文件路径（父级文件夹），可重复使用，eg：`../../xx.png`，爷级路径
+
 # 7.代码框
 
 ```javascript
@@ -233,7 +241,10 @@ f
 1. enter——是双换行
 2. shift+enter——是单换行
 
+# 参考
 
+1. https://www.jianshu.com/p/335db5716248
+2. https://blog.csdn.net/mingzhuo_126/article/details/82722455
 
 
 
