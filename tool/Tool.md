@@ -289,3 +289,46 @@ let pattern=/\d{3,6}/
    ```
 
 7. 
+
+# [you-get](https://github.com/soimort/you-get)
+
+[You-Get](https://you-get.org/) is a tiny command-line utility to download media contents (videos, audios, images) from the Web, in case there is no other handy way to do it（以防没有其他的方法）。
+
+首先你需要知道你需要下载的视频的网址，在通过you-get命令按照下面做操作
+
+```bash
+# 在anaconda的prompt中，安装此命令行工具
+pip3 install you-get
+#更新命令行工具
+pip3 install --upgrade you-get
+#默认下载，最基本的命令，一切都会以它默认的形式下载资源
+you-get 'https://www.youtube.com/...'
+
+#带参下载
+# 查看关于视频网址，工具能提供的资源
+you-get -i 'https://www.youtube.com/....'
+
+site:                YouTube
+title:               Me at the zoo
+streams:             # Available quality and codecs
+    [ DASH ] ____________________________________
+    - itag:          242
+      container:     webm
+      quality:       320x240
+      size:          0.6 MiB (618358 bytes)
+    # download-with: you-get --itag=242 [URL]
+
+    - itag:          395
+      container:     mp4
+      quality:       320x240
+      size:          0.5 MiB (550743 bytes)
+    # download-with: you-get --itag=395 [URL]
+
+#根据上面的itag号选择对应的资源格式等，但也可以不-i查看资源，它会提供默认的资源，供你下载
+#you-get --itag=395 -o F:\下载视频存放的文件夹 -O 下载资源重命名的名字.后缀 'url'
+you-get --itag=395 -o F:\favorite -O BEAUTIFUL.mp4 'https://...'
+#
+```
+
+
+
