@@ -90,7 +90,11 @@ bytes保存的就是原始的字节（二进制格式）数据，因此bytes对�
 1. 字符串格式化输出
 
 ```python
-print("%s is a %s years old boy" % (user,age));#  %后面是转换说明符，格式输出类似于C语言的格式输出
+print("%s is a %s years old boy" % (user,age));
+#  %后面是转换说明符，格式输出类似于C语言的格式输出
+# s——利用str()将变量或表达式转换为字符串
+# f——转化为十进制形式的浮点数
+
 ```
 
 2. 索引操作字符串（<b> [  ] </b>）
@@ -98,6 +102,33 @@ print("%s is a %s years old boy" % (user,age));#  %后面是转换说明符，�
 3. **in**判断是否包含某个子字符串
 
 4. **字符串方法len()，strip()，find()，replace()，maketrans()等等，用时可查**
+
+5. `str.format()`：自2.6起，新增，字符串格式化功能
+
+   ```python
+   
+   # 不设置指定位置，按默认顺序
+   "{} {}".format("hello", "wq")    
+   # hello wq
+   
+   # 设置指定位置
+   "{1} {0} {1}".format("hello", "wqq")  
+   #wqq hello wqq
+   
+   #关键字参数
+   print("爱好：姓名：{name}, 性别： {sex}".format(name="wqqian", sex="female"))
+   #爱好：姓名：wqqian, 性别： female
+   
+   #数字格式化
+   "{:.2f}".format(3.1415926)
+   # 保留小数点后两位
+   # 3.14
+   "{:+.2f}".format(3.1415926)
+   #带符号保留小数点后两位
+   # +3.14
+   ```
+
+6. 
 
 ## 1.5 运算符
 
@@ -1104,6 +1135,44 @@ from .module1 import *
 ```
 
 有相对路径导入方法
+
+# 10 常见模块
+
+## 10.1 sys
+
+sys 模块代表了python解释器，主要用于获取和python解释器相关的信息。
+
+1. sys.argv：获取python程序的命令行参数，
+
+   - sys.argv[0]——指该python程序，
+
+   - sys.argv[1]，sys.argv[2]，指该python程序提供的第一、第二参数
+
+   - ```python
+     python test.py arg1 arg2 arg3
+     #程序里面可以通过sys.argv获取参数
+     print(sys.argv[1],sys.argv[2])
+     ```
+
+   - 
+
+2. 
+
+## 10.2 time
+
+time模块主要包含各种提供日期、时间功能的类和函数。该模块既提供了把日期、时间格式化为字符串的功能，反之亦然。
+
+1. time.time()：返回当前时间的时间戳（1970纪元后经过的浮点秒数）
+
+   - ```python
+     import time
+     print(time.time())
+     #1616331007.7832582
+     print(int(time.time()))
+     #1616331007
+     ```
+
+2. 
 
 # 常用函数
 
