@@ -817,6 +817,9 @@ print(df)
 #把df转化为np的数组格式
 df=np.array(df)
 
+#注意数据需要归一化，否则后序进行的训练将失败
+for i in range(12):
+    df[:, i] = df[:, i]/(df[:, i].max()-df[:, i].min())
 
 #x_data为前12列特征数据
 #python的子序列用法
@@ -1387,6 +1390,47 @@ pred=tf.nn.softmax(forward)
 
 训练模型存盘，保存的是所有的变量当前运行的值。
 
+模型保存步骤：
+
+1. 声明：`saver = tf.train.Saver()`，**必须在声明完所有变量之后，在训练之前，使用**，这个是告诉tensorflow我们要训练哪些量，哪些量需要保存
+
+   - 参数可以指定一个变量名列表（也`tf.Variable(tf.constant(1.0,shape = [1]),name = "a")`中的name参数).，指定部分变量进行保存，列表中的元素是变量名；
+
+2. 设置模型保存路径
+
+   ```python
+   import os
+   ckpt_dir="./ckpt_dir"
+   if not os.path.exists(ckpt_dir):
+       os.makedirs(ckpt_dir)
+   ```
+
+3. `saver.save(sess,os.path.join(ckpt_dir,model_name))`，
+
+   - 保存模型并不一定需要在模型训练结束后，
+   - 边训练边保存，最后通过分析，采用在最优的时候保存的模型
+
+   ```python
+   #训练过程中
+   ...
+   import time
+   #文件名上面，带上时间戳
+   #保存模型
+   saver.save(sess,os.path.join(ckpt_dir,"model-{}".format(int(time.time())))
+   #保存后，在模型路径下，生成了四个文件
+   ```
+
+4. [四个文件解析](https://blog.csdn.net/zuolixiangfisher/article/details/98755280)
+
+   - checkpoint： All checkpoint information，保存的是checkpoint的信息，也就是通过它我知道最近保存的几个模型版本（保存了模型目录下多个模型文件的列表）
+   - xxx.meta： 
+     - 这是一个序列化的`MetaGraphDef protocol buffer`，包含数据流、变量的annotations、input pipelines，以及其他相关信息
+     - 包含全部计算图graph结 构等信息。在不重新定义模型结构情况下，直接加载模型结构时会用到。
+   - xxx.index： metadata，元数据 [ It’s an immutable table(tensoflow::table::Table). Each key is a name of a Tensor and it’s value is a serialized BundleEntryProto. Each BundleEntryProto describes the metadata of a Tensor]，
+   - xxx.data-00000-of-00001： 包含所有变量的值(weights, biases, placeholders,gradients, hyper-parameters etc)，也就是模型训练好的参数和其他值
+
+如下例程：
+
 ```python
 #存储模型的粒度
 save_step=5
@@ -1416,7 +1460,7 @@ for epoch in range(train_epochs):
     
     #每历经save_step轮，存储一次模型
     if(epoch+1) % save_step ==0:
-        saver.save(sess,os.path.join(ckpt_dir,"mnist_h256_model_{:6d}.ckpt".format(epoch+1)))#存储模型
+        saver.save(sess,os.path.join(ckpt_dir,"mnist_h256_model_{:6d}".format(epoch+1)))#存储模型
         print('mnist_h256_model{:06d}.ckpt saved'.format(epoch+1))
 saver.save(sess,os.path.join(ckpt_dir,'mnist_h256_model.ckpt'))
 print('Model saved')
@@ -1424,18 +1468,45 @@ print('Model saved')
 #显示运行总时间
 duration=time()-startTime
 print("Train Finished takes","{:.2f}".format(duration))
-
 ```
+
+
 
 ## 4.2 模型还原
 
 从存盘的模型里面，把所有变量的值读取出来，然后赋给我们当前被还原模型。
 
-基本步骤：
+**未加载模型结构，需要重新定义模型结构情况下，模型还原的基本步骤：**
 
 1. 定义相同结构的模型
-2. 指定已存盘模型数据的目录
-3. 读取存盘模型数据并还原
+
+2. 声明定义的模型里需要还原的变量：`saver=tf.train.Saver()`
+
+3. 指定已存盘模型数据的目录
+
+   - ```python
+     ckpt_dir="./ckpt_dir/"
+     ckpt=tf.train.get_checkpoint_state(ckpt_dir)
+     #ckpt如果不为None，那么它存在两个属性，
+     #一个model_checkpoint_path为最新训练模型的模型名，
+     #一个all_model_checkpoint_paths为模型文件夹下，所有模型的模型名的列表
+     #可以在checkpoint文件中，看到这样的内容
+     
+     #目前遇到的问题是，all_model_checkpoint_paths它也变成了最新训练模型的模型名，特别的奇怪，现目前还没找到原因
+     #如果能够解决这个问题，那么就可以达成加载不同的训练模型的目的
+     ```
+
+4. 读取存盘模型数据并还原
+
+   - ```python
+     if ckpt and ckpt.model_checkpoint_path:
+         saver.restore(sess,ckpt.model_checkpoint_path)
+         print("Restore model from "+ ckpt.model_checkpoint_path)
+     ```
+
+5. 使用模型
+
+   
 
 ```python
 #1.定义相同的模型
@@ -1476,8 +1547,12 @@ ckpt_dir="./ckpt_dir/"
 saver=tf.train.Saver()
 
 sess=tf.Session()
-init=tf.global_variables_initializer()
-sess.run(init)
+
+#在还原模型的时候，不需要初始化变量，当然在执行saver.restore()之前也可以使用，saver.restore()已经包含了初始化的操作
+#当然如果你在tf.train.Saver()中只声明了部分变量得到保存，而其它部分变量没有保存，那么还是需要全局执行初始化操作。
+#init=tf.global_variables_initializer()
+#sess.run(init)
+
 ckpt=tf.train.get_checkpoint_state(ckpt_dir)
 
 if ckpt and ckpt.model_checkpoint_path:
@@ -1489,7 +1564,136 @@ accu_test= sess.run(accuracy,feed_dict={x:mnist.test.images,y:mnist.test.labels}
 print("Test Accuracy:",accu_test)
 ```
 
+**[自动加载模型结构，模型还原的步骤](https://zhuanlan.zhihu.com/p/53642222)：**
+
+1. 对操作命名，或将操作加入到集合中，以便还原模型时使用
+
+   ```python
+    #方式一：通过对操纵operation命名，由于tf.name_scope会对操作自动加上前缀，所以此操作的实际名为name_scope/pred_opt
+       pred = tf.identity(model(x, w, b), name='pred_opt')
+    #方式二：通过将操作operation加入到集合中，到时候从集合中取出即可使用
+       tf.add_to_collection("pred_col", pred)
+   ```
+
+2. 加载模型，恢复对话
+
+   ```python
+   #加载模型并恢复到会话中
+   #模型名.meta
+   saver = tf.train.import_meta_graph('./model/model-1616402671.meta', clear_devices=True)
+   saver.restore(sess, './model/model-1616402671')
+   ```
+
+3. 取出已存模型中的操作
+
+   ```python
+   #方式一：通过之前的命名，获取操作，这里是name_scope/operation_name
+   pred_byname = tf.get_default_graph().get_operation_by_name('Model/pred_opt').outputs[0]
+   #方式二：通过之前的集合，获取操作 
+   pred_bycol = tf.get_collection('pred_col')[0]
+   ```
+
+4. 调用操作
+
+   ```python
+   #这里的feed_dict的第一个参数，为当前操作需要的参数的name（可能有name_scope)，加冒号，加一个0，如果没有冒号没有0，那么将会报下面的错
+   #Cannot interpret feed_dict key as Tensor:
+   #The name 'X' refers to an Operation, not a Tensor. Tensor names must be of the form "<op_name>:<output_index>".
+   resp_byname = sess.run(pred_byname,feed_dict={'X:0': x_test})
+   resp_bycol = sess.run(pred_bycol,feed_dict={'X:0': x_test})
+   ```
+
+   
+
+5. 
+
+```python
+#波士顿预测房价的例子
+
+#训练时，通过以下方式将相应的operation或tensor加入图graph中
+...
+with tf.name_scope("Model"):
+    w = tf.Variable(tf.random_normal([12, 1], stddev=0.01), name='W')
+    b = tf.Variable(1.0, name='b')
+    def model(x, w, b):
+        return tf.matmul(x, w)+b
+    #方式一：通过对操纵operation命名，由于tf.name_scope会对操作自动加上前缀，所以此操作的实际名为Model/pred_opt
+    pred = tf.identity(model(x, w, b), name='pred_opt')
+    #方式二：通过将操作operation加入到集合中，到时候从集合中取出即可使用
+    tf.add_to_collection("pred_col", pred)
+
+#在复原模型时，
+import numpy as np
+import pandas as pd
+import tensorflow as tf
+
+df = pd.read_csv('./data/boston.csv')
+df = df.values
+df = np.array(df)
+for i in range(12):
+    df[:, i] = df[:, i]/(df[:, i].max()-df[:, i].min())
+y_data = df[:, 12]
+x_data = df[:, :12]
+
+sess = tf.Session()
+#加载模型并恢复到会话中
+saver = tf.train.import_meta_graph('./model/model-1616402671.meta', clear_devices=True)
+saver.restore(sess, './model/model-1616402671')
+
+#方式一：通过之前的命名，获取操作，这里是name_scope/operation_name
+pred_byname = tf.get_default_graph().get_operation_by_name('Model/pred_opt').outputs[0]
+#方式二：通过之前的集合，获取操作 
+pred_bycol = tf.get_collection('pred_col')[0]
+n = np.random.randint(506)
+print('n:', n)
+x_test = x_data[n].reshape(1, 12)
+resp_byname = sess.run(pred_byname,feed_dict={'X:0': x_test})
+resp_bycol = sess.run(pred_bycol,feed_dict={'X:0': x_test})
+target = y_data[n]
+print("标签值：%f" % target )
+# print("pred_byname预测值：%f" % resp_byname)
+print("pred_bycol预测值：%f" % resp_bycol)
+
+```
+
+
+
 # 5 tensorBoard
+
+## 5.1 初步
+
+- tensorBoard是TensorFlow的可视化工具 。通过TensorFlow程序运行过程中输出的日志文件可视化TensorFlow程序的运行状态。
+- tensorflow生产数据写到日志里面去，tensorboard不停的读取日志里的数据以一种可视化的方式展现出来。
+- tensorflow和tensorboard程序分别跑在两个进程中，互不影响
+
+<h5>写日志文件</h5>
+
+```python
+import tensorflow as tf
+#...
+#1.清除默认的图graph和不断增加的节点（清除之前的节点，这里还不太清楚只是我的推测）
+tf.reset_default_graph()
+#2.指定日志生成存放的路径
+logdir = 'D:\tensorflow\log'
+#3.定义计算图
+#....
+#4.生成一个写日志的writer，将当前的TensorFlow计算图写入日志文件
+writer = tf.summary.FileWriter(logdir,tf.get_default_graph())
+writer.close()
+#5.运行程序后自动生成计算图的日志文件
+```
+
+<h5>启动tensorboard</h5>
+
+1. 在Anaconda Prompt中，**进入日志存放的目录中**
+
+2. 输入命令tensorboard --logdir=D:\tensorflow\log，然后系统启动了一个前端服务器，端口号默认6006，可以通过--port参数修改启动的端口
+
+3. 在浏览器中复制命令行中的url，到graphs页即可。
+
+   ![tensorboard常用api](./legend/tensorboard_hf_api.png)
+
+
 
 ## [tensorflow游乐场](http://playground.tensorflow.org)
 
