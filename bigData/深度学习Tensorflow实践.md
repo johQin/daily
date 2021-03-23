@@ -1660,6 +1660,10 @@ print("pred_bycol预测值：%f" % resp_bycol)
 
 # 5 tensorBoard
 
+除了GRAPHS栏目外，tensorboard还有IMAGES、AUDIO、SCALARS、HISTOGRAMS、DISTRIBUTIONS、FROJECTOR、TEXT、PR CURVES、PROFILE九个栏目
+
+[各个栏目概览](https://blog.csdn.net/fendouaini/article/details/80368770)
+
 ## 5.1 初步
 
 - tensorBoard是TensorFlow的可视化工具 。通过TensorFlow程序运行过程中输出的日志文件可视化TensorFlow程序的运行状态。
@@ -1692,6 +1696,79 @@ writer.close()
 3. 在浏览器中复制命令行中的url，到graphs页即可。
 
    ![tensorboard常用api](./legend/tensorboard_hf_api.png)
+
+
+
+## 5.2 [tf.summary](https://zhuanlan.zhihu.com/p/102776848)
+
+在训练过程中记录数据的利器：tf.summary()提供了各类方法（支持各种多种格式）用于保存训练过程中产生的数据（比如loss_value、accuracy、整个variable），这些数据以日志文件的形式保存到指定的文件夹中。
+
+数据可视化：而tensorboard可以将tf.summary()记录下来的日志可视化，根据记录的数据格式，生成折线图、统计直方图、图片列表等多种图。
+
+tf.summary()通过递增的方式更新日志，这让我们可以边训练边使用tensorboard读取日志进行可视化，从而实时监控训练过程。
+
+![](./legend/tensorflow/tf.summary.png)
+
+### [tensorboard使用流程](https://blog.csdn.net/gsww404/article/details/78605784?utm_source=blogxgwz7)
+
+1. 添加记录节点：`tf.summary.scalar()/histogram()/image()`
+2. 汇总记录节点：`merged=tf.summary.merge_all()`
+3. 运行汇总节点：`summary=sess.run(merged)`，得到汇总结果，数据在缓存中
+4. 日志书写器类实例化：`summary_writer=tf.summary.FileWriter(logdir,graph=sess.graph)`
+   - 实例化的同时传入graph将当前计算图写入日志
+5. 日志书写器对象写入日志到文件中：`summary_writer.add_summary(summary,global_setp=i)`，将所有汇总的日志写入文件
+6. 关闭日志写入：`summary_writer.close()`方法写入内存，否则它将每隔120s写入一次
+
+
+
+### summary writer实例
+
+```python
+SW = tf.summary.create_file_writer(logdir, max_queue=10, flush_millis=None, filename_suffix=None, name=None)
+# 1.0 是这样的写法：tf.summary.FileWriter(logdir,graph=sess.graph)
+
+# logdir:生成的日志将储存到logdir指定的路径中。
+# max_queue:在向disk写入数据前，最大能缓存的event个数
+# flush_millis:至少flush_mills毫秒内进行一次SW.flush()，强制将缓存数据写入events文件
+# filename_suffix：日志文件的后缀。
+
+# 函数返回 SummaryWriter实例对象。
+
+# SummaryWriter类
+
+class SummaryWriter(object):
+
+    def set_as_default(self):
+        """设定默认的 summary writer 
+        亦即让此后出现的所有 summary 写入操作，都默认使用本个 summary writer 实例进行记录"""
+
+    def as_default(self):
+        """返回一个上下文管理器（配合with使用），记录context中出现的 summary 写入操作"""
+
+    def flush(self):
+        """强制将缓存中的数据写入到日志文件中"""
+
+    def close(self, tensor):
+        """强制将缓存中的数据写入到日志文件中，然后关闭 summary writer"""
+
+    def init(self):
+        """初始化"""
+```
+
+### summary.op
+
+1. `tf.summary.scalar(name, data, step=None, description=None)`
+   - 折线图
+   - name：定义保存的数据归于哪个标签下，亦即，`data`将会保存到标签`tag_of_summary_writer/tag_of_data`下。在tensorboard中，将会对同一个标签下的数据绘制其随step或者时间变化的折线图。
+   - data：标量值
+   - step：类似于横坐标，必须是可以转化为int64的，递增的数值。如果省略，则默认采用`step=tf.summary.experimental.get_step()`
+   - description：补充描述
+2. `tf.summary.histogram(name, data, step=None, buckets=None, description=None)`
+   - 直方图
+   - **data**：任何形状的可转换为`float64`的`Tensor`
+   - **buckets**：直方图中“桶”的个数。
+3. `tf.summary.image(name, data, step=None, max_outputs=3, description=None)`
+4. `tf.summary.audio()`
 
 
 
