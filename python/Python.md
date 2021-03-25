@@ -54,6 +54,27 @@ python是**弱类型语言**，特点：
 
 复数：python支持复数，复数的虚部用j或J表示，eg：3+0.2j，复数的计算模块 cmath。使用时，必须导入：import cmath
 
+```python
+# str( )是python自带函数，是python保留的关键字，定义变量时应该避免使用str作为变量名
+# 如果在使用str( )函数之前已经定义过str变量，则会出现TypeError: ‘str’ object is not callable这个报错
+
+# 字符串转数字
+s = '100'
+print(int(s))
+print(float(s))
+
+# 数字转字符串
+print(str(12145))
+print('列表转字符串：'+str([1,2,3,4])+'\n')
+print('字典转字符串：'+str({'a':10,'b':15,'c':20})+'\n')
+
+# 复数
+print(complex(1,2))
+
+```
+
+
+
 ## 1.4 字符串
 
 python要求字符串必须使用引号（单引号或双引号）括起来。支持**转义字符（\\)**
@@ -79,6 +100,14 @@ print(msg);
 
 用多行注释的方法，将注释的内容赋值给变量，这就是长字符串，他可以换行书写便于查看，
 
+**原始字符串**
+
+```python
+s1=r'G:\hello\test.txt'
+print(s1)
+#G:\hello\test.txt
+```
+
 **字节串**
 
 bytes保存的就是原始的字节（二进制格式）数据，因此bytes对象可用于在网络上传输数据，也用于存储各种二进制格式文件，如图片，音乐等文件。
@@ -98,6 +127,14 @@ print("%s is a %s years old boy" % (user,age));
 ```
 
 2. 索引操作字符串（<b> [  ] </b>）
+
+   ```python
+   s1='wangqian，nihao！'
+   # 左闭右开
+   # 第1个字符索引为0，倒数第1个字符为-1
+   print(s1[9:])#从第10个字符开始，nihao
+   print(s1[:-7])#从开始到倒数第7个字符，
+   ```
 
 3. **in**判断是否包含某个子字符串
 
@@ -411,8 +448,22 @@ true程序继续向下执行，false会引发AssertionError错误
     for 变量  in  字符串 | 范围 | 集合 ：
     	statements
 </pre>
-
 变量的值受for-in循环控制，改变量将会在每次循环开始时自动被赋值，因此程序不应该对该变量赋值。
+
+```python
+# 使用enumerate可以返回下标
+for index,val in enumerate(['ni','hao','ya','wqq']):
+    print(index,val,end=",")
+    
+# 同时遍历多个等长列表
+list1 = ['a', 'b', 'c', 'd']
+list2 = ['apple', 'boy', 'cat', 'dog']
+list3 = ['i','love','you','wqq']
+for x, y, z in zip(list1, list2,list3):
+    print(x, 'is', y,'say',z)
+```
+
+
 
 <h5>for-in遍历字典</h5>
 
@@ -1144,14 +1195,20 @@ sys 模块代表了python解释器，主要用于获取和python解释器相关�
 
 1. sys.argv：获取python程序的命令行参数，
 
-   - sys.argv[0]——指该python程序，
+   - sys.argv[0]——指该python程序的全路径，
 
    - sys.argv[1]，sys.argv[2]，指该python程序提供的第一、第二参数
 
    - ```python
      python test.py arg1 arg2 arg3
      #程序里面可以通过sys.argv获取参数
+     import sys
+     import os
      print(sys.argv[1],sys.argv[2])
+     os.path.basename(sys.argv[0])#当前文件名称
+     os.path.basename(__file__)#当前文件名称
+     # 当已知后缀名时，可通过字符串序列方法提取文件名
+     os.path.basename(__file__)[:-3]# 文件后缀名'.py',左闭右开,所以从开始取到倒数第三个字符 
      ```
 
    - 
@@ -1172,6 +1229,30 @@ time模块主要包含各种提供日期、时间功能的类和函数。该模�
      #1616331007
      ```
 
+2. `time.strftime('%Y-%m-%d %H:%M:%S')`
+
+   - 按格式返回系统时间
+
+   - ```python
+     import time
+     print(time.strftime('%Y-%m-%d %H:%M:%S'))
+     # 2021-03-25 14:31:37
+     ```
+
+3. 
+
+# 12 文件I/O
+
+```python
+#open(file_name[,access_mode],encoding='utf-8')
+#w、w，不能打开文件夹不存在的文件，但能打开文件夹存在且文件不存在的文件，如不存在就会新建
+```
+
+# Pytharm骚操作
+
+1. 对比文件：
+   - 在右侧文件栏，Ctrl选中两个文件，右击选中Compare Files
+   - ![](./legend/pycharm对比文件.png)
 2. 
 
 # 常用函数
