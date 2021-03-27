@@ -1218,6 +1218,17 @@ Softmax举例
 
 ![softmax_eg_y.png](./legend/softmax_eg_y.png)
 
+```python
+tf.nn.softmax(
+    logits,
+    axis=None,
+    name=None
+)
+#logits是一个张量，数据类型必须是half, float32, float64
+```
+
+
+
 #### tanh函数
 
 双曲正切函数，以0为中心，收敛速度较快
