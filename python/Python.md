@@ -183,7 +183,7 @@ print("%s is a %s years old boy" % (user,age));
 
 7. in运算符，用于判断某个成员是否位于序列中
 
-   <h5>三目运算符</h5>
+   <h5>三目运算符
 
    <pre>
    	True_statement if 条件表达式 else False_statement    
@@ -469,6 +469,21 @@ for x, y, z in zip(list1, list2,list3):
 <h5>for-in遍历字典</h5>
 
 字典包含items()，keys()，values()三个方法，他们都返回三个列表。
+
+```python
+
+# 对于3.x版本，因为python3改变了dict.keys，返回的是dict_keys对象，支持iterable 但不支持indexable，我们可以将其明确的转化成list。
+
+dict = {'tp':10,'tn':20}
+keys = dict.keys()
+print(keys[1])
+# TypeError: 'dict_keys' object does not support indexing
+keys_list = list(keys)
+print(keys_list[1])
+
+```
+
+
 
 <h5>循环结束else</h5>
 
