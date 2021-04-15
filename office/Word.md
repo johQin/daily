@@ -114,7 +114,18 @@
      - ![](./legend/word/新建表格样式制作三线表.png)
    - 
 
-10. 
+10. 编号：
+
+    - 通过多级列表去创建编号
+    - [通过题注编号](https://jingyan.baidu.com/article/414eccf6778ca66b421f0a79.htmlhttps://jingyan.baidu.com/article/414eccf6778ca66b421f0a79.html)
+      - 题注就是为图片或表格加注解的成分，通常用来为图标加编号和注解，以及借此生成图表目录
+      - ![](./legend/word/题注.png)
+
+11. word转pdf时加书签
+
+    - ![](./legend/word/转pdf加书签.png)
+
+12. 
 
 # [MathType技巧](https://zhuanlan.zhihu.com/p/25580133)
 
