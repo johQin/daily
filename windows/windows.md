@@ -42,3 +42,16 @@ win+r->mstsc->输入被控电脑ip->输入用户名和电脑密码即可连接
 4. 命令行：【 Win + R ，输入CMD，Enter 】
 5. 选中当前单词：【Ctrl + Shift + ← →】
 6. 新建文件夹：【Ctrl + Shift + N】
+
+# 问题
+
+1. [浏览器主页被篡改](https://blog.csdn.net/chichu261/article/details/83538876)
+   - 本次Chrome的主页被360导航篡改，网上查找相关解决办法，
+   - 在浏览器的地址栏输入chrome://version，查看页面的命令行段，可以发现法在值的尾部出现被篡改的地址，如本机的hao123，
+   - 创建浏览器快捷方式，右击属性->快捷方式->目标，
+     - 有的在这个空里会有其他地址，如果发现，删除末尾的即可，
+     - 但是在本机中，没有发现被篡改的地址，按照链接的解决方案来说，他说是高级的篡改方式，在这里已经看不见了，必须重填此空
+     - 填写为：C:\Users\Administrator\AppData\Local\Google\Chrome\Application\chrome.exe --flag-switches-begin --flag-switches-end
+     - 然后点击应用，确定
+     - 再次通过chrome://version查看命令行是否正常，
+2. 
