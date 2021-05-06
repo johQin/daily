@@ -6,6 +6,8 @@
 源码笔记课件
 build
 material
+.idea
+out
 
 #java----------------
 *.class
