@@ -10,7 +10,7 @@
 
 使用过什么设计模式，怎么使用的，解决了什么问题
 
-7设计原则和23中设计模式
+7设计原则和23种设计模式
 
 应用场景->设计模式->剖析原理->分析实现步骤->代码实现->框架或项目源码分析
 
@@ -254,13 +254,13 @@ OOA和OOD的分析、设计结果需要统一的符号来描述、交流并记�
 
 UML就是这种用于描述、记录OOA和OOD结果的符号表示法。
 
-UML2.0将图分为静态图和动态图，一共包括13中正式图形。最常用的UML图包括：用例图、类图、组件图、部署图、顺序图、活动图和状态机图
+UML2.0将图分为静态图和动态图，一共包括13种正式图形。最常用的UML图包括：用例图、类图、组件图、部署图、顺序图、活动图和状态机图
 
 ## 2.1 [类图](<https://plantuml.com/zh/class-diagram>)
 
 类的静态内部结构在类图上使用包含三个部分的矩形（类名，属性，方法）来描述。类图除可以表示实体的静态内部结构之外，还可以表示实体之间的相互关系。
 
-![](E:/note/pattern/legend/basic_inner.png)
+![](./legend/basic_inner.png)
 
 实体间的相互关系包括
 
@@ -276,7 +276,7 @@ UML2.0将图分为静态图和动态图，一共包括13中正式图形。最常
 - 实现
   - 接口与实现类，用虚线加空心三角表示。
 
-![](E:/note/pattern/legend/basic_class.png)
+![](./legend/basic_class.png)
 
 ## 2.2 [Vscode plantUML](<https://blog.csdn.net/qq_26819733/article/details/84895850>)
 
@@ -284,6 +284,10 @@ UML2.0将图分为静态图和动态图，一共包括13中正式图形。最常
 2. 在Vscode中安装插件：PlantUML
 3. 新建.uml文件
 4. 预览.uml的快捷键：【 Alt + D 】
+
+在笔记中参考的是韩顺平的图例：
+
+![](./legend/uml图例.png)
 
 # 3 设计模式
 
@@ -415,8 +419,8 @@ public class Singleton{
 ### 优缺点
 
 1. 优点：起到了Lazy Loading 的效果，但是只能在单线程下使用。
-2. 缺点：如果在多线程下，一个线程进入了if (singleton == null)判断语句块，还未来得及往下执行，另一个线程也通过了这个判断语句，这时便会产生多个实例。所以在多线程环境下不可使用这种方式
-3. 结论：在实际开发中，不要使用这种方式.
+2. 缺点：如果在多线程下，一个线程进入了if (singleton == null)判断语句块，还未来得及往下执行，另一个线程也通过了这个判断语句，这时便会产生多个实例。所以在多线程环境下不可使用这种方式。
+3. 结论：在实际开发中，不要使用这种方式。
 
 ## 4.5 懒汉式（线程安全，synchronized）
 
@@ -954,7 +958,7 @@ public class OrderPizza {
 
 由客户端直接创建十次。
 
-![原型-克隆羊传统模式.png](legend/原型-克隆羊传统模式.png)
+![原型-克隆羊传统模式.png](./legend/原型-克隆羊传统模式.png)
 
 ```java
 //羊类
@@ -1036,6 +1040,269 @@ public class Client {
 3. client：让一个原型对象克隆自己，从而创建一个新的对象。
 
 ```java
-public class Sheep implements Cloneable {
+
+package prototype.improve;
+
+public class Client {
+    public static void main(String[] args){
+        //原型模式完成对象的创建
+        //使用默认的克隆方法
+        Sheep sheep = new Sheep("zy",18,"pureWhite");
+        Sheep sheep1 = (Sheep) sheep.clone();
+        Sheep sheep2 = (Sheep) sheep.clone();
+        System.out.println(sheep1);
+        System.out.println(sheep2);
+    }
+}
+
+public class Sheep implements Cloneable{
+    private String name;
+    private int age;
+    private String color;
+
+    //动态增加的属性，不会像传统创建模式一样，需要在new处增加get
+    private String from = "SiChuan";
+    //记得在toString那里更新
+    
+    //克隆该实例，使用默认的clone方法来完成
+    //浅拷贝
+    //对于数据是基本类型数据的变量，浅拷贝会直接进行值传递，也就是将该属性复制一份给新的对象
+    //对于数据是引用类型的变量，浅拷贝会直接将引用地址拷贝一份进行值传递，并没有将对象真正拷贝一份。
+    @Override
+    protected Object clone() {
+        Sheep sheep= null;
+        try{
+            //super.clone()可能会抛出异常，所以要么在方法上抛错throw，要么在当前位置进行try catch
+            sheep = (Sheep) super.clone();
+        }catch (Exception e){
+            System.out.println(e.getMessage());
+        }
+
+        return sheep;
+    }
+    
+    //此处省略set和get，constructor，toString方法
+}
 ```
 
+## 6.3 源码分析
+
+spring中原型bean的创建，就是原型模式的应用。
+
+```xml
+<bean id="id01" class="..."  scope="prototype" />
+```
+
+## 6.4 深拷贝
+
+实现方式：
+
+1. 重写clone方法来实现深拷贝
+2. 通过对象序列化实现深拷贝
+
+```java
+import java.io.*;
+
+public class Client {
+    public static void main(String[] args) throws Exception{
+        //方式一：重写clone()完成深拷贝
+        DeepProtoType dp = new DeepProtoType();
+        dp.name = "zy";
+        dp.deepCloneableTarget = new DeepCloneableTarget("yuer","cute");
+
+        DeepProtoType dp1 = (DeepProtoType) dp.clone();
+        DeepProtoType dp2 = (DeepProtoType) dp.clone();
+        System.out.println(dp1);
+        System.out.println(dp2);
+
+        //方式二：通过序列化对象完成深拷贝
+        DeepProtoType dps = new DeepProtoType();
+        dps.name = "zhangy";
+        dps.deepCloneableTarget = new DeepCloneableTarget("yuer","lively");
+        DeepProtoType dps1 = (DeepProtoType) dps.deepClone();
+        DeepProtoType dps2 = (DeepProtoType) dps.deepClone();
+        System.out.println(dps1);
+        System.out.println(dps2);
+    }
+}
+
+//实现
+public class DeepProtoType implements Serializable,Cloneable {
+    public String name;
+    public DeepCloneableTarget deepCloneableTarget;
+    public DeepProtoType(){
+        super();
+    }
+
+    @Override
+    public String toString() {
+        return "DeepProtoType{" +
+                "name='" + name + '\'' +
+                ", deepCloneableTarget=" + deepCloneableTarget.hashCode() +
+                '}';
+    }
+
+    //深拷贝
+    // 方式一 通过重写clone()方法来实现
+    @Override
+    protected Object clone() throws CloneNotSupportedException {
+        //对基本类型的数据进行拷贝
+        DeepProtoType deep = (DeepProtoType) super.clone();
+        //对引用类型的数据进行拷贝，如果deepCloneableTarget底层还有引用类型的对象，那么更为复杂。
+        //如果成员变量中还有其他的引用类型的对象，那么深拷贝也会变得复杂。
+        deep.deepCloneableTarget = (DeepCloneableTarget) deepCloneableTarget.clone();
+        return deep;
+    }
+
+    //方式二 通过对象序列化实现深拷贝（推荐）
+    public Object deepClone(){
+        //创建流对象，初始化
+        //输出流
+        ByteArrayOutputStream bos = null;
+        ObjectOutputStream oos = null;
+        //输入流
+        ByteArrayInputStream bis = null;
+        ObjectInputStream ois = null;
+
+        try{
+            //序列化
+            bos = new ByteArrayOutputStream();
+            oos = new ObjectOutputStream(bos);
+            oos.writeObject(this);//当前这个对象以对象流的方式输出
+
+            //反序列化
+            bis = new ByteArrayInputStream(bos.toByteArray());
+            ois = new ObjectInputStream(bis);
+            DeepProtoType copyObj = (DeepProtoType) ois.readObject();
+
+            return copyObj;
+        }catch(Exception e){
+            System.out.println(e.getMessage());
+            return null;
+        }finally{
+            //关闭流
+            try{
+                bos.close();
+                oos.close();
+                bis.close();
+                ois.close();
+            }catch(Exception e){
+                System.out.println(e.getMessage());
+            }
+
+        }
+
+    }
+}
+
+//这个类是上层类中成员变量的值，用于测试深拷贝
+public class DeepCloneableTarget implements Serializable, Cloneable {
+
+    //深拷贝方法二中会用到
+    private static final long serialVersionUID = 1L;
+
+    private String cloneName;
+    private String cloneClass;
+
+    //构造器
+    public DeepCloneableTarget(String cloneName, String cloneClass) {
+        this.cloneName = cloneName;
+        this.cloneClass = cloneClass;
+    }
+
+    //因为该类的属性，都是String , 因此我们这里使用默认的clone完成即可
+    @Override
+    protected Object clone() throws CloneNotSupportedException {
+        return super.clone();
+    }
+}
+```
+
+## 6.5 原型模式小结
+
+1. 创建新的对象比较复杂时，可以利用原型模型简化对象的创建过程，同时也能提高效率
+2. 不用重新初始化对象，而是动态地获得对象运行时的状态（在克隆那一刻拿到需要克隆的对象）
+3. 如果原始对象动态变化（增减属性），其他克隆对象也会发生相应的变化
+4. 在实现深度克隆时，可能需要比较复杂的代码。
+5. **缺点：需要为每个类配备一个克隆方法，这对全新的类来说不是很难，但对已有的类进行改造时，需要修改其源代码，违背了OCP原则**
+
+# 7 建造者模式
+
+盖房问题：
+
+1. 建房子：这一过程为打桩，砌墙，封顶
+2. 房子有不同种类：普通房，高楼，别墅。各种房子的过程一样，但具体要求不一样（eg：桩的深度）
+
+## 7.1 传统创建模式
+
+![](./legend/builder_tradition.png)
+
+```java
+//抽象类
+public abstract class AbstractHouse {
+    public abstract void buildBasic();
+    public abstract void buildWall();
+    public abstract void roofed();
+    public void build(){
+        buildBasic();
+        buildWall();
+        roofed();
+    }
+}
+
+//实现类
+public class CommonHouse extends AbstractHouse{
+    @Override
+    public void buildBasic() {
+        System.out.println("普通房子打地基");
+    }
+
+    @Override
+    public void buildWall() {
+        System.out.println("普通房子砌墙");
+    }
+
+    @Override
+    public void roofed() {
+        System.out.println("普通房子封顶");
+    }
+}
+
+public class Client {
+    public static void main(String[] args) {
+        CommonHouse ch = new CommonHouse();
+        ch.build();
+    }
+}
+```
+
+
+
+问题分析：
+
+1. 优点：比较好理解，简单易操作
+2. 设计的程序结构，过于简单，没有设计缓存层对象，程序的扩展和维护不好，也就是说，这种设计方案，把产品（即：房子）和创建产品的过程（即：建房流程）封装在一起了，如此一番，耦合性增强了
+3. 解决方案：将产品和产品建造过程解耦——建造者模式
+
+## 7.2 建造者模式
+
+1. 建造者模式
+   - 又称为生成器模式，是一种对象构建模式。
+   - 它可以将复杂对象的建造过程抽象出来（抽象类），使这个抽象过程的不同实现方法可以构造出不同表现（属性）的对象。
+2. 建造者模式是一步一步创建一个复杂的对象，它允许用户只通过指定复杂对象的类型和内容就可以构建它们，用户无需知道内部的具体构建细节。
+
+建造者模式的四个角色：
+
+1. Product：产品角色，一个具体的产品对象
+2. Builder：抽象建造者，创建一个Product对象的各个部件指定的接口/抽象类（接口和抽象类都可以做抽象层）
+3. ConcreteBuilder：具体建造者，实现接口，构建和装配各个部件
+4. Director：指挥者，构建一个使用Builder接口的对象，它主要是用于创建一个复杂的对象。它主要有两个作用，
+   - 隔离客户与对象的生产过程
+   - 负责控制产品对象的生产过程
+5. 
+
+![](./legend/builder_pattern.jpg)
+
+建造者建房类图
+
+![](./legend/builder_house.jpg)
