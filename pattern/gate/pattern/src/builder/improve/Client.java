@@ -9,7 +9,7 @@ public class Client {
         HouseDirector houseDirector = new HouseDirector(commonHouse);
         //完成盖房，返回产品
         House house = houseDirector.constructHouse();
-
+        System.out.println("-----------");
         //盖高楼
         HighBuilding highBuilding = new HighBuilding();
         houseDirector.setHouseBuilder(highBuilding);
