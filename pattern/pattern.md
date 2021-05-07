@@ -1306,3 +1306,428 @@ public class Client {
 建造者建房类图
 
 ![](./legend/builder_house.jpg)
+
+```java
+//抽象建造者
+public abstract class HouseBuilder {
+    protected House house=new House();
+
+    //将建造的流程写好，抽象方法
+    public abstract void buildBase();
+    public abstract void buildWall();
+    public abstract void roofed();
+
+    //房子建好后，将产品（房子）返回
+    public House buildHouse(){
+        return house;
+    }
+}
+
+//具体建造者
+public class CommonHouse extends HouseBuilder{
+
+    @Override
+    public void buildBase() {
+        System.out.println("普通房子地基深5m");
+    }
+
+    @Override
+    public void buildWall() {
+        System.out.println("普通房子墙厚20cm");
+    }
+
+    @Override
+    public void roofed() {
+        System.out.println("普通房子封平顶");
+    }
+}
+
+//产品，Product
+public class House {
+    private String base;
+    private String wall;
+    private String roofed;
+
+    public String getBase() {
+        return base;
+    }
+    
+    //省略了getter，setter方法
+}
+
+//指挥者
+public class HouseDirector {
+    HouseBuilder houseBuilder = null;
+
+    //houseBuilder的传入
+    //一通过构造器，
+    public HouseDirector(HouseBuilder houseBuilder){
+        this.houseBuilder = houseBuilder;
+    }
+    //二可以通过setter
+    public void setHouseBuilder(HouseBuilder houseBuilder){
+        this.houseBuilder= houseBuilder;
+    }
+    //如何处理建造房子的流程，交给指挥者
+    public House constructHouse(){
+        //对于不同具体事物构建顺序可以不同，具体由指挥者决定
+        houseBuilder.buildBase();
+        houseBuilder.buildWall();
+        houseBuilder.roofed();
+        return houseBuilder.buildHouse();
+    }
+}
+
+public class Client {
+
+    public static void main(String[] args) {
+        //盖普通房子
+        CommonHouse commonHouse = new CommonHouse();
+        //准备指挥者
+        HouseDirector houseDirector = new HouseDirector(commonHouse);
+        //完成盖房，返回产品
+        House house = houseDirector.constructHouse();
+        System.out.println("-----------");
+        //盖高楼
+        HighBuilding highBuilding = new HighBuilding();
+        houseDirector.setHouseBuilder(highBuilding);
+        House house1 = houseDirector.constructHouse();
+    }
+    
+}
+
+
+```
+
+
+
+## 7.3 源码分析
+
+建造者模式在JDK中的应用：java.lang.StringBuilder
+
+1. Appendable接口定义了多个append方法（抽象），即Appendable为抽象建造者
+2. AbstractStringBuilder实现了Appendable接口方法，这里的AbstractStringBuilder已经是建造者，只是不能实例化
+3. StringBuilder即充当了指挥者角色，又充当了具体的建造者，建造方法的实现是由AbstractStringBuilder完成，而StringBuilder继承了AbstractStringBuilder
+
+## 7.4 建造者模式小结
+
+1. 客户端无需知道产品内部的构造细节，将产品本身与产品创建过程解耦，使得相同的创建过程，可以创建不同的产品对象
+2. 每一个建造者都比较独立，用户使用不同的具体建造者即可得到不同的产品对象
+3. 通过**指挥者可以更加精细的控制产品的构建过程**。将复杂产品的创建步骤分解在不同方法中，使得创建过程更加清晰，也更方便使用程序来控制创建过程。
+4. 增加新的具体建造者无须修改原有类库的代码，指挥者可以针对抽象建造者类编程，系统扩展方便，**符合“开闭原则”。**
+5. 建造者模式所创建的**产品一般具有较多的共同点，其组成部分也相似**，如果产品之间的差异性很大，则不适合使用建造者模式，因此其使用范围受到一定的限制
+6. 如果产品的内部变化复杂，可能会导致需要定义很多具体建造者类来实现这种变化，导致系统变得很臃肿，在此情况下，我们需要考虑是否使用此模式
+7. **抽象工厂与建造者模式**
+   - 抽象工厂：
+     - 抽象工厂模式实现对产品家族的创建，一个产品家族是一系列产：具有不同分类维度的产品组合。
+     - 采用抽象工厂模式不需要关心构建过程，只关心什么产品由什么工厂生产即可
+   - 建造者模式
+     - 按照指定的蓝图建造产品
+     - 它的主要目的是通过组装零配件而产生一个新产品
+8. 
+
+# 8 适配器模式
+
+问题：不同国家的插座遵从的标准不同，如果我们去往不同的国家，那么就需要适配器（转接头）去适应我们的需要。
+
+适配器模式
+
+1. Adapter Pattern是将某个类的接口转换成客户端期望的另一个接口表示，主要目的是兼容性，让原本因接口不匹配不能在一起工作的两个类可以协同工作，其别名为包装器（Wrapper）
+2. 适配器模式属于结构型模式
+3. 主要分三类：类适配器模式，对象适配器模式，接口适配器模式
+
+工作原理：
+
+![](./legend/adapter.png)
+
+## 8.1 类适配器
+
+通过继承src类，实现dst类接口，完成src->dst的适配
+
+生活应用实例：将220v交流转换为5v直流的电源适配器
+
+![](./legend/classAdapter.jpg)
+
+类适配器：继承src类，并实现dst接口。
+
+```java
+//被适配的类
+public class Voltage220V {
+    //输出220v电压
+    public Integer output220V(){
+        Integer src = 220;
+        System.out.println("输出电压src="+src+"V");
+        return src;
+    }
+}
+//适配接口
+public interface InterfaceVoltage5V {
+    public Integer output5V();
+}
+//适配器
+public class VoltageAdapter extends Voltage220V implements InterfaceVoltage5V{
+    @Override
+    public Integer output5V() {
+        Integer src = output220V();
+        Integer dist = src / 44 ;
+        System.out.println("适配器已将src="+ src + "V转换为目标电压dist="+dist+"V");
+        return dist;
+    }
+}
+//手机
+public class Phone {
+    public void charge(InterfaceVoltage5V interfaceVoltage5V){
+        Integer workVoltage = interfaceVoltage5V.output5V();
+        if (workVoltage == 5){
+            System.out.println("充电工作电压正常，正充电");
+        }else{
+            System.out.println("充电工作电压异常，请检查适配器");    
+        }
+    }
+}
+
+public class Client {
+    public static void main(String[] args) {
+        Phone phone = new Phone();
+        phone.charge(new VoltageAdapter());
+    }
+}
+```
+
+
+
+类适配器的注意事项和细节：
+
+1. java是单继承机制，所以类适配器需要继承src类，这一点算是一个缺点（耦合度增强），因为这要求dist必须是接口，有一定的局限性
+2. src类的方法在Adapter中都会暴露出来，也增加了使用的成本
+3. 由于其继承了src类，所以它可以根据需求重写src类的方法，使得adapter的灵活性增强了。
+
+## 8.2 对象适配器
+
+对象适配器是对类适配器继承src类的缺点进行了改进。
+
+1. 基本思路和类适配器模式相同，只是将Adapter类做修改，不是继承src类，而是持有src类的实例，已解决兼容性问题。
+2. 根据”合成复用原则“，在系统中尽量使用关联关系来代替继承关系
+3. 对象适配器模式是适配器模式中常用的一种。
+
+![](./legend/objAdapter.jpg)
+
+```java
+public class Client {
+    public static void main(String[] args) {
+        Phone phone = new Phone();
+        phone.charge(new VoltageAdapter(new Voltage220V()));
+    }
+}
+//这里的适配器不再通过继承src类，而是通过关联关系（聚合）的方式来实现适配
+public class VoltageAdapter implements InterfaceVoltage5V {
+    private Voltage220V voltage220V;
+    @Override
+    public Integer output5V() {
+        Integer dist = 0;
+        if(null!=voltage220V){
+            Integer src = voltage220V.output220V();
+            dist = src / 44 ;
+            System.out.println("对象适配器已将src="+ src + "V转换为目标电压dist="+dist+"V");
+        }
+        return dist;
+    }
+    public VoltageAdapter(Voltage220V voltage220V){
+        this.voltage220V = voltage220V;
+    }
+}
+
+//其他类和接口一致，在此做省略
+```
+
+## 8.3 接口适配器
+
+1. 有些书籍将接口适配器模式，也称作**缺省适配器模式**
+2. **当不需要全部实现接口提供的方法时，可先设计一个抽象类实现接口（为每个接口中的所有方法提供一个默认实现，即空方法），在使用时，我们可以让一个抽象类的子类有选择的覆盖抽象父类的某些方法来实现需求**
+3. 适用于不想使用一个接口中所有方法的情况
+
+```java
+public interface InterfaceA {
+    public void m1();
+    public void m2();
+    public void m3();
+    public void m4();
+}
+public abstract class AbsAdapter implements InterfaceA{
+    @Override
+    public void m1() {}
+    @Override
+    public void m2() {}
+    @Override
+    public void m3() {}
+    @Override
+    public void m4() {}
+}
+public class Client {
+    public static void main(String[] args) {
+        AbsAdapter absAdapter = new AbsAdapter() {
+            @Override
+            public void m2() {
+                System.out.println("我只需要对我使用到的m2方法进行真正的实现");
+            }
+        };
+        absAdapter.m2();
+    }
+}
+```
+
+## 8.4 源码分析
+
+适配器模式在springMVC框架的应用
+
+![](./legend/springMVC_adapter.png)
+
+## 8.5 适配器模式小结
+
+1. 三种适配器的命名：是根据src是以怎样的形式给到adapter来命名的
+   - 类适配器：以类给到adapter，将src作为父类，继承
+   - 对象适配器：以对象给到adapter，将src作为对象，以聚合的方式
+   - 接口适配器：将src作为一个接口，用时进行实现。
+2. adapter模式最大的作用还是将原本不兼容的接口融合在一起工作
+3. 实际开发中，实现起来不拘泥于我们讲解的三种经典形式
+
+# 9 桥接模式
+
+手机操作问题：现在要对不同手机类型（折叠，直立，滑盖式）的不同品牌（华为，小米，vivo）实现操作编程（比如：开关机，上网，打电话等）
+
+## 9.1传统方案
+
+![](./legend/bridge_tradition.jpg)
+
+传统方案解决手机操作问题分析
+
+1. 扩展性问题（类爆炸）：如果我们再增加手机的类型，就需要再增加所有品牌的类
+2. 违反了单一职责原则
+3. 解决方案：桥接模式
+
+## 9.2 桥接模式
+
+基本介绍：
+
+1. 桥接模式（Bridge模式）是指：将实现与抽象放在两个不同的层次中，使两个层次可以独立改变
+2. Bridge模式基于类的最小设计原则，通过使用封装、聚合及继承等行为让不同的类承担不同的职责。它的主要特点是把抽象Abstraction与行为实现Implementation分离开来，从而可以保持各个部分的独立性以及应对他们的功能扩展。
+
+![](./legend/bridge_principle.png)
+
+1. Client类：桥接模式的调用者
+2. Implementor：行为实现类的接口
+3. ConcreteImplementorA/B：行为的具体实现类
+4. Abstraction抽象类：桥接类，维护Implementor，二者是聚合关系。
+5. RefinedAbstraction：是Abstraction抽象类的子类
+6. 这里的抽象类和接口是聚合关系，其实是调用与被调用的关系
+
+```java
+//桥接类，抽象类
+public abstract class Phone {
+
+    //组合品牌
+    private Brand brand;
+    //构造器实现组合
+    public Phone(Brand brand){
+        super();
+        this.brand = brand;
+    }
+    protected void call(){
+        brand.call();
+    }
+    protected void open(){
+        brand.open();
+    }
+    protected void close(){
+        brand.close();
+    }
+}
+
+//接口
+public interface Brand {
+    void call();
+    void open();
+    void close();
+}
+
+//桥接类的子类
+public class FoldedPhone extends Phone{
+    public FoldedPhone(Brand brand){
+        super( brand );
+    }
+    //子类的call其实是调用的父类的call方法，而父类的call方法实际上是通过接口调用实现类的方法，
+    //所以这里的父类其实是一个桥，搭起了两个实现类方法之间的桥
+    public void call(){
+        super.call();
+        System.out.println("折叠式手机");
+    }
+    public void open(){
+        super.open();
+        System.out.println("折叠式手机");
+    }
+    public void close(){
+        super.close();
+        System.out.println("折叠式手机");
+    }
+}
+//省略桥接类的子类直立式手机
+
+//接口具体实现类
+public class XiaoMi implements Brand{
+
+    @Override
+    public void call() {
+        System.out.println("小米手机拨打电话");
+    }
+    @Override
+    public void open() {
+        System.out.println("小米手机开机");
+    }
+    @Override
+    public void close() {
+        System.out.println("小米手机关机");
+    }
+}
+//省略品牌vivo实现类
+
+//使用者
+public class Client {
+    public static void main(String[] args) {
+        //生成手机
+        Phone phone1 = new FoldedPhone(new XiaoMi());
+        phone1.open();
+        phone1.call();
+        phone1.close();
+        System.out.println("==============");
+        Phone phone4 = new UpRightPhone( new Vivo() );
+        phone4.open();
+        phone4.call();
+        phone4.close();
+    }
+}
+```
+
+## 9.3 源码分析
+
+JDBC的Driver接口，如果从桥接模式来看，Driver就是一个借口，下面可以有Mysql的Driver，Oracle的Driver，这些就可以做实现接口类。
+
+![](./legend/bridge_jdbc.jpg)
+
+## 9.4 桥接模式小结
+
+1. 实现了抽象和实现的分离，从而极大的提供了系统的灵活性，让抽象部分和实现部分独立开来，这有助于系统进行分层设计，从而产生更好的结构化系统
+2. 对于系统的高层，只需要知道抽象部分和实现部分的接口就可以了，其他的部分由具体的业务来完成
+3. 桥接模式替代多层继承方案，可以减少子类的个数，降低系统的管理和维护成本。
+4. 桥接模式的引入增加了系统的理解和设计难度，由于聚合关联关系建立在抽象层，要求开发者针对抽象进行设计和编程
+5. 桥接模式要求正确识别出系统中两个独立变化的维度(**抽象和实现**)，因此其使用范围有一定的局限性，即需要有这样的应用场景。
+   - 对于那些不希望使用继承或因为多层次继承导致系统类的个数急剧增加的系统，桥接模式尤为适用.
+6. 常见应用场景
+   - JDBC 驱动程序
+   - 银行转账系统（**用户类型乘以转账分类，这二者需要桥接**）
+     - 转账分类: 网上转账，柜台转账，AMT 转账
+     - 转账用户类型：普通用户，银卡用户，金卡用户..
+   - 3) -消息管理（**消息类型乘以消息分类**）
+     - 消息类型：即时消息，延时消息
+     - 消息分类：手机短信，邮件消息，QQ 消息...
+7. - 对于那些不希望使用继承或因为多层次继承导致系统类的个数急剧增加的系统，桥接模式尤为适用.
+

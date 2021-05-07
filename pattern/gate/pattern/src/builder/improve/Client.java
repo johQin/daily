@@ -16,6 +16,4 @@ public class Client {
         House house1 = houseDirector.constructHouse();
     }
 
-
-
 }
