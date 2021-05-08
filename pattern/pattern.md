@@ -1729,5 +1729,483 @@ JDBC的Driver接口，如果从桥接模式来看，Driver就是一个借口，�
    - 3) -消息管理（**消息类型乘以消息分类**）
      - 消息类型：即时消息，延时消息
      - 消息分类：手机短信，邮件消息，QQ 消息...
-7. - 对于那些不希望使用继承或因为多层次继承导致系统类的个数急剧增加的系统，桥接模式尤为适用.
 
+# 10 装饰者模式
+
+星巴克咖啡订单项目（咖啡馆）：
+
+1. 咖啡种类/单品咖啡：Espresso(意大利浓咖啡)、ShortBlack、LongBlack(美式咖啡)、Decaf(无因咖啡)
+2. 调料：Milk、Soy(豆浆)、Chocolate
+3. 要求：在扩展新的咖啡种类时，具有良好的扩展性、改动方便、维护方便
+4. 使用OO 的来计算不同种类咖啡的费用: 客户可以点单品咖啡，也可以单品咖啡+调料组合。
+
+## 10.1 传统方案
+
+### 方案1
+
+![](./legend/decorator_tradition.png)
+
+方案分析：
+
+1. Drink是一个抽象类，description是对咖啡的描述，比如咖啡的名字，调料等
+2. cost方法就是用来计算订单的费用，在Drink中是一个抽象方法
+3. Espresso是单品咖啡，继承Drink，并实现cost方法
+4. Espresso&Milk是单品咖啡+调料的组合类，这种组合的类很多（全组合）
+5. 问题：当我们新增单品咖啡或调料，那么就会形成类爆炸
+
+### 方案2
+
+有点类似于桥接模式
+
+![](./legend/decorator_improve1.png)
+
+方案分析：
+
+1. 方案2：可以控制类的数量，不至于造成很多的类
+2. 在考虑到用户可以添加多份调料时，可以将has方法的返回值设置为int
+3. 在增加或者删除调料的种类的时候，代码的维护量很大，需要在Drink中写很多方法和判断
+4. 这时我们可以考虑装饰者模式
+
+## 10.2 装饰者模式
+
+装饰者模式：动态的将新功能附加到对象上。在对象功能扩展方面，它比继承更有弹性，装饰者模式也体现了OCP原则
+
+装饰者模式原理（以打包快递为例）
+
+1. 主体（Component）：衣服，陶瓷，被装饰者，可以类比于前面的Drink
+2. 包装（Decorator）：报纸填充物，塑料泡沫，纸板，木板，**里面也可以聚合主体对象**
+3. ConcreteComponent：具体的主体，类比于前面的单品咖啡
+4. Decorator：装饰者，类比于前面的调料
+5. 如果在Component与ConcreteComponent之间，ConcreteComponent类还有很多，还可以设计一个缓冲层，将共有部分提取出来，再抽象成一个类
+
+![](./legend/decorator_principle.png)
+
+![](./legend/decorator_example.png)
+
+1. Drink就是前面的component
+2. Decorator的cost方法进行一个费用的叠加计算，递归的计算价格
+
+装饰者模式下的订单（两份Chocolate+milk+espresso），多层包含关系，这样可以通过递归的方式组合和维护。
+
+![](./legend/decorator_order.png)
+
+```java
+public abstract class Drink {
+    public String des;//描述
+    private Float price = 0.0f;
+
+    public String getDes() {
+        return des;
+    }
+    public void setDes(String des) {
+        this.des = des;
+    }
+    public Float getPrice() {
+        return price;
+    }
+    public void setPrice(Float price) {
+        this.price = price;
+    }
+    //计算费用的抽象方法
+    //由子类实现
+    public abstract Float cost();
+}
+
+public class Coffee extends Drink{
+    @Override
+    public Float cost() {
+        return super.getPrice();
+    }
+}
+
+public class Espresso extends Coffee{
+    public Espresso(){
+        setPrice(6.0f);
+        setDes("Espresso"+getPrice());
+    }
+}
+//此处省略其他单品咖啡
+
+public class Decorator extends Drink{
+    private Drink decoratedObj;
+    public Decorator(Drink decoratedObj){
+        this.decoratedObj = decoratedObj;
+    }
+
+    @Override
+    public Float cost() {
+        return super.getPrice() + decoratedObj.cost();
+    }
+
+    @Override
+    public String getDes() {
+        return super.getDes()+""+super.getPrice()+"&&"+decoratedObj.getDes();
+    }
+}
+
+public class Milk extends Decorator{
+    public Milk(Drink drink){
+        super(drink);
+        setDes("Milk");
+        setPrice(4.0f);
+    }
+}
+//此处省略其他调料
+```
+
+## 10.3 源码分析
+
+java的IO流，FilterInputStream就是一个装饰者。
+
+![](./legend/decorator_src.jpg)
+
+1. InputStream 是抽象类, 类似我们前面讲的Drink
+2. FileInputStream 是InputStream 子类，类似我们前面的DeCaf, LongBlack
+3. FilterInputStream 是InputStream 子类：类似我们前面的Decorator 修饰者
+4. DataInputStream 是FilterInputStream 子类，具体的修饰者，类似前面的Milk, Soy 等
+5. FilterInputStream 类有protected volatile InputStream in; 即含被装饰者
+6. 分析得出在jdk 的io 体系中，就是使用装饰者模式
+
+# 11 组合模式
+
+问题：
+
+学院院系展示需求：一个大学下面有多个院，院下面有多个系，例如：
+
+```bash
+清华
+├──计算机学院                 
+│   ├── 计算机科学与技术       
+│   ├── 软件工程  
+│   └── 网络工程
+└──信息工程学院                 
+    ├── 通信工程              
+    └── 信息工程
+```
+
+## 11.1 传统方案
+
+1. 将学院视为学校的子类，把系看做学院的子类，这样实际上是站在组织大小来进行分层的
+2. 实际上我们的要求是：在一个页面中展示出学校的院系组成，一个学校有多个学院，一个学院有多个系， 因此这种方案，不能很好实现的管理的操作，比如对学院、系的添加，删除，遍历等
+3. 解决方案：把学校、院、系都看做是组织结构，他们的地位相同，之间没有继承的关系，只是一个树形结构，可以更好的实现管理操作。=> 组合模式
+
+## 11.2 组合模式
+
+1. 组合模式（Composite Pattern），又叫部分整体模式，它创建了对象组的树形结构，将对象组合成树状结构以表示“整体-部分”的层次关系。
+2. 组合模式依据树形结构来组合对象，用来表示部分以及整体层次。
+3. 组合模式使得用户对单个对象和组合对象的访问具有一致性，即：组合能让客户以一致的方式处理个别对象以及组合对象
+4. 这种类型的设计模式属于结构型模式。
+
+![](./legend/composite_principle.png)
+
+1. Component :这是组合中对象声明接口，在适当情况下，实现所有类共有的接口默认行为,用于访问和管理。Component 子部件, Component 可以是抽象类或者接口
+2.  Leaf : 在组合中表示叶子节点，叶子节点没有子节点
+3. Composite :非叶子节点， 用于存储子部件， 实现在Component 接口中子部件的相关操作，比如增删
+
+组合模式解决的问题：
+
+**当我们要处理的对象可以生成一棵树形结构，而我们要对树上的节点和叶子进行操作时，它能够提供一致的方式，而不用考虑它是节点还是叶子**
+
+![](./legend/composite_example.jpg)
+
+```java
+public abstract class OrganizationComponent {
+    private String name;
+    private String des;
+
+    //因为叶子节点是无须实现这个方法的，所以这里写一个空实现而不是abstract方法
+    protected void add(OrganizationComponent organizationComponent){
+        //默认实现
+        throw new UnsupportedOperationException();
+    }
+    protected void remove(OrganizationComponent organizationComponent){
+        //默认实现
+        throw new UnsupportedOperationException();
+    }
+    //下面所有的子类都需要实现此方法
+    protected abstract void print();
+
+    public OrganizationComponent(String name,String des){
+        this.name = name;
+        this.des = des;
+    }
+
+    public String getName() {
+        return name;
+    }
+    public void setName(String name) {
+        this.name = name;
+    }
+    public String getDes() {
+        return des;
+    }
+    public void setDes(String des) {
+        this.des = des;
+    }
+}
+
+//University就是Composite，可以管理College
+public class University extends OrganizationComponent{
+
+    List<OrganizationComponent> organizationComponentList = new ArrayList<OrganizationComponent>();
+
+    //输出University下面包含的学院
+    @Override
+    protected void print() {
+        String name = getName();
+        String colleges = "";
+        for (OrganizationComponent organizationComponent:organizationComponentList) {
+            colleges = colleges + organizationComponent.getName() + ",";
+        }
+        System.out.println("大学名："+ name+","+"下属学院："+ colleges);
+    }
+
+    @Override
+    protected void add(OrganizationComponent organizationComponent) {
+        organizationComponentList.add(organizationComponent);
+    }
+
+    @Override
+    protected void remove(OrganizationComponent organizationComponent) {
+        organizationComponentList.remove(organizationComponent);
+    }
+
+    public University(String name, String des) {
+        super(name, des);
+    }
+    @Override
+    public String getName(){
+       return super.getName();
+    }
+    @Override
+    public String getDes(){
+        return super.getDes();
+    }
+}
+public class College extends OrganizationComponent{
+    List<OrganizationComponent> organizationComponentList = new ArrayList<OrganizationComponent>();
+
+    //输出college下面包含的学系
+    @Override
+    protected void print() {
+        String name = getName();
+        String departments = "";
+        for (OrganizationComponent organizationComponent:organizationComponentList) {
+            departments = departments + organizationComponent.getName() + ",";
+        }
+        System.out.println("学院名："+ name+","+"下属学系："+ departments);
+    }
+
+    @Override
+    protected void add(OrganizationComponent organizationComponent) {
+        organizationComponentList.add(organizationComponent);
+    }
+
+    @Override
+    protected void remove(OrganizationComponent organizationComponent) {
+        organizationComponentList.remove(organizationComponent);
+    }
+
+    public College(String name, String des) {
+        super(name, des);
+    }
+    @Override
+    public String getName(){
+        return super.getName();
+    }
+    @Override
+    public String getDes(){
+        return super.getDes();
+    }
+}
+public class Department extends OrganizationComponent{
+    public Department(String name,String des){
+        super(name,des);
+    }
+    @Override
+    public String getName() {
+        return super.getName();
+    }
+    @Override
+    public String getDes() {
+        return super.getDes();
+    }
+    @Override
+    protected void print() {
+        System.out.println("学系名："+getName());
+    }
+}
+
+public class Client {
+    public static void main(String[] args) {
+        OrganizationComponent university = new University("清华大学","世界一流大学");
+
+        OrganizationComponent computerCollege = new College("计算机学院","中国前10");
+        OrganizationComponent informationCollege = new College("信息工程学院","中国前20");
+
+        computerCollege.add(new Department("软件工程", " 软件工程优秀"));
+        computerCollege.add(new Department("网络工程", " 网络工程特特别优秀 "));
+        computerCollege.add(new Department("计算机科学与技术", " 计算机科学与技术是老牌的专业 "));
+
+        informationCollege.add(new Department("通信工程", " 通信工程不好学 "));
+        informationCollege.add(new Department("信息工程", " 信息工程好学 "));
+
+        //将学院加入到 学校
+        university.add(computerCollege);
+        university.add(informationCollege);
+
+        university.print();
+        informationCollege.print();
+
+    }
+}
+
+```
+
+## 11.3 源码分析
+
+java的集合类HashMap就使用了组合模式
+
+![](./legend/composite_src_HashMap.jpg)
+
+```java
+
+```
+
+1. Map就是一个抽象的构建（类似于Component）
+2. HashMap是一个中间的构建（Composite），实现/继承了相关方法put，putAll
+3. Node是HashMap的静态内部类，类似于Leaf
+
+## 11.4 组合模式小结
+
+1. 简化客户端操作。客户端只需要面对一致的对象而不用考虑整体部分或者节点叶子的问题。
+2. 具有较强的扩展性。当我们要更改组合对象时，我们只需要调整内部的层次关系，客户端不用做出任何改动.
+3. 方便创建出复杂的层次结构。客户端不用理会组合里面的组成细节，容易添加节点或者叶子从而创建出复杂的树形结构
+4. 需要遍历组织机构，或者处理的对象具有树形结构时, 非常适合使用组合模式.
+5. 要求较高的抽象性，如果节点和叶子有很多差异性的话，比如很多方法和属性都不一样。
+
+# 12 外观模式
+
+问题：组建一个家庭影院：
+
+设备包括：DVD播放器，投影仪，自动屏幕，音响，爆米花机，灯光，设计使用遥控器操作所有功能。
+
+## 12.1 传统方案
+
+![](./legend/facade_tradition.jpg)
+
+问题分析：
+
+1. 在ClientTest 的main 方法中，创建各个子系统的对象，并直接去调用子系统(对象)相关方法，会造成调用过程混乱，没有清晰的过程
+2. 不利于在ClientTest 中，去维护对子系统的操作
+3. 解决思路：定义一个高层接口，给子系统中的一组接口提供一个一致的界面(比如在高层接口提供四个方法：ready, play, pause, end )，由这四个方法用来访问子系统中的一群接口。
+4. 也就是说就是通过定义一个一致的接口(界面类)，用以屏蔽内部子系统的细节，使得调用端只需跟这个接口发生调用，而无需关心这个子系统的内部细节=> 外观模式
+
+## 12.2 外观模式
+
+1. 外观模式（Facade），也叫“过程模式：外观模式为子系统中的一组接口提供一个一致的界面，此模式定义了一个高层接口，这个接口使得这一子系统更加容易使用
+2. 外观模式通过定义一个一致的接口，用以屏蔽内部子系统的细节，使得调用端只需跟这个接口发生调用，而无需关心这个子系统的内部细节。
+3. 外观模式就是解决多个复杂接口带来的使用困难，起到简化用户操作的作用。
+
+![](./legend/facade_principle.jpg)
+
+1. 外观类(Facade): 为调用端提供统一的调用接口, 外观类知道哪些子系统负责处理请求,从而将调用端的请求代理给适当子系统对象
+2. 调用者(Client): 外观接口的调用者
+3. 子系统的集合：指模块或者子系统，处理Facade 对象指派的任务，他是功能的实际提供者
+
+![](./legend/facade_example.jpg)
+
+```java
+public class Client {
+    public static void main(String[] args) {
+        HomeCinemaFacade hCFacade = new HomeCinemaFacade();
+        hCFacade.ready();
+        hCFacade.play();
+        hCFacade.pause();
+        hCFacade.end();
+    }
+}
+public class HomeCinemaFacade {
+    //定义各个子系统的对象
+    private Light light;
+    private Stereo stereo;
+    private DVDPlayer dvdPlayer;
+    private Projector projector;
+    private Screen screen;
+    private PopCorn popCorn;
+
+    public HomeCinemaFacade() {
+        this.light = Light.getInstance();
+        this.stereo = Stereo.getInstance();
+        this.dvdPlayer = DVDPlayer.getInstance();
+        this.projector = Projector.getInstance();
+        this.screen = Screen.getInstance();
+        this.popCorn = PopCorn.getInstance();
+    }
+
+    //将家庭影院的整体运行分为四步，由这四步去调用各个子系统的接口
+    public void ready(){
+        popCorn.on();
+        popCorn.pop();
+        screen.down();
+        projector.on();
+        stereo.on();
+        dvdPlayer.on();
+        light.dim();
+    }
+    public void play(){
+        dvdPlayer.play();
+    }
+    public void pause(){
+        dvdPlayer.pause();
+    }
+    public void end(){
+        popCorn.off();
+        screen.up();
+        projector.off();
+        stereo.off();
+        dvdPlayer.off();
+        light.bright();
+    }
+}
+public class DVDPlayer {
+    //单例模式，饿汉式
+    private static DVDPlayer instance = new DVDPlayer();
+    public static DVDPlayer getInstance(){
+        return instance;
+    }
+    public void on(){
+        System.out.println("DVD on");
+    }
+    public void off(){
+        System.out.println("DVD off");
+    }
+    public void play(){
+        System.out.println("DVD playing");
+    }
+    public void pause(){
+        System.out.println("DVD pause");
+    }
+    //....等等其他方法
+}
+//在这里省略其他设备
+```
+
+
+
+## 12.3 源码分析
+
+外观模式在Mybatis框架中的应用。
+
+Mybatis中的Configuration去创建MetaObject对象使用到外观模式
+
+![](./legend/facade_src.jpg)
+
+## 12.4 外观模式小结
+
+1. 外观模式对外屏蔽了子系统的细节，因此外观模式降低了客户端对子系统使用的复杂性
+2. 外观模式对客户端与子系统的耦合关系- 解耦，让子系统内部的模块更易维护和扩展
+3. 通过合理的使用外观模式，可以帮我们更好的划分访问的层次
+4. 当系统需要进行分层设计时，可以考虑使用Facade 模式
+5. 在维护一个遗留的大型系统时，可能这个系统已经变得非常难以维护和扩展，此时可以考虑为新系统开发一个Facade 类，来提供遗留系统的比较清晰简单的接口，让新系统与Facade 类交互，提高复用性
+6. 不能过多的或者不合理的使用外观模式，使用外观模式好，还是直接调用模块好。要以让系统有层次，利于维护为目的。
