@@ -1,4 +1,4 @@
-# pattern design
+pattern design
 
 设计模式是对软件设计中普遍存在（反复出现）的各种问题，所提出的解决方案。由埃里希·伽玛等人在1990年从建筑设计领域引入计算机科学
 
@@ -2546,3 +2546,159 @@ public class Client {
 1. 模板方法模式（Template Method Pattern），又叫模板模式(Template Pattern)，在一个抽象类公开定义了执行它的方法的模板。它的子类可以按需要重写方法实现，但调用将以抽象类中定义的方式进行。
 2. 简单说，模板方法模式定义一个操作中的算法的骨架，而将一些步骤延迟到子类中，使得子类可以不改变一个算法的结构，就可以重定义该算法的某些特定步骤
 3. 这种类型的设计模式属于行为型模式。
+
+![](./legend/template_principle.jpg)
+
+1. AbstractClass 抽象类， 类中实现了模板方法(template)，定义了算法的骨架，具体子类需要去实现其它的抽象方法operationr2,3,4
+2. ConcreteClass 实现抽象方法operationr2,3,4, 以完成算法中特点子类的步骤
+
+## 15.1 案例
+
+编写制作豆浆的程序，说明如下:
+
+1. 制作豆浆的流程选材--->添加配料--->浸泡--->放到豆浆机打碎
+2. 通过添加不同的配料，可以制作出不同口味的豆浆
+3. 选材、浸泡和放到豆浆机打碎这几个步骤对于制作每种口味的豆浆都是一样的(红豆、花生豆浆。。。)
+
+![](./legend/template_example.jpg)
+
+```java
+public abstract class SoyMilk {
+    //模板方法，make，模板方法可以指定为final，不让子类覆盖
+    final void make(){
+        select();
+        soak();
+        addIngredient();
+        beat();
+    }
+    void select(){
+        System.out.println("第一步：选材，好的原料决定了口感");
+    }
+    abstract void addIngredient();
+
+    void soak(){
+        System.out.println("材料需要浸泡20min");
+    }
+    void beat(){
+        System.out.println("请耐心等候，机器正在打磨");
+    }
+}
+
+public class RedbeanSoyMilk extends SoyMilk {
+    @Override
+    void addIngredient() {
+        System.out.println("加入红豆，红豆口感香甜");
+    }
+}
+
+public class PeanutSoyMilk extends SoyMilk{
+    @Override
+    void addIngredient() {
+        System.out.println("加入花生，可以使豆浆更加细腻浓郁");
+    }
+}
+
+public class Client {
+    public static void main(String[] args) {
+        SoyMilk redbeanSoyMilk= new RedbeanSoyMilk();
+        redbeanSoyMilk.make();
+        SoyMilk peanutSoyMilk = new PeanutSoyMilk();
+        peanutSoyMilk.make();
+    }
+}
+```
+
+## 15.2 钩子方法
+
+在模板方法模式的父类中，我们可以定义一个方法，它默认不做任何事，子类可以视情况要不要覆盖它，该方法称为“钩子”。
+
+还是用上面做豆浆的例子来讲解，比如，我们还希望制作纯豆浆，不添加任何的配料，请使用钩子方法对前面的模板方法进行改造。
+
+```java
+public abstract class SoyMilk {
+    //模板方法，make，模板方法可以指定为final，不让子类覆盖
+    final void make(){
+        select();
+        soak();
+        if(hasIngredient()){
+            addIngredient();
+        }
+        beat();
+    }
+    void select(){
+        System.out.println("第一步：选材，好的原料决定了口感");
+    }
+    abstract void addIngredient();
+
+    void soak(){
+        System.out.println("材料需要浸泡20min");
+    }
+    void beat(){
+        System.out.println("请耐心等候，机器正在打磨");
+    }
+
+    //钩子方法
+    boolean hasIngredient(){
+        return true;
+    }
+}
+
+public class PureSoyMilk extends SoyMilk{
+    @Override
+    void addIngredient() {
+
+    }
+
+    @Override
+    boolean hasIngredient() {
+        return false;
+    }
+}
+//其余类一致
+```
+
+## 15.3 源码分析
+
+Spring IOC（Inversion of Control）用到了模板方法模式。
+
+![](./legend/template_src.jpg)
+
+## 15.4 模板方法模式小结
+
+1. 基本思想是：算法只存在于一个地方，也就是在父类中，容易修改。需要修改算法时，只要修改父类的模板方法或者已经实现的某些步骤，子类就会继承这些修改
+2. 实现了最大化代码复用。父类的模板方法和已实现的某些步骤会被子类继承而直接使用。
+3. 既统一了算法，也提供了很大的灵活性。父类的模板方法确保了算法的结构保持不变，同时由子类提供部分步骤的实现。
+4. 该模式的不足之处：每一个不同的实现都需要一个子类实现，导致类的个数增加，使得系统更加庞大
+5. 一般模板方法都加上final 关键字， 防止子类重写模板方法.
+6. 模板方法模式使用场景：当要完成在某个过程，该过程要执行一系列步骤，这一系列的步骤基本相同，但其个别步骤在实现时可能不同，通常考虑用模板方法模式来处理
+
+# 16 命令模式
+
+智能家居问题：
+
+1. 我们买了一套智能家电，有照明灯、风扇、冰箱、洗衣机，我们只要在手机上安装app 就可以控制对这些家电工作。
+2. 这些智能家电来自不同的厂家，我们不想针对每一种家电都安装一个App，分别控制，我们希望只要一个app就可以控制全部智能家电。
+3. 要实现一个app 控制所有智能家电的需要，则每个智能家电厂家都要提供一个统一的接口给app 调用，这时就可以考虑使用命令模式。
+4. 命令模式可将“动作的请求者”从“动作的执行者”对象中解耦出来.
+5. 在我们的例子中，动作的请求者是手机app，动作的执行者是每个厂商的一个家电产品
+
+## 16.1 命令模式
+
+1. 命令模式（Command Pattern）：在软件设计中，我们经常需要向某些对象发送请求，但是并不知道请求的接收者是谁，也不知道被请求的操作是哪个，我们只需在程序运行时指定具体的请求接收者即可，此时，可以使用命令模式来进行设计
+2. 命名模式使得请求发送者与请求接收者消除彼此之间的耦合，让对象之间的调用关系更加灵活，实现解耦。
+3. 在命名模式中，会将一个请求封装为一个对象，以便使用不同参数来表示不同的请求(即命名)，同时命令模式也支持可撤销的操作。
+4. 通俗易懂的理解：
+   - 将军发布命令，士兵去执行。其中有几个角色：将军（命令发布者）、士兵（命令的具体执
+     行者）、命令(连接将军和士兵)。
+   - Invoker 是调用者（将军），Receiver 是被调用者（士兵），MyCommand 是命令，实现了Command 接口，持有接收对象
+
+![](./legend/command_principle.jpg)
+
+1. Invoker 是调用者角色
+2. Command: 是命令角色，需要执行的所有命令都在这里，可以是接口或抽象类
+3. Receiver: 接受者角色，知道如何实施和执行一个请求相关的操作
+4. ConcreteCommand: 将一个接受者对象与一个动作绑定，调用接收者相应的操作，实现execute
+
+![](./legend/command_example.jpg)
+
+![](./legend/command_example_mean.png)
