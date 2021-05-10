@@ -2209,3 +2209,340 @@ Mybatis中的Configuration去创建MetaObject对象使用到外观模式
 4. 当系统需要进行分层设计时，可以考虑使用Facade 模式
 5. 在维护一个遗留的大型系统时，可能这个系统已经变得非常难以维护和扩展，此时可以考虑为新系统开发一个Facade 类，来提供遗留系统的比较清晰简单的接口，让新系统与Facade 类交互，提高复用性
 6. 不能过多的或者不合理的使用外观模式，使用外观模式好，还是直接调用模块好。要以让系统有层次，利于维护为目的。
+
+# 13 享元模式
+
+一个外包项目，访问量不大的产品展示网站，因客户的不同需求，需要以不同的形式对产品进行展示，例如：新闻，博客，微信公众号等形式发布产品展示。
+
+## 13.1 传统方案
+
+1. 做了第一个客户的产品后，直接复制第一个客户的代码，进行定制化修改
+2. 给每个网站租用一个空间
+
+问题分析：
+
+1. 每个网站的相似度很高，而且都不是高访问量网站，如果分成多个虚拟空间来处理，相当于一个相同网站的实例对象很多，造成服务器资源浪费
+2. 解决思路：将多个网站整合于一个网站中，共享其相关代码和数据，对于硬盘，内存，CPU，数据库空间等服务器资源可以达成共享，减少服务器资源浪费
+3. 对于代码来说：一份实例，维护和扩展都比较容易
+4. 享元模式
+
+## 13.2 享元模式
+
+1. 享元模式（Flyweight Pattern） 也叫蝇量模式: 运用共享技术有效地支持大量细粒度的对象。享，共享，元，对象
+2. 常用于系统底层开发，解决系统的性能问题。像数据库连接池，里面都是创建好的连接对象，在这些连接对象中有我们需要的则直接拿来用，避免重新创建，如果没有我们需要的，则创建一个
+3. 享元模式能够解决重复对象的内存浪费的问题，当系统中有大量相似对象，需要缓冲池时。不需总是创建新对象，可以从缓冲池里拿。这样可以降低系统内存，同时提高效率
+4. 享元模式经典的应用场景就是池技术了，String 常量池、数据库连接池、缓冲池等等都是享元模式的应用，享
+   元模式是池技术的重要实现方式
+
+![](./legend/flyweight_principle.jpg)
+
+1. FlyWeight 是抽象的享元角色, 他是产品的抽象类, 
+   - 同时定义出对象的外部状态和内部状态(后面介绍) 的接口或实现
+   - 外部状态是经常变化的，例如棋子的位置，
+   - 内部状态是不常变化，甚至是不变的，例如棋子的颜色
+2. ConcreteFlyWeight 是具体的享元角色，是具体的产品类，实现抽象角色定义相关业务
+3. UnSharedConcreteFlyWeight 是不可共享的角色，一般不会出现在享元工厂。
+4. FlyWeightFactory 享元工厂类，用于构建一个池容器(集合)， 同时提供从池中获取对象方法
+
+### 内部状态和外部状态
+
+1. 享元模式提出了两个要求：**细粒度和共享对象，这里就涉及到内部状态和外部状态了**，即将对象的信息分为两个部分：内部状态和外部状态。
+2. 内部状态指对象共享出来的信息，存储在享元对象内部且不会随环境的改变而改变。像围棋，棋子的颜色就是不会变化的，
+3. 外部状态指对象得以依赖的一个标记，是随环境改变而改变的、不可共享的状态。如，棋子的位置
+4. 例子：围棋理论上有361 个空位可以放棋子，每盘棋都有可能有两三百个棋子对象产生，因为内存空间有限，一台服务器很难支持更多的玩家玩围棋游戏，如果用享元模式来处理棋子，那么棋子对象就可以减少到只有两个实例，这样就很好的解决了对象的开销问题。
+
+### 网站问题解决
+
+![](./legend/flyweight_example.jpg)
+
+```java
+import java.util.HashMap;
+
+//网站工厂类，根据需要返回一个网站
+public class WebsiteFactory {
+    //集合，充当池的作用
+    private HashMap<String,ConcreteWebsite> pool = new HashMap<>();
+
+    //根据网站的类型，返回一个网站，如果没有就创建一个网站，并放入到池中，一并返回
+    public WebSite getWebSiteCategory(String type){
+        //如果没有就创建
+        if(!pool.containsKey(type)){
+            pool.put(type,new ConcreteWebsite(type));
+        }
+        return (WebSite) pool.get(type);
+    }
+    //获取网站分类的总数（池中有多少个网站类型）
+    public Integer getWebsiteCount(){
+        Integer size = pool.size();
+        System.out.println("当前网站的运行总数:"+ size+"个");
+        return size;
+    }
+
+}
+public abstract class WebSite {
+    public abstract void use(User user);
+}
+
+//具体的网站产品
+public class ConcreteWebsite extends WebSite {
+    //网站产品的发布形式
+    //内部状态，如同棋子的黑白一样。
+    private String type = "";
+    //构造器
+    public ConcreteWebsite(String type){
+        this.type = type;
+    }
+    @Override
+    public void use(User user){
+        System.out.println("网站的发布形式为："+type+ ",运行中，使用者："+user.getName());
+    }
+}
+
+//外部状态，user
+public class User {
+    private String name;
+
+    public User(String name){
+        this.name = name;
+    }
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+}
+
+public class Client {
+    public static void main(String[] args) {
+        //创建一个工厂类
+        WebsiteFactory factory = new WebsiteFactory();
+        //客户要一个以新闻形式发布的产品的网站
+        //type为内部状态，而user为外部状态
+        WebSite webSite1 = factory.getWebSiteCategory("新闻");
+        webSite1.use(new User("zhangy"));
+        WebSite webSite2 = factory.getWebSiteCategory("新闻");
+        webSite2.use(new User("zhangyy"));
+        WebSite webSite3 = factory.getWebSiteCategory("博客");
+        webSite3.use(new User("zy"));
+        WebSite webSite4 = factory.getWebSiteCategory("微信公众号");
+        webSite4.use(new User("zyy"));
+        WebSite webSite5 = factory.getWebSiteCategory("微信公众号");
+        webSite5.use(new User("yuer"));
+        factory.getWebsiteCount();
+    }
+}
+```
+
+## 13.3 源码分析
+
+JDK的Integer
+
+1. valueOf方法中，先判断值是不是在IntegerCache中，如果不在，就创建新的Integer，否则直接从池中取用返回
+
+2. valueOf方法，就使用到享元模式
+
+3. 通过valueOf在-127~128之间得到一个数的速度，要比new Integer快的多
+
+
+
+## 13.4 享元模式小结
+
+1. 在享元模式这样理解，“享”就表示共享，“元”表示对象
+2. 系统中有大量对象，这些对象消耗大量内存，并且对象的状态大部分可以外部化时，我们就可以考虑选用享元模式
+3. 用唯一标识码判断，如果在内存中有，则返回这个唯一标识码所标识的对象，用HashMap/HashTable 存储
+4. 享元模式大大减少了对象的创建，降低了程序内存的占用，提高效率
+5. 享元模式提高了系统的复杂度。需要分离出内部状态和外部状态，而外部状态具有固化特性，不应该随着内部状态的改变而改变，这是我们使用享元模式需要注意的地方.
+6. 使用享元模式时，注意划分内部状态和外部状态，并且需要有一个工厂类加以控制。
+7. 享元模式经典的应用场景是需要缓冲池的场景，比如String 常量池、数据库连接池
+
+# 14 代理模式
+
+1. 代理模式（Proxy）：
+   - 为一个对象提供一个替身，以控制对这个对象的访问。即通过代理对象访问目标对象.
+   - 这样做的好处是:可以在目标对象实现的基础上,增强额外的功能操作,即扩展目标对象的功能。
+2. 被代理的对象可以是远程对象、创建开销大的对象或需要安全控制的对象
+3. 代理模式有不同的形式, 主要有三种。
+   - 静态代理
+   - 动态代理(JDK 代理、接口代理)
+   - Cglib 代理(可以在内存动态的创建对象，而不需要实现接口， 他是属于动态代理的范畴) 。
+
+![](./legend/proxy_principle.jpg)
+
+## 14.1 静态代理
+
+### 14.1.1 基本介绍和案例
+
+静态代理在使用时,需要定义接口或者父类。
+
+被代理对象(即目标对象)与代理对象一起实现相同的接口或者是继承相同父类。
+
+#### 案例
+
+![](./legend/proxy_staticexample.jpg)
+
+```java
+public interface ITeacherDao {
+    void teach();
+}
+//被代理
+public class TeacherDao implements ITeacherDao{
+    @Override
+    public void teach() {
+        System.out.println("老师授课");
+    }
+}
+//代理
+public class TeacherDaoProxy implements ITeacherDao{
+    private ITeacherDao target;
+    //构造器
+    public TeacherDaoProxy(ITeacherDao target){
+        this.target = target;
+    }
+    @Override
+    public void teach() {
+        System.out.println("代理开始");
+        target.teach();
+        System.out.println("代理结束");
+    }
+}
+
+public class Client {
+    public static void main(String[] args) {
+        //创建目标对象，被代理对象
+        TeacherDao teacherDao= new TeacherDao();
+        //创建代理对象，同时将被代理对象传递给代理对象
+        TeacherDaoProxy teacherDaoProxy = new TeacherDaoProxy(teacherDao);
+        //通过代理对象调用被代理对象的方法
+        //即执行代理对象的方法，代理对象再去调用被代理对象的方法
+        teacherDaoProxy.teach();
+
+    }
+}
+```
+
+### 14.1.2 优缺点
+
+1. 优点：在不修改目标对象的功能前提下, 能通过代理对象对目标功能扩展
+2. 缺点：因为代理对象需要与目标对象实现一样的接口,所以会有很多代理类
+3. 一旦接口增加方法,目标对象与代理对象都要维护
+
+## 14.2 动态代理
+
+### 14.2.1 基本介绍
+
+1. 代理对象不需要实现接口，但是目标对象要实现接口，否则不能用动态代理。
+
+2. 代理对象的生成，是利用JDK 的API，动态的在内存中构建代理对象。
+
+   - 代理类所在的包：java.lang.reflect.Proxy
+
+   - JDK实现代理只需要使用：newProxyInstance方法，它有三个参数
+
+   - ```java
+     static Object newProxyInstance(ClassLoader loader,Class<?>[] interfaces, InvocationHandler h)
+     ```
+
+3. 动态代理也叫做：JDK 代理、接口代理。
+
+![](./legend/proxy_dynamic.jpg)
+
+```java
+public interface ITeacherDao {
+    void teach();
+    void checkHomework(Integer number);
+}
+
+public class TeacherDao implements ITeacherDao {
+    @Override
+    public void teach() {
+        System.out.println("老师授课");
+    }
+
+    @Override
+    public void checkHomework(Integer number) {
+        System.out.println("老师批改作业,学号为："+number);
+    }
+}
+
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+
+public class ProxyFactory {
+    //维护一个目标对象，被代理对象
+    private Object target;
+    //构造器，初始化目标对象
+    public ProxyFactory(Object target) {
+        this.target = target;
+    }
+    //给目标对象生成代理对象
+    public Object getProxyInstance(){
+        //static Object newProxyInstance(ClassLoader loader,Class<?>[] interfaces, InvocationHandler h)
+        //1. ClassLoader：指定当前目标对象使用的类加载器，获取加载器的方法固定
+        //2. Class<?>[]：目标对象实现的接口类型，使用泛型方法确认类型
+        //3. InvocationHandler：事情处理，确定执行目标对象的什么方法。
+        return Proxy.newProxyInstance(
+                target.getClass().getClassLoader(),
+                target.getClass().getInterfaces(),
+                new InvocationHandler() {
+                    @Override
+                    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+                        System.out.println("代理开始");
+                        //利用反射机制调用目标对象方法
+                        Object backVal = method.invoke(target,args);
+                        System.out.println("代理结束");
+                        return backVal;
+                    }
+                }
+        );
+    }
+}
+
+public class Client {
+    public static void main(String[] args) {
+        //创建目标对象
+        ITeacherDao target = new TeacherDao();
+        //给目标对象，创建代理对象，可以转为ITeacherDao
+        ITeacherDao proxyInstance  = (ITeacherDao) new ProxyFactory(target).getProxyInstance();
+        System.out.println("proxyInstance= "+ proxyInstance.getClass());//class com.sun.proxy.$Proxy0
+        //通过代理对象，调用目标对象的方法
+        proxyInstance.teach();
+        proxyInstance.checkHomework(10);
+
+
+    }
+}
+```
+
+## 14.3 Cglib代理
+
+1. 静态代理和JDK 代理模式都要求目标对象是实现一个接口，但是有时候目标对象只是一个单独的对象，并没有实现任何的接口,这个时候可使用目标对象子类来实现代理-这就是Cglib 代理
+2. Cglib 代理也叫作子类代理，它是在内存中构建一个子类对象从而实现对目标对象功能扩展,，有些书也将Cglib 代理归属到动态代理。
+3. Cglib 是一个强大的高性能的代码生成包，它可以在运行期扩展java 类与实现java 接口，它广泛的被许多AOP 的框架使用，例如Spring AOP，实现方法拦截
+4. 在AOP 编程中如何选择代理模式：
+   - 目标对象需要实现接口，用JDK 代理
+   - 目标对象不需要实现接口，用Cglib 代理
+5. Cglib 包的底层是通过使用字节码处理框架ASM 来转换字节码并生成新的类
+
+![](./legend/proxy_cglib.jpg)
+
+## 14.4 代理模式小结
+
+几种常见的代理
+
+1. 防火墙代理
+   - 内网通过代理穿透防火墙，实现对公网的访问。
+2. 缓存代理
+   - 比如：当请求图片文件等资源时，先到缓存代理取，如果取到资源则ok,如果取不到资源，再到公网或者数据库取，然后缓存。
+3. 远程代理
+   - 远程对象的本地代表，通过它可以把远程对象当本地对象来调用。远程代理通过网络和真正的远程对象沟通信息。
+4. 同步代理
+   - 主要使用在多线程编程中，完成多线程间同步工作
+
+# 15 模板方法模式
+
+1. 模板方法模式（Template Method Pattern），又叫模板模式(Template Pattern)，在一个抽象类公开定义了执行它的方法的模板。它的子类可以按需要重写方法实现，但调用将以抽象类中定义的方式进行。
+2. 简单说，模板方法模式定义一个操作中的算法的骨架，而将一些步骤延迟到子类中，使得子类可以不改变一个算法的结构，就可以重定义该算法的某些特定步骤
+3. 这种类型的设计模式属于行为型模式。
