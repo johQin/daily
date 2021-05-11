@@ -2702,3 +2702,502 @@ Spring IOC（Inversion of Control）用到了模板方法模式。
 ![](./legend/command_example.jpg)
 
 ![](./legend/command_example_mean.png)
+
+```java
+public interface Command {
+    //执行操作
+    public void execute();
+    //撤销操作
+    public void revoke();
+}
+public class LightCommandOff implements Command{
+    LightReceiver light;
+
+    public LightCommandOff(LightReceiver light) {
+        this.light = light;
+    }
+
+    @Override
+    public void execute() {
+        light.off();
+    }
+
+    @Override
+    public void revoke() {
+        light.on();
+    }
+}
+public class LightCommandOn implements Command{
+
+    LightReceiver light;
+
+    public LightCommandOn(LightReceiver light) {
+        this.light = light;
+    }
+
+    @Override
+    public void execute() {
+        light.on();
+    }
+
+    @Override
+    public void revoke() {
+        light.off();
+    }
+}
+
+//没有任何命令，即空执行，用于初始化所有按钮，当调用空命令时，对象什么也不做。
+//其实，这也是一种设计模式，可以省掉对空的命令的判断
+public class NoCommand implements Command{
+    @Override
+    public void execute() {
+
+    }
+
+    @Override
+    public void revoke() {
+
+    }
+}
+
+public class LightReceiver {
+    public void on(){
+        System.out.println("开灯");
+    }
+    public void off(){
+        System.out.println("关灯");
+    }
+}
+
+//每一个按钮就是一个命令
+public class RemoteController {
+    //开按钮的命令数组
+    Command[] onCommands;
+    Command[] offCommands;
+
+    //执行撤销的命令
+    Command revokeCommand;
+    //初始化所有按钮的命令为空命令
+    public RemoteController(){
+        onCommands = new Command[5];
+        offCommands = new Command[5];
+        //初始化遥控器上所有按钮
+        for(int i = 0; i < 5; i++){
+            onCommands[i] = new NoCommand();
+            offCommands[i] = new NoCommand();
+        }
+    }
+    //给按钮设置我们需要的命令
+    public void setCommand(int number, Command commandOn,Command commandOff){
+        onCommands[number] = commandOn;
+        offCommands[number] = commandOff;
+    }
+    //按下on按钮
+    public void onButtonWasPushed(int number){
+        //找到你按下的按钮，并调用对应的方法
+        onCommands[number].execute();
+        //记录这次操作用于撤销
+        revokeCommand = onCommands[number];
+    }
+    //按下off按钮
+    public void offButtonWasPushed(int number){
+        offCommands[number].execute();
+        revokeCommand = offCommands[number];
+    }
+    //按下撤销按钮
+    public void revokeButtonWasPushed(){
+        revokeCommand.revoke();
+    }
+
+}
+
+public class Client {
+    public static void main(String[] args) {
+
+        //使用命令模式，完成通过遥控器，对点灯的操作
+        //创建电灯命令的接收者
+        LightReceiver light = new LightReceiver();
+
+        //创建电灯相关命令
+        Command lightOn = new LightCommandOn(light);
+        Command lightOff = new LightCommandOff(light);
+
+        //创建命令调用者
+        RemoteController remoteController = new RemoteController();
+        //设置遥控器上按钮对应的命令，例如number:0就是点灯的开和关的操作
+        remoteController.setCommand(0,lightOn,lightOff);
+        System.out.println("按下电灯开按钮");
+        remoteController.onButtonWasPushed(0);
+        System.out.println("按下电灯关按钮");
+        remoteController.offButtonWasPushed(0);
+        System.out.println("按下命令撤销按钮");
+        remoteController.revokeButtonWasPushed();
+
+        TVReceiver TV = new TVReceiver();
+
+        Command TVOn = new TVCommandOn(TV);
+        Command TVOff = new TVCommandOff(TV);
+
+        remoteController.setCommand(1,TVOn,TVOff);
+
+        System.out.println("按下电视机开按钮");
+        remoteController.onButtonWasPushed(1);
+        System.out.println("按下电视机关按钮");
+        remoteController.offButtonWasPushed(1);
+        System.out.println("按下命令撤销按钮");
+        remoteController.revokeButtonWasPushed();
+
+
+
+    }
+}
+
+```
+
+## 16.2 源码分析
+
+命令模式在spring框架的JDBCTemplate的应用
+
+## 16.3 命令模式小结
+
+1. 将发起请求的对象与执行请求的对象解耦。发起请求的对象是调用者，调用者只要调用命令对象的execute()方法就可以让接收者工作，而不必知道具体的接收者对象是谁、是如何实现的，命令对象会负责让接收者执行请求的动作，也就是说：”请求发起者”和“请求执行者”之间的解耦是通过命令对象实现的，命令对象起到了纽带桥梁的作用。
+2. 容易设计一个命令队列。只要把命令对象放到列队，就可以多线程的执行命令
+3. 容易实现对请求的撤销和重做
+4. 命令模式不足：可能导致某些系统有过多的具体命令类，增加了系统的复杂度，这点在在使用的时候要注意
+5. 空命令也是一种设计模式，它为我们省去了判空的操作。在上面的实例中，如果没有用空命令，我们每按下一个按键都要判空，这给我们编码带来一定的麻烦。
+6. 命令模式经典的应用场景：界面的每一个按钮就是一条命令、模拟CMD（DOS 命令）订单的撤销/恢复、触发-反馈机制
+
+# 17 访问者模式
+
+问题：
+
+完成测评系统需求
+
+1. 将观众分为男人和女人，
+2. 对歌手进行测评，当看完某个歌手表演后，得到他们对该歌手不同的评价（成功，失败）
+
+分析：
+
+1. 如果系统比较小，还是ok 的，但是考虑系统增加越来越多新的功能时，对代码改动较大，违反了ocp 原则， 不利于维护
+2. 扩展性不好，比如增加了新的人员类型（老人，小孩等），评价等级（待定等），或者管理方法，都不好做
+3. 引出我们会使用新的设计模式– 访问者模式
+
+## 17.1 访问者模式
+
+1. 访问者模式（Visitor Pattern），封装一些作用于某种数据结构的各元素的操作，它可以在不改变数据结构的前提下定义作用于这些元素的新的操作。
+2. 主要将数据结构与数据操作分离，解决数据结构和操作耦合性问题
+3. 访问者模式的基本工作原理是：在被访问的类里面加一个对外提供接待访问者的接口
+4. 访问者模式主要应用场景是：需要对一个对象结构中的对象进行很多不同操作(这些操作彼此没有关联)，同时需要避免让这些操作"污染"这些对象的类，可以选用访问者模式解决
+
+![](./legend/visitor_principle.jpg)
+
+1. Visitor 是抽象访问者，为该对象结构中的ConcreteElement 的每一个类声明一个visit 操作
+2. ConcreteVisitor ：是一个具体的访问者实现每个有Visitor 声明的操作，是每个操作实现的部分.
+3. ObjectStructure 能枚举它的元素， 可以提供一个高层的接口，用来允许访问者访问元素
+4. Element 定义一个accept 方法，接收一个访问者对象
+5. ConcreteElement 为具体元素，实现了accept 方法
+
+![](./legend/visitor_example.jpg)
+
+```java
+public abstract class Action {
+    //得到男性观众的评价
+    public abstract void getManValuate(Man man);
+    //得到女性观众的评价
+    public abstract void getWomanValuate(Woman woman);
+}
+public class Success extends Action{
+    @Override
+    public void getManValuate(Man man) {
+        System.out.println("男性观众评价该歌手演唱很成功");
+    }
+
+    @Override
+    public void getWomanValuate(Woman woman) {
+        System.out.println("女性观众评价该歌手演唱很成功");
+    }
+}
+public class Fail extends Action{
+    @Override
+    public void getManValuate(Man man) {
+        System.out.println("男性观众评价该歌手演唱很失败");
+    }
+
+    @Override
+    public void getWomanValuate(Woman woman) {
+        System.out.println("女性观众评价该歌手演唱很失败");
+    }
+}
+
+
+public abstract class Person {
+    //提供一个方法，让访问者可以访问
+    public abstract void accept(Action action);
+
+}
+
+//说明：
+//1. 这里我们使用到一个双分派，即首先在客户端程序中，将具体状态作为参数传递到Man中（通过accept方法）
+//2. 然后Man类调用作为参数的“具体方法”中方法getManValuate，同时将自己（this）作为参数
+// 传入，完成第二次分派
+public class Man extends Person{
+    @Override
+    public void accept(Action action) {
+        action.getManValuate(this);
+    }
+}
+public class Woman extends Person{
+    @Override
+    public void accept(Action action) {
+        action.getWomanValuate(this);
+    }
+}
+
+//数据结构，管理很多人
+public class ObjectStructure {
+    //维护了一个集合
+    private List<Person> persons = new LinkedList<>();
+    //添加到集合
+    public void attach(Person p){
+        persons.add(p);
+    }
+    //从集合中移除
+    public void detach(Person p){
+        persons.remove(p);
+    }
+    //显示评价情况
+    public void display(Action action){
+        for(Person p:persons){
+            p.accept(action);
+        }
+    }
+
+}
+public class Client {
+    public static void main(String[] args) {
+        ObjectStructure objectStructure = new ObjectStructure();
+        objectStructure.attach(new Man());
+        objectStructure.attach(new Woman());
+
+        Success success = new Success();
+        objectStructure.display(success);
+        System.out.println("=============");
+        Fail fail = new Fail();
+        objectStructure.display(fail);
+    }
+}
+```
+
+1. 双分派，所谓双分派是指不管类怎么变化，我们都能找到期望的方法运行。**双分派意味着得到执行的操作取决于请求的种类和两个接收者的类型**。
+   - 先确定接收者person->man，**并派发action**，
+   - 然后在accept中调用action.getManValuate(已经知道接收者类型，所以getMan，也有请求种类action)，**并派发person**
+   - 这个可以使person知道是哪个action，也可以是action是哪个person
+2. 以上述实例为例，假设我们要添加一个Wait 的状态类，考察Man 类和Woman 类的反应，由于使用了双分派，只需增加一个Action 子类即可在客户端调用即可，不需要改动任何其他类的代码。
+
+## 17.2 访问者模式小结
+
+适用场景
+
+1. 对象结构比较稳定，但经常需要在此对象结构上定义新的操作。
+2. 需要对一个对象结构中的对象进行很多不同的并且不相关的操作，而需要避免这些操作“污染”这些对象的类，也不希望在增加新操作时修改这些类。
+
+优点
+
+1. 访问者模式符合单一职责原则、让程序具有优秀的扩展性、灵活性非常高
+2. 访问者模式可以对功能进行统一，可以做报表、UI、拦截器与过滤器，适用于数据结构相对稳定的系统
+
+缺点
+
+1. 具体元素对访问者公布细节，也就是说访问者关注了其他类的内部细节，这是迪米特法则所不建议的, 这样造成了具体元素变更比较困难
+2. 违背了依赖倒转原则。访问者依赖的是具体元素，而不是抽象元素（getManValuate(Man man)）
+3. 因此，如果一个系统有比较稳定的数据结构，又有经常变化的功能需求，那么访问者模式就是比较合适的.
+
+# 18 迭代器模式
+
+实现遍历学校，学院，学系的功能。这里有一个需要注意的是有的学院将将学系放在数组中，有的学院将学系放在集合中，
+
+## 18.1 迭代器模式
+
+1. 迭代器模式（Iterator Pattern）是常用的设计模式，属于行为型模式
+2. 如果我们的集合元素是用不同的方式实现的，有数组，还有java 的集合类，或者还有其他方式，当客户端要遍历这些集合元素的时候就要使用多种遍历方式，而且还会暴露元素的内部结构，可以考虑使用迭代器模式解决。
+3. 迭代器模式，提供一种遍历集合元素的统一接口，用一致的方法遍历集合元素，不需要知道集合对象的底层表示，即：不暴露其内部的结构。
+
+![](./legend/iterator_principle.jpg)
+
+1. Iterator ： 迭代器接口，是系统提供，含义hasNext, next, remove
+2. ConcreteIterator : 具体的迭代器类，管理迭代
+3. Aggregate :一个统一的聚合接口， 将客户端和具体聚合解耦
+4. ConcreteAggreage : 具体的聚合持有对象集合， 并提供一个方法，返回一个迭代器， 该迭代器可以正确遍历集合
+5. Client :客户端， 通过Iterator 和Aggregate 依赖子类
+
+![](./legend/iterator_example.png)
+
+```java
+import java.util.Iterator;
+
+public class ComputerCollegeIterator implements Iterator {
+    //这里我们需要知道Department 是以怎样的方式存放
+    //在这里我们假定计算机学院的学系是以数组形式存放的。如果我们不知道Department的存放方式那么我们就无法给它写迭代器
+    Department[] departments;
+    int position = 0;
+
+    public ComputerCollegeIterator(Department[] departments) {
+        this.departments = departments;
+    }
+
+    @Override
+    public boolean hasNext() {
+        if(position>departments.length || departments[position]== null){
+            return false;
+        }else{
+            return true;
+        }
+    }
+
+    @Override
+    public Object next() {
+        Department department = departments[position];
+        position += 1;
+        return department;
+    }
+}
+public class ComputerCollege implements College{
+    Department[] departments;
+    int numOfDepartment = 0;
+
+    public ComputerCollege() {
+        this.departments = new Department[5];
+        addDepartment("softwart engineer","软件工程");
+        addDepartment( "algorithm","算法");
+        addDepartment( "artificial intelligence","人工智能");
+		//addDepartment( "big data","大数据");
+		//addDepartment( "cloud compute","云计算");
+
+    }
+    @Override
+    public String getName() {
+        return "计算机学院";
+    }
+    @Override
+    public void addDepartment(String name, String desc) {
+        Department department = new Department(name,desc);
+        departments[numOfDepartment] = department;
+        numOfDepartment += 1;
+
+    }
+
+    @Override
+    public Iterator createIterator() {
+        return new ComputerCollegeIterator(departments);
+
+    }
+}
+public class InfoCollegeIterator implements Iterator {
+    //在这里我们假设信息工程学院的学系是以List的形式存放的
+    List<Department> departmentList;
+    int index = -1;
+
+    public InfoCollegeIterator(List<Department> departmentList) {
+        this.departmentList = departmentList;
+    }
+
+    @Override
+    public boolean hasNext() {
+        if(index>=departmentList.size()-1){
+            return false;
+        }else{
+            index += 1;
+            return true;
+        }
+    }
+
+    @Override
+    public Object next() {
+
+        return departmentList.get(index);
+    }
+}
+public class InfoCollege implements College{
+    List<Department> departmentList;
+
+    public InfoCollege() {
+        this.departmentList = new ArrayList<Department>();
+        addDepartment("information security","信息安全");
+        addDepartment("network engineer","网络工程");
+        addDepartment("information counter","信息对抗");
+    }
+
+    @Override
+    public String getName() {
+        return "信息工程学院";
+    }
+
+    @Override
+    public void addDepartment(String name, String desc) {
+        Department department = new Department(name, desc);
+        departmentList.add(department);
+    }
+
+    @Override
+    public Iterator createIterator() {
+        return new InfoCollegeIterator(departmentList);
+    }
+}
+public class OutputImpl {
+    List<College> colleges;
+    public OutputImpl(List<College> colleges){
+        this.colleges = colleges;
+    }
+    //输出学院
+    public void printCollege(){
+        Iterator<College> iterator = colleges.iterator();
+        while(iterator.hasNext()){
+            College college = (College) iterator.next();
+            System.out.println("====="+college.getName()+"====");
+            printDepartment(college.createIterator());
+
+        }
+    }
+    //输出学系
+    public void printDepartment(Iterator iterator){
+        while(iterator.hasNext()){
+            Department department =(Department) iterator.next();
+            System.out.println(department.getName());
+
+        }
+
+    }
+}
+public class Client {
+    public static void main(String[] args) {
+        List<College> colleges = new ArrayList<College>();
+        colleges.add(new ComputerCollege());
+        colleges.add(new InfoCollege());
+        OutputImpl output = new OutputImpl(colleges);
+        output.printCollege();
+    }
+}
+```
+
+## 18.2 源码分析
+
+![](./legend/iterator_src.png)
+
+1. 内部类Itr 充当具体实现迭代器Iterator 的类， 作为ArrayList 内部类
+2. List 就是充当了聚合接口，含有一个iterator() 方法，返回一个迭代器对象
+3. ArrayList 是实现聚合接口List 的子类，实现了iterator()
+4. Iterator 接口系统提供
+5. 迭代器模式解决了不同集合(ArrayList ,LinkedList) **统一遍历问题**
+
+## 18.3 迭代器模式小结
+
+优点：
+
+1. 提供一个统一的方法遍历对象，客户不用再考虑聚合的类型，使用一种方法就可以遍历对象了。
+2. 隐藏了聚合的内部结构，客户端要遍历聚合的时候只能取到迭代器，而不会知道聚合的具体组成。
+3. 提供了一种设计思想，就是一个类应该只有一个引起变化的原因（叫做单一责任原则）。在聚合类中，我们把迭代器分开，就是要把管理对象集合和遍历对象集合的责任分开，这样一来集合改变的话，只影响到聚合对象。而如果遍历方式改变的话，只影响到了迭代器。
+4. 当要展示一组相似对象，或者遍历一组相同对象时使用, 适合使用迭代器模式
+
+缺点：
+
+- 每个聚合对象都要一个迭代器，会生成多个迭代器不好管理类。

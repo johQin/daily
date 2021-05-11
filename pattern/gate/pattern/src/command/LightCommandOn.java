@@ -9,7 +9,7 @@ public class LightCommandOn implements Command{
     }
 
     @Override
-    public void excute() {
+    public void execute() {
         light.on();
     }
 

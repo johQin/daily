@@ -4,7 +4,7 @@ package command;
 //其实，这也是一种设计模式，可以省掉对空的命令的判断
 public class NoCommand implements Command{
     @Override
-    public void excute() {
+    public void execute() {
 
     }
 

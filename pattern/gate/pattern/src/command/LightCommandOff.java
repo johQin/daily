@@ -8,7 +8,7 @@ public class LightCommandOff implements Command{
     }
 
     @Override
-    public void excute() {
+    public void execute() {
         light.off();
     }
 
