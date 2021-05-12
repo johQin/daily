@@ -3201,3 +3201,193 @@ public class Client {
 缺点：
 
 - 每个聚合对象都要一个迭代器，会生成多个迭代器不好管理类。
+
+# 19 观察者模式
+
+问题：
+
+1. 气象站可以将每天测量到的温度，湿度，气压等等以公告的形式发布出去(比如发布到自己的网站或第三方)。
+2.  需要设计开放型API，便于其他第三方也能接入气象站获取数据。
+3. 提供温度、气压和湿度的接口
+4. 测量数据更新时，要能实时的通知给第三方
+
+## 19.1 传统方案
+
+![](./legend/observer_tradition.png)
+
+问题分析：
+
+1. 其他第三方接入气象站获取数据
+2. 没有办法动态的添加第三方，不利于维护
+
+```java
+//1. 包含最新天气情况
+//2. 包含CurrentConditions 对象
+//3. 当数据由更新时，就主动的调用，CurrentConditions对象update方法
+public class WeatherData {
+    private float temperature;
+    private float pressure;
+    private float humidity;
+    private CurrentConditions currentConditions;
+
+    public WeatherData(CurrentConditions currentConditions) {
+        this.currentConditions = currentConditions;
+    }
+
+    //将最新的信息推送给客户端/接入方
+    public void dataChange(){
+        currentConditions.update(temperature,pressure,humidity);
+    }
+    //当数据有更新时，就调用setData，
+    public void setData(float temperature,float pressure,float humidity){
+        this.temperature = temperature;
+        this.pressure = pressure;
+        this.humidity = humidity;
+        dataChange();
+    }
+}
+
+//传统推送模式
+//客户网站
+public class CurrentConditions {
+    //温度，气压，湿度
+    private float temperature;
+    private float pressure;
+    private float humidity;
+    //更新气象数据，由weatherData调用，推送模式
+    public void update(float temperature,float pressure,float humidity){
+        this.temperature = temperature;
+        this.pressure = pressure;
+        this.humidity = humidity;
+        display();
+    }
+    public void display(){
+        System.out.println("current weather:temperature~"+temperature+"C,pressure~"+pressure+"kpa,humidity~"+humidity );
+    }
+}
+
+public class Client {
+    public static void main(String[] args) {
+        //创建客户端
+        CurrentConditions currentConditions = new CurrentConditions();
+        //创建WeatherData对象，并聚合客户端对象
+        WeatherData weatherData = new WeatherData(currentConditions);
+        //更新天气情况，并推送
+        weatherData.setData(21,101, 0.5f);
+
+        //天气变化
+        weatherData.setData(15,110, 0.4f);
+    }
+}
+```
+
+## 19.2 观察者模式
+
+![](./legend/observer_principle.PNG)
+
+1. 观察者模式：
+   - 对象之间多（用户）对一（气象站）依赖的一种设计方案，
+   - 被依赖的对象为Subject，依赖的对象为Observer，
+   - Subject通知Observer 变化
+2. Subject：类似气象站
+   - 登记注册（registerObserver）、移除（removeObserver）和通知（notifyObservers）
+3. Observer：类似客户端
+
+![](./legend/observer_example.jpg)
+
+```java
+//接口
+public interface Subject {
+    public void registerObserver(Observer o);
+    public void removeObserver(Observer o);
+    public void notifyObservers();
+}
+
+public class WeatherData implements Subject{
+    private float temperature;
+    private float pressure;
+    private float humidity;
+    private ArrayList<Observer> observers;
+
+    public WeatherData(){
+        this.observers = new ArrayList<Observer>();
+    }
+    //注册一个观察者
+    @Override
+    public void registerObserver(Observer o) {
+        observers.add(o);
+    }
+    //移除一个观察者
+    @Override
+    public void removeObserver(Observer o) {
+        if(observers.contains(o)){
+            observers.remove(o);
+        }
+    }
+
+    @Override
+    public void notifyObservers() {
+        for(int i = 0 ;i<observers.size();i++){
+            observers.get(i).update(this.temperature,this.pressure,this.humidity);
+        }
+    }
+    //将最新的信息推送给客户端/接入方
+    public void dataChange(){
+        notifyObservers();
+    }
+    //当数据有更新时，就调用setData，
+    public void setData(float temperature,float pressure,float humidity){
+        this.temperature = temperature;
+        this.pressure = pressure;
+        this.humidity = humidity;
+        dataChange();
+    }
+}
+
+public interface Observer {
+    public void update(float temperature,float pressure,float humidity);
+}
+
+public class CurrentConditons implements Observer{
+    //温度，气压，湿度
+    private float temperature;
+    private float pressure;
+    private float humidity;
+    //更新气象数据，由weatherData调用，推送模式
+    public void update(float temperature,float pressure,float humidity){
+        this.temperature = temperature;
+        this.pressure = pressure;
+        this.humidity = humidity;
+        display();
+    }
+    public void display(){
+        System.out.println("current weather:temperature~"+temperature+"C,pressure~"+pressure+"kpa,humidity~"+humidity );
+    }
+}
+```
+
+优点：
+
+1. 观察者模式设计后，会以集合的方式来管理用户（Observer），包括注册，注销和通知
+2. 我们动态改变观察者，就不需要修改WeatherData类了，这样遵守了OCP原则
+
+## 19.3 源码分析
+
+Jdk 的Observable 类就使用了观察者模式
+
+1. Observable 的作用和地位等价于我们前面讲过Subject
+2. Observable 是类，不是接口，类中已经实现了核心的方法,即管理Observer 的方法add.. delete .. notify...
+3. Observer 的作用和地位等价于我们前面讲过的Observer, 有update
+4. Observable 和Observer 的使用方法和前面讲过的一样，只是Observable 是类，通过继承来实现观察者模式
+
+# 20 中介者模式
+
+# 21 备忘录模式
+
+# 22 解释器模式
+
+# 23 状态模式
+
+# 24 策略模式
+
+# 25 职责链模式
