@@ -3382,12 +3382,353 @@ Jdk 的Observable 类就使用了观察者模式
 
 # 20 中介者模式
 
+智能家庭项目：
+
+1. 智能家庭包括各种设备，闹钟、咖啡机、电视机、窗帘等
+2.  主人要看电视时，各个设备可以协同工作，自动完成看电视的准备工作，比如流程为：闹铃响起->咖啡机开始->做咖啡->窗帘自动落下->电视机开始播放
+
+## 20.1 传统方案
+
+这里不采用外观模式，而考虑传统解决方案，
+
+1. 当各电器对象有多种状态改变时，相互之间的调用关系会比较复杂
+2. 各个电器对象彼此联系，你中有我，我中有你，不利于松耦合.
+3. 各个电器对象之间所传递的消息(参数)，容易混乱
+4. 当系统增加一个新的电器对象时，或者执行流程改变时，代码的可维护性、扩展性都不理想考虑中介者模式
+
+另一个租房子的问题：
+
+传统方案：
+
+1. 当我租房子，找到房子的主人，
+2. 主人无法决定房子是否出租，主人找到他的妻子，
+3. 他的妻子同样如此，又找到了她的父亲，
+4. 父亲又找到他的兄弟商量，最后得出结论给到房子的主人
+
+房子的主人，妻子，老丈人，老丈人的兄弟，都相当于电器对象，
+
+![](./legend/mediator_question.png)
+
+## 20.2 中介者模式
+
+基本介绍：
+
+1. 中介者模式（Mediator Pattern），用一个中介对象来封装一系列的对象交互。中介者使各个对象不需要显式地相互引用，从而使其耦合松散，而且可以独立地改变它们之间的交互。
+2. 中介者模式属于行为型模式，使代码易于维护
+3. 比如MVC 模式，C（Controller 控制器）是M（Model 模型）和V（View 视图）的中介者，在前后端交互时起到了中间人的作用
+
+![](./legend/mediator_principle.jpg)
+
+原理图分析：
+
+1. Mediator 就是抽象中介者,定义了同事对象到中介者对象的接口
+2. Colleague 是抽象同事类
+3. ConcreteMediator 具体的中介者对象, 实现抽象方法, 他需要知道所有的具体的同事类,即以一个集合来管理HashMap,并接受某个同事对象消息，完成相应的任务
+4. ConcreteColleague 具体的同事类，会有很多, 每个同事只知道自己的行为， 而不了解其他同事类的行为(方法)，但是他们都依赖中介者对象
+
+![](./legend/mediator_example.jpg)
+
+中介者模式-智能家居的操作流程
+
+1. 创建ConcreteMediator对象
+2. 创建各个同事类对象，比如Alarm、CoffeeMachine
+3. 在创建同事类对象的同时，就直接通过构造器，加入到colleagueMap的集合当中，便于中介者管理联系
+4. 同事类对象可以通过调用sendMessage，最终会去调用ConcreteMediator的getMessage方法
+5. getMessage会根据接收到的同事对象发出的消息来协调其他的同事对象的行为来完成任务。
+6. 可以看到getMessage是核心方法，可以完成相应任务
+
+```java
+public abstract class Mediator {
+    //将中介者对象，加入到集合中
+    public abstract void Register(String ColleagueName,  Colleague colleague);
+    //接受消息，具体的同事对象发出
+    public abstract void GetMessage(int stateChange, String colleague);
+    public abstract void SendMessage();
+}
+public abstract class Colleague {
+    private Mediator mediator;
+    public String name;
+    public Colleague(Mediator mediator, String name){
+        this.mediator = mediator;
+        this.name = name;
+    }
+    public Mediator GetMediator(){
+        return this.mediator;
+    }
+    public abstract void SendMessage(int stateChange);
+}
+public class ConcreteMediator extends Mediator{
+    //集合，放入所有的同事对象
+    private HashMap<String, Colleague> colleagueMap;
+    private HashMap<String, String> interMap;
+
+    public ConcreteMediator() {
+        colleagueMap = new HashMap<String, Colleague>();
+        interMap = new HashMap<String, String>();
+    }
+    @Override
+    public void Register(String colleagueName, Colleague colleague) {
+
+        colleagueMap.put(colleagueName, colleague);
+        if (colleague instanceof Alarm) {
+            interMap.put("Alarm", colleagueName);
+        } else if (colleague instanceof TV) {
+            interMap.put("TV", colleagueName);
+        }
+    }
+    public void GetMessage(int stateChange,String colleagueName){
+        if (colleagueMap.get(colleagueName) instanceof Alarm){
+            if(stateChange ==0){
+                ((TV) (colleagueMap.get(interMap.get("TV")))).startTV();
+            }else{
+                //其他设备
+                System.out.println("协调其他设备");
+            }
+        }
+    }
+    @Override
+    public void SendMessage() {
+        
+    }
+}
+//具体的同事类
+public class Alarm extends Colleague{
+    public Alarm(Mediator mediator,String name){
+        super(mediator,name);
+        //在创建Alarm同事对象
+        mediator.Register( name,this);
+    }
+    public void SendAlarm(int stateChange){
+        SendMessage(stateChange);
+    }
+
+    @Override
+    public void SendMessage(int stateChange) {
+        //调用中介者对象的getMessage
+        this.GetMediator().GetMessage(stateChange,this.name);
+    }
+}
+```
+
+## 20.3 中介者模式小结
+
+1. 多个类相互耦合，会形成网状结构, 使用中介者模式将**网状结构分离为星型结构**，进行解耦
+2. 减少类间依赖，降低了耦合，符合迪米特原则
+3.  **中介者承担了较多的责任**，一旦中介者出现了问题，整个系统就会受到影响
+4. 如果设计不当，中介者对象本身变得过于复杂，这点在实际使用时，要特别注意
+
 # 21 备忘录模式
+
+基本介绍：
+
+1. 备忘录模式（Memento Pattern）
+   - 在不破坏封装性的前提下，捕获一个对象的内部状态，并在该对象之外保存这个状态。这样以后就可将该对象恢复到原先保存的状态。
+2. 备忘录对象主要用来记录一个对象的某种状态，或者某些数据，当要做回退时，可以从备忘录对象里获取原来的数据进行恢复操作。
+3. 备忘录模式属于行为型模式
+
+![](./legend/memento_principle.jpg)
+
+1. originator : 对象(需要保存状态的对象)
+2. Memento ： 备忘录对象,负责保存好记录，即Originator 内部状态
+3. Caretaker: 守护者对象,负责保存多个备忘录对象， 使用集合管理，提高效率
+4. 说明：如果希望保存多个originator 对象的不同时间的状态，也可以，只需要要HashMap <String, 集合>
+
+```java
+public class Originator {
+    private String state;
+    public String getState(){
+        return state;
+    };
+    public void setState(String state){
+        this.state = state;
+    }
+
+    public Originator(String state) {
+        this.state = state;
+    }
+
+    //编写一个方法，可以保存一个状态对象Memonto
+    //因此编写一个方法，返回memonto
+    public Memento saveStateMemonto(){
+        return new Memento(state);
+    }
+    //通过备忘录，恢复状态
+    public void getStateFromMemonto(Memento memento){
+        state = memento.getState();
+    }
+}
+public class Memento {
+    private String state;
+    public Memento(String state){
+        this.state = state;
+    }
+    public String getState(){
+        return state;
+    }
+}
+public class Caretaker {
+    //聚合多个memento对象
+    private List<Memento> mementos = new ArrayList<Memento>();
+    public void addMemento(Memento memento){
+        mementos.add(memento);
+    }
+    //获取到第index个originator的备忘录对象Memento
+    public Memento get(int index){
+        return mementos.get(index);
+    }
+}
+public class Client {
+    public static void main(String[] args) {
+        Originator originator = new Originator("small");
+        Caretaker caretaker = new Caretaker();
+        //保存当前originator的状态
+        caretaker.addMemento(originator.saveStateMemonto());
+        //状态变化
+        originator.setState("medium");
+        //保存新的状态
+        caretaker.addMemento(originator.saveStateMemonto());
+
+        originator.setState("big");
+        caretaker.addMemento(originator.saveStateMemonto());
+
+        //当前状态
+        System.out.println("当前状态：" + originator.getState());
+
+        //恢复状态到初始状态
+        originator.getStateFromMemonto(caretaker.get(0));
+
+        System.out.println("当前状态：" + originator.getState());
+
+    }
+}
+```
+
+## 备忘录模式小结
+
+1. 给用户提供了一种可以恢复状态的机制，可以使用户能够比较方便地回到某个历史的状态
+2. 实现了信息的封装，使得用户不需要关心状态的保存细节
+3. 如果类的成员变量过多，势必会占用比较大的资源，而且每一次保存都会消耗一定的内存, 这个需要注意
+4. 适用的应用场景：1、后悔药。2、打游戏时的存档。3、Windows 里的ctri + z。4、IE 中的后退。4、数据库的事务管理
+5. 为了节约内存，备忘录模式可以和原型模式配合使用
 
 # 22 解释器模式
 
+## 22.1 传统方案
+
+问题：通过解释器模式来实现四则运算，如计算a+b-c 的值，具体要求
+
+1. 先输入表达式的形式，比如a+b+c-d+e, 要求表达式的字母不能重复
+2. 在分别输入a ,b, c, d, e 的值
+3. 最后求出结果：如图
+
+![](./legend/interpreter_question.jpg)
+
+传统方案分析：
+
+1. 编写一个方法，接收表达式的形式，然后根据用户输入的数值进行解析，得到结果
+2. 问题分析：如果加入新的运算符，比如* / ( 等等，不利于扩展，另外让一个方法来解析会造成程序结构混乱，不够清晰.
+
+## 22.2 解释器模式
+
+1. 在编译原理中，一个算术表达式通过词法分析器形成词法单元，而后这些词法单元再通过语法分析器构建语法分析树，最终形成一颗抽象的语法分析树。这里的词法分析器和语法分析器都可以看做是解释器
+2. 解释器模式（Interpreter Pattern）：是指给定一个语言(表达式)，定义它的文法的一种表示，并定义一个解释器，使用该解释器来解释语言中的句子(表达式)
+3. 应用场景
+   - 应用可以将一个需要解释执行的语言中的句子表示为一个抽象语法树
+   - 一些重复出现的问题可以用一种简单的语言来表达
+   - 一个简单语法需要解释的场景
+   - 这样的例子还有，比如编译器、运算表达式计算、正则表达式、机器人等
+
+![](./legend/interpreter_principle.jpg)
+
+1. Context: 是环境角色,含有解释器之外的全局信息.
+2. AbstractExpression: 抽象表达式， 声明一个抽象的解释操作,这个方法为抽象语法树中所有的节点所共享
+3. TerminalExpression: 为终结符表达式, 实现与文法中的终结符相关的解释操作
+4. NonTermialExpression: 为非终结符表达式，为文法中的非终结符实现解释操作.
+5. 说明： 输入Context he TerminalExpression 信息通过Client 输入即可
+
+![](./legend/interpreter_example.jpg)
+
+## 22.3 源码分析
+
+Spring 框架中SpelExpressionParser 就使用到解释器模式
+
+## 22.4 解释器模式小结
+
+1. 当有一个语言需要解释执行，可将该语言中的句子表示为一个抽象语法树，就可以考虑使用解释器模式，让程序具有良好的扩展性
+2. 应用场景：编译器、运算表达式计算、正则表达式、机器人等
+3. 使用解释器可能带来的问题：解释器模式会引起类膨胀、解释器模式采用递归调用方法，将会导致调试非常复杂、效率可能降低.
+
 # 23 状态模式
 
+## 23.1 案例
+
+请编写程序完成APP 抽奖活动具体要求如下:
+
+1. 假如每参加一次这个活动要扣除用户50 积分，中奖概率是10%
+2. 奖品数量固定，抽完就不能抽奖
+3. 活动有四个状态: 可以抽奖、不能抽奖、发放奖品和奖品领完
+4. 活动的四个状态转换关系图(右图)
+
+![](./legend/state_question.jpg)
+
+## 23.2 状态模式
+
+1. 状态模式（State Pattern）：它主要用来解决对象在多种状态转换时，需要对外输出不同的行为的问题。状态和行为是一一对应的，状态之间可以相互转换
+2. 当一个对象的内在状态改变时，允许改变其行为，这个对象就像类发生变化了一样。
+
+![](./legend/state_principle.jpg)
+
+原理解释：
+
+1. Context 类为环境角色, 用于维护State 实例,这个实例定义当前状态
+2. State 是抽象状态角色,定义一个接口封装与Context 的一个特点接口相关行为
+3. ConcreteState 具体的状态角色，每个子类实现一个与Context 的一个状态相关行为
+
+![](./legend/state_example.png)
+
+## 23.3 状态模式小结
+
+1. 代码有很强的可读性。状态模式将每个状态的行为封装到对应的一个类中
+2. 方便维护。将容易产生问题的if-else 语句删除了，如果把每个状态的行为都放到一个类中，每次调用方法时都要判断当前是什么状态，不但会产出很多if-else 语句，而且容易出错
+3. 符合“开闭原则”。容易增删状态
+4. 会产生很多类。每个状态都要一个对应的类，当状态过多时会产生很多类，加大维护难度（状态模式不可避免的问题，这个也可以说是实际问题本身的问题）
+5. 应用场景：当一个事件或者对象有很多种状态，状态之间会相互转换，对不同的状态要求有不同的行为的时候，可以考虑使用状态模式
+
 # 24 策略模式
+
+## 24.1 案例
+
+问题：
+
+1. 有各种鸭子（野鸭，水鸭，北京鸭等），鸭子有各种行为（叫，飞等）
+2. 显示鸭子各种信息
+3. 要求对鸭子的种类和行为进行管理，并显示各种鸭子的信息
+
+## 24.2 传统方案
+
+建立一个Duck类，然后让各种子类进行继承。
+
+方案分析：
+
+1. 其它鸭子，都继承了Duck 类，所以fly 让所有子类都会飞了，这是不正确的
+2. 上面说的1 的问题，其实是继承带来的问题：对类的局部改动，尤其超类的局部改动，会影响其他部分。会有溢出效应
+3. 为了改进1 问题，我们可以通过覆盖fly 方法来解决=> 覆盖解决
+4. 问题又来了，如果我们有一个玩具鸭子ToyDuck, 这样就需要ToyDuck 去覆盖Duck 的所有实现的方法=> 解决思路->策略模式(strategy pattern)
+
+## 24.3 策略模式
+
+1. 策略模式（Strategy Pattern）中，定义算法族（策略组），分别封装起来，让他们之间可以互相替换，此模式让算法的变化独立于使用算法的客户
+2. 这算法体现了几个设计原则，
+   - 把变化的代码从不变的代码中分离出来
+   - 针对接口编程而不是具体类（定义了策略接口）
+   - 多用组合/聚合，少用继承（客户通过组合方式使用策略）
+
+![](./legend/strategy_principle.jpg)
+
+客户context 有成员变量strategy 或者其他的策略接口，至于需要使用到哪个策略，我们可以在构造器中指定。
+
+![](./legend/strategy_example.jpg)
+
+
 
 # 25 职责链模式
