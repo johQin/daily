@@ -19,4 +19,7 @@ public class ToyDuck extends Duck {
     public void displayInfo() {
         System.out.println("我是玩具鸭");
     }
+    public void setFlyBehavior(FlyBehavior flyBehavior){
+        this.flyBehavior = flyBehavior;
+    }
 }

@@ -9,4 +9,7 @@ public class PekingDuck extends Duck {
     public PekingDuck() {
         flyBehavior = new BadFlyBehavior();
     }
+    public void setFlyBehavior(FlyBehavior flyBehavior){
+        this.flyBehavior = flyBehavior;
+    }
 }

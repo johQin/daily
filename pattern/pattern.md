@@ -3729,6 +3729,226 @@ Spring 框架中SpelExpressionParser 就使用到解释器模式
 
 ![](./legend/strategy_example.jpg)
 
+```java
+public abstract class Duck {
+    //属性，策略接口
+    FlyBehavior flyBehavior;
+    public void yell(){
+        System.out.println("鸭子嘎嘎叫");
+    }
+    public void swim(){
+        System.out.println("鸭子会游泳");
+    }
+    public void fly(){
+        if(flyBehavior!=null){
+            flyBehavior.fly();
+        }
+    }
+    public abstract void displayInfo();
+}
+public class WildDuck extends Duck {
+    //自定义策略
+    public WildDuck() {
+        flyBehavior = new GoodFlyBehavior();
+    }
 
+    @Override
+    public void displayInfo() {
+        System.out.println("我是野鸭");
+    }
+    public void setFlyBehavior(FlyBehavior flyBehavior){
+        this.flyBehavior = flyBehavior;
+    }
+}
+
+//省略其他策略
+public interface FlyBehavior {
+    void fly();
+}
+public class GoodFlyBehavior implements FlyBehavior{
+    @Override
+    public void fly() {
+        System.out.println("拥有完美的飞行本领");
+    }
+}
+public class Client {
+    public static void main(String[] args) {
+        WildDuck wildDuck = new WildDuck();
+        wildDuck.fly();
+        PekingDuck pekingDuck = new PekingDuck();
+        pekingDuck.fly();
+        ToyDuck toyDuck = new ToyDuck();
+        toyDuck.fly();
+        wildDuck.setFlyBehavior(new BadFlyBehavior());
+        wildDuck.fly();
+    }
+}
+```
+
+
+
+## 24.4 源码分析
+
+JDK 的Arrays 的Comparator（排序） 就使用了策略模式。
+
+## 24.5 策略模式小结
+
+1. 策略模式的关键是：分析项目中变化部分与不变部分
+2. 策略模式的核心思想是：多用组合/聚合少用继承；用行为类组合，而不是行为的继承。更有弹性
+3. 体现了“对修改关闭，对扩展开放”原则，客户端增加行为不用修改原有代码，只要添加一种策略（或者行为）即可，避免了使用多重转移语句（if..else if..else）
+4.  提供了可以替换继承关系的办法： 策略模式将算法封装在独立的Strategy 类中使得你可以独立于其Context 改变它，使它易于切换、易于理解、易于扩展
+5. 需要注意的是：每添加一个策略就要增加一个类，当策略过多是会导致类数目庞大。
 
 # 25 职责链模式
+
+## 25.1 案例
+
+学校的OA系统的采购审批项目，采购员采购教学器材：
+
+1. 如果金额小于等于5000, 由教学主任审批（0<=x<=5000）
+2. 如果金额小于等于10000, 由院长审批(5000<x<=10000)
+3. 如果金额小于等于30000, 由副校长审批(10000<x<=30000)
+4. 如果金额超过30000 以上，有校长审批( 30000<x)
+
+请设计程序完成采购审批项目
+
+传统解决方案：
+
+1. 传统方式是：接收到一个采购请求后，根据采购金额来调用对应的Approver (审批人)完成审批。
+2. 传统方式的问题分析: 客户端这里会使用到分支判断(比如switch) 来对不同的采购请求处理， 这样就存在如下问题
+   - (1) 如果各个级别的人员审批金额发生变化，在客户端的也需要变化
+   - (2) 客户端必须明确的知道有多少个审批级别和访问
+   - 3) 这样对一个采购请求进行处理和Approver (审批人) 就存在强耦合关系，不利于代码的扩展和维护
+
+## 25.2 职责链模式
+
+1. 职责链模式（Chain of Responsibility Pattern）, 又叫责任链模式，为请求创建了一个接收者对象的链(简单示意图)。这种模式对请求的发送者和接收者进行解耦。
+2.  职责链模式通常每个接收者都包含对另一个接收者的引用。如果一个对象不能处理该请求，那么它会把相同的请求传给下一个接收者，依此类推。
+3. 属于行为型模式
+
+![](./legend/chainofresponsibility_pirnciple.jpg)
+
+1. Handler : 抽象的处理者, 定义了一个处理请求的接口, 同时含义另外Handler
+2. ConcreteHandlerA , B 是具体的处理者, 处理它自己负责的请求， 可以访问它的后继者(即下一个处理者), 如果可以处理当前请求，则处理，否则就将该请求交个后继者去处理，从而形成一个职责链
+3. Request ， 含义很多属性，表示一个请求
+
+![](./legend/chainofresponsibility_example.jpg)
+
+```java
+public class PuchaseRequest {
+    private int type = 0;
+    private float price = 0.0f;
+    private int id = 0;
+
+    public PuchaseRequest(int type, float price, int id) {
+        this.type = type;
+        this.price = price;
+        this.id = id;
+    }
+    public int getType() {
+        return type;
+    }
+    public float getPrice() {
+        return price;
+    }
+    public int getId() {
+        return id;
+    }
+}
+
+public abstract class Approver {
+    Approver approver;//下一个处理者
+    String name;//负责人姓名
+
+    public Approver(String name) {
+        this.name = name;
+    }
+
+    public void setApprover(Approver approver) {
+        this.approver = approver;
+    }
+    //处理审批请求的方法，得到一个请求，处理是子类完成，因此该方法抽象
+    public abstract void processRequest(PuchaseRequest puchaseRequest);
+
+}
+public class DepartmentApprover extends Approver{
+    public DepartmentApprover(String name) {
+        super(name);
+    }
+
+    @Override
+    public void processRequest(PuchaseRequest puchaseRequest) {
+        if(puchaseRequest.getPrice()>0 && puchaseRequest.getPrice()<=5000){
+            System.out.println("请求编号id="+puchaseRequest.getId()+"被"+this.name+"处理");
+        }else if(puchaseRequest.getPrice()<=0){
+            System.out.println("请求购买任务出错");
+        }else{
+            approver.processRequest(puchaseRequest);
+        }
+    }
+}
+public class CollegeApprover extends Approver {
+    public CollegeApprover(String name) {
+        super(name);
+    }
+
+    @Override
+    public void processRequest(PuchaseRequest puchaseRequest) {
+        if (puchaseRequest.getPrice()>5000 && puchaseRequest.getPrice() <= 10000) {
+            System.out.println("请求编号id=" + puchaseRequest.getId() + "被" + this.name + "处理");
+        } else {
+            approver.processRequest(puchaseRequest);
+        }
+    }
+}
+//省略其他负责人
+
+public class Client {
+    public static void main(String[] args) {
+
+        //创建请求
+        PuchaseRequest puchaseRequest = new PuchaseRequest(1,30000,1);
+
+        //创建各级负责人
+        DepartmentApprover departmentApprover = new DepartmentApprover("系主任");
+        CollegeApprover collegeApprover = new CollegeApprover("院长");
+        ViceMasterApprover viceMasterApprover = new ViceMasterApprover("副校长");
+        MasterApprover masterApprover = new MasterApprover("校长");
+
+        //将各个级别的下一级，设置好，并形成环状（使职责链的起点可以为任何级别的负责人）
+        departmentApprover.setApprover(collegeApprover);
+        collegeApprover.setApprover(viceMasterApprover);
+        viceMasterApprover.setApprover(masterApprover);
+        masterApprover.setApprover(departmentApprover);
+
+        //正规处理，是从最级别的负责人开始处理
+        departmentApprover.processRequest(puchaseRequest);
+
+    }
+}
+```
+
+## 25.3 源码分析
+
+SpringMVC-HandlerExecutionChain 类就使用到职责链模式
+
+1. springmvc 请求的流程图中，执行了拦截器相关方法interceptor.preHandler 等等
+2. 在处理SpringMvc 请求时，使用到职责链模式还使用到适配器模式
+3. HandlerExecutionChain 主要负责的是请求拦截器的执行和请求处理,但是他本身不处理请求，只是将请求分配给链上注册处理器执行，这是职责链实现方式,减少职责链本身与处理逻辑之间的耦合,规范了处理流程
+4. HandlerExecutionChain 维护了HandlerInterceptor 的集合， 可以向其中注册相应的拦截器.
+
+## 25.4 职责链模式小结
+
+1. 将请求和处理分开，实现解耦，提高系统的灵活性
+2. 简化了对象，使对象不需要知道链的结构
+3. 性能会受到影响，特别是在链比较长的时候，因此需控制链中最大节点数量，一般通过在Handler 中设置一个最大节点数量，在setNext()方法中判断是否已经超过阀值，超过则不允许该链建立，避免出现超长链无意识地破坏系统性能
+4. 调试不方便。采用了类似递归的方式，调试时逻辑可能比较复杂
+5. 最佳应用场景：有多个对象可以处理同一个请求时，比如：多级请求、请假/加薪等审批流程、Java Web 中Tomcat对Encoding 的处理、拦截器
+
+# 26 心得
+
+有意识的去使用设计模式
+
+无它，但手熟尔。
+
+纸上得来终觉浅，觉知此事要躬行
