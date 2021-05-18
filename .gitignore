@@ -8,6 +8,7 @@ build
 material
 .idea
 out
+class
 
 #java----------------
 *.class

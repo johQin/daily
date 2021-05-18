@@ -93,8 +93,12 @@ git status
 git diff 
 #将缓存区的所有内容一次性添加到本地库中,也可以指定某一文件
 git commit -m "提交描述" [<file>] 
-#删除缓存区中某一已经git add 的文件
+#删除缓存区中某一已经git add 的文件，f——force，强制
 git rm -f --cached <file> 
+#在本地仓库删除文件
+git rm 我的文件
+#在本地仓库删除文件夹，r——recursive，迭代
+git rm -r 我的文件夹/
 #用于移动或重命名一个文件、目录、软连接。
 git mv 
 
@@ -191,6 +195,14 @@ git status
 ```
 
 ![](legend/gitdelete.png)
+
+#### 移动文件
+
+```bash
+git mv file_from file_to
+```
+
+
 
 ## 2.5 版本控制
 
