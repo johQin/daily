@@ -14,28 +14,21 @@ this is my daily life
 # 仓库结构
 
 ```bash
-├── algorithm                   # 数据结构与算法，剑指offer的python实现，及其他排序查找算法
-├── bigData                     # 人工智能，机器学习基础内容
-├── frontEnd					          # 前端项目基础入门，以html、css、javascript为基础，主要围绕基于react的antd pro2.0框架展开，
-├── gitHub						          # github基础入门
-│   ├── legend           # 所有文件夹的子文件夹都是这个意思，markdown文件插图，在线查看文档时无法查看，单独查看图片时可以的
-│   └── gate    	       # 入门代码
-├── Japanese                    # 日语入门，包含日语50音，及其它发音基础内容
-├── java                        # java基础入门，主要涉及java的面向对象基础，
-├── Life						            # 包含生活常用知识哲理，相机等
-├── linux                    	  # linux部分涉及到基本安装，后期应该会继续完善文档，
-├── NLP                   		  # 关于自然语言的相关算法及名词解释等，较为基础
-├── Node                     	  # node还待完善 
-├── offer						            # 关于前端的基础知识，面向工作，故命名为offer
-├── pattern						          # 设计模式，还没学完，仅仅学习了单例模式，后面会继续完善
-├── python                      # python的基础语法，几种数据结构和面向对象，未完结
-├── spring                      # 包含spring，和springboot相关内容，
-├── sql                     	  # 主要面向mysql的学习，
-├── tool						            # 正则表达式的使用，主要用于存放工具
-├── TypeScript					        # typescript的基础入门，有待完善
-├── Vue							            # vue主要内容
-├── webpack                    	# webpack基础内容，打包思路和优化
-├── windows                     # windows操作随记
+├── algorithm                   # 数据结构与算法，剑指offer（python实现）
+├── backEnd						# 后端基础，设计模式pattern，spring&springBoot，mysql数据库
+├── bigData                     # 大数据与人工智能基础内容，数据分析等内容
+├── computer					# 计算机综合，待完善，包括计网，计组，数据结构，操作系统
+├── frontEnd					# 前端项目基础入门
+│									# 基础html css javascript typescript
+│									# 框架react Vue antd antv echarts，
+│									# 平台node，打包webpack，前端面试基础offer
+├── Language					# 开发语言和自然语言，包括英语，日语，java，python等内容
+├── Life						# 丰富多彩的生活，包括羽毛球，相机，易经，等乱七八糟的东西
+├── office						# 包含word excel visio axure
+├── position					# 职场生活待完善						
+├── server                    	# 服务器部分，linux windows github subversion
+├── test                   		# 测试方面的内容，现在只有postman
+├── tool						# 工具类文档，正则表达式等其他内容
 └── README.md
 ```
 
