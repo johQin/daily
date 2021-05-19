@@ -46,7 +46,7 @@
 
 1. I didn‘t hear you clearly, Could you repeat that?/ Pardon? 能再说一遍吗？
 2. please speak more slowly 请说慢一点
-3. how do you say that? 
+3. how do you say/spell/pronounce this word [ in English ]? 怎么说/拼/发音
 4. 
 
 # 跬步
