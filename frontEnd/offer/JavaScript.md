@@ -774,7 +774,7 @@ stringObject.strike()//加删除线
      dog.smile()
      ```
 
-   - ![](E:/gitRepository/daily/offer/legend/__proto__.png)
+   - ![](./legend/__proto__.png)
 
 9. 异步回调地狱：
 
@@ -1860,7 +1860,7 @@ stringObject.strike()//加删除线
 
    - 避免JavaScript操作DOM失效
    - script脚本阻塞html的解析，导致浏览器显示空白的时间增长。
-   - ![](E:/gitRepository/daily/offer/legend/html%E8%A7%A3%E6%9E%90.png)
+   - ![](./legend/html%E8%A7%A3%E6%9E%90.png)
 
 6. data-属性
 
@@ -2675,9 +2675,9 @@ Vuex 是一个专为 Vue.js 应用程序开发的**状态管理模式**。它采
 
    - 多路复用
      - http1.1浏览器客户端在同一时间，针对同一域名下的请求有一定数量限制。超过限制数目的请求会被阻塞，可以通过多CDN(content delivery network）解决同一域名请求的数量限制。
-     - ![http1.1请求数量限制.jpg](E:/gitRepository/daily/offer/legend/http1.1%E8%AF%B7%E6%B1%82%E6%95%B0%E9%87%8F%E9%99%90%E5%88%B6.jpg)
+     - ![http1.1请求数量限制.jpg](./legend/http1.1请求数量限制.jpg)
      - 而 HTTP/2 的多路复用(Multiplexing) 则允许同时通过单一的 HTTP/2 连接发起多重的<strong>请求-响应</strong>
-     - ![](E:/gitRepository/daily/offer/legend/http2.0%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8.jpg)
+     - ![](./legend/http2.0多路复用.jpg)
    - 服务器推送
      - 在 HTTP/2 中，服务器可以对客户端的一个请求发送多个响应。比如说一个页面
      - 服务器推送还有一个很大的优势：可以缓存
@@ -2745,7 +2745,7 @@ Vuex 是一个专为 Vue.js 应用程序开发的**状态管理模式**。它采
 
     - 因为服务器上的资源并不是一成不变的，我们希望服务器上的资源更新了浏览器就请求新的资源，没有更新就使用本地的缓存，以最大程度的减少因网络请求而产生的资源浪费。
 
-    - ![](E:/gitRepository/daily/offer/legend/%E7%BC%93%E5%AD%98.png)
+    - ![](./legend/缓存.png)
 
       
 
@@ -2832,7 +2832,7 @@ Vuex 是一个专为 Vue.js 应用程序开发的**状态管理模式**。它采
 
 不稳定：选择，希尔，快速，堆
 
-![十大排序比较.png](E:/gitRepository/daily/offer/legend/%E5%8D%81%E5%A4%A7%E6%8E%92%E5%BA%8F%E6%AF%94%E8%BE%83.png)
+![十大排序比较.png](./legend/%E5%8D%81%E5%A4%A7%E6%8E%92%E5%BA%8F%E6%AF%94%E8%BE%83.png)
 
 1. 插入排序：找位置，腾位置，入座
    - @desc 插入法：如同打扑克摸牌，一边摸一边整理手上牌的顺序，手上的牌是有序的，将摸到的牌插入有序的牌中。
