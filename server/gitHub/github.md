@@ -606,3 +606,24 @@ git merge [远程库地址别名/远程分支名]
 5. publish page
 
 修改主页也是通过这样
+
+# 6 bug
+
+1. git push or git pull时
+
+   ```bash
+   git push origin feature_1:feature_1
+   # 冒号两边不能有空格
+   # 参考网页：https://blog.csdn.net/hanmindaxiongdi/article/details/81433730
+   
+   # 使用git push origin a:a 提示一下错误
+   #error: dst ref refs/heads/dev receives from more than one src.
+   #error: failed to push some refs to 'git@github.com:xxx/xxx.git'
+   
+   # 这个问题主要是由于参数不对，它明明要三个参数「push」「origin」以及「A:A」的，
+   # 你却给它五个：「push」「origin」「A」「:」「A」。shell 中空格导致的问题不少
+   ```
+
+   
+
+2. 
