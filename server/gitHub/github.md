@@ -233,7 +233,17 @@ git reset --hard HEAD~n #后退n个版本
 
 工作区文件删除找回和缓存区文件删除找回
 
-## 2.6 比较文件
+法二：
+
+```bash
+git checkout -- <file>
+#在被删除的文件路径下，执行此命令，可以从缓存区（如果缓存区没有，那么将从本地库）中恢复最近版本的该文件到工作区
+#参考网址：https://www.jianshu.com/p/285302d1eb73
+```
+
+
+
+## 2.6 比较文件diff
 
 ```bash
 git diff <file> #表示工作区文件和暂存区文件进行比较
@@ -241,7 +251,7 @@ git diff <历史版本号> <file> #表示工作区文件和版本库文件进行
 #不带文件名，比较所有文件
 ```
 
-## 2.7 分支管理
+## 2.7 分支管理branch
 
 在版本控制中，使用多条线同时推进多个任务。
 
@@ -253,15 +263,17 @@ git diff <历史版本号> <file> #表示工作区文件和版本库文件进行
 
 ![branch.png](legend/branch.png)
 
-
+### 2.7.1 本地库分支操作
 
 ```bash
-#查看所有分支
-git branch -v 
-#创建分支
+#查看 本地库所有分支
+git branch -v #本地库所有分支
+#创建本地分支
 git branch branch_name 
 #切换分支
 git checkout branch_name
+#创建并切换到新分支
+git checkout -b branch_name
 
 # 合并分支
 # 首先切换到接受修改的分支上
@@ -286,6 +298,42 @@ git commit -m "提交描述"
 git branch -D branch_name
 
 ```
+
+### 2.7.2 远程库分支操作
+
+```bash
+# 在克隆远程项目的时候，本地分支会自动与远程分支建立追踪关系，可以使用默认的origin来替代远程仓库名
+
+#在本地新建一个与远程的dev版本相同（被合并的版本）的dev分支
+git checkout -b local_branch_name origin/remote_branch_name
+
+#查看远程库的所有分支
+git branch -r #remote 远程所有分支，-a也可以实现此效果
+
+#提交本地local_branch_name分支作为远程remote_branch_name的分支
+git push origin local_branch_name:remote_branch_name #冒号两边一定不能有空格
+
+#删除远程分支
+git push origin :remote_branch_name
+```
+
+### 2.7.3 查看分支间的差异
+
+```bash
+#查看branch_a有，而branch_b没有的差异
+git log branch_a ^branch_b
+#查看branch_a比branch_b多提交的内容
+git log branch_b..branch_a#两个点只显示两个多余的提交，三个点会显示所有提交差异
+#查看两个分支之间的提交差异
+git log --left-right branch_a...branch_b
+#命令输出示例
+#commit > 版本hash码
+#...
+#commit < 版本hash码
+#大小于号，朝向左表示提交是在branch_a上提交的，朝向右表示提交是在branch_b上提交的。
+```
+
+
 
 ## 2.8 .gitconfig
 
@@ -502,7 +550,9 @@ git clone https://github.com/johQin/daily.git
 
 ![](legend/gitclone.png)
 
-## 4.2 本地同步到git远程版本库
+## 4.2 提交本地代码push
+
+提交本地代码到远程库
 
 在git commit的基础上增加了git push操作。
 
@@ -543,7 +593,20 @@ vi .git/config
 git status
 git add test.js
 git commit -m '修改了test.js'
+
+#在克隆远程项目的时候，本地分支会自动与远程分支建立追踪关系，可以使用默认的origin来替代远程仓库名
 git push [远程库地址别名] [分支名]
+
+#可以使用默认的origin来替代远程仓库名
+#将本地当前分支 推送到 远程指定分支上
+git push [远程仓库名] [本地分支名]:[远程分支名]
+#eg：
+git push origin dev:dev #将本地的dev分支提交到远程库的dev分支
+
+#将本地当前分支 推送到 远程指定分支上
+git push [远程仓库名] [远程分支名]
+#将本地当前分支 推送到 与本地当前分支同名的远程分支上
+git push [远程仓库名] #与git push功能一致
 ```
 
 ## 4.3 邀请团队开发者
@@ -563,7 +626,7 @@ git push [远程库地址别名] [分支名]
 
 4. 然后，成员就可以push代码了。
 
-## 4.4 更新代码
+## 4.4 更新代码pull
 
 先更新再提交
 
