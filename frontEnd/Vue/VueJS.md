@@ -797,6 +797,23 @@ $ npm run serve
 </script>
 ```
 
+在利用Vue插槽的时候，如果不在slot外加一个div，那么被嵌入的内容样式将会被修改，特别是布局样式
+
+```vue
+<template>
+	<div class="info-container">
+        <div>
+    		你好，先生
+    	</div>
+        <div>
+        	<slot></slot>    
+    	</div>
+    </div>
+</template>
+```
+
+
+
 ## 3.3 动态组件
 
 ```vue

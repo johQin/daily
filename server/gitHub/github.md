@@ -241,8 +241,6 @@ git checkout -- <file>
 #参考网址：https://www.jianshu.com/p/285302d1eb73
 ```
 
-
-
 ## 2.6 比较文件diff
 
 ```bash
@@ -538,6 +536,8 @@ Git 把数据看作是小型文件系统的一组快照。每次提交更新时G
 
 ## 4.1 克隆项目到本地
 
+### 4.1.1 通过http方式
+
 将远程仓库（github上对应的项目）复制到本地。
 
 仓库地址如下图。
@@ -545,12 +545,62 @@ Git 把数据看作是小型文件系统的一组快照。每次提交更新时G
 ![](legend/clone.png)
 
 ```bash
+#默认克隆远程的master
 git clone https://github.com/johQin/daily.git
+#克隆远程的某个分支
+git clone -b remote_branch_name 远程库地址
+#在克隆远程项目之后，本地分支会自动与远程分支建立追踪关系，可以使用默认的origin来替代远程仓库名
 ```
 
 ![](legend/gitclone.png)
 
-## 4.2 提交本地代码push
+### 4.1.2 通过SSH方式
+
+SSH方式是通信服务器之间使用数字签名（密钥）的方式建立连接，而不是通过用户名和密码（http数据库方式）。
+
+通信服务器都需要知道密钥，密钥产生服务器方需要将密钥给需要通信的服务器，这样双方都知道密钥（数字签名），这之后，二者才能通信。
+
+在gitlab中，有如此应用，当然github也可以这样用。
+
+Gitlab
+
+- ssh-key的使用和解释，通过密钥和私钥的方式，建立线上库和本地库的连接，使后面的连接不需要再输入用户名和密码。
+
+  ```bash
+  ssh-keygen -t ed25519 -c "备注，通常为自己的邮箱"
+  # SSH keys allow you to establish a secure connection between your computer and GitLab
+  # -t 用来指定加密方式，这里采用了ed25519加密，其他的有rsa，dsa
+  # 执行这个命令后，会在用户的主目录下，生成.ssh文件夹，进入后，将.pub文件通过记事本打开，复制里面的字符串到
+  # gitlab->avatar头像的setting->SSH keys -> key输入框->add key
+  # 在此设置之后git clone/push/pull 等操作就不会让我们再输密码了
+  ```
+
+- 配置本地账户名和邮箱
+
+  ```bash
+  git config --global user.name "qin"
+  git config --global user.email "qin@tech.com"
+  ```
+
+- 忽略SSL证书错误
+
+  ```bash
+  git config --global http.sslverify false
+  ```
+
+- 可以开始clone库了
+
+  - https方式直接克隆，后面会出现弹框让你输入用户名和密码
+
+  - ssh需要在clone前设置ssh连接，尔后在通过ssh方式，就不需要输入用户名和密码了
+
+  - ```bash
+    git clone -b remote_branch_name http或ssh克隆凡是远程库地址链接
+    #下面是ssh方式，eg:
+    #git clone -b dev git@....git
+    ```
+
+## 4.2 提交代码push
 
 提交本地代码到远程库
 
@@ -689,4 +739,4 @@ git merge [远程库地址别名/远程分支名]
 
    
 
-2. 
+2. git checkout -- HelloWorld.txt，相当于一键还原，将文件修改为最近一次commit或add时的状态。
