@@ -282,7 +282,7 @@ Unix Software Resource
 3. **mkdir**：新建一个目录（make directory）
    - -m 711 配置文件权限
    - -p test/test1/test2 自行创建多层目录
-4. **rmdir**：删除一个目录，
+4. **rmdir**：删除一个目录，只能删除空目录
    - -rf 强制删除，不做任何提示
    - f参数少用
 
@@ -294,6 +294,8 @@ Unix Software Resource
    - cp -rf 源目录 目标目录
 3. **rm**：删除文件或目录
    - rm -rf 递归强制删除文件、目录及其子目录和子文件
+   - -r 只能删除文件
+   - -R 既能删除文件又能删除文件夹
 4. **mv**：移动文件与目录，或更名
    - [-fiu] source distination
    - -f，强制，如有则覆盖
