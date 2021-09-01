@@ -16,6 +16,8 @@ Model-View-Control，数据存储（变量）-用户视图（界面）-控制器
 
 ![MVC.PNG](/legend/MVVM.JPG)
 
+![](./legend/mvvm_backEnd.webp)
+
 ## 1.2 三大前端框架
 
 VueJS(70%)，ReactJS(20%)，AngularJS(10%)
