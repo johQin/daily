@@ -4355,6 +4355,12 @@ https://github.com/spring-projects/spring-boot/tree/master/spring-boot-samples
 
 10. 字符查找和替换：【Ctrl+F】【Ctrl+R】
 
+11. 自定义快捷输入：
+
+    - `file->setting->搜索live template，为不同后缀名的文件添加不同的快捷输入`
+
+12. 
+
    
 
 
