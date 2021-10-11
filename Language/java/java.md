@@ -1499,7 +1499,7 @@ Map接口下则有HashMap、LinkedHashMap、SortedMap、TreeMap、EnumMap等等�
 - `boolean containsKey(Object key)、boolean containsValue(Object value)`
 - 
 
-# 6 泛型
+# 6. 泛型
 
 一旦把一个对象丢进java集合中，集合就会忘记对象的类型，把所有对象当成Object类型处理，当程序从集合中取出对象后，就需要进行强制类型转换，这种转换不仅使代码臃肿，而且容易引起classCastException异常。
 
@@ -1582,7 +1582,7 @@ System.out.println(l1.getClass() === l2.getClass())//true
 
 为了表示各种泛型的父类，可以使用类型通配符，类型通配符是一个问号，它的元素类型可以匹配任何类型。
 
-但这种带通配符的List仅表示它是各种泛型List的父类，不能把元素加入到其中（不可写）eg：
+### ? extends superClass
 
 ```java
 List<?> c = new ArrayList<String>();
@@ -1609,18 +1609,195 @@ public class Canvas{
             s.draw(this);
         }
     }
-    //正例方法
-    public void 
+    //正例方法，
+    public void drawAll(List<? extends Shape> shapes){
+        //通过使用通配符的上限，即List<? extends Shape>可以被表示List<Circle>、List<Ractangle>的父类
+        //这种指定通配符上限的集合，只能从集合中取元素（取出的元素总是上限的类型）
+        for(Shapes s : shapes){
+            s.draw(this)
+        }
+    }
+    public void addRectangle(List<? extends Shape> shapes){
+        //下面将引起报错
+        shapes.add(0,new Rectangle());
+        //shapes.add()的第二个参数类型是? extends Shape，它表示Shape未知的子类，程序无法确定这个类型是什么，所以无法将任何对象添加到集合中。
+        //(因为编译器没法确定集合元素实际是哪种子类型)
+        
+    }
 }
 public class Test{
     public static void main(String[] args){
         List<Circle> circleList = new ArrayList<>();
         Canvas c = new Canvas();
-        //不能将List<Circle>当成List<Shape>使用，所以下面代码引起编译错误
+        //如果用错误的方法，则不能将List<Circle>当成List<Shape>使用，所以下面代码引起编译错误
         c.drawAll(circleList)
     }
 }
 ```
+
+指定通配符上限就是为了支持类型型变，Foo是Bar的子类，这样`A<Foo>就相当于A<? extends Bar>的子类`，可以将`A<Foo>赋值给A<? extends Bar>类型的变量`，这种型变方式称为协变。
+
+对于协变的泛型类来说，它只能调用泛型类型作为返回值类型的方法（编译器会将该方法返回值当成通配符上限的类型），而不能调用泛型类型作为参数的方法，口诀是：协变只出不进。
+
+### ? super subClass
+
+指定通配符的下限就是为了支持类型型变，比如Foo是Bar的子类，当程序需要一个`A<? super Foo>变量时，程序可以将A<Bar>、A<Object>赋值给A<? super Foo>类型的变量`，这种型变方式称为逆变
+
+对于逆变的泛型集合来说，编译器只知道集合元素是下限的父类型。但具体是哪种父类型则不确定。因此这种逆变的泛型集合能向其中添加元素（因为实际赋值的集合元素总是逆变声明的父类），从集合中取元素时只能被当做Object类型处理（编译器无法确定取出的到底是哪个父类的对象）。
+
+```java
+public class MyUtils{
+    public static <T> T copy(Collection<? super T> dest, Collection<T> src){
+        T last = null;
+        for(T ele : src){
+            last = ele;
+            dest.add(ele);
+        }
+        return last;
+    }
+    public static void main(String[] args){
+        List<Number> ln = new ArrayList<>();
+        List<Integer> li = new ArrayList<>();
+        li.add(5);
+        Integer last = copy(ln, li);
+        System.out.println(ln);
+    }
+}
+```
+
+## 6.4 泛型方法
+
+在定义类、接口的时候没有使用泛型形参，但定义方法时想自定义泛型形参——泛型方法
+
+所谓泛型方法，就是在声明方法时定义一个或多个泛型形参，泛型方法的语法格式如下：
+
+```java
+//定义泛型方法的语法格式
+修饰符 <T, S> 返回值类型 方法名( 形参列表 ){
+	//方法体
+    //泛型方法和普通方法格式比较起来，多个泛型形参声明，泛型形参声明以尖括号括起来，多个泛型形参之间以逗号隔开。
+    //所有泛型形参声明放在方法修饰符和返回值类型之间
+}
+public class GenericMethodTest{
+    static <T> void fromArrayToCollection(T[] a, Collection<T> c){
+        for(T o : a){
+            c.add(o);
+        }
+    }
+    public static void main(String[] args){
+        String[] sa = new String[100];
+        Collection<string> cs = new ArrayList<>();
+        //与类和接口中使用泛型参数不同，方法中的泛型参数无须显式传入实际类型参数，编译器可以根据实参进行推断
+        fromArrayToCollection(sa,cs);
+    }
+}
+
+//泛型方法大部分时候可以代替类型通配符
+public interface Collection<E>{
+    boolean containsAll(Collection<?> c);
+    boolean addAll(Collection<? extends E> c);
+}
+public interface Collection<E>{
+    <T> boolean containAll(Collection<T> c);
+    <T extends E> boolean addAll(Collection<T> c);
+}
+```
+
+泛型方法使用场景：
+
+泛型形参被用来表示方法的一个或多个参数之间的类型依赖关系，或者方法的返回值与参数之间的类型依赖关系。如果没有这样类型的依赖关系，就不应该使用泛型方法。
+
+# 7. 类加载与反射
+
+## 7.1 类加载
+
+当程序主动使用某个类，如果该类还未被加载到内存中，则系统会通过：类的加载、类的连接，类的初始化三个步骤来对该类进行初始化，如果没有意外，JVM会连续完成这三个动作，所以有时也把这三个步骤统称为类加载或类的初始化。
+
+### 7.1.1 JVM
+
+当调用java命令运行某个java程序时，该命令将会启动一个JVM（java虚拟机）进程，不管java程序多么复杂，该程序启动了多少个线程，它们都处于该Java虚拟机进程中，他们都是用该JVM的内存区。
+
+系统出现以下情况，JVM进程将被终止：
+
+- 程序运行到最后正常结束
+- 程序执行到`System.exit()或Runtime.getRuntime().exit()`代码处
+- 程序遇到未捕获的异常或错误
+- 程序所在平台强制结束JVM进程
+
+### 7.1.2 类的加载
+
+类的加载指的是将类的class文件读入内存，并为之创建一个`java.lang.Class`对象
+
+类的加载由类的加载器完成，通常由JVM提供（系统类加载器），这些加载器是所有程序运行的基础。除此以外，开发者可以通过继承ClassLoader来创建自己的类加载器
+
+通过使用不同的类加载器，可以从不同来源加载类的二进制数据，通常有以下来源
+
+- 本地文件系统加载class文件
+- jar包中加载class文件
+- 通过网络加载class文件
+- java源文件动态编译，并执行加载。
+
+类加载器通常无需等到“首次使用”该类时才加载该类，JVM规范允许系统预先加载某些类。
+
+### 7.1.3 类的连接
+
+类的连接负责把类的二进制数据合并到JRE中。类连接存在下面三个阶段
+
+- 验证，用于检验被加载的类是否有正确的内部结构，并和其它类协调一致
+- 准备，负责为类的类变量分配内存，并设置默认初始值
+- 解析，将类的二进制数据中的符号引用替换成直接引用
+
+### 7.1.4 类的初始化
+
+JVM初始化一个类包含如下几个步骤：
+
+- 假如一个类还没有被加载和连接，则程序先加载并连接该类
+- 假如该类的直接父类还未被初始化，则先初始化其直接父类
+- 假如类中有初始化语句，则系统依次执行这些初始化语句
+
+初始化时机：
+
+- 创建类的实例，创建实例的方式有：new操作符，反射，反序列化
+- 调用某个类的静态方法
+- 调用某个类的静态变量，或为该静态变量赋值
+- 使用反射方式来强制创建某个类或接口对应的java.lang.Class对象
+- 初始化某个类的子类，该子类的所有父类都会被执行初始化
+- java.exe命令来运行某个主类
+
+如果final的类变量可以在编译时确定值，当程序其他地方使用该类变量时，实际上并没有使用该变量，而相当于使用常量，则不会导致类的初始化。
+
+## 7.2 类加载器
+
+类加载器负责实现类的加载，负责将.class文件（在网络上，或在磁盘上）加载到内存中，并为之生成对应的j`ava.lang.Class`对象
+
+### 7.2.1 类加载机制
+
+一旦一个类被载入到JVM中，同一个类就不会被再次载入了，在java中，一个类用其全限定类名（包括包名和类名）作为唯一标识。但在JVM中一个类用全限定名和其类加载器作为唯一标识。
+
+JVM的类加载机制
+
+- 全盘负责：当一个加载器加载某个Class时，那么该Class所依赖和引用的其它Class都由其负责，除非显示使用另外一个加载器来载入。
+- 父类委托：先让父类加载器（加载器的父类）试图加载该Class，只有父类加载器无法加载该类时才会尝试从自己的类路径中加载该类
+- 缓存机制：该机制保证所有加载过Class都会被缓存，当程序需要使用某个Class时，类加载器会首先在缓存区中搜寻该Class，如果缓存区不存在，系统才会读取该类对应的二进制数据，并将其转换成Class对象，存入缓存区。
+
+类加载器之间的继承关系不是类继承上的父子关系，而是类加载器实例之间的关系。
+
+![](./legend/类加载器实例之间的关系.png)
+
+```java
+
+public class Test{
+    public static void main(String[] args){
+        //获取系统类加载器
+		ClassLoader systemLoader = classLoader.getSystemClassLoader();
+        //获取系统类加载器的父类加载器，扩展类加载器
+        ClassLoader extensionLoader = systemLoader。getParent();
+    }
+```
+
+
+
+### 7.2.2 自定义类加载器
 
 
 
