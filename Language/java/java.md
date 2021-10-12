@@ -876,7 +876,18 @@ public class Apple extends Fruit{
 
 ——同一类型的多个实例，在执行同一方法时，呈现出多种行为特征
 
+java引用变量有两个类型：
+
+- 一个是编译时类型，一个是运行时类型。
+- 编译时类型由声明该变量时使用的类型决定
+- 运行时类型由实际赋给该变量的对象决定。
+- 如果编译时类型和运行时类型不一致，就可能出现多态
+
 <h5>一、转型</h5>
+
+基本类型之间的转换只能在数值类型之间进行。
+
+引用类型之间的转换只能在具有继承关系的两个类型之间进行。
 
 1. 向上转型：子类对象可直接赋值给父类变量（自动完成）；
 
@@ -1791,13 +1802,217 @@ public class Test{
         //获取系统类加载器
 		ClassLoader systemLoader = classLoader.getSystemClassLoader();
         //获取系统类加载器的父类加载器，扩展类加载器
-        ClassLoader extensionLoader = systemLoader。getParent();
+        ClassLoader extensionLoader = systemLoader.getParent();
     }
 ```
 
 
 
 ### 7.2.2 自定义类加载器
+
+JVM中除了根类加载器之外的所有类加载器都是ClassLoader子类的实例，开发者可以通过继承ClassLoader来实现自定义。
+
+java为ClassLoader提供了一个URLClassLoader实现类，它既可以从本地文件系统获取二进制文件来加载类，也可以从远程主机获取二进制文件来加载类。
+
+## 7.3 反射
+
+引用对象存在在运行时存在两种类型：编译时类型和运行时类型，`例如：Person p = new Student();`
+
+该变量编译类型为Person，运行时类型为Student。
+
+当Person类和Student类都存在同样的方法时，在运行时就可以调用到运行时类型的方法（多态）。
+
+当一个方法存在于Student类，而不存在于Person类，那么程序就会报错。
+
+程序在很多时候需要调用运行时类型的方法，并且此时也不知道对象和类属于哪些类，程序只依靠运行时信息来发现该对象的真实信息，这就必须使用反射。
+
+### 7.3.1 获取Class对象
+
+每个类被加载之后，系统就会Wie该类生成一个Class对象，通过该Class对象就可以访问到JVM中的这个类。
+
+在java程序中获得Class对象通常有如下三种方式：
+
+1. 通过类来获取
+   - 通过Class类的`forName(String clazzName)`静态方法，clazzName为类的全限定类名
+   - 通过某个类的`class属性`，例如：`Person.class`
+2. 通过对象来获取
+   - `调用某个对象的getClass()`方法
+
+### 7.3.2 由Class对象获取信息
+
+Class类提供了大量的**实例方法**来获取该Class对象所对应类的详细信息。
+
+1. 获取构造器
+   - `Constructor<T> getConstructor(Class<?> ... parameterTypes),`返回此Class对象对应类的，带指定形参列表的public构造器
+   - `Constructor<?>[] getConstructors(),`返回此Class对象对应类的所有Public构造器
+   - `Constructor<T> getDeclaredConstructor(Class<?> ... parameterTypes),`返回此Class对象对应类的所有public构造器、带指定形参。与构造器访问权限无关
+   - `Constructor<?>[] getDeclaredConstructors(),`返回此对象所有构造器，与构造器访问权限无关
+2. 获取方法，与构造器一致，只需把Constructor换成Method即可
+3. 获取成员变量，与构造器一致，只需把Constructor换成Field即可
+4. 获取Class对应类上所包含的Annotation、内部类、修饰符、所在包、类名等基本信息
+   - `int gitModifiers()`，获取修饰符
+   - `Package getPackage()`，获取此类的包
+   - `String getName()`，获取类名，`getSimpleName`获取类名的简称
+5. Class对象还可以调用几个判断方法来判断该类是否为接口、枚举、注解类型等
+   - `boolean isAnnotation(), isAnnotationPresent(Class<? extends Annotation> annotationClass)`
+   - `boolean isInterface(), isInstance(Object obj)`
+6. 
+
+### 7.3.3 创建并操作对象
+
+Class对象可以获得该类里的方法（由Method对象表示）、构造器（由Constructor对象表示）、成员变量（由Field对象表示），程序可以通过Method对象来执行对应的方法、通过Construcor对象来调用对应的构造器来创建对象，通过Field对象直接访问并修改对象的成员变量值。
+
+这三个类都位于java.lang.reflect包下，并实现了java.lang.reflect.Member接口。
+
+#### 创建
+
+通过反射创建对象步骤：
+
+- 先使用Class对象获取指定的Constructor对象，
+
+- 再调用Constructor对象的`newInstance()`方法创建该Class对象对应类的实例
+
+- ```java
+  Class<?> clazz = Class.forName(clazzName);//获取Class对象
+  clazz.getConstructor().newInstance();//获取构造器后，生成对应类的对象
+  ```
+
+#### 调用方法
+
+通过反射调用方法步骤：
+
+- 先使用Class对象的`getMethod()`获取全部方法或指定方法，这个方法的返回值是Method数组，或者Method对象，每个Method对象对应一个方法。
+
+- 通过Method对象调用`invoke()`方法
+
+  - `Object invoke（Object obj, Object... args)`，该方法中的obj是执行该方法的的主调，args是传入方法的实参
+
+- ```java
+  Class<?> targetClass = target.getClass();
+  Method mtd = targetClass.getMethod('setMoney', String.class);
+  mtd.invoke(target, 100);
+  ```
+
+#### 操作成员变量
+
+操作成员变量步骤
+
+- 通过Class对象的`getField()`获取该类的所有成员变量或指定成员变量。
+
+- Field对象提供了如下两组方法来读取或设置成员变量值
+
+  - `getXxx(Object obj)`：获取obj对象的该成员变量的值。此处的Xxx对应8种基本类型，如果成员变量的类型为引用类型，则无需Xxx
+  - `setXxx(Object obj,Xxx val)`：描述如上
+
+- ```java
+  Person p = new Person()
+  
+  Class<Person> personClazz = Person.class;
+  
+  Field nameField = personClazz.getDeclaredField("name");
+  nameField.setAccessible(true);//设置通过反射访问该成员变量时取消访问权限检查
+  nameField.set(p, "qin");
+  
+  Field ageField = personClazz.getDeclaredField("age");
+  ageField.setAccessible(true);
+  ageField.setInt(p, 30);
+  ```
+
+- 
+
+#### 操作数组
+
+java.lang.reflect包下还有一个Array类，Array对象可以代表所有数组，程序可以通过使用Array来动态地创建数组，操作数组元素等
+
+- `static Object newInstance(Class<?> componentType, int... length)`：创建一个具有指定元素类型、指定维度的新数组
+
+- `static xxx getXxx(Object array, int index)`,
+
+- `static void setXxx(Object array, int index)`,
+
+- ```java
+  Object arr = Array.newInstance(String.class, 10);
+  Array.set(arr,5,"QIN NI HAO");
+  Object hello = Array.get(arr,5);
+  system.out.println(hello);
+  ```
+
+## 7.4 动态代理
+
+使用反射可以生成jdk动态代理
+
+在java的java.lang.reflect包下提供了一个Proxy类和一个InvocationHandler接口，通过使用这个类和接口可以生成JDK动态代理类或动态代理接口。
+
+Proxy提供了如下两个静态方法来创建动态代理类和动态代理实例
+
+- `static Class<?> getProxyClass(ClassLoader loader,Class<?>... interfaces)`：创建一个动态代理类所对应的Class对象，该代理类将实现interfaces所指定的多个接口。
+- `static Object newProxyInstance(ClassLoader loader, Class<?>[] interfaces, InvocationHandler h)`：直接创建一个动态代理对象，该代理对象的实现类实现了interfaces所指定的系列接口，执行代理对象的每个方法都会被替换执行InvocationHandler对象的invoke方法。
+
+```java
+
+//切面编程
+//用户各异的自定义接口
+public interface UserdiyOperationInterface{
+    void sayHello();
+    void Eat();
+}
+//用户甲对自定义接口的实现
+public class UserdiyOperation implements UserdiyOperationInterface{
+    public void sayHello(){
+        System.out.println("大家好，很高兴认识大家");
+    }
+    public void eat(){
+        System.out.println("大家好，很荣幸和大家聚餐");
+    }
+}
+//用户操作的公共部分
+public class AOPAchieve{
+    public void beforeExecution(){
+        System.out.println("========特别代码执行之前=========");
+    }
+    public void afterExecution(){
+        System.out.println("========特别代码执行之后=========");
+    }
+}
+//invocationHandler的实现类，该实现类的invoke方法将会作为代理对象的方法实现
+class MyInvocationHandler implements InvocationHandler{
+    private Object target;
+    public void setTarget(Object target){
+        this.target = target;
+    }
+    public Object invoke(Object proxy, Method method, Object[] args) throws Exception{
+        AOPAchieve aop = new AOPAchieve();
+        aop.berforeExecution();
+        Object specialSection =method.invoke(target, args);
+        aop.afterExecution();
+        return specialSection
+    }
+}
+//代理对象的工厂，该对象专为指定的target生成动态代理实例
+public class MyProxyFactory{
+    public static Object getProxy(Object target) throws Exception{
+        MyInvocationHandler handler = new MyInvocationHander();
+        handler.setTarget(target);
+        return Proxy.newProxyInstance(target.getClass().getClassLoader(), target.getClass().getInterfaces(), handler);
+    }
+}
+
+public class Test{
+    public static void main(String[] args) throws Exception{
+        //生成需要代理的对象
+        UserdiyOperationInterface target = new UserdiyOperation();
+        //生成代理实例
+        UserdiyOperationInterface userdiyOperationInterface = (UserdiyOperationInterface) MyProxyFactory.getProxy(target);
+        //代理后的方法执行
+        userdiyOperationInterface.sayHello();
+        userdiyOperationInterface.eat();
+    }
+}
+```
+
+
+
+## 7.5 反射与泛型
 
 
 
