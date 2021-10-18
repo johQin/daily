@@ -1591,7 +1591,9 @@ System.out.println(l1.getClass() === l2.getClass())//true
 
 假设Foo是Bar的一个子类，那么`Foo[]依然是Bar[]`的子类，带`G<Foo>不是G<Bar>的子类`
 
-为了表示各种泛型的父类，可以使用类型通配符，类型通配符是一个问号，它的元素类型可以匹配任何类型。
+为了表示各种泛型的父类，可以使用类型通配符。
+
+类型通配符是一个问号`?`，它的元素类型可以匹配任何类型。
 
 ### ? extends superClass
 
@@ -2014,7 +2016,9 @@ public class Test{
 
 ## 7.5 反射与泛型
 
+java允许泛型来限制Class类，eg：`String.class 的类型实际是 Class<String>。如果Class`对应的类型未知，则使用Class<?>
 
+通过在反射中使用泛型，可以避免使用反射生成对象需要强制类型转换
 
 # Debug
 
