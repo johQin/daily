@@ -2020,6 +2020,95 @@ java允许泛型来限制Class类，eg：`String.class 的类型实际是 Class<
 
 通过在反射中使用泛型，可以避免使用反射生成对象需要强制类型转换
 
+# 8 多线程
+
+引入进程的目的是为了更好地使多道程序并发执行，提高资源利用率和系统吞吐量。
+
+引入线程的目的则是为了减少程序在并发执行是所付出的时空开销，提高操作系统的并发性能。
+
+进程是除cpu外的系统资源的分配单元，而线程则作为CPU的分配单元。
+
+线程之间共享进程的系统资源，为进程分配资源的时空开销大于线程分配资源的时空开销。
+
+java使用Thread类代表线程，所有的线程对象都必须是Thread类或其子类的实例。
+
+每个线程的作用是完成一定的任务，实际上就是执行一段程序流（一段顺序执行的代码）。java中使用线程执行体来代表这段程序流。
+
+## 8.1 线程的创建和启动
+
+### 8.1.2 继承Thread类创建线程
+
+通过继承Thread类来创建并启动多线程步骤：
+
+1. `定义Thread类的子类，并重写该类的`run()`方法，该run方法的方法体就代表了线程需要完成的任务。因此把`run()`方法称为线程执行体
+2. 创建Thread子类的实例，即创建了线程对象
+3. 调用线程对象的`start()`方法来启动该线程
+
+```java
+public class MyFirstThread extends Thread{
+    private int i;
+    public void run(){
+        for(;i<100;i++){
+            //要获取当前的对象，直接使用this
+            System.out.println( getName() + "" + i );
+            
+        }
+    }
+    public static void main(String[] args){
+        for(int i = 0; i < 100; i++){
+            
+            System.out.println(Thread.currentThread().getName() + "" + i); // main 46; main 47; main 48
+            
+            if(i == 20){
+                new MyFirstThread().start();// Thread-0 24
+                new MyFirstThread().start();// Thread-1 28
+            }
+        }
+    }
+}
+```
+
+此段代码开启了三个线程，包含两个显式创建的`Thred-0，Thread-1`，和一个主线程`main`。当java程序运行起来后，程序至少会创建一个主线程。
+
+上面的代码中，用到了线程的两个方法：
+
+- `Thread.currentThread()`：`currentThread()`是Thread类的静态方法，该方法总是返回当前正在执行的线程对象
+- `getName()`：该方法是Thread类的实例方法，该方法返回调用该方法的线程名字
+- `setName(String name)`：可以为线程设置名字
+
+### 8.1.2 实现Runable接口创建线程类
+
+步骤：
+
+1. 定义`Runable`接口的实现类，并重写该接口的`run()`方法，该run方法的方法体同样是该线程的线程执行体
+2. 创建Runable实现类的实例，并以此实例作为Thread的target来创建Thread对象，该Thread对象才是真正的线程对象。
+3. 调用线程对象的`start()`方法来启动该线程
+
+```java
+public class MyRunableThread implements Runable{
+    private int i;
+    public void run(){
+        for(;i<100;i++){
+            //要获取当前的对象必须使用Thread.currentThread()方法
+            System.out.println( Thread.currentThread().getName() + "" + i );
+            
+        }
+    }
+    public static void main(String[] args){
+        MyRunableThread mrt = new MyRunableThread();
+        new Thread(mrt, "新线程1").start();
+        new Thread(mrt, "新线程2").start();
+        //程序所创建的Runable对象只是线程的target，而多个线程可以共享同一个target
+        //也就是说，采用 Runable接口的方式创建的多个线程可以共享线程类（实际上应该是线程target类）的实例变量
+    }
+}
+
+```
+
+### 8.1.3 使用Callable 和 Future创建线程
+
+
+
 # Debug
 
 1. 单步调试：
