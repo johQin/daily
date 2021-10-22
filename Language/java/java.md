@@ -2107,7 +2107,72 @@ public class MyRunableThread implements Runable{
 
 ### 8.1.3 使用Callable 和 Future创建线程
 
+java目前不能把所有方法都包装成线程执行体。
 
+自java5开始，java提供了Callable接口，它提供了一个call方法作为线程的执行体，call方法可以声明抛出异常，并可以有返回值，但Callable接口并没有实现Runable接口，所以不能直接作为Thread的target。
+
+java5提供了Future接口来代表Callable接口里call()方法的返回值，并为Future接口提供了一个FutureTask实现类，该实现类实现了Futrue接口和Runable接口。
+
+Future接口定义了几个如下的公共方法，来控制它关联的Callable任务。
+
+- `boolean cancel( boolean mayInterruptRunning )`：试图取消Future关联的Callable任务
+- `get()`：返回Callable任务里call方法的返回值，调用该方法将导致程序阻塞，会等到子线程结束才能等到返回值。
+- `get(long timeout, TimeUnit unit)`：返回Callable任务里call方法的返回值，在指定的timeout时间内未返回值，将会抛出TimeOutException异常
+- `boolean isCancelled()`：如果在Callable任务正常完成前被取消，则返回true。
+- `boolean isDone()`：如果Callable任务已完成，则返回true
+
+Callable接口有泛型限制，Callable接口里的泛型形参类型和call方法返回值类型相同，而且Callable接口是函数式接口，可以通过lambda表达式创建Callable对象。
+
+创建并启动有返回值的线程步骤：
+
+1. 创建Callable实现类，并实现有返回值的线程执行体`call()`方法，并创建Callable实现类的实例。
+2. 使用FutureTask类来包装Callable对象。该FutureTask对象封装了该Callable对象的call方法的返回值。
+3. 使用FutureTask对象作为Thread对象的target创建并启动线程
+4. 调用FutureTask对象的get方法来获得子线程执行结束后的返回值
+
+```java
+class MyCallableThread{
+    public static void main(String[] args){
+        
+        //先使用Lambda表达式创建Callable<Integer>对象
+        //再使用FutureTask来包装Callable对象
+        FutureTask<Integer> task = new FutureTask<Integer> (
+            (Callable<Integer>) ()->{
+                for(int i = 0; i < 100; i++){
+                    System.out.println(Thread.curentThread().getName() + "的循环变量i的值：" + i);
+                }
+                //call方法的返回值
+                return i;
+            }
+        )
+        
+        for(int i =0; i<100; i++){
+            System.out.println(Thread.currentThread().getName() + "的循环变量i的值：" + i );
+            if(i==20){
+                new Thread(task,"有返回值的线程").start();
+            }
+            try{
+                System.out.println("子线程的返回值："+ task.get());
+            }catch(Exception e){
+                ex.printStackTrace();
+            }
+        }
+        
+        
+    }
+    
+}
+```
+
+### 8.1.4 创建线程的三种方式对比
+
+后两种：
+
+- 线程类只是实现了Runable、Callable接口，还可以继承其他类
+- 多个线程可以共享一个target对象，非常适合多个线程处理同一份资源的情况
+- 编程稍显复杂，访问当前线程需要使用`Thread.currentThread()`方法
+
+通常情况建议采用后两种
 
 # Debug
 
