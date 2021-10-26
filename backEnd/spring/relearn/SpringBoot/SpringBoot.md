@@ -257,3 +257,33 @@ properties配置文件：
 ### 2.4 starter
 
 springBoot为了简化配置，提供了非常多的Starter。在对应的`pom.xml`中配置即可。
+
+常用starter
+
+| starter                        | 说明 |
+| ------------------------------ | ---- |
+| spring-boot-starter-web        |      |
+| spring-boot-starter-validation |      |
+| spring-boot-starter-security   |      |
+| spring-boot-starter-websocket  |      |
+| spring-boot-starter-data-redis |      |
+| spring-boot-starter-jdbc       |      |
+| spring-boot-starter-mail       |      |
+|                                |      |
+|                                |      |
+|                                |      |
+|                                |      |
+|                                |      |
+|                                |      |
+|                                |      |
+|                                |      |
+
+## 3 分层开发web应用
+
+`SpringMVC(Model-View-Controller)`，
+
+- Model：是java的实体Bean，
+- View：主要用来解析、处理、显示渲染内容
+- Controller：处理视图中的响应，决定如何调用Model的实体bean、如何调用Service层
+
+![](./legend/springbootLevel.png)
