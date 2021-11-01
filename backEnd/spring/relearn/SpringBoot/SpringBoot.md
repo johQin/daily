@@ -287,3 +287,215 @@ springBoot为了简化配置，提供了非常多的Starter。在对应的`pom.x
 - Controller：处理视图中的响应，决定如何调用Model的实体bean、如何调用Service层
 
 ![](./legend/springbootLevel.png)
+
+在springMVC中，Controller负责处理有DispatcherServlet接收并分发过来的请求，它把用户请求的数据通过业务处理层封装成一个Model，然后再把该Model返回给对应的View展示
+
+### 3.1 控制器
+
+#### 3.1.1 常用注解
+
+| 注解            | 使用位置 | 说明                                                         |
+| --------------- | -------- | ------------------------------------------------------------ |
+| @Controller     | 类       | 表示是一个Controller对象，servlet分发处理器将会扫描使用该注解的类，并检测其中的方法是否使用了@RequestMapping方法，由它真正处理请求。 |
+| @RestController | 类       | = @Controller + @ResponseBody                                |
+| @RequestMapping | 类or方法 | 用来处理请求地址映射的注解，可以用在类上或方法上，如果用在类上则表示所有响应请求的方法都以该地址作为父路径。 |
+| @PathVariable   | 参数     | 将请求URL中的模板变量映射到功能处理方法的参数上，            |
+
+1. RequestMapping有6个属性
+   - value：指定请求的地址
+   - method：指定处理请求的方法
+     - http请求的方法：GET，POST，PUT，DELETE，PATCH，OPTIONS，TRACE
+   - consumer：消费消息，指定处理请求的提交内容类型（Content-Type），例如：application/json
+     - HTTP中媒体的类型Content-Type，
+     - 常见媒体格式：
+       - text/xml：XML格式，还有html等
+       - text/plain：纯文本
+       - image/png：png图片格式，jpg，gig等
+     - 以application开头的媒体格式
+       - application/json
+       - application/xhtml+xml
+       - application/pdf，application/msword（word文档格式）
+       - application/octet-stream：二进制流数据（常用于文件下载）
+       - multipart/form-data：如果在表单中进行文件上传，则需要使用该格式
+       - application/x-www-form-urlencoded，表单数据编码方式，`<form encType=" " >`中默认的encType，Form(表单)被默认编码为key/value格式给服务器
+   - produces：生产消息，指定返回的内容类型。仅当request请求头中的Accept类型中包含该指定类型时才返回。
+   - params：指定request中必须包含某些参数值才让该方法处理请求
+   - headers：指定request中必须包含某些指定的header值才让该方法处理请求
+2. 常用restful风格请求映射的注解
+   - @GetMapping：处理GET请求，相当于`@RequestMapping(value = "", method = RequestMethod.GET )`
+   - @PostMapping
+   - @DeleteMapping
+   - @PutMapping
+3. 
+
+#### 3.1.2 在方法中使用参数
+
+```java
+@GetMapping("/article/{id}")
+public String getArticleContent(@PathVariable("id") Integer id){
+    //获取http://localhost:8080/article/10021中，10021
+}
+@RequestMapping("/addUser")
+public String addUser(String username){
+    //获取http://localhost:8080/user/addUser?username=qqq中，username变量的值qqq
+}
+@RequestMapping("/addUser")
+public String addUser(UserModel user){
+    //直接通过model将获得的数据映射为model对象
+}
+@RequestMapping( value = "/addUser", method=RequestMethod.POST)
+public String addUser(@ModelAttribute("user") UserModel user){
+    //用于从Model、Form或Url请求参数中获取对应属性的对应值
+}
+@RequestMapping("/addUser")
+public String addUser(HttpServletRequest request){
+    System.out.println("name:" + request.GETParameter("username"));
+    //通过HttpServletRequest接收参数
+}
+@RequestMapping("/addUser")
+public String addUser(@RequestParam(value="username",required=false) String name){
+    //通过注解RequestParam绑定参数，
+    //一个请求，只有一个RequestBody；一个请求，可以有多个RequestParam。
+}
+@RequestMapping("/addUser",method=RequestMethod.POST)
+@ResponseBody
+public String saveUser(@RequestBody List<UserModel> users){
+    //   @RequestBody主要用来接收前端传递给后端的json字符串中的数据的(请求体中的数据)
+}
+//还有获取图片，获取文件等映射，这里不再叙述，后面有具体需要了再看
+
+```
+
+### 3.2 模型
+
+模型Model在MVC模式中是实体Bean。
+
+其作用暂时存储数据于内存中，以便进行持久化，以及在数据变化时更新控制器。
+
+简单来说，Model是数据库表对应的实体类。
+
+#### 3.2.1 验证数据
+
+Hibernate-validator可实现数据的验证，它是对JSR标准的实现。
+
+在web开发中，不需要额外为验证在导入此依赖，web依赖已集成了Hibernate-validator。
+
+web依赖集成了如下一些依赖
+
+- spring-boot-starter
+- spring-boot-starter-json
+- spring-boot-starter-tomcat
+- hibernate-validator
+- spring-web
+- spring-webmvc
+
+validator验证的常用注解
+
+| 注解                       | 作用类型           | 说明                                          |
+| -------------------------- | ------------------ | --------------------------------------------- |
+| @NotBlank( message=  )     | 字符串             | 非null，且length>0                            |
+| @Email                     | 字符串             | 被注解的元素必须符合电子邮箱的格式            |
+| @Length(min= ,max= )       | 字符串             | 字符串长度控制                                |
+| @NotEmpty                  | 字符串             | 字符串必须非空                                |
+| @NotEmptyPattern           | 字符串             | 非空并且匹配正则表达式                        |
+| @DateValidator             | 字符串             | 验证日期格式是否满足正则表达式，local为英语   |
+| @DateFormatCheckPattern    | 字符串             | 验证日期格式是否满足正则表达式，local自行指定 |
+| @CreditCardNumber          | 字符串             | 验证信用卡号码                                |
+| @Range(min=,max=,message=) | 字符串，数值，字节 | 验证范围                                      |
+| @Null                      | 任意               | 必须为null                                    |
+| @NotNull                   | 任意               | 不为null                                      |
+| @AssertTrue                | 布尔值             | 必须为True                                    |
+| @AssertFalse               | 布尔值             | 为false                                       |
+| @Min(value)                | 数字               | 为数字，并且不小于                            |
+| @Max(value)                | 数字               | 为数字，并且不大于                            |
+| @DecimalMin(value)         | 数字               | 为数字，并且不小于                            |
+| @DecimalMax(value)         | 数字               | 为数字，并且不大于                            |
+| @Size(max=,min=)           | 数字               | 为数字，在指定范围                            |
+| @Digits(integer,fraction)  | 数字               |                                               |
+| @Past                      | 日期               | 过去的日期                                    |
+| @Future                    | 日期               | 未来的日期                                    |
+| @Pattern(regex=,flag=)     | 正则表达式         | 必须符合正则表达式                            |
+| @LastStringPattern         | `List<String>`     | 验证集合中字串是否符合正则表达式              |
+
+##### 自定义验证
+
+自定义验证需要提供两个类：
+
+1. 自定义注解类
+2. 自定义验证业务逻辑实现类
+
+```java
+//1.自定义验证注解类
+import com.example.MyCustomConstraintValidator;
+import javax.validation.Constraint;
+import javax.validation.Payload;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+
+//限定使用范围
+@Target({ElementType.FIELD})
+//表明注解的生命周期，它在代码运行时可以通过反射获取到注解
+@Retention(RetentionPlicy.RUNTIME)
+//@Contraint注解，里面传入了一个validatedBy字段，以指定该注解的校验逻辑
+@Contraint(validatedBy = MyCustomConstraintValidator.class)//自定义验证业务逻辑实现类
+public @interface MyCustomConstraint{
+	String message() default "请输入中国政治或经济中心的城市名";
+    Class<?>[] groups() default {};
+    Class<? extends Payload>[] payload() default {};
+        
+}
+
+//2.自定义验证业务逻辑实现类
+import com.example.demo.MyCustomConstraint;
+import javax.validation.ConstraintValidator;
+import javax.validation.ConstraintValidatorContext;
+public class MyCustomConstraintValidator implements ConstraintValidator<MyCustomConstraint, String>{//String为校验的类型
+    @Override
+    public void initialize(MyCustomConstraint myConstraint){
+        //在启动时执行
+    }
+    //自定义校验逻辑
+    @Override
+    public boolean isValid(String s, ConstraintValidatorContext validatorContext){
+        if(!(s.equals("北京")|| s.equals("上海"))){
+            return false;
+        }
+        return true
+    }
+}
+```
+
+#### 3.2.2 创建实体
+
+```java
+import com.example.demo.MyCustomConstrant;
+import lombok.Data;
+import org.hibernate.validator.constraints.Length;
+import javax.validation.constraints.*;
+import java.io.Serializable;
+@Data
+public class User implements Serializable{
+    private Long id;
+    
+    @NotBlank(message="用户名不能为空")
+    @Length(min=5, max=20,message="用户名长度为5-20个字符")
+    private String name;
+    
+    @NotNull(message="年龄不能为空")
+    @Min(value=18,message="最小18岁")
+    @Max(value=80,message="最大60岁")
+    private Integer age;
+    
+    @Email(message="请输入邮箱")
+    @NotBlank(message="邮箱不能为空")
+    private String email;
+
+    @MyCustomContraint
+    private String answer;
+}
+```
+
+#### 3.2.3 实现控制器
+
