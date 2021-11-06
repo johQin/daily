@@ -1,6 +1,6 @@
 # SpringBoot
 
-# 1 环境搭建
+# A 环境搭建
 
 ## 1.1 安装和配置
 
@@ -517,3 +517,90 @@ Mono和Flux是Reactor中的两个概念：
 
 - Mono和Flux属于事件发布者，为消费者（前端请求）提供订阅接口，当有事件发生时，Mono或Flux会回调消费者相应方法（onComplete()-排队结束，onNext()-排队中，onError()-排队出错）
 - Mono和Flux用于处理异步数据流
+
+# C 进阶篇
+
+## 5 springBoot进阶
+
+### 5.1 AOP
+
+AOP把业务功能分为
+
+- 核心业务：增删改数据库，用户登录
+- 非核心业务：性能统计，日志，事务管理
+
+将非核心业务功能被定义为切面，然后将切面和核心业务功能编织在一起，这就是切面
+
+AOP的核心概念
+
+1. 切入点（pointcut）：在哪些类、哪些方法上切入
+2. 通知（advice）：在方法前、方法后、方法前后做什么
+3. 切面（Aspect）：切面 = 切入点 + 通知
+4. 织入（weaving）：把切面加入对象，并创建出代理对象的过程
+5. 环绕通知
+
+```java
+@Aspect //使之成为切面类
+@Component //把切面类交由ioc容器管理
+public class AopLog{
+    private Logger logger = LoggerFactory.getLogger(this.getClass());
+	//线程局部变量，用于解决多线程中相同变量的访问冲突问题
+    ThreadLocal<Long> startTime = new ThreadLocal<>();
+    
+    //定义切点，用于决定在什么时候执行此切入点，我猜测当执行某个controller的时候，就会主动执行这个切入点
+    @PointCut("execution( public.... )") //具体配置需要查阅资料
+    public void aopWebLog(){
+    	//核心业务
+    }
+    
+    //在切入点开始前切入的内容
+    @Before("aopWebLog()")
+    public void doBefore(JoinPoint joinPoint) throws Throwable{
+        startTime.set(System.currentTimeMillis());
+        
+        //接收到请求，记录请求内容
+        ServletRequestAttribute attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        HttpServletRequest request = attributes.getRequest();
+        
+        //记录下请求的内容
+        logger.info("URL：" + request.getRequestURL().toString());
+        logger.info("HTTP 方法：" + request.getMethod());
+        logger.info("IP地址：" + request.getRemoteAddr());
+        logger.info("类的方法：" + joinPoint.getSignature().getDeclaringTypeName() + "." + joinPoint.getSignature().getName());
+        logger.info("参数：" + request.getQueryString());
+    }
+    
+    //在切入点返回内容之后切入内容，可以对返回结果做一些处理
+    @AfterReturning(pointcut = "aopWebLog()", returning = "retObject")
+    public void doAfterReturning(Object retObject) throws Throwable{
+        //处理完请求，返回内容
+        logger.info("应答值：" + retObject);
+        logger.info("费时：" + (System.currentTimeMills() - startTime.get()));
+    }
+    
+    //在切入点抛出异常之后，做一些处理
+    @AfterThrowing(pointcut = "aopWebLog()", throwing = "ex")
+    public void addAfterThrowingLogger(JoinPoint joinPoint, Expection ex){
+    	logger.error("执行 " + "异常" ,ex)
+    }
+    
+    // @Around：在切入点前后切入内容
+    // @After：在切入点末尾切入内容
+}
+```
+
+### 5.2 IOC
+
+Inversion of Control容器，是面向对象的一种设计原则，意为控制反转，他将程序创建对象的控制权交给spring框架来管理，以便降低代码耦合度。
+
+控制反转的实质是获得依赖对象的过程被反转了，这个过程有自身管理变为由IoC容器主动注入，这正是IoC实现的方式之一：依赖注入（DI，Dependency Injection）
+
+IOC的实现方法主要有两种：
+
+1. 依赖注入：
+   - IOC容器通过**类型或名称**等信息将不同对象注入不同属性中。依赖注入主要有以下几种方式：
+     - 设置注入（setter injection）：让IOC容器调用注入所依赖类型的对象
+     - 接口注入（interface injection）：实现特定的接口，以供Ioc容器注入所依赖类型的对象
+     - 构造注入（constructor injection）：实现特定参数的构造函数，在创建对象时让IOC容器注入所依赖的对象
+     - 基于注解：通过@Autowired等注解让IOC容器注入所依赖饿对象
+2. 依赖查找：
