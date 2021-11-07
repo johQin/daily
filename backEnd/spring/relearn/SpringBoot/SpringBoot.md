@@ -595,12 +595,269 @@ Inversion of Control容器，是面向对象的一种设计原则，意为控制
 
 控制反转的实质是获得依赖对象的过程被反转了，这个过程有自身管理变为由IoC容器主动注入，这正是IoC实现的方式之一：依赖注入（DI，Dependency Injection）
 
+![](./legend/ioc容器的优点.png)
+
 IOC的实现方法主要有两种：
 
 1. 依赖注入：
    - IOC容器通过**类型或名称**等信息将不同对象注入不同属性中。依赖注入主要有以下几种方式：
      - 设置注入（setter injection）：让IOC容器调用注入所依赖类型的对象
+     
      - 接口注入（interface injection）：实现特定的接口，以供Ioc容器注入所依赖类型的对象
+     
      - 构造注入（constructor injection）：实现特定参数的构造函数，在创建对象时让IOC容器注入所依赖的对象
-     - 基于注解：通过@Autowired等注解让IOC容器注入所依赖饿对象
+     
+     - 基于注解：通过@Autowired等注解让IOC容器注入所依赖的对象，@Controller，@Service，@Component
+     
+     - 以下为spring的做法，现在springboot里面基本都只会使用注解注入
+     
+     - ```xml
+       <?xml version="1.0" encoding="UTF-8"?>
+       <beans xmlns="http://www.springframework.org/schema/beans"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+           
+           
+           <bean id="math" class="com.test2.MathDemo"/>
+           <bean id="english" class="com.test2.EnglishDemo"/>
+           
+           <!--属性注入MathDemo和StudyDemo-->
+           <bean id="StudyDemo" class="com.test2.StudyDemo">
+               <property name="mathDemo" ref="math"/>
+               <property name="englishDemo" ref="english"/>
+           </bean>
+       
+           <!--构造注入MathDemo和StudyDemo-->
+           <bean id="StudyDemo" class="com.test2.StudyDemo">
+               <constructor-arg ref="math"/>
+               <constructor-arg ref="english"/>
+           </bean>
+        
+       </beans>
+       ```
+     
+     - ```java
+       package com.test2;
+        
+       public class MathDemo {
+           public void StudyMath(){
+               System.out.println("学习数学。。。。");
+           }
+       }
+       public class EnglishDemo {
+           public void StudyMath(){
+               System.out.println("学习英语。。。。");
+           }
+       }
+       
+       
+       public class StudyDemo {
+           private MathDemo mathDemo;
+           private EnglishDemo englishDemo;
+           public void study(){
+               mathDemo.StudyMath();
+               englishDemo.StudyEnglish();
+           }
+           
+           public StudyDemo(){
+        
+           }
+           //构造注入里面必须有对应的构造方法
+           public StudyDemo(MathDemo mathDemo,EnglishDemo englishDemo){
+               this.mathDemo=mathDemo;
+               this.englishDemo=englishDemo;
+           }
+           
+           //setter注入
+           public void setMathDemo(MathDemo mathDemo) {
+               this.mathDemo = mathDemo;
+           }
+           public void setEnglishDemo(EnglishDemo englishDemo) {
+               this.englishDemo = englishDemo;
+           }
+       
+       }
+       ```
+     
+     - 
+   
 2. 依赖查找：
+
+   - 这个后期完善
+
+![](./legend/三种注入方式的比较.png)
+
+#### [ioc基于注解注入的例子](https://www.cnblogs.com/ye-hcj/p/9613491.html)
+
+```java
+//语言的接口
+public interface Language{
+    public String getGreeting();
+    public String getBye();
+}
+//语言实现类
+public class Chinese implements Language{
+    @Override
+    public String getGreeting(){
+        return "你好";
+    }
+
+    @Override
+    public String getBye() {
+        return "再见";
+    }
+}
+public class English implements Language{
+    @Override
+    public String getGreeting(){
+        return "Hello";
+    }
+    @Override
+    public String getBye() {
+        return "Bye bye";
+    }
+}
+
+// 此类就是ioc容器中的一个bean，内部属性通过外部注入
+// @Service的作用就是声明他是一个bean
+// @Autowired的作用就是依赖注入
+package com.springlearn.learn.bean;
+@Service
+public class GreetingService{
+
+    @Autowired
+    private Language language;
+
+    public GreetingService() {
+
+    }
+
+    public void sayGreeting() {
+        String greeting = language.getGreeting();
+        System.out.println("Greeting:" + greeting);
+    }
+}
+
+//AppConfiguration
+// 此类是一个定义bean和集中bean的文件
+// @Configuration声明这个类是定义bean的
+// @ComponentScan扫描bean目录
+// @Bean(name="language") 定义了一个名为language的bean，只要访问此bean就会自动调用getLanguage方法
+package com.springlearn.learn.config;
+@Configuration
+@ComponentScan({"com.springlearn.learn.bean"})
+public class AppConfiguration{
+
+    @Bean(name="language")
+    public Language getLanguage() {
+        return new Chinese();
+    }
+}
+
+
+@Repository
+public class MyRepository{
+    public String getAppName(){
+        return "Hello my first Spring App";
+    }
+
+    public Date getSystemDateTime() {
+        return new Date();
+    }
+}
+
+@Component
+public class MyComponent {
+    @Autowired
+    private MyRepository repository;
+
+    public void showAppInfo(){
+        System.out.println("Now is:" + repository.getSystemDateTime());
+        System.out.println("App Name" + repository.getAppName());
+    }
+}
+
+//DemoApplication
+public class DemoApplication {
+	public static void main(String[] args) {
+		ApplicationContext context = new 				 	       AnnotationConfigApplicationContext(AppConfiguration.class);
+
+		System.out.println("-------------");
+
+		Language language = (Language)context.getBean("language");
+		System.out.println("Bean Language: "+ language);
+        	//Bean Language: com.springlearn.learn.langimpl.Chinese@258d79be
+		System.out.println("Call language.sayBye(): "+ language.getBye());
+        	//Call language.sayBye(): 再见
+
+		GreetingService service = (GreetingService) context.getBean("greetingService");
+        //获取bean时，getBean首字母小写是spirng规定的（byName）。可以参阅spring的2.7.1小节
+        //为什么这里获取的就是中文bean?
+		service.sayGreeting();//Greeting:你好
+		System.out.println("----------");
+        
+        MyComponent myComponent = (MyComponent) context.getBean("myComponent");
+		myComponent.showAppInfo();
+        //Now is:Sun Sep 09 13:48:45 CST 2018
+		//App NameHello my first Spring App
+    }
+}
+```
+
+### 5.3 [servlet](https://blog.csdn.net/fg881218/article/details/89716366)
+
+**Servlet 是 javax.servlet 包中定义的接口。**
+
+它声明了 Servlet 生命周期的三个基本方法：init()、service() 和 destroy()。它们由每个 Servlet Class（在 SDK 中定义或自定义）实现，并由服务器在特定时机调用。
+
+- **init()** 方法在 Servlet 生命周期的初始化阶段调用。它被传递一个实现 javax.servlet.ServletConfig 接口的对象，该接口允许 Servlet 从 Web 应用程序访问初始化参数。
+- **service()** 方法在初始化后对每个请求进行调用。每个请求都在自己的独立线程中提供服务。Web容器为每个请求调用 Servlet 的 service() 方法。service() 方法确认请求的类型，并将其分派给适当的方法来处理该请求。
+- **destroy()** 方法在销毁 Servlet 对象时调用，用来释放所持有的资源。
+
+从 Servlet 对象的生命周期中，我们可以看到 **Servlet 类是由类加载器动态加载到容器中的**。每个请求都在自己的线程中，Servlet 对象可以同时服务多个线程（线程不安全的）。当它不再被使用时，会被 JVM 垃圾收集。
+像任何Java程序一样，Servlet 在 JVM 中运行。为了处理复杂的 HTTP 请求，Servlet 容器出现了。Servlet 容器负责 Servlet 的创建、执行和销毁。
+
+#### Servlet 容器和 Web 服务器如何处理一个请求的
+
+1. Web 服务器接收 HTTP 请求。
+2. Web 服务器将请求转发到 Servlet 容器。
+3. 如果对应的 Servlet 不在容器中，那么将被动态检索并加载到容器的地址空间中。
+4. 容器调用 init() 方法进行初始化（仅在第一次加载 Servlet 时调用一次）。
+5. 容器调用 Servlet 的 service() 方法来处理 HTTP 请求，即读取请求中的数据并构建响应。Servlet 将暂时保留在容器的地址空间中，可以继续处理其它 HTTP 请求。
+6. Web 服务器将动态生成的结果返回到浏览器/客户端。
+
+![](./legend/servlet请求响应机制.png)
+
+#### 自定义Servlet类
+
+在使用springboot 应用程序时，使用Controller基本能解决大部分的功能需求，但有时也需要使用Servlet，比如实现拦截和监听功能。
+
+springboot的核心控制器DispatcherServlet会处理所有的请求。如果自定义Servlet，则需要进行注册，以便DispatcherServlet核心控制器知道它的作用，以及处理请求url-pattern
+
+使用Servlet处理请求，可以直接通过注解@WebServlet(urlPattern, description)注册Servlet，然后在入口类中添加注解@ServletComponentScan，以扫描该注解指定包下的所有Servlet
+
+```java
+//注册Servlet类
+@WebService(urlPattern = "/servletDemo/*")//属性urlPattern指定WebServlet的作用范围
+public class ServletDemo02 extends HttpServlet{
+    //父类的doGet方法是空的，子类需要重写此方法
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException{
+        System.out.println("doGet");
+        resp.getWriter().print("Servlet servletDemo");
+    }
+}
+
+//开启Servlet支持
+@ServletComponentScan
+@SpringBootApplication
+public class ServletDemoApplication{
+	public static void main(String[] args){
+        SpringApplication.run(ServletDemoApplication.class,args);
+    }
+}
+```
+
+### 5.4 Filter
+
+过滤器
