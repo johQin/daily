@@ -531,6 +531,8 @@ AOP把业务功能分为
 
 将非核心业务功能被定义为切面，然后将切面和核心业务功能编织在一起，这就是切面
 
+在面向对象编程的过程中，我们很容易通过继承、多态来解决纵向扩展。 但是对于横向的功能，比如，在所有的service方法中开启事务，或者统一记录日志等功能，面向对象的是无法解决的。所以AOP——面向切面编程其实是面向对象编程思想的一个补充。
+
 AOP的核心概念
 
 1. 切入点（pointcut）：在哪些类、哪些方法上切入
@@ -804,7 +806,7 @@ public class DemoApplication {
 }
 ```
 
-### 5.3 [servlet](https://blog.csdn.net/fg881218/article/details/89716366)
+### 5.3 [Servlet](https://blog.csdn.net/fg881218/article/details/89716366)
 
 **Servlet 是 javax.servlet 包中定义的接口。**
 
@@ -858,6 +860,59 @@ public class ServletDemoApplication{
 }
 ```
 
-### 5.4 Filter
+### 5.4 [三大器](https://www.cnblogs.com/hhhshct/p/8808115.html)
 
-过滤器
+过滤器（Filter）、监听器（Listener）、拦截器（Interceptor ）都属于面向切面编程的具体实现。
+
+#### 5.4.1 Filter
+
+Filter是依赖于Servlet容器，属于Servlet规范的一部分
+
+过滤器：在很多Web应用中，都会用到过滤器，如参数过滤，防止sql注入、防止页面攻击、空参数矫正、Token验证、Session验证、点击率统计等。
+
+Filter的使用步骤
+
+1. 实现Filter抽象类
+2. 重写Filter抽象类里的init、doFilter、destory方法
+3. 通过在入口类添加注解@ServletComponentScan，以注册Filter类
+
+```java
+//如果有多个Filter，则序号越小，越早被执行
+@order(1)
+//url过滤配置
+@WebFilter(filterName="Filter01", urlPattern="/*")
+public class Filter01 implements Filter{
+    @Override
+    public void init(FilterConfig filterConfig) throw ServletException{
+        //init逻辑，该init将在服务器启动时调用
+    }
+    @Override
+    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throw IOException, ServletException{
+        //请求request 处理逻辑
+        //请求request 封装逻辑
+        //chain 重新写回request和response
+        filterChain.doFilter(servletRequest,servletResponse);
+    }
+    @Override
+    public void destroy(){
+        //重写destroy逻辑，该逻辑将在服务器关闭时被调用
+    }
+}
+```
+
+
+
+#### 5.4.2 Listener
+
+#### 5.4.3 Interceptor
+
+过滤器与拦截器的区别：
+
+1. Filter是依赖于Servlet容器，属于Servlet规范的一部分，而拦截器则是独立存在的，可以在任何情况下使用。
+2. Filter的执行由Servlet容器回调完成，而拦截器通常通过动态代理的方式来执行。
+3. Filter的生命周期由Servlet容器管理，而拦截器则可以通过IoC容器来管理，因此可以通过注入等方式来获取其他Bean的实例，因此使用会更方便。
+
+
+
+拦截器：Interceptor 在AOP中用于在某个方法或字段被访问之前，进行拦截然后在之前或之后加入某些操作。比如日志，安全等。一般拦截器方法都是通过动态代理的方式实现。可以通过它来进行日志记录、权限检查，或者判断用户是否登陆，或者是像12306 判断当前时间是否是购票时间。
+
