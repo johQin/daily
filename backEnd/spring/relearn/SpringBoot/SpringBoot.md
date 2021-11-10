@@ -904,6 +904,24 @@ public class Filter01 implements Filter{
 
 #### 5.4.2 Listener
 
+要可用于以下方面：1、统计在线人数和在线用户2、系统启动时加载初始化信息3、统计网站访问量4、记录用户访问路径。
+
+Servlet中的监听器分为以下3中类型：
+
+1. 监听ServletContext、Request、Session作用域的创建和销毁
+   - ServletContextListener，
+   - HttpSessionListener，监听新的Session创建事件
+   - ServletRequestListener，监听ServletRequest的初始化和销毁
+2. 监听ServletContext、Request、Session作用域中属性的变化（增删改）
+   - ServletContextAttributeListener：监听Servlet上下文参数变化
+   - HttpSessionAttributeListener：监听HttpSession参数变化
+   - ServletRequestAttributeListener：监听ServletRequest参数的变化
+3. 监听HttpSession中对象状态的改变（被绑定、解除绑定、钝化、活化）
+   - HttpSessionBindingListener：监听HttpSession，并绑定及解除绑定
+   - HttpSessionActivationListener：监听钝化和活动的HttpSession状态改变
+
+通过实现以上监听类的监听方法，然后在入口类添加注解@ServletComponentScan
+
 #### 5.4.3 Interceptor
 
 过滤器与拦截器的区别：
@@ -914,5 +932,7 @@ public class Filter01 implements Filter{
 
 
 
-拦截器：Interceptor 在AOP中用于在某个方法或字段被访问之前，进行拦截然后在之前或之后加入某些操作。比如日志，安全等。一般拦截器方法都是通过动态代理的方式实现。可以通过它来进行日志记录、权限检查，或者判断用户是否登陆，或者是像12306 判断当前时间是否是购票时间。
+拦截器：Interceptor 在AOP中用于在某个方法或字段被访问之前，进行拦截然后在之前或之后加入某些操作。比如日志，安全等。**一般拦截器方法都是通过动态代理的方式实现。**可以通过它来进行日志记录、权限检查，或者判断用户是否登陆，或者是像12306 判断当前时间是否是购票时间。
+
+### 5.5 自动配置
 
