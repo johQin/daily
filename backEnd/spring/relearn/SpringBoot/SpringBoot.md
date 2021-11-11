@@ -936,3 +936,169 @@ Servlet中的监听器分为以下3中类型：
 
 ### 5.5 自动配置
 
+### 5.6 元注解
+
+元注解就是定义注解的注解。
+
+元注解就是在自定义注解的时候，给自定义注解使用的注解。
+
+| 元注解      | 说明                                                         |
+| ----------- | ------------------------------------------------------------ |
+| @Retention  | 声明是注解类，该注解用于说明自定义注解的生命周期             |
+| @Target     | 生命该注解能够注解的目标                                     |
+| @Inherited  | 该注解是一个标记注解，表明被该元注解注解的自定义注解在修饰其他类的时候，这个自定义注解同样可以作用于这个其他类的子类上 |
+| @Documented | 该注解是一个标记注解，表明被该元注解注解的自定义注解会被javadoc工具记录。 |
+| @Interface  | 定义注解，定义体内的每个方法实际上都声明了一个配置参数，方法名就是参数名称，返回值的类型就是参数的类型，并且可以通过default来声明参数的默认值。 |
+
+1. [@Retention](https://blog.csdn.net/m0_37840000/article/details/80921775)
+
+   - 使用示例：@Retention(RetentionPolicy.RUNTIME)
+   - 生命周期的值是一个枚举值，
+     - RetentionPolicy.RUNTIME，始终存在，注解不仅保存到class文件中，而且jvm加载class之后，仍然存在
+     - RetentionPolicy.CLASS，注解被保留到class文件中，但在jvm加载class文件时候被遗弃，这就是默认的生命周期
+     - RetentionPolicy.SOURCE，注解只保留在源文件中，当java文件被编译成class文件的时候，注解被遗弃。所以他们不会被写入字节码中。@Override、@SuppressWarnings都属于这类注解。
+   - 首先要明确生命周期长度 **SOURCE < CLASS < RUNTIME** ，所以前者能作用的地方后者一定也能作用。一般如果需要**在运行时去动态获取注解信息，那只能用 RUNTIME 注解**；如果要**在编译时进行一些预处理操作**，比如生成一些辅助代码（如 ButterKnife）**，就用 CLASS注解**；如果**只是做一些检查性的操作**，比如 **@Override** 和 **@SuppressWarnings**，则**可选用 SOURCE 注解**。
+
+2. [@Target](https://blog.csdn.net/fengcai0123/article/details/90544338)
+
+   - 使用示例：@Target(ElementType.FIELD)
+   - 作用目标的类型是一个枚举值
+     - ElementType.CONSTRUCTOR，可以用于修饰构造器
+     - ElementType.FIELD，可以用于修饰成员变量，对象，属性
+     - ElementType.LOCAL_VARIABLE
+     - ElementType.METHOD
+     - ElementType.PACKAGE
+     - ElementType.PARAMETER
+     - ElementType.TYPE，可以修饰class、interface、enum
+   - 声明自定义注解的修饰类型后，如果被修饰对象不符，将会报错。
+
+3. [@Interface](https://blog.csdn.net/zhangbeizhen18/article/details/87885441/)
+
+   - ```java
+     @Retention(RetentionPolicy.RUNTIME)  
+     public @interface MyAnnotation  
+     {  
+      String hello() default "gege";  
+       String world();  
+       int[] array() default { 2, 4, 5, 6 };  
+       EnumTest.TrafficLamp lamp() ;  
+       TestAnnotation lannotation() default @TestAnnotation(value = "ddd");  
+       Class style() default String.class;  
+     }
+     /*
+     上面程序中，定义一个注解@MyAnnotation，定义了6个属性，他们的名字为：  
+     
+     hello,world,array,lamp,lannotation,style.  
+     
+     属性hello类型为String,默认值为gege  
+     属性world类型为String,没有默认值  
+     属性array类型为数组,默认值为2，4，5，6  
+     属性lamp类型为一个枚举,没有默认值  
+     属性lannotation类型为注解,默认值为@TestAnnotation，注解里的属性是注解  
+     属性style类型为Class,默认值为String类型的Class类型
+     */
+     
+     /*
+     如果注解中有一个属性名字叫value,则在应用时可以省略属性名字不写。  
+     可见，@Retention(RetentionPolicy.RUNTIME )注解中，RetentionPolicy.RUNTIME是注解属性值，属性名字是value
+     */  
+     
+     public @interface MyTarget  
+     {  
+         String value();  
+     }
+     //这里value参数的值就是aaa
+     @MyTarget("aaa")  
+      public void doSomething()  
+      {  
+       System.out.println("hello world");  
+      }  
+     ```
+
+   - 
+
+   ```java
+   //自定义一个可以修饰属性的注解
+   @Documented
+   @Retention(RetentionPolicy.RUNTIME)
+   @Target(ElementType.FIELD)
+   public @interface FiledAnnotation {
+   	 String value() default "GetFiledAnnotation";   
+   }
+   //自定义一个可以修饰方法的注解
+   @Documented
+   @Retention(RetentionPolicy.RUNTIME)
+   @Target(ElementType.METHOD)
+   public @interface MethodAnnotation {
+   	String name() default "MethodAnnotation";   
+       String url() default "https://www.cnblogs.com";
+   }
+   //自定义一个可以修饰class、interface、enum的注解
+   @Documented
+   @Retention(RetentionPolicy.RUNTIME)
+   @Target(ElementType.TYPE)
+   public @interface TypeAnnotation {
+   	String value() default "Is-TypeAnnotation";
+   }
+   
+   //使用上述的自定义注解
+   @TypeAnnotation(value = "doWork")
+   public class Worker {
+    
+   	@FiledAnnotation(value = "CSDN博客")
+   	private String myfield = "";
+    
+   	@MethodAnnotation()
+   	public String getDefaultInfo() {
+   		return "do the getDefaultInfo method";
+   	}
+    
+   	@MethodAnnotation(name = "百度", url = "www.baidu.com")
+   	public String getDefineInfo() {
+   		return "do the getDefineInfo method";
+   	}
+   }
+   
+   //可以通过泛型获得注解上的值
+   public class TestMain {
+   	
+   	public static void main(String[] args) throws Exception {
+   		
+           Class cls = Class.forName("com.zbz.annotation.pattern3.Worker");
+           Method[] method = cls.getMethods();
+           /**判断Worker类上是否有TypeAnnotation注解*/
+           boolean flag = cls.isAnnotationPresent(TypeAnnotation.class);
+           /**获取Worker类上是TypeAnnotation注解值*/
+           if (flag) {
+           	TypeAnnotation typeAnno = (TypeAnnotation) cls.getAnnotation(TypeAnnotation.class);
+           	System.out.println("@TypeAnnotation值:" + typeAnno.value());
+           }
+           
+           /**方法上注解*/
+           List<Method> list = new ArrayList<Method>();
+           for (int i = 0; i < method.length; i++) {
+               list.add(method[i]);
+           }
+           
+           for (Method m : list) {
+           	MethodAnnotation methodAnno = m.getAnnotation(MethodAnnotation.class);
+               if (methodAnno == null)
+                   continue;
+               System.out.println( "方法名称:" + m.getName());
+               System.out.println("方法上注解name = " + methodAnno.name());
+               System.out.println("方法上注解url = " + methodAnno.url());
+           }
+           /**属性上注解*/
+           List<Field> fieldList = new ArrayList<Field>();
+           for (Field f : cls.getDeclaredFields()) {// 访问所有字段
+           	FiledAnnotation filedAno = f.getAnnotation(FiledAnnotation.class);
+           	System.out.println( "属性名称:" + f.getName());
+           	System.out.println("属性注解值FiledAnnotation = " + filedAno.value());
+           } 
+   	}
+    
+   }
+   ```
+
+   
+
