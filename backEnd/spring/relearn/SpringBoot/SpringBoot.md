@@ -1100,5 +1100,91 @@ Servlet中的监听器分为以下3中类型：
    }
    ```
 
-   
+
+### 5.7 异常处理
+
+异常分类：
+
+1. Error：代表编译和系统错误，不允许捕获
+2. Exception：标准java库的方法引发的异常
+3. Runtime Exception：运行时异常
+4. Non_RuntimeException：非运行时异常
+5. Throw：用户自定义异常
+
+异常处理方式：
+
+1. 捕获异常：`try{}catch(e){}`
+2. 抛出异常：
+   - throw：
+     - 如果需要在程序中自行抛出异常，则应使用throw语句
+     - throw抛出的不是异常类，而是一个异常实例，并且每次只能抛出一个异常实例
+   - throws：
+     - throws声明抛出异常只能在方法签名中使用，可以抛出多个异常，多个异常类间用逗号隔开
+     - 如果某段代码中调用了一个带throws声明的方法，该方法声明抛出Checked异常，则表明，该方法希望它的调用者来处理该异常。也就是说，调用该方法时，要么放在try块中显示捕获该异常，要么放在另一个带throws声明抛出的方法中
+3. 自定义异常
+
+#### 控制器通知
+
+Spring提供一个非常方便的异常处理方案——控制器通知（@ControllerAdvice 或 RestControllerAdvice），它将所有控制器作为一个切面，利用切面技术实现。
+
+通过基于@ControllerAdvice或@RestControllerAdvice 的注解可以对异常进行全局统一处理，默认对所有Controller生效。也可以通过注解的参数来配置**生效范围**。
+
+- 按注解：`@ControllerAdvice(annotations = RestController.class)`
+- 按包名：`@ControllerAdvice("org.example.controller")`
+- 按类型：`@ControllerAdvice(assignableTypes = {ControllerInterface.class})`
+
+通过@ControllerAdvice注解可以实现多个异常处理类
+
+异常处理类会包含一个或多个被下面的注解注释的方法，这些注解不是异常处理类独有。
+
+- @InitBinder，对表单数据进行绑定，用于定义控制器参数绑定规则
+- @ModelAttribute：在控制器方法被执行前，对所有Controller的Model添加属性进行操作
+- @ExceptionHandler：定义控制器发生异常后的操作，可以拦截所有控制器发生的异常
+- @ControllerAdvice：统一异常处理，通过@ExceptionHandler(value = Exception.class)来指定捕获的异常。@ControllerAdvice + @ExceptionHandle 可以处理除404以外的运行异常。
+
+```java
+//自定义异常类
+public class BusinessException extends RuntimeException{
+    //自定义错误码
+    private Integer code;
+    //自定义构造器，必须输入错误码及内容
+    public BusinessException(int code,String msg) {
+        super(msg);
+        this.code = code;
+    }
+    public Integer getCode() {
+        return code;
+    }
+    public void setCode(Integer code) {
+        this.code = code;
+    }
+}
+//异常处理类
+@ControllerAdvice
+public class CustomerBusinessExceptionHandler {
+    @ResponseBody //抛错后，异常处理类直接返回相应的data
+    @ExceptionHandler(BusinessException.class)
+    public Map<String, Object> businessExceptionHandler(BusinessException e) {
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put("code", e.getCode());
+        map.put("message", e.getMessage());
+        //发生异常进行日志记录，此处省略
+        return map;
+    }
+}
+
+//测试
+@RestController
+public class TestController {
+    @RequestMapping("/BusinessException")
+    public String testResponseStatusExceptionResolver(@RequestParam("i") int i){
+        if (i==0){
+            throw new BusinessException(600,"自定义业务错误");
+        }
+              return "success";
+    }
+}
+```
+
+
 
