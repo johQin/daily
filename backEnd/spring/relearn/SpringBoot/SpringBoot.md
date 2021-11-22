@@ -1181,10 +1181,122 @@ public class TestController {
         if (i==0){
             throw new BusinessException(600,"自定义业务错误");
         }
-              return "success";
+             return "success";
     }
 }
 ```
 
+## 6  ORM操作数据库
 
+对象关系映射ORM（Object Relational Mapping）。
+
+### 6.1 JDBCTemplate
+
+JDBC（Java DataBase Connectivity），它是java用于连接数据库的规范，实际上，它由一组用Java语言编写的类和接口组成，为大部分关系型数据库提供访问接口。
+
+JDBC需要每次进行数据库连接，然后处理SQL语句、传值、关闭数据库，这里过程多，也容易出错，为了减少工作量，减少失误，JDBCTemplate就被设计出来了。
+
+JDBCTemplate是对JDBC的封装，它更便于程序的实现，再不需要每次都进行连接、打开、关闭了。
+
+配置基础依赖
+
+```xml
+<!--jdbcTemplate依赖-->
+<dependency>
+	<groupId>org.springframework.boot</groupId>
+    <artfactId>spring-boot-start-jdbc</artfactId>
+</dependency>
+<!--MySql数据库依赖-->
+<dependency>
+	<groupId>mysql</groupId>
+    <artfactId>mysql-connector-java</artfactId>
+    <scope>runtime</scope>
+</dependency>
+```
+
+```properties
+//配置数据库
+spring.datasource.url=jdbc:mysql://127.0.0.1........
+spring.datasource.username=root
+spring.datasource.password=root
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+```
+
+
+
+```java
+//新建Entity实体类
+@Data
+public class User implements RowMapper<User> {
+    private int id;
+    private String username;
+    private String password;
+    @Override
+    public User mapRow(ResultSet resultSet, int i) throws SQLException{
+        User user = new User();
+        user.setId(resultSet.getInt("id"));
+        user.setUsername(resultSet.getString("username"));
+        user.setPassword(resultSet.getString("password"));
+        return user;
+    }
+}
+/*
+*/
+```
+
+JDBCTemplate提供了以下3种操作数据的方法
+
+- execute：用于执行sql语句，用于DDL。
+- update：包括新增、修改、删除操作。用于DML的增删改。
+- query：查询，用于DML的查。
+
+```java
+@SpringBootTest
+@RunWith(SpringRunner.class)
+public class UserControllerTest {
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+	// 创建表,execute
+    @Test
+    public void createUserTable() throws Exception {
+        String sql = "CREATE TABLE `user` (\n" +
+                "  `id` int(10) NOT NULL AUTO_INCREMENT,\n" +
+                "  `username` varchar(100) DEFAULT NULL,\n" +
+                "  `password` varchar(100) DEFAULT NULL,\n" +
+                "  PRIMARY KEY (`id`)\n" +
+                ") ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;\n" +
+                "\n";
+        jdbcTemplate.execute(sql);
+    }
+    // 添加数据
+    @Test
+    public void saveUserTest() throws Exception  {
+        String sql = "INSERT INTO user (USERNAME,PASSWORD) VALUES ('longzhiran','123456')";
+        int rows = jdbcTemplate.update(sql);
+        System.out.println(rows);
+    }
+    // 查数据
+     @Test
+    public void list() throws Exception{
+        String sql = "SELECT * FROM user_jdbct";
+        List<User> userList = jdbcTemplate.query(sql,
+                new BeanPropertyRowMapper(User.class));
+        for (User userLists : userList) {
+            System.out.println(userLists);
+        }
+    }
+}
+```
+
+JDBCTemplate学习成本低，会sql就能上手，虽操作麻烦但很容易学会。
+
+JDBCTemplate实现起来比ORM繁琐，所以大部分开发者用的都是ORM。
+
+### 6.2 ORM
+
+对象关系映射ORM（Object Relational Mapping），将数据库中的表和内存中的对象建立映射关系。对象和关系型数据库是业务实体的两种表现形式，业务实体在内存中表现为对象，在数据库中表现为关系型数据，内存中的对象不会被永久保存，只有关系型数据库的对象会被永久保存。
+
+ORM系统一般以中间键的形式存在，因为内存中的对象存在关联和继承关系，而数据库中，关系型数据无法直接表达多对多的关联和继承关系。
+
+![](./legend/ORM映射.png)
 
