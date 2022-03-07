@@ -1713,9 +1713,72 @@ body{
 
 
 
-# 9 特殊技巧
+# 9 其他知识点
+
+## 9.1 css变量
+
+CSS 变量可以访问 DOM，这意味着您可以创建具有局部或全局范围的变量，使用 JavaScript 来修改变量，以及基于媒体查询来修改变量。
+
+使用 CSS 变量的一种好方法涉及设计的颜色。您可以将它们放在变量中，而不必一遍又一遍地复制和粘贴相同的颜色。
+
+### 9.1.1 变量基础
+
+变量命名
+
+- 必须以两个减号开头，并且区分大小写。
+- eg：`--varName`
+
+变量引用
+
+- `var()` 函数用于插入 CSS 变量的值。
+- `var(varName, value)`，varName必填，而value选填，在未找到变量时使用。
+
+变量作用域
+
+- CSS 变量可以有全局或局部作用域。
+- 只要设置在不同的选择器内，它就被限制在这个域内了。
+
+```css
+:root {
+  --blue: #6495ed;
+  --white: #faf0e6;
+}
+
+body { background-color: var(--blue); }
+```
+
+## 9.1 css变量在vue中的应用
+
+```vue
+<template>
+	<div class="wrapper-col" :style="`--col-width:${col.widthEm}`">
+        你好
+    </div>
+</template>
+<script>
+export default{
+    data() {
+        return {
+            col:{
+                widthEm:'5em'
+            }
+        }
+    }
+}
+</script>
+<style>
+    .wrapper-col{
+        width:var(--col-width);
+        background-color:#0f0;
+    }
+</style>
+```
+
+
 
 1. mix-blend-mode:multiply;把所有白色的部分转换成半透明的 png。
+
+
 
 # [Less(Leaner Style Sheets ) ](https://less.bootcss.com/#-)
 
