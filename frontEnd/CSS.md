@@ -1747,7 +1747,7 @@ CSS 变量可以访问 DOM，这意味着您可以创建具有局部或全局范
 body { background-color: var(--blue); }
 ```
 
-## 9.1 css变量在vue中的应用
+### 9.1.2 css变量在vue中的应用
 
 ```vue
 <template>
