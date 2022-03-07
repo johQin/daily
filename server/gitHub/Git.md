@@ -1079,7 +1079,31 @@ Applying: 8th commit
 git replace new_commit old_commit
 ```
 
+## 4.9 子模块
 
+子模块（子仓库）允许你将一个Git仓库作为另一个Git仓库的子目录，这样你就可以将其他仓库克隆到你的项目中，同时保持提交的独立性。
+
+### 4.9.1 创建子模块
+
+```bash
+# 创建子模块
+git submodule add <url> <path>
+# 其中，url为子模块的路径，path为该子模块存储的目录路径。
+# 执行成功后，git status会看到项目中修改了.gitmodules，并增加了一个新文件（为刚刚添加的路径）
+```
+
+尽管新文件是工作目录下的一个子目录，但git将其视为一个子模块，当你不在该新文件夹中时，Git并不会跟踪其中的内容。
+
+### 4.9.2 克隆含有子模块的项目
+
+如果简单实用`git clone url`，默认会得到子模块的目录，但是目录中并不会有子仓库的文件。所以要使用到--recursive参数
+
+```bash
+# --recursive选项，会自动初始化和更新父仓库father_url下的每一个子模块。
+git clone --recursive father_url
+```
+
+如果在子模块的文件夹中，打开命令行，那么就可以像平常操作仓库一样对子仓库进行操作。
 
 # 工作场景
 
@@ -1121,3 +1145,37 @@ git checkout version_SHA-1 filename
 git config list
 ```
 
+# 其他知识点
+
+## 1 git设置提交模板
+
+1. 在某一个固定的文件夹下，新建一个Git提交的模板文本文件
+
+   - 例如在`.ssh`文件夹下，新建`.gitmessage.txt`文件，
+
+   - `.gitmessage.txt`的内容就是每次提交想要的模板
+
+   - ```
+     【功能修改】具体修改
+     【开发周期】H
+     【提交人】rrr(工号)
+     ```
+
+2. gitconfig生效修改
+
+   - 执行命令
+
+     ```bash
+     git config –global commit.template /c/Users/具体user/.ssh/.gitmessage.txt
+     ```
+
+   - 或者打开.gitconfig文件，添加配置内容
+
+     ```
+     [commit]
+     	template = C:/Users/具体user/.ssh/.gitmessage.txt
+     ```
+
+     
+
+3. 
