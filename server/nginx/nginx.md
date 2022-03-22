@@ -76,9 +76,23 @@ tar zxmf nginx-1.17.4.tar.gz
 
 ```bash
 # 进入解压后的安装文件夹
-cd nginx-1.17.4.tar.gz
+cd nginx-1.17.4
 # 代码编译 && 编译后安装
 make && make install
 ```
 
 ### 2.1.3 添加第三方模块
+
+nginx的功能是以模块的方式存在的，同时也支持添加第三方开发的功能模块。执行configure时，通过--add-module=PATH参数指定第三方模块的代码路径，然后再编译安装。
+
+```bash
+# 添加第三方静态模块的方法如下：
+./configure --add-module=../ngx_http_proxy_connect_module
+# 添加第三方动态模块的方法如下：
+./configure --add-dynamic-module=../ngx_http_proxy_connect_module --with-compat
+
+make && make install
+```
+
+## 2.2 部署
+
