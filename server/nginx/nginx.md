@@ -79,9 +79,80 @@ tar zxmf nginx-1.17.4.tar.gz
 cd nginx-1.17.4
 # 代码编译 && 编译后安装
 make && make install
+# 安装成功后，会多出一个usr/local/nginx文件夹，
+# 在此文件夹下的sbin下有启动脚本
 ```
 
-### 2.1.3 添加第三方模块
+### 2.1.3 启动nginx服务
+
+安装之后，我们需要启动nginx服务，
+
+```bash
+# 进入含有启动脚本的文件夹
+cd /usr/local/nginx/sbin
+# 执行启动脚本
+./nginx
+# 查看是否已启动相应的进程
+ps -ef | grep nginx
+
+root     2624670       1  0 17:54 ?        00:00:00 nginx: master process ./nginx
+nobody   2624671 2624670  0 17:54 ?        00:00:00 nginx: worker process
+root     2626322 2571514  0 17:55 pts/0    00:00:00 grep --color=auto nginx
+# 证明我们已经完成了nginx的启动
+
+pwd
+cd /usr/local/nignx
+cd conf
+vim nginx.conf
+
+# server {
+#        listen       80;
+#        server_name  localhost;
+#
+#        #charset koi8-r;
+#
+#        #access_log  logs/host.access.log  main;
+#
+#       location / {
+#            root   html;
+#            index  index.html index.htm;
+
+# 我们可以看到nginx的服务器监听的是80端口
+# 访问ip + 端口号 它会跳出nginx页面
+```
+
+![](./figure/nginx启动后.png)
+
+如果你是购买的云服务器，可能系统默认会有防火墙，你需要在它提供的控制台中更改防火墙设置。
+
+如果对80端口有设置防火墙，那么你就无法访问此nginx服务器，所以需要查看防火墙的情况。
+
+```bash
+# 查看防火墙开放的端口号
+firewall-cmd --list-all
+# 如果出现FirewallD is not running，说明防火墙服务处于关闭状态。
+# 查看防火墙状态
+systemctl status firewalld
+
+● firewalld.service - firewalld - dynamic firewall daemon
+   Loaded: loaded (/usr/lib/systemd/system/firewalld.service; disabled; vendor preset: enabled)
+   Active: inactive (dead)# 果然处于关闭状态。
+     Docs: man:firewalld(1)
+# 开启防火墙，没有任何提示即开启成功
+systemctl start firewalld # 关闭防火墙 systemctl stop firewalld
+
+# 开放端口
+firewall-cmd --add-port=80/tcp --permanant # --permanent永久生效，没有此参数重启后失效
+# 开放后需要重启防火墙，即可生效。
+firewall-cmd -reload
+
+# 关闭端口
+firewall-cmd --zone= public --remove-port=80/tcp --permanent #--zone 作用域
+```
+
+
+
+### 2.1.4 添加第三方模块
 
 nginx的功能是以模块的方式存在的，同时也支持添加第三方开发的功能模块。执行configure时，通过--add-module=PATH参数指定第三方模块的代码路径，然后再编译安装。
 

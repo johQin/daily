@@ -1720,7 +1720,7 @@ ACL可以针对某个具体的user，group，mask来设置权限
    -  设置某个目录/文件的ACL
    -  **setfacl [ -bkRd ] [ { -m | -x } acl参数 ]  文件名**
    -  acl参数
-     - **u​:[ 用户列表 ]:​[rwx]**，rwx如果没有那么就写**" - "**占位
+     - **u:[ 用户列表 ]:[rwx]**，rwx如果没有那么就写**" - "**占位
      - **g:[ 用户组列表 ]:[rwx]**
      - **m:[rwx]**，**用户或组所设置的权限必须要存在于mask的权限设置范围内才会生效，此即有效权限**
    -  m—为文件设置acl参数，x—删除acl参数，b—删除所有acl，k—删除mask的默认权限，
@@ -3149,18 +3149,81 @@ BaseOS-source                                      CentOS-8 - BaseOS Sources    
 # 常用操作
 
 1. 命令行翻页：【 Shift + Pageup/Pagedown】
+
 2. 通过管道符分页查看内容：eg：【 ls | less 】 Pageup/Pagedown 离开+q
+
 3. 查看命令是否存在：【 type command 】
+
 4. 删除文件：【 rm -fr 文件名 】
+
 5. [后台运行程序](<https://blog.csdn.net/u013123046/article/details/80610931>)：
    - 查看后台运行程序【 ps -aux 】
    - 后台运行程序 【nohup ......... &】
    - 杀进程：轻杀【kill pid】，强杀【 kill -9 pid】，pid为ps -aux中的pid
+   
 6. 端口与进程
    - 查看端口号下运行的进程：【 lsof -i:端口号】
    - 通过pid查看进程占用的端口：【 netstat -anp | grep pid 】
+   
 7. 查询rpm包管理工具中是否安装某个软件：【 rpm -qa | grep software】
+
 8. 查看ubantu系统中APT包管理系统中安装的软件：【 apt list --installed 】
+
+9. 查看ip地址：【ifconfig】或【ip addr】，好像看不到外网地址，只能看到内网的。
+
+   ```bash
+   # etho 表示网卡的代号
+   eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+           inet 10.0.4.8  netmask 255.255.252.0  broadcast 10.0.7.255 
+           # 这里的10.0.4.8就是内网ip，broadcast代表广播地址
+           inet6 fe80::5054:ff:feac:42c1  prefixlen 64  scopeid 0x20<link>
+           ether 52:54:00:ac:42:c1  txqueuelen 1000  (Ethernet)
+           RX packets 4575266  bytes 676977858 (645.6 MiB)
+           RX errors 0  dropped 0  overruns 0  frame 0
+           TX packets 4502910  bytes 718125324 (684.8 MiB)
+           TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+   # lo表示本机的环回接口
+   lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+           inet 127.0.0.1  netmask 255.0.0.0
+           inet6 ::1  prefixlen 128  scopeid 0x10<host>
+           loop  txqueuelen 1000  (Local Loopback)
+           RX packets 671  bytes 85537 (83.5 KiB)
+           RX errors 0  dropped 0  overruns 0  frame 0
+           TX packets 671  bytes 85537 (83.5 KiB)
+           TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+   
+   ```
+
+   
+
+10. [系统防火墙](https://www.cnblogs.com/moxiaoan/p/5683743.html)
+
+    ```bash
+    # 查看防火墙开放的端口号
+    firewall-cmd --list-all
+    # 如果出现FirewallD is not running，说明防火墙服务处于关闭状态。
+    # 查看防火墙状态
+    systemctl status firewalld
+    
+    ● firewalld.service - firewalld - dynamic firewall daemon
+       Loaded: loaded (/usr/lib/systemd/system/firewalld.service; disabled; vendor preset: enabled)
+       Active: inactive (dead)# 果然处于关闭状态。
+         Docs: man:firewalld(1)
+    # 开启防火墙，没有任何提示即开启成功
+    systemctl start firewalld # 关闭防火墙 systemctl stop firewalld
+    
+    # 开放端口
+    firewall-cmd --add-port=80/tcp --permanant # --permanent永久生效，没有此参数重启后失效
+    # 开放后需要重启防火墙，即可生效。
+    firewall-cmd -reload
+    
+    # 删除
+    firewall-cmd --zone= public --remove-port=80/tcp --permanent #--zone 作用域
+    ```
+
+    
+
+11. 
 
 
 <table cellpadding="2" cellspacing="2"> 
