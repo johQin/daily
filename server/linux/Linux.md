@@ -3223,7 +3223,43 @@ BaseOS-source                                      CentOS-8 - BaseOS Sources    
 
     
 
-11. 
+11. 添加环境变量
+
+    ```bash
+    # 1.针对所有用户长久有效
+    # 通过export添加变量参数
+    vim /etc/profile
+    
+    # 通过这个函数可以实现在现有的path上面添加新的path
+    pathmunge () {
+        case ":${PATH}:" in
+            *:"$1":*)
+                ;;
+            *)
+                if [ "$2" = "after" ] ; then
+                    PATH=$PATH:$1
+                else
+                    PATH=$1:$PATH
+                fi
+        esac
+    }
+    pathmunge /usr/local/nginx/sbin
+    export PATH
+    
+    # 保存etc/profile后，需要下面的命令使文件生效
+    source /etc/profile
+    
+    # 2.针对当前用户长久有效
+    vi ~/.bash_profile
+    # 操作同上
+    
+    # 3.针对当前登录会话有效，关闭之后下次登录shell就无效了
+    # 直接将上面的export 命令执行一遍。这种方式最简便，适合临时设置环境变量使用
+    ```
+
+    
+
+12. 
 
 
 <table cellpadding="2" cellspacing="2"> 
