@@ -1774,9 +1774,30 @@ export default{
 </style>
 ```
 
-
+## 其他常用操作
 
 1. mix-blend-mode:multiply;把所有白色的部分转换成半透明的 png。
+
+2. object-fit 属性指定元素的内容应该如何去适应指定容器的高度与宽度。
+
+   - object-fit 一般用于 img 和 video 标签，一般可以对这些元素进行保留原始比例的剪切、缩放或者直接进行拉伸等。
+
+   - 可以通过使用 [object-position](https://www.runoob.com/cssref/pr-object-position.html) 属性来切换被替换元素的内容对象在元素框内的对齐方式。
+
+   - ```css
+     <img class="a" src="paris.jpg" alt="Paris" width="400" height="300">
+     img.a {
+       width: 200px;
+       height: 400px;
+       object-fit: contain;//保持图片原比例，并且不裁剪图片
+         //cover:保持图片原比例，填满容器，但会裁剪图片
+     	//fill|contain|cover|scale-down|none|initial|inherit;
+     }
+     ```
+
+   - 
+
+3. 
 
 
 
