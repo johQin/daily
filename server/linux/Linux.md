@@ -3259,7 +3259,26 @@ BaseOS-source                                      CentOS-8 - BaseOS Sources    
 
     
 
-12. 
+12. 下载文件：[wget](https://www.cnblogs.com/ftl1012/p/9265699.html)
+
+    wget是一个下载文件的工具，它用在命令行下。对于Linux用户是必不可少的工具，我们经常要下载一些软件或从远程服务器恢复备份到本地服务器。 wget支持HTTP，HTTPS和FTP协议。
+
+    ```bash
+    # -O：下载文件到对应目录，并且修改文件名称
+    wget -O wordpress.zip http://www.minjieren.com/download.aspx?id=1080
+    # -b：后台下载，查看下载进度：tail -f wget-log
+    wget -b wordpress.zip http://www.minjieren.com/download.aspx?id=1080
+    ```
+
+    
+
+13. 
+
+```bash
+
+```
+
+
 
 
 <table cellpadding="2" cellspacing="2"> 

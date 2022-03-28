@@ -275,3 +275,93 @@ http指令域，除自身域外，还包含了多个server指令域，而server�
 匹配url上除ip地址之外的字符串，对特定的请求进行处理。
 
 例如：地址定向、数据缓存和应答控制等功能，还有许多第三方模块的配置也在这里进行配置。
+
+# 4 配置实例
+
+## 4.1 实例1：反向代理
+
+目标效果：在浏览器地址栏输入：www.123.com（这个是虚无的网址），跳转到linux系统的tomcat主页面中。
+
+准备工作：在linux系统中安装tomcat，使用默认端口8080。
+
+### 4.1.1 安装tomcat
+
+#### 安装jdk
+
+```bash
+# tomcat需要jdk作为环境，所以首先要安装jdk。下载之后默认的目录为： /usr/lib/jvm/
+yum search java | grep jdk
+
+openjdk-asmtools-javadoc.noarch : Javadoc for openjdk-asmtools
+java-1.8.0-openjdk.x86_64 : OpenJDK 8 Runtime Environment
+java-1.8.0-openjdk-accessibility.x86_64 : OpenJDK 8 accessibility connector
+java-1.8.0-openjdk-demo.x86_64 : OpenJDK 8 Demos
+java-1.8.0-openjdk-devel.x86_64 : OpenJDK 8 Development Environment
+...
+java-1.8.0-openjdk-src.x86_64 : OpenJDK 8 Source Bundle
+java-11-openjdk.x86_64 : OpenJDK 11 Runtime Environment
+...
+java-11-openjdk-jmods.x86_64 : JMods for OpenJDK 11
+java-11-openjdk-src.x86_64 : OpenJDK 11 Source Bundle
+...
+
+# 安装
+yum install java-1.8.0-openjdk
+# 我在腾讯云，安装完成后，java不需要配环境变量，就可以直接java -version
+# 相关原因：
+#ubuntu12.10系统使用ppa方式下载并自动安装jdk后，java被安装到usr/lib/jvm目录下，没有修改环境变量便可以使用。
+#这是因为操作系统将java的可执行文件先做成链接放在了/etc/alternatives下，然后又把alternatives下的链接又做成了链接放在了/usr/bin下。
+#alternative是可选项的意思
+#首先，因为依赖关系的存在，一个软件包在系统里面可能出现新旧版本并存的情况，或者同时安装了多种桌面环境， 系统更新之后会自动将最后安装的版本作为默认值。
+#在以前，要想用旧版本作为默认值就必须要手动修改配置文件，有些软件比较简单，有些却要修改很多文件，甚至一些相关软件的配置文件也要相应修改。
+#update-alternatives命令就是为了解决这个问题的，指定一个简写的名称后会根据每个软件包的具体情况给出一些选项，自动完成一些配置文件的修改，减轻系统维护的负担。
+
+# 因为yum 安装位置在/usr/lib/jvm/，进入jvm我们可以看见多个文件，里面包括一些软连接
+
+[root@VM-4-8-centos jvm]# ll
+总用量 4
+# 第一列为文件类型，我们可以看到除了第一个文件的文件类型是d（文件夹），其余都是连接文件l（符号连接），而且还是软连接，因为后面有 “->” 符号，软连接，指向其他文件。真正的文件是箭头后面那个。
+drwxr-xr-x 3 root root 4096 3月  28 21:15 java-1.8.0-openjdk-1.8.0.312.b07-2.el8_5.x86_64
+lrwxrwxrwx 1 root root   21 3月  28 21:15 jre -> /etc/alternatives/jre
+lrwxrwxrwx 1 root root   27 3月  28 21:15 jre-1.8.0 -> /etc/alternatives/jre_1.8.0
+lrwxrwxrwx 1 root root   35 3月  28 21:15 jre-1.8.0-openjdk -> /etc/alternatives/jre_1.8.0_openjdk
+lrwxrwxrwx 1 root root   51 11月 13 16:29 jre-1.8.0-openjdk-1.8.0.312.b07-2.el8_5.x86_64 -> java-1.8.0-openjdk-1.8.0.312.b07-2.el8_5.x86_64/jre
+lrwxrwxrwx 1 root root   29 3月  28 21:15 jre-openjdk -> /etc/alternatives/jre_openjdk
+
+```
+
+#### 安装tomcat
+
+```bash
+ # 在/usr/local下，下载tomcat安装包
+ wget https://dlcdn.apache.org/tomcat/tomcat-8/v8.5.77/bin/apache-tomcat-8.5.77.tar.gz
+ # 解压安装包
+ tar -xvf apache-tomcat-8.5.77.tar.gz
+ cd /apache-tomcat-8.5.77/bin
+ # 执行安装脚本
+ ./startup.sh
+
+Using CATALINA_BASE:   /usr/local/apache-tomcat-8.5.77
+Using CATALINA_HOME:   /usr/local/apache-tomcat-8.5.77
+Using CATALINA_TMPDIR: /usr/local/apache-tomcat-8.5.77/temp
+Using JRE_HOME:        /usr
+Using CLASSPATH:       /usr/local/apache-tomcat-8.5.77/bin/bootstrap.jar:/usr/local/apache-tomcat-8.5.77/bin/tomcat-juli.jar
+Using CATALINA_OPTS:   
+Tomcat started.
+
+ # cd ../logs，查看tomcat的日志，如果能看到那么启动成功
+ tail -f catalina.out
+ 
+ 28-Mar-2022 22:41:27.060 信息 [localhost-startStop-1] org.apache.catalina.startup.HostConfig.deployDirectory 把web 应用程序部署到目录 [/usr/local/apache-tomcat-8.5.77/webapps/examples]
+28-Mar-2022 22:41:27.203 信息 [localhost-startStop-1] org.apache.catalina.startup.HostConfig.deployDirectory Web应用程序目录[/usr/local/apache-tomcat-8.5.77/webapps/examples]的部署已在[143]毫秒内完成
+28-Mar-2022 22:41:27.204 信息 [localhost-startStop-1] org.apache.catalina.startup.HostConfig.deployDirectory 把web 应用程序部署到目录 [/usr/local/apache-tomcat-8.5.77/webapps/docs]
+28-Mar-2022 22:41:27.213 信息 [localhost-startStop-1] org.apache.catalina.startup.HostConfig.deployDirectory Web应用程序目录[/usr/local/apache-tomcat-8.5.77/webapps/docs]的部署已在[9]毫秒内完成
+28-Mar-2022 22:41:27.214 信息 [localhost-startStop-1] org.apache.catalina.startup.HostConfig.deployDirectory 把web 应用程序部署到目录
+
+ # tomcat默认8080端口，所以还需要开放一下8080端口的防火墙
+```
+
+![](./figure/tomcat服务器启动后.PNG)
+
+![](./figure/反向代理配置实例1的原理图.png)
+
