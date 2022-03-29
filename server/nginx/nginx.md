@@ -171,6 +171,128 @@ make && make install
 
 nginx的配置文件所在的位置：`/usr/local/nginx/conf/nginx.conf`
 
+```bash
+#user  nobody;
+worker_processes  1;
+
+#error_log  logs/error.log;
+#error_log  logs/error.log  notice;
+#error_log  logs/error.log  info;
+
+#pid        logs/nginx.pid;
+
+
+events {
+    worker_connections  1024;
+}
+
+
+http {
+    include       mime.types;
+    default_type  application/octet-stream;
+
+    #log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+    #                  '$status $body_bytes_sent "$http_referer" '
+    #                  '"$http_user_agent" "$http_x_forwarded_for"';
+
+    #access_log  logs/access.log  main;
+
+    sendfile        on;
+    #tcp_nopush     on;
+
+    #keepalive_timeout  0;
+    keepalive_timeout  65;
+
+    #gzip  on;
+
+    server {
+        listen       80;
+        server_name  localhost;
+
+        #charset koi8-r;
+
+        #access_log  logs/host.access.log  main;
+
+        location / {
+            root   html;
+            index  index.html index.htm;
+        }
+
+        #error_page  404              /404.html;
+
+        # redirect server error pages to the static page /50x.html
+        #
+        error_page   500 502 503 504  /50x.html;
+        location = /50x.html {
+            root   html;
+        }
+
+        # proxy the PHP scripts to Apache listening on 127.0.0.1:80
+        #
+        #location ~ \.php$ {
+        #    proxy_pass   http://127.0.0.1;
+        #}
+
+        # pass the PHP scripts to FastCGI server listening on 127.0.0.1:9000
+        #
+        #location ~ \.php$ {
+        #    root           html;
+        #    fastcgi_pass   127.0.0.1:9000;
+        #    fastcgi_index  index.php;
+        #    fastcgi_param  SCRIPT_FILENAME  /scripts$fastcgi_script_name;
+        #    include        fastcgi_params;
+        #}
+
+        # deny access to .htaccess files, if Apache's document root
+        # concurs with nginx's one
+        #
+        #location ~ /\.ht {
+        #    deny  all;
+        #}
+    }
+
+
+    # another virtual host using mix of IP-, name-, and port-based configuration
+    #
+    #server {
+    #    listen       8000;
+    #    listen       somename:8080;
+    #    server_name  somename  alias  another.alias;
+
+    #    location / {
+    #        root   html;
+    #        index  index.html index.htm;
+    #    }
+    #}
+
+
+    # HTTPS server
+    #
+    #server {
+    #    listen       443 ssl;
+    #    server_name  localhost;
+
+    #    ssl_certificate      cert.pem;
+    #    ssl_certificate_key  cert.key;
+
+    #    ssl_session_cache    shared:SSL:1m;
+    #    ssl_session_timeout  5m;
+
+    #    ssl_ciphers  HIGH:!aNULL:!MD5;
+    #    ssl_prefer_server_ciphers  on;
+
+    #    location / {
+    #        root   html;
+    #        index  index.html index.htm;
+    #    }
+    #}
+
+}
+
+```
+
+
+
 配置指令（配置项）就在配置文件中。
 
 ## 3.1 常用命令
@@ -278,13 +400,9 @@ http指令域，除自身域外，还包含了多个server指令域，而server�
 
 # 4 配置实例
 
-## 4.1 实例1：反向代理
-
-目标效果：在浏览器地址栏输入：www.123.com（这个是虚无的网址），跳转到linux系统的tomcat主页面中。
-
 准备工作：在linux系统中安装tomcat，使用默认端口8080。
 
-### 4.1.1 安装tomcat
+## 4.1 准备工作
 
 #### 安装jdk
 
@@ -363,5 +481,100 @@ Tomcat started.
 
 ![](./figure/tomcat服务器启动后.PNG)
 
+
+
+## 4.2 反向代理：实例1
+
+目标效果：在浏览器地址栏输入：www.123.com（这个是虚无的网址），跳转到linux系统的tomcat主页面中。
+
 ![](./figure/反向代理配置实例1的原理图.png)
+
+### 修改本地映射
+
+`C:/Windows/System32/drivers/etc/hosts`修改域名映射即可。
+
+```txt
+124.223.224.180 www.123.com
+```
+
+### nginx请求转发
+
+```bash
+# 修改 /usr/local/nginx/conf/nginx.conf 文件
+server {
+        listen       80;
+        server_name  124.223.224.184;#nginx服务器地址
+        location / {
+            root   html;
+            proxy_pass  http://127.0.0.1:8080; # tomcat服务器地址
+            index  index.html index.htm;
+        }
+
+}
+
+```
+
+## 4.3 反向代理：实例2
+
+目标效果：
+
+使用nginx反向代理，根据访问路径跳转到不同端口的服务中
+
+1. nginx监听端口：9001
+2. 访问：9001/edu/ 直接跳转到tomcat服务器127.0.0.1:8080
+3. 访问：9001/vod/ 直接跳转到tomcat服务器127.0.0.1:8081
+
+### 准备两个tomcat服务器
+
+```bash
+# 杀死已经开启的tomcat服务器
+ps -ef | grep tomcat
+
+root     3711231       1  0 3月28 ?       00:00:58 /usr/bin/java -Djava.util.logging.config.file=/usr/local/apache-tomcat-8.5.77/conf/logging.properties -Djava.util.logging.manager=org.apache.juli.ClassLoaderLogManager -Djdk.tls.ephemeralDHKeySize=2048 -Djava.protocol.handler.pkgs=org.apache.catalina.webresources -Dorg.apache.catalina.security.SecurityListener.UMASK=0027 -Dignore.endorsed.dirs= -classpath /usr/local/apache-tomcat-8.5.77/bin/bootstrap.jar:/usr/local/apache-tomcat-8.5.77/bin/tomcat-juli.jar -Dcatalina.base=/usr/local/apache-tomcat-8.5.77 -Dcatalina.home=/usr/local/apache-tomcat-8.5.77 -Djava.io.tmpdir=/usr/local/apache-tomcat-8.5.77/temp org.apache.catalina.startup.Bootstrap start
+root     4118774 4027353  0 22:42 pts/0    00:00:00 grep --color=auto tomcat
+
+kill -9 3711231
+
+ps -ef | grep tomcat
+
+root     4120493 4027353  0 22:43 pts/0    00:00:00 grep --color=auto tomcat
+# 说明已关闭
+
+# 然后复制两个tomcat安装包的解压包就行
+# cd /usr/local
+# 将当前tomcat解压后的文件夹修改为tomcat8080
+mv apache-tomcat-8.5.77 tomcat8080
+# 然后再将tomcat8080文件夹复制一份，并命名为tomcat8081
+cp -rf tomcat8080 tomcat8081
+
+# 开启8080服务器，因为服务器默认就是8080
+cd tomcat8080/bin
+./startup.sh
+
+# 开启8081服务器，这个需要修改tomcat8081的配置文件
+cd ../../tomcat8081/conf
+vim server.xml
+# 这个配置文件里有以下几个地方需要修改端口，目的是为了不和刚刚启动的8080服务器冲突
+# 分别修改为8015,8019,8081
+
+# <Server port="8005" shutdown="SHUTDOWN">
+# 8005端口是用来关闭TOMCAT服务的端口。
+# <Connector port="8009" protocol="AJP/1.3" redirectPort="8443" />
+# 连接器监听8009端口，负责和其他的HTTP服务器建立连接。在把Tomcat与其他HTTP服务器集成时，就需要用到这个连接器。
+# <Connector port="8080" protocol="HTTP/1.1" connectionTimeout="20000" redirectPort="8443" />
+# 连接器监听8080端口，负责建立HTTP连接。在通过浏览器访问Tomcat服务器的Web应用时，使用的就是这个连接器
+
+cd ../../bin
+./startup.sh
+
+# 然后这两个服务器都都开启了，在浏览器中看一下，如果两个都能打开，那么服务就开好了。
+
+```
+
+### 配置
+
+`/usr/local/nginx/conf/nginx.conf`
+
+```bash
+```
 
