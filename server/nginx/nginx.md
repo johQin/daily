@@ -398,6 +398,52 @@ http指令域，除自身域外，还包含了多个server指令域，而server�
 
 例如：地址定向、数据缓存和应答控制等功能，还有许多第三方模块的配置也在这里进行配置。
 
+URI，即统一标识资源符，通用的URI语法格式如下：
+
+`scheme:[// [user[:password]@]  host  [:port] ]  [/path]  [?query]  [#fragment]`
+
+### URI的匹配规则
+
+`location [ = | ~ | ~* | ^~ | @ ] pattern {   }`
+
+中括号中的是修饰语，pattern是匹配项
+
+- 无修饰语：完全匹配url中除访问参数以外的内容，匹配项只能是字符串，不能是正则表达式
+  - 
+- 修饰语 `=` ：完全匹配url中除访问参数以外的内容，
+  - Linux下会区分大小写，windows则不会
+- 修饰语 `~` ：完全匹配url中除访问参数以外的内容，
+  - Linux下会区分大小写，windows则不会，
+  - 匹配项的内容必须是正则表达式
+- 修饰语 `~*` ：完全匹配url中除访问参数以外的内容
+  - 不区分大小写
+  - 匹配项的内容必须是正则表达式
+- 修饰语 `^~` ：完全匹配url中除访问参数以外的内容
+  - 匹配项的内容如果不是正则表达式，则不再进行正则表达式测试
+- 修饰语 `@` ：定义一个只能内部访问的location区域，可以被内部跳转指令使用
+
+#### 匹配顺序
+
+1. 先检测匹配项内容为非正则表达式修饰语修饰的location，后检测匹配项内容为正则表达式修饰语修饰的location
+2. 当匹配项内容同时被非正则与正则都匹配的location，按匹配项内容为正则匹配location执行。
+3. 所有匹配项内容均为非正则表达式的location，按照匹配项的内容完全匹配的内容长短进行匹配，即匹配内容多的location被执行
+4. 所有匹配项的内容均为正则表达式的location，按照书写的先后顺序进行匹配，匹配后就执行，不再做后续检测。
+
+#### proxy_pass
+
+当location为正则匹配且内部有proxy_pass指令时，proxy_pass的指令值不能包含无变量的字符串，修饰语不受该规则限制。
+
+```bash
+location ~ /images {
+	proxy_pass	http:127.0.0.1:8080;	#正确的指令值
+	proxy_pass	http:127.0.0.1:8080$request_uri;	#正确的指令值
+	proxy_pass	http:127.0.0.1:8080/image$request_uri;	#正确的指令值
+	proxy_pass	http:127.0.0.1:8080/;	#错误的指令值
+}
+```
+
+
+
 # 4 配置实例
 
 准备工作：在linux系统中安装tomcat，使用默认端口8080。
@@ -497,6 +543,8 @@ Tomcat started.
 124.223.224.180 www.123.com
 ```
 
+如果用的是云服务器，有可能这样采取的映射是无法达到目标效果的。云服务器让你备案：`www.123.com`
+
 ### nginx请求转发
 
 ```bash
@@ -521,8 +569,8 @@ server {
 使用nginx反向代理，根据访问路径跳转到不同端口的服务中
 
 1. nginx监听端口：9001
-2. 访问：9001/edu/ 直接跳转到tomcat服务器127.0.0.1:8080
-3. 访问：9001/vod/ 直接跳转到tomcat服务器127.0.0.1:8081
+2. 访问：9001/pinduoduo/ 直接映射到tomcat服务器127.0.0.1:8080/pinduoduo/index.html
+3. 访问：9001/taobao/ 直接映射到tomcat服务器127.0.0.1:8081/taobao/index.html
 
 ### 准备两个tomcat服务器
 
@@ -569,12 +617,77 @@ cd ../../bin
 
 # 然后这两个服务器都都开启了，在浏览器中看一下，如果两个都能打开，那么服务就开好了。
 
+# 在tomcat8080文件夹下的webapps下新建pinduoduo/index.html
+# 在tomcat8081文件夹下的webapps下新建taobao/index.html
+# 页面内容如下
 ```
+
+```html
+<!DOCTYPE html>
+<html>
+        <head>
+              <meta charset="utf-8">
+              <title>8081</title>
+        </head>
+        <body>
+              <h1>这里是8081服务器</h1>
+              <h2>淘宝</h2>
+              <iframe src="https://www.taobao.com" width="800px" height="400px"></iframe>
+        </body>
+</html>
+```
+
+
 
 ### 配置
 
 `/usr/local/nginx/conf/nginx.conf`
 
 ```bash
+http {
+    include       mime.types;
+    default_type  application/octet-stream;
+    sendfile        on;
+    keepalive_timeout  65;
+        server {
+                listen       80;
+                server_name  124.223.224.184;
+                location / {
+                        root   html;
+                        proxy_pass      http://127.0.0.1:8080;
+                        index  index.html index.htm;
+                }
+        }
+        server {
+                listen  9001;
+                server_name 124.223.224.184;
+                location ~ /pinduoduo/ {
+                        proxy_pass      http://127.0.0.1:8080;
+                }
+                location ~ /taobao/ {
+                        proxy_pass      http://127.0.0.1:8081;
+                }
+        }
+}
 ```
+
+ps：记得对外开放9001，而无需开放8080和8081
+
+```bash
+cd ../sbin/
+# 关闭nginx服务
+./nginx -s stop
+# 开启服务
+./nginx
+ps -ef | grep nginx
+root      974231       1  0 20:33 ?        00:00:00 nginx: master process nginx
+nobody    974232  974231  0 20:33 ?        00:00:00 nginx: worker process
+root      974559  863111  0 20:33 pts/0    00:00:00 grep --color=auto nginx
+```
+
+然后浏览器访问：
+
+`http://124.223.224.184:9001/taobao/index.html`
+
+`http://124.223.224.184:9001/pinduoduo/index.html`
 
