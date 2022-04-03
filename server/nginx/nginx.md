@@ -30,6 +30,10 @@ nginx可以作为静态页面的服务器，同时支持CGI协议的动态语言
 
 通过nginx代理服务器，把来自客户端的并发请求均匀分配给真实服务器集群。——负载均衡
 
+## 1.3 动静分离
+
+![](./figure/动静分离.png)
+
 # 2 编译及部署
 
 ## 2.1 编译
@@ -398,6 +402,8 @@ http指令域，除自身域外，还包含了多个server指令域，而server�
 
 例如：地址定向、数据缓存和应答控制等功能，还有许多第三方模块的配置也在这里进行配置。
 
+URL（统一资源定位符）是URI（统一资源标识符）的子集。
+
 URI，即统一标识资源符，通用的URI语法格式如下：
 
 `scheme:[// [user[:password]@]  host  [:port] ]  [/path]  [?query]  [#fragment]`
@@ -691,3 +697,132 @@ root      974559  863111  0 20:33 pts/0    00:00:00 grep --color=auto nginx
 
 `http://124.223.224.184:9001/pinduoduo/index.html`
 
+## 4.4 负载均衡
+
+nginx负载均衡是由代理模块和上游（upstream）模块共同实现的。
+
+### 实例
+
+实现效果：
+
+多个浏览器访问同一个nginx服务器地址，这多个请求被平均分配到不同的服务器上。
+
+准备工作：
+
+在两台tomcat服务器的webapps目录中，创建名称是webhome文件夹，再创建一个index.html，用于测试。
+
+```bash
+http {
+    include       mime.types;
+    default_type  application/octet-stream;
+    sendfile        on;
+    keepalive_timeout  65;
+	upstream myserver {
+         server  127.0.0.1:8080;
+         server  127.0.0.1:8081;
+    }
+    server{
+          listen  9002;
+          server_name 124.223.224.184;
+          location / {
+                proxy_pass http://myserver;
+          }
+    }
+}
+```
+
+浏览器输入：`http://124.223.224.184:9002/webHome/index.html`,
+
+页面加载完成后，又刷新，他会在8080和8081服务器上来回跳跃。
+
+### 负载均衡策略
+
+1. 轮询（默认）
+
+   - 每个请求按时间顺序逐一分配到不同的后端服务器。如果有服务器宕机，那么就剔除掉。
+
+   - 加权轮询，平滑轮询。
+
+   - ```bash
+     upstream myserver {
+     	server  127.0.0.1:8080 weight=1;#加权轮询
+     	server  127.0.0.1:8081 weight=2;
+     }
+     ```
+
+2. IP哈希
+
+   - 每个请求按访问ip的hash结果分配，这样每个访客固定访问一个后端服务器，可以解决session的问题。
+
+   - ```bash
+     upstream myserver {
+     	ip_hash;
+     	server  127.0.0.1:8080;
+     	server  127.0.0.1:8081;
+     }
+     ```
+
+3. fair
+
+   - 按后端服务器相应时间来分配请求，响应快的优先分配。
+
+   - ```bash
+     upstream myserver {
+     	fair;
+     	server  127.0.0.1:8080;
+     	server  127.0.0.1:8081;
+     }
+     ```
+
+4. 一致性哈希、最少连接、随机负载
+
+## 4.5 动静分离
+
+nginx动静分离简单来说就是把动态请求跟静态请求分开。使请求访问更加高效。
+
+在一定程度上可以理解为，nginx处理静态页面，tomcat处理动态页面。不能理解成，只是单纯的把动态页面和静态页面物理分离。
+
+动静分离从目前实现角度来讲大致分为两种：
+
+1. 服务器分离：一种是纯粹把静态文件独立成单独的域名，放在独立的服务器上，也是目前主流推崇的方案。
+2. 代理服务器分离：一种是动态文件和静态文件混合在一起发布，通过nginx分开。通过location指定不同的后缀名实现不同的请求转发。
+
+### expire
+
+通过expire参数设置，可以使浏览器缓存过期时间，减少与服务器之间的请求和流量。
+
+具体Expire的定义：是给一个资源设定一个过期时间，也就是无需服务器去验证，直接通过浏览器自身确认是否过期即可，所以不会产生额外的流量，此种方法非常适合不经常变动的资源。
+
+假设设置为3D，表示3d之内访问这个url，发送一个请求，比对服务器该文件的最后更新时间，如果更新时间未改变，则返回304（采用浏览器缓存）。如果有修改，则直接从服务器上重新下载，返回200。(协商缓存)
+
+### 配置
+
+在服务器下，建立一个静态文件夹，路径是`/usr/local/staticFileDirectory/`，在里面建一个www和images文件夹，www里放index.html，images里放index.jpg
+
+```bash
+http {
+    include       mime.types;
+    default_type  application/octet-stream;
+    sendfile        on;
+    keepalive_timeout  65;
+    server {
+                    listen       80;
+                    server_name  124.223.224.184;
+                    location /www/ {
+                            root   /usr/local/staticFileDirectory/;
+                            index  index.html index.htm;
+                    }
+                    location /images/ {
+                            root /usr/local/staticFileDirectory/;
+                            autoindex on;
+                    }
+     }
+}
+            
+```
+
+autoindex的作用是当你访问`http://124.223.224.184/images/`你可以看到`/usr/local/staticFileDirectory/images/`文件夹下的文件目录，如下。
+
+![](./figure/静态文件autoindex.png)
+
+如果访问不到图片或者html，还要看看是否是文件权限是否设置好了。
