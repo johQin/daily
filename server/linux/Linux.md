@@ -459,7 +459,7 @@ Unix Software Resource
 
 **inode/block数据访问示意图**
 
-![](E:/gitRepository/daily/linux/legend/inode-block%E7%A4%BA%E6%84%8F%E5%9B%BE.png)
+![](./legend/inode-block%E7%A4%BA%E6%84%8F%E5%9B%BE.png)
 
 **FAT文件系统数据访问示意图**
 
