@@ -1,5 +1,7 @@
 # Nginx
 
+# 实践
+
 # 1 基本概念
 
 nginx是一个高性能的HTTP和反向代理服务器，特点是占有内存少，并发能力强（为性能优化而开发的）。
@@ -826,3 +828,56 @@ autoindex的作用是当你访问`http://124.223.224.184/images/`你可以看到
 ![](./figure/静态文件autoindex.png)
 
 如果访问不到图片或者html，还要看看是否是文件权限是否设置好了。
+
+# 理论
+
+# 1 核心配置指令
+
+## 1.1 进程的核心配置指令
+
+nginx的**进程**核心配置指令包含在Nginx核心代码及事件模块代码中。
+
+按配置指令设定的功能可以分为**进程管理、进程调优、进程调试、事件处理**4个部分
+
+```bash
+# 1 进程管理
+# nginx本身就是一款应用软件，在其运行时，用户可对其运行方式，动态加载模块，日志输出等使用其内建的基础配置指令进行配置。
+daemon on;  # 以守护进程（服务）的方式运行nginx
+pid logs/nginx.pid;	# 指定记录主进程的pid的文件路径
+user nobody nobody;	# 工作进程运行的用户是
+load_module "modules/ngx_http_xslt_filter_module.so"	# 加载动态模块
+include - # 加载外部配置文件
+error_log logs/error.log debug;	# 指定错误日志文件及文件名
+pcre_jit on;	#用于设置配置文件中的正则表达式是否使用pcre_jit技术
+
+# 2 进程调优
+# nginx工作进程的性能依赖于硬件和操作系统的配置
+# 在实际的应用场景中，用户需要按照硬件的、操作系统或应用场景需求的侧重点进行相应的配置调整。
+thread_pool default thread=32 max_queue=65536;	# 线程池中的线程数为32，所有线程繁忙时，等待队列中的最大任务数为65536
+timer_resolution 100ms;	# 处理事件超时的时间间隔
+worker_priority -5;	# 设定进程在linux系统中的优先级（nice值）
+worker_processes auto;	# 设置工作进程数，auto根据cpu内核数生成对应的工作进程数
+worker_cpu_affinity auto;	# 将工作进程与cpu内核进行绑定
+worker_rlimit_nofile 65535;	# nginx所有进程同时打开文件的最大数量，默认为操作系统的文件打开数
+worker_shutdown_timeout 10s;	# 设置nginx正常关闭工作进程的超时时间，超过该时间是，强制关闭所有连接，以便关闭工作进程
+lock_file logs/niginx.lock;	# 互斥锁文件，在开启accept_mutex进程调度模式或使用共享内存文件时，需要使用到互斥锁文件。
+
+# 3 进程调试
+master_process on;	# nginx默认是以主进程管理多个工作进程的工作方式，设定为off即运行一个主进程来处理所有请求，当只有一个主进程处理请求是，调试进程会更加方便。
+working_directory logs;	# 该指令用于设定工作进程保存崩溃文件的目录，
+worker_rlmit_core 800m;	# 设置崩溃文件的大小
+debug_points stop;	# 该指令用于进行调试点的控制，当为stop时，在执行到调试点时或发出SIGSTOP信号，方便用户进行调试，当指令值为abort时，在调试点停止进程并创建corefile
+
+# 4 事件处理
+# nginx是采用事件驱动式架构处理外部请求的，这一架构使得nginx在现有硬件架构下可以处理数以万计的并发请求。
+events {
+	worker_connections 65535;	# 每个工作进程可处理的最大请求数。
+	use epoll;	# 事件处理的机制模型
+	accept_mutex on;	# 是否启用互斥锁模式的进程调度
+	accept_mutex_delay 300ms;	# 在互斥锁模式下，工作进程需要不断地争抢互斥锁，抢锁等待时间设置为一个较短的时间，以提高争抢互斥的频率
+	multi_accept on;	# 默认情况下每个工作进程一次只能接受一个新连接，如开启，则接收所有的新连接
+	worker_aio_requests 128;	# 用于在epoll事件模型下使用aio时，单个工作进程未完成异步i/o操作的最大数
+	debug_connection 192.0.2.0/24;	# 对指定客户端开启调试日志，在编译时需要开启--with-debug
+}
+```
+
