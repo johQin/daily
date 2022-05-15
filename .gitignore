@@ -2,7 +2,6 @@
 *.pom
 *.sha1
 .vscode
-*.pdf
 源码笔记课件
 build
 material

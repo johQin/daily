@@ -888,7 +888,7 @@ HTTP请求处理的简单闭环流程模型是：客户端发起请求，建立�
 按照HTTP请求处理闭环流程模型，结合HTTP核心配置指令的功能，可以将Nginx的HTTP核心配置指令进行如下分类：
 
 - 初始化服务
-- HTTP请求处理：标准的http请求从开始到结束包括请求报文（请求行，请求头，请求体）和响应报文（响应行，响应头，响应体）
+- HTTP请求处理
 - 访问路由location：是nginx对http请求中的URI进行匹配处理的指令
 - 访问重写rewrite：是对用户请求的URI进行pcre正则重写，然后返回30x重定向跳转或按条件执行相关配置
 - 访问控制：提供了基本的禁止访问、传输限速、内部访问控制等功能配置
@@ -962,11 +962,158 @@ listen对监听方式提供了丰富的参数
 | **variables_hash_max_size**    | http、server、location | 512    | - 当变量较多时，可以用该指令增加存储的大小 - nginx使用哈希表加速对nginx配置中常量、变量的处理 |
 | **variables_hash_bucket_size** | http、server、location | 64     | 单个哈希桶的大小等于cpu缓存行大小的倍数，桶机制是用来解决哈希值一样时 |
 
+### 1.2.2 HTTP请求处理
 
+标准的http请求从开始到结束包括请求报文（请求行，请求头，请求体）和响应报文（响应行，响应头，响应体）
+
+#### 1 请求报文
+
+- 请求行
+  - 是请求头内容的第一行，包括请求方法（POST、GET）、请求地址（https://www.baidu.com）、请求协议及版本号（http/1.1）
+- 请求头
+  - 包含此次请求所设定的若干属性字段，属性字段有属性名称和属性值组成
+
+<center><b>常用的请求头属性</b></center>
+
+| 属性                  | 属性值样例                | 说明                                                         |
+| --------------------- | ------------------------- | ------------------------------------------------------------ |
+| **HOST**              | www.baidu.com             | - 目标主机名<br />- 对应于nginx server_name指令的配置        |
+| **Accept**            | text/html,application/xml | - 描述客户端能够接收服务端返回的数据类型<br />- nginx会通过types指令域的内容做匹配 |
+| **Cookie**            |                           | 客户端当前连接的所有cookie                                   |
+| **Referer**           | https://www.baidu.com     | 表示当前连接的上一个来源URI                                  |
+| **Cache-Control**     | no-cache                  | - 当前客户端的缓存机制<br />- 可通过更多的属性值参数进行缓存控制 |
+| **Connection**        | keep-alive                | - 是否需要启用保持连接机制<br />- http/1.1默认启用保持连接   |
+| **if-None-Match**     | W/ "50b1c1d4f775c61:df3"  | - 与页面响应头的etag的属性值配合使用<br />- 将etag内容交给服务端，用以判断请求内容是否已经修改<br />- 若未被修改，返回304，客户端使用本地缓存 |
+| **if_modified_since** |                           | 当前请求的页面本地缓存的最后修改时间（last_modified)<br />- 服务器会将实际文件的修改时间与该参数值进行比较<br />- 若一致，返回304<br />- 若不一致，返回服务器的文件内容 |
+
+- 请求体：则是请求携带的参数数据
+
+##### 请求头（client_header）
+
+| 指令                             | 作用域       | 默认值 | 说明                                                         |
+| -------------------------------- | ------------ | ------ | ------------------------------------------------------------ |
+| **ignore_invalid_headers**       | http、server | on     | - 忽略请求头中无效的字段<br />- 属性名称默认由英文字段、数字和连接符组成（命名规范）<br />- 不对无效的属性名称过滤 |
+| **underscores_in_headers**       | http、server | off    | on时，使带下划线的属性变得有效                               |
+| **client_header_buffer_size**    | http、server | 1k     | - 设置请求头缓冲区的大小<br />- 当请求头因为cookie过长等其他原因超过其大小<br />- 会按照large_client_headers_buffers的指令值处理 |
+| **large_client_headers_buffers** | http、server | 4 8k   | - 超出请求头缓冲大小后，超出部分按该指令值转移<br />- 第一次可分配一个8k的缓存区，如果超过返回414错误，<br />- 如果超如第一个8k，超出部分转移到新的缓冲区，最多转移4次，超出4次，返回400错误 |
+| **client_header_timeout**        | http、server | 60s    | 读取请求头的超时时间                                         |
+| **request_pool_size**            | http、server | 4k     | - nginx开始处理请求是，会为每个请求分配一个内存池<br />- 以减小内核对小块内存的分配次数<br />- 请求结束后会回收为其分配的内存池<br />- 官方说，这个指令的调整对性能提升作用小，不建议调整 |
+
+##### 请求体(client_body)
+
+| 指令                             | 作用域                 | 默认值                                | 说明                                                         |
+| -------------------------------- | ---------------------- | ------------------------------------- | ------------------------------------------------------------ |
+| **client_max_body_size**         | http、server、location | 1m                                    | - 请求体的最大值<br />- 请求头中的content-length大于该指令值的配置时，返回状态码408 |
+| **client_body_buffer_size**      | http、server、location | 8k(32位)，16k(64位)                   | - 读取请求体的缓冲区大小<br />- 超过后按照下面两个指令处理   |
+| **client_body_in_single_buffer** | http、server、location | off                                   | - 将完整的请求体存储在单个缓冲区中<br />- 当缓存区不足时，放入下一个指令设定的文件中 |
+| **client_body_temp_path**        | http、server、location | nginx的安装目录<br />client_body_temp | 请求体被写入文件的临时目录                                   |
+| **client_body_in_file_only**     | http、server、location | off                                   | 禁用缓存，直接写入上一个指令指定的文件中                     |
+| **client_body_timeout**          | http、server、location | 60s                                   | 建立连接后，客户端未发送请求体到服务端的超时时间<br />- 超时返回408 |
+|                                  |                        |                                       |                                                              |
+
+#### 2 响应报文
+
+- 响应行
+  - 是响应内容的第一行，包含报文协议及版本号（HTTP/1.1），响应状态码（200），响应状态描述（ok）
+
+<center><b>状态码分类</b></center>
+
+| 状态码                    | 说明                                                         |
+| ------------------------- | ------------------------------------------------------------ |
+| **1xx（消息）**           | 表示服务器已接收请求，正在进行处理                           |
+| **2xx（处理成功）**       | 表示服务器已经正确的处理客户端方的http请求                   |
+| **3xx（重定向）**         | 服务端接收到http请求，<br />并将其http请求重定向到客户端本地或其他服务器进行处理 |
+| **4xx（客户端请求有误）** | 客户端提交的请求不符合规范或未被授权，禁止访问等             |
+| **5xx（服务端处理错误）** | 服务端无法正常完成请求操作，如超时等                         |
+
+- 响应头
+  - 则包含服务端处理完请求后响应设定的若干属性字段
+
+<center><b>常见的响应头属性</b></center>
+
+| 属性              | 属性值样例              | 说明                                                         |
+| ----------------- | ----------------------- | ------------------------------------------------------------ |
+| **Content-Type**  | text/html;charset=utf-8 | 告知客户端，返回的数据类型                                   |
+| **Connection**    | keep-alive              | 告知客户端，是否启用保持连接机制                             |
+| **Cache-Control** | no-cache                | 告知客户端，对缓存机制的控制                                 |
+| **Etag**          | “50b1c1d4f775c61:df3”   | - 当前响应数据的实体标签值<br />- 用在客户端与服务端提交相同请求时，判断请求内容是否有修改 |
+| **Location**      | https//map.baidu.com    | 告知用户跳转到指定的URI                                      |
+| **Set-Cookie**    | username=johnQin        | 通知客户端修改Cookie内容                                     |
+
+- 响应体
+  - 服务器返回处理的结果
+
+##### 缓存
+
+| 指令                  | 作用域                 | 默认值 | 说明                                                         |
+| --------------------- | ---------------------- | ------ | ------------------------------------------------------------ |
+| **if_modified_since** | http、server、location | exact  | - 在请求头中存在if_modified_since时，做文件修改时间的校验功能<br />- off、exact、before<br />- off，忽略请求头的if_modified_since，关闭服务端的校验功能<br />- exact，与被请求文件的修改时间做精确匹配，如相同，则认为客户端缓存有效，返回304<br />- before，服务器被请求的文件修改时间小于if_modified_sinces属性字段设定的时间，则认为客户端缓存有效，返回304 |
+| **etag**              | http、server、location | on     | - entity tag 实体标签<br />- 用于在响应头中返回文件实体标签，<br />- 与同一文件的下一次请求头中if-None-Match属性值组合检查文件是否被修改，未修改则返回响应状态码304，否则返回最新的文件内容 |
+
+##### 断点续传
+
+| 指令       | 作用域                 | 默认值 | 说明                                                         |
+| ---------- | ---------------------- | ------ | ------------------------------------------------------------ |
+| max_ranges | http、server、location |        | - number<br />- 当客户端以byte-range方式获取数据的请求时，该指令限制了当前执行范围读取的最大值是多少<br />- 如果是0，则关闭byte-range方式读取 |
+
+##### 文件类型
+
+| 指令                       | 作用域                 | 默认值 | 说明                             |
+| -------------------------- | ---------------------- | ------ | -------------------------------- |
+| **types**                  | http、server、location |        | 被请求文件扩展名与MIME类型映射表 |
+| **types_hash_max_size**    | http、server、location | 1024   | 设定MIME类型哈希表的大小         |
+| **types_hash_bucket_size** | http、server、location |        |                                  |
 
 ```bash
-http {
-	
+types {
+	application/octet-stream yaml
 }
 ```
 
+
+
+##### 错误
+
+| 指令                      | 作用域                 | 默认值 | 说明                                                         |
+| ------------------------- | ---------------------- | ------ | ------------------------------------------------------------ |
+| **error_page**            | http、server、location |        | 当请求发生错误时，返回一个用于“标识错误”的文件               |
+| **recursive_error_pages** | http、server、location | off    | 当error_pages设定多层内部访问时，仍可处理上一层级返回的响应状态码 |
+| **server_tokens**         | http、server、location | on     | 默认在响应头中增加属性字段“server"以标识Nginx版本号          |
+| **msie_padding**          | http、server、location | on     | 当响应状态大于400时，会在响应报文中添加注释，使相应报文达到512字节，仅适用于msie客户端 |
+
+​	
+
+```bash
+http {
+	error_page 404 /404.html;
+	error_page 500 502 503 504 /50x.html;
+}
+http {
+	error_page 404 = @fallback;
+	location @fallback {
+		proxy_pass http://backend;
+	}
+}
+http {
+	proxy_intercept_errors on;	# 当上游服务器（后端tomcat等）返回非200是，返回代理服务器处理
+	recursive_error_pages on;	# 启用多级错误跳转功能
+	location / {
+		error_page 404 = @fallback;	# 当url请求返回404时，执行内部请求@fallback，
+	}
+	location @fallback {
+		proxy_pass http://backend;	# 当前所有请求代理到上游服务器backend
+		error_page 502 = @upfallback;	# 当上游服务器返回502时，执行内部请求@upfallback
+	}
+	location @upfallback {
+		proxy_pass http://newbackend;	# 当前所有请求代理到上游服务器newbackend
+	}
+}
+```
+
+### 1.2.3 访问路由location
+
+主要作用是对nginx服务器接收的请求地址url进行解析。
+
+匹配url上除ip地址之外的字符串，对特定的请求进行处理。
+
+`scheme:[// [user[:password]@]  host  [:port] ]  [/path]  [?query]  [#fragment]`
