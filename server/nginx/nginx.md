@@ -1117,3 +1117,34 @@ http {
 匹配url上除ip地址之外的字符串，对特定的请求进行处理。
 
 `scheme:[// [user[:password]@]  host  [:port] ]  [/path]  [?query]  [#fragment]`
+
+#### location URI匹配
+
+见实践部分的3.6
+
+#### [proxy_pass](https://blog.csdn.net/u010433704/article/details/99945557)
+
+在nginx中配置proxy_pass代理转发时，如果在proxy_pass后面的url加/，表示绝对根路径；如果没有/，表示相对路径，把匹配的路径部分也给代理走。
+
+假设下面四种情况分别用 http://192.168.1.1/proxy/test.html 进行访问。
+
+```bash
+# 1
+location /proxy/ {
+	proxy_pass http://127.0.0.1/;	# 代理到URL：http://127.0.0.1/test.html
+}
+# 2 相对于第一种，最后少一个 /
+location /proxy/ {
+	proxy_pass http://127.0.0.1;	# 代理到URL：http://127.0.0.1/aaa/test.html
+}
+# 3
+location /proxy/ {
+	proxy_pass http://127.0.0.1/aaa/;	# 代理到URL：http://127.0.0.1/aaa/test.html
+}
+# 4 相对于第三种，最后少一个 / 
+location /proxy/ {
+	proxy_pass http://127.0.0.1/aaa;	# 代理到URL：http://127.0.0.1/aaatest.html
+}
+```
+
+[重定向](https://www.jianshu.com/p/3adcb8b931a3)
