@@ -1147,4 +1147,24 @@ location /proxy/ {
 }
 ```
 
-[重定向](https://www.jianshu.com/p/3adcb8b931a3)
+#### 其他指令
+
+| 指令                              | 作用域                 | 默认值   | 说明                                                         |
+| --------------------------------- | ---------------------- | -------- | ------------------------------------------------------------ |
+| **merge_slashes**                 | http、server、location | on       | on时，访问路径中相邻的斜线内容为空时合并                     |
+| **subrequest_output_buffer_size** | http、server、location | 4k or 8k | - 设置用于存储子请求响应报文的缓冲区大小<br />- 默认值与操作系统的内存大小一致 |
+| **msie_refresh**                  | http、server、location | on       | - 只对msie客户端有效<br />- 在返回的html添加头信息<br />- `<meta http-equiv="refresh" content="0" url=*>` |
+
+### 1.2.4 访问重写rewrite
+
+对用户请求的URI进行PCRE正则重写，然后返回30X重定向跳转或按条件执行相关配置。
+
+rewrite模块提供的指令可以分为两类：一类是标准配置指令（只是对指定的操作进行相应的操作），一类是脚本指令（类似于脚本语言的set、if、break，return）
+
+#### [重定向](https://www.jianshu.com/p/3adcb8b931a3)
+
+| 指令                        | 作用域                 | 默认值 | 说明                                                         |
+| --------------------------- | ---------------------- | ------ | ------------------------------------------------------------ |
+| **absolute_redirect**       | http、server、location | on     | on时，访问路径中相邻的斜线内容为空时合并                     |
+| **server_name_in_redirect** | http、server、location | off    | - 设置用于存储子请求响应报文的缓冲区大小 - 默认值与操作系统的内存大小一致 |
+| **port_in_redirect**        | http、server、location | on     | - 只对msie客户端有效 - 在返回的html添加头信息 - `<meta http-equiv="refresh" content="0" url=*>` |
