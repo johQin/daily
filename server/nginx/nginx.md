@@ -977,7 +977,7 @@ listen对监听方式提供了丰富的参数
 
 | 属性                  | 属性值样例                | 说明                                                         |
 | --------------------- | ------------------------- | ------------------------------------------------------------ |
-| **HOST**              | www.baidu.com             | - 目标主机名<br />- 对应于nginx server_name指令的配置        |
+| **HOST**              | www.baidu.com             | - 目标主机名<br />- 有别于虚拟主机<br />- 对应于nginx server_name指令的配置 |
 | **Accept**            | text/html,application/xml | - 描述客户端能够接收服务端返回的数据类型<br />- nginx会通过types指令域的内容做匹配 |
 | **Cookie**            |                           | 客户端当前连接的所有cookie                                   |
 | **Referer**           | https://www.baidu.com     | 表示当前连接的上一个来源URI                                  |
@@ -1165,6 +1165,38 @@ rewrite模块提供的指令可以分为两类：一类是标准配置指令（�
 
 | 指令                        | 作用域                 | 默认值 | 说明                                                         |
 | --------------------------- | ---------------------- | ------ | ------------------------------------------------------------ |
-| **absolute_redirect**       | http、server、location | on     | on时，访问路径中相邻的斜线内容为空时合并                     |
-| **server_name_in_redirect** | http、server、location | off    | - 设置用于存储子请求响应报文的缓冲区大小 - 默认值与操作系统的内存大小一致 |
-| **port_in_redirect**        | http、server、location | on     | - 只对msie客户端有效 - 在返回的html添加头信息 - `<meta http-equiv="refresh" content="0" url=*>` |
+| **absolute_redirect**       | http、server、location | on     | - 发起重定向默认使用绝对路径，即主机名+端口+path<br />- off时，默认相对当前请求的主机名和端口的访问路径。 |
+| **server_name_in_redirect** | http、server、location | off    | - off时，nginx重定向时，会用当前指令域中的主机ip与path拼接成URL，给响应头的location字段<br />- on时<br />- 先考虑，当前指令域的server_name + path<br />- 再考虑，请求头的host + path<br />- 最后考虑，指令域的ip + path |
+| **port_in_redirect**        | http、server、location | on     | - 重定向时，是否带上指令域server所监听的端口<br />- on时，带上server所监听的端口<br />- off时，不带，默认80端口（默认不显示） |
+
+#### 日志
+
+| 指令                            | 作用域                 | 默认值 | 说明                                                         |
+| ------------------------------- | ---------------------- | ------ | ------------------------------------------------------------ |
+| **rewrite_log**                 | http、server、location | off    | on时，rewrite执行的结果会以notice级别记录到nginx的error日志文件中 |
+| **uninitialized_variable_warn** | http、server、location | on     | on时，将未初始化的变量告警记录到日志中                       |
+
+#### rewrite
+
+| 指令        | 作用域           | 默认值 | 说明                                             |
+| ----------- | ---------------- | ------ | ------------------------------------------------ |
+| **rewrite** | server、location |        | 对用户的URI用正则表达式进行重写，并跳转到新的URI |
+
+Nginx的rewrite功能需要PCRE软件的支持，即通过perl兼容正则表达式语句进行规则匹配的。
+
+rewrite的全局变量
+
+- $host为rewrite全局变量，代表请求主机头字段或主机名
+- \#$1为匹配的位置变量，即域名后边得字符串
+
+rewrite指令的语法格式如下：
+
+`rewrite regex replacement [flag]`
+
+- regex 是PCRE语法格式的正则表达式
+- replacement是作为URI的regex匹配内容的替换，当replacement以`http:// or https:// or $scheme`开头时，nginx重写URI后，将停止执行后续任务，并将改写后的URI跳转返回到客户端
+- flag是执行该条重写指令后的操作控制符。
+  - last： 执行完当前重写规则跳转到新的URI后继续执行后续操作
+  - break： 执行完当前重写规则跳转到新的URI后不再执行后续操作
+  - redirect，返回302临时重定向，返回内容为重定向URI的内容，但浏览器网址仍为请求时的URI
+  - permanent：返回301永久重定向，返回内容为重定向URI的内容，浏览器网址变为重定向的URI
