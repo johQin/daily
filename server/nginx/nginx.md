@@ -1,6 +1,6 @@
 # Nginx
 
-# 实践
+# 一 实践
 
 # 1 基本概念
 
@@ -829,7 +829,7 @@ autoindex的作用是当你访问`http://124.223.224.184/images/`你可以看到
 
 如果访问不到图片或者html，还要看看是否是文件权限是否设置好了。
 
-# 理论
+# 二 理论
 
 # 1 核心配置指令
 
@@ -1273,11 +1273,67 @@ return的指令值：
 - `return code URL`：这里的URL可以是内部跳转或变量`$url`，也可以是具有完整scheme标识的url，将直接返回给客户端执行跳转，code只能是30X。
 - `return URL`：此时默认302，URL必须是有完整scheme 标识的url。
 
+### 1.2.5 访问控制
 
+基本的禁止访问，传输限制，内部访问、内部访问控制等功能的配置。
 
+#### 请求方法控制
 
+| 指令             | 作用域                 | 默认值 | 说明                               |
+| ---------------- | ---------------------- | ------ | ---------------------------------- |
+| **limit_except** | http、server、location |        | 对指定方法外的所有请求方法进行限定 |
 
-# URL Scheme协议
+```bash
+http {
+	limit_except GET {
+		allow 192.168.1.0/24;	# 允许192.168.1.0/24范围的ip使用非 GET 方法
+		deny all;	# 禁止其它所有来源ip的非GET请求
+	}
+}
+
+```
+
+#### 授权控制
+
+| 指令        | 作用域                 | 默认值 | 说明                                                         |
+| ----------- | ---------------------- | ------ | ------------------------------------------------------------ |
+| **satisfy** | http、server、location | all    | - all时，需要access阶段的所有模块的访问控制条件都符合，才允许授权访问。<br />- any时，只要满足一个模块，就授权访问 |
+
+在本md文章的（三 其它）中的[nginx处理http请求的11个阶段](http://www.360doc.com/content/20/0720/12/70177275_925532100.shtml)有介绍，在access 阶段中，有一个指令叫 satisfy，它可以指示当有一个满足的时候就直接跳到下一个阶段进行处理，例如当 access 满足了，就直接跳到 try_files 模块进行处理，而不会再执行 auth_basic、auth_request 模块。
+
+#### 内部访问
+
+| 指令         | 作用域                 | 说明                                                         |
+| ------------ | ---------------------- | ------------------------------------------------------------ |
+| **internal** | http、server、location | 限定location的访问路径来源为内部访问请求，<br />如果匹配到当前location的访问不是内部访问请求，那么将返回响应状态码为404 |
+
+那什么是内部访问请求呢？nginx限定以下几种类型的请求为内部访问
+
+- 有error_page指令、index指令、random_index指令和try_files指令发起的重定向请求都可称为内部访问请求。
+- 响应头中由属性X-Accel-Redirect发起的重定向请求，等同于X-sendfile，常用于下载文件控制的场景
+- ngx_http_ssi_module模块的include virtual指令、ngx_http_addition_module模块、auth_request和mirror指令的子请求。
+- rewrite指令发起的重定向
+
+```bash
+error_page 404 /404.html;
+
+location = /404.html {	# 假如location匹配到的请求是从error_page过来的，就可以执行gailocation下的配置，否则直接返回404
+	internal;
+}
+```
+
+内部请求的最大访问次数是10次，以防错误配置造成的内部循环请求，超过限定次数则返回500。
+
+#### 传输限速
+
+| 指令                 | 作用域                 | 默认值 | 说明                                                         |
+| -------------------- | ---------------------- | ------ | ------------------------------------------------------------ |
+| **limit_rate**       | http、server、location | 0      | - 服务端响应请求后，被限定传输速率的大小（单位：byte/s)<br />- 0 表示不限速 |
+| **limit_rate_after** | http、server、location | 0      | - 服务端响应请求后，当客户端的传输速率达到指定值时，按照limit_rate进行限速 |
+
+# 三 其它
+
+## 1 URL Scheme协议
 
 scheme 是一种跳转协议，其实从英文意思来看，它有体系的意思。
 
@@ -1290,3 +1346,27 @@ scheme 是一种跳转协议，其实从英文意思来看，它有体系的意�
 [URL Scheme - 入门介绍](https://www.jianshu.com/p/1126694614c5)
 
 [url Scheme 详细介绍](https://blog.csdn.net/m0_37700275/article/details/81386910?ops_request_misc=%257B%2522request%255Fid%2522%253A%2522165319387316781435486964%2522%252C%2522scm%2522%253A%252220140713.130102334..%2522%257D&request_id=165319387316781435486964&biz_id=0&utm_medium=distribute.pc_search_result.none-task-blog-2~all~baidu_landing_v2~default-4-81386910-null-null.142^v10^pc_search_result_control_group,157^v4^control&utm_term=Scheme&spm=1018.2226.3001.4187)
+
+## 2 [nginx处理http请求的11个阶段](http://www.360doc.com/content/20/0720/12/70177275_925532100.shtml)
+
+![](./figure/nginx处理http请求的阶段.png)
+
+1. POST_READ：在 read 完请求的头部之后，在没有对头部做任何处理之前，想要获取到一些原始的值，就应该在这个阶段进行处理。这里面会涉及到一个 realip 模块。
+2. SERVER_REWRITE：和下面的 REWRITE 阶段一样，都只有一个模块叫 rewrite 模块，一般没有第三方模块会处理这个阶段。
+3. FIND_CONFIG：做 location 的匹配，暂时没有模块会用到。
+4. REWRITE：对 URL 做一些处理。
+5.  POST_WRITE：处于 REWRITE 之后，也是暂时没有模块会在这个阶段出现。
+
+接下来是确认用户访问权限的三个模块：
+
+1. PREACCESS：是在 ACCESS 之前要做一些工作，例如并发连接和 QPS 需要进行限制，涉及到两个模块：limt_conn 和 limit_req
+2.  ACCESS：核心要解决的是用户能不能访问的问题，例如 auth_basic 是用户名和密码，access 是用户访问 IP，auth_request根据第三方服务返回是否可以去访问。
+3.  POST_ACCESS：是在 ACCESS 之后会做一些事情，同样暂时没有模块会用到。
+
+最后的三个阶段处理响应和日志：
+
+1. PRECONTENT：在处理 CONTENT 之前会做一些事情，例如会把子请求发送给第三方的服务去处理，try_files 模块也是在这个阶段中。
+2. CONTENT：这个阶段涉及到的模块就非常多了，例如 index, autoindex, concat等都是在这个阶段生效的。
+3.  LOG：记录日志 access_log 模块。
+
+以上的这些阶段都是严格按照顺序进行处理的，当然，每个阶段中各个 HTTP 模块的处理顺序也很重要，如果某个模块不把请求向下传递，后面的模块是接收不到请求的。而且每个阶段中的模块也不一定所有都要执行一遍。
