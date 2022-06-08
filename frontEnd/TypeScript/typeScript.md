@@ -116,6 +116,7 @@ init --init
 
 ```bash
 # 2 vscode
+# vscode 选项卡Terminal，而不是在命令行中写
 #Terminal->run build task->tsc:watch-tsconfig.json
 #然后保存代码的时候就会自动编译了，输出到outDir指定的文件夹里面
 ```
