@@ -8,7 +8,7 @@
 
 Model-View-Control，数据存储（变量）-用户视图（界面）-控制器（事件交互）
 
-![MVC.PNG](/legend/MVC.PNG)
+![MVC.PNG](./legend/MVC.PNG)
 
 ### MVVM
 
@@ -1448,9 +1448,44 @@ Vue.js允许自定义过滤器，可被用于一些常见的文本格式化。�
   }
 ```
 
-## 6.2 自定义指令
+## 6.2 [自定义指令](http://t.zoukankan.com/art-poet-p-12201678.html)
 
-代码复用和抽象的主要形式依然是组件。然而，有的情况下，你仍然需要**对普通DOM元素进行低层操作**，这时候就会用到自定义指令。
+自定义指令是用来操作DOM的。尽管Vue推崇数据驱动视图的理念，但并非所有情况都适合数据驱动。自定义指令就是一种有效的补充和扩展，不仅可用于定义任何的DOM操作，并且是可复用的。
+
+在vue中，除了核心功能默认内置的指令 (v-model 和 v-show)，Vue 也允许注册自定义指令。有的情况下，对普通 DOM 元素进行底层操作，这时候就会用到自定义指令
+
+```vue
+<template>
+  <div class="hello">
+      <div v-test='name'></div>
+  </div>
+</template>
+<script>
+export default {
+  data () {
+    return {
+     name:'我是名字',
+    }
+  },
+  directives:{
+      test:{
+        inserted: function (el,binding) {// 指令的定义
+           //el为使用指令的组件的dom，可以通过此进行dom操作
+           console.log(binding) //一个对象，包含很多属性属性
+        },
+        bind: function (el, binding, vnode) {
+            el.innerHTML =binding.value;
+            el.style.background = 'red';
+          }
+      }
+  },
+  created:function(){
+  },
+}
+</script>
+```
+
+### 自定义指令api
 
 ```js
 
@@ -1490,5 +1525,59 @@ Vue.directive('demo', {
     modifiers: {"a":true,"b":true}
     vnode keys: tag, data, children, text, elm, ns, context, fnContext, fnOptions, fnScopeId, key, componentOptions, componentInstance, parent, raw, isStatic, isRootInsert, isComment, isCloned, isOnce, asyncFactory, asyncMeta, isAsyncPlaceholder
 */
+```
+
+### [场景](https://blog.csdn.net/a3060858469/article/details/80017291)
+
+#### 场景1：集成第三方插件
+
+自定义指令的第二用处是用于集成第三方插件。我们知道任何软件开发领域都可以分为四层：底层是原生的API，上层是通用框架，再上层是通用组件，最上层才是具体的业务代码。一个通用框架，必须搭配一套完整的通用组件，才能真正奠定其江湖地位。
+
+　　在前端开发领域，以前的通用框架是jQuery，jQuery以及基于jQuery构建的通用组件形成了一个庞大的生产系统。现在的通用框架是Angular、React和Vue，每个框架都需要基于自身构建新的组件库。自定义指令好就好在：原先的那些通用组件，无论是纯js的也好，基于jQuery的也好，都可以拿来主义直接吸收，而不需要改造或重构。
+
+　　比如写文档通常会用到highlight.js，我们可以直接将其封装为一个自定义指令，这样highlight.js就变成了Vue的一个新功能。
+
+```js
+let hljs = require('highlight.js');
+vue.directive('highlight', {
+    inserted(el) {
+        hljs.highlightBlock(el);
+    }
+})
+```
+
+```vue
+<template>
+	<pre>
+    	<code v-highlight>
+    		&lt;alert-menu
+    		:menudata="menu"
+    		ref="menu"
+    	</code>
+    </pre>
+</template>
+效果就是将code里面的文本进行了高亮显示
+```
+
+
+
+但凡遇到第三方插件如何与Vue.js集成的问题，都可以尝试用自定义指令实现。
+
+#### 场景2：图片加载
+
+谷歌图片的加载做得非常优雅，在图片未完成加载前，用随机的背景色占位，图片加载完成后才直接渲染出来。用自定义指令可以非常方便的实现这个功能。
+
+```js
+Vue.directive('img', {
+    inserted: function(el,binding){
+        let color = Math.floor(Math.random() * 1000000 );
+        el.style.backgroundColor = '#' + color;
+        let img = new Image();
+        img.src = binding.value;// binding.value 是传给指令的值
+        img.onload = function() {
+            el.style.backgroundImage = 'url(' + binding.value + ')';
+        }
+    }
+})
 ```
 
