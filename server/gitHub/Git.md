@@ -1105,6 +1105,34 @@ git clone --recursive father_url
 
 如果在子模块的文件夹中，打开命令行，那么就可以像平常操作仓库一样对子仓库进行操作。
 
+## 4.10 [cherry-pick](https://www.ruanyifeng.com/blog/2020/04/git-cherry-pick.html)
+
+对于多分支的代码库，将代码从一个分支转移到另一个分支是常见需求。
+
+一种情况是，你需要另一个分支的所有代码变动，那么就采用合并（`git merge`）。
+
+另一种情况是，你只需要部分代码变动（某几个提交），这时可以采用 Cherry pick。
+
+```bash
+git cherry-pick <commitHash>
+
+#    a - b - c - d   Master
+#         \
+#           e - f - g Feature
+
+# 切换到 master 分支
+$ git checkout master
+
+# Cherry pick 操作
+$ git cherry-pick f
+
+#    a - b - c - d - f   Master
+#         \
+#           e - f - g Feature
+```
+
+
+
 # 工作场景
 
 ## 一般工作场景
