@@ -53,13 +53,111 @@ linux容器不是模拟一个完整的操作系统，而是对进程进行隔离
 
 ## 1.2 docker组件
 
-- docker引擎
-  - docker客户端和服务器
-- docker镜像
-  - 镜像有时候就像容器的"源代码"。
-  - 镜像体积很小，非常便携，易于分享、存储和更新
-- Registry
-  - docker用Registry来保存用户构建的镜像
-  - registry分为公共和私有两种
-- Docker容器
-  - 镜像是docker生命周期中构建或打包阶段，而容器则是启动或执行阶段
+### 1.2.1 镜像image
+
+docker镜像就是一个只读模板，镜像可以用来创建Docker容器，一个镜像可以创建很多容器。
+
+镜像有时候就像容器的"源代码"。
+
+类似于java的class，而docker容器就类似于java中，new出来的实例对象。
+
+也相当于一个最小文件系统。
+
+| docker | java面向对象 |
+| ------ | ------------ |
+| 容器   | 对象实例     |
+| 镜像   | 类           |
+
+### 1.2.2 容器container
+
+#### 从面相对象的角度理解
+
+docker利用容器独立运行一个或一组应用，应用程序或服务运行在容器里面。
+
+容器就相当于一个虚拟化的运行环境，容器是用镜像创建的运行实例。
+
+镜像是docker生命周期中构建或打包阶段，而容器则是启动或执行阶段。
+
+镜像是静态的定义，容器是镜像运行时的实体。
+
+容器为镜像提供了一个标准的和隔离的运行环境，它可以被启动，开始，停止，删除。
+
+#### 从镜像容器角度
+
+可以把容器看做是一个简易版的linux环境（最小，最核心的linux内核文件，不需要的不加载，包括root用户权限，进程空间，用户空间和网络空间等），和运行在其中的应用程序。
+
+### 1.2.3 仓库repository
+
+仓库是集中存放镜像文件的地方。
+
+类似于：
+
+maven仓库，存放各种jar包
+
+github仓库，存放各种git项目的地方
+
+docker公司提供的官方registry被称作docker hub，存放各种镜像模板的地方。
+
+
+
+仓库分为公开仓库（Public）和私有仓库（Private）两种形式。
+
+最大的公开仓库是docker Hub（https://hub.docker.com/)。存放了数量庞大的镜像供用户下载。
+
+国内的公开仓库包括阿里云、网易云等。
+
+### 1.2.4 引擎
+
+docker本身是一个容器运行载体或称之为管理引擎（docker daemon）。
+
+我们把应用程序和配置依赖打包好形成一个可交付的运行环境，这个打包好的运行环境就是image镜像文件。只有通过这个镜像文件才能生成Docker容器实例。
+
+![](./figure/docker入门架构.PNG)
+
+docker是一个client-server结构的系统，Docker守护进程运行在主机上，然后通过socket连接从客户端访问，守护进程从客户端接受命令并管理运行在主机上的容器。
+
+容器，是一个运行时环境，是一个个的集装箱。
+
+## 1.3 docker架构
+
+docker是一个C/S模式的架构，后端是一个松耦合架构，多个模块各司其职。
+
+docker运行的基本流程：
+
+1. 用户是使用docker Client与docker Daemon建立通信，并发送请求给后者。
+2. docker Daemon作为Docker架构中的主体部分，首先提供Docker server的功能使其可以接受docker client的请求。
+3. docker Engine执行docker内部的一系列工作，每一项工作都是一系列job的形式的存在
+4. job运行的过程中，当需要容器镜像时，则从docker registry中下载镜像，并通过镜像管理驱动Graph的形式存储。
+5. 当需要docker创建网络环境时，通过网络管理驱动network driver创建并配置docker容器网络环境
+6. 当需要限制docker容器运行资源或执行用户指令操作时，则通过exec driver来完成。
+7. Libcontainer则是一项独立的容器管理包，network driver以及exec driver都是通过Libcontainer来实现具体对容器进行操作
+
+![](./figure/docker架构.jpg)
+
+## 1.4 docker安装
+
+https://docs.docker.com/engine/install/centos/
+
+步骤：
+
+1. 确定centos7及以上版本
+
+   - ```bash
+     cat  /etc/redhat-release
+     CentOS Linux release 8.0.1905 (Core) 
+     ```
+
+2.  卸载旧版本
+
+   - ```bash
+     sudo yum remove docker \
+                       docker-client \
+                       docker-client-latest \
+                       docker-common \
+                       docker-latest \
+                       docker-latest-logrotate \
+                       docker-logrotate \
+                       docker-engine
+     ```
+
+3. yum安装gcc
