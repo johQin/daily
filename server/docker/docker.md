@@ -147,7 +147,7 @@ https://docs.docker.com/engine/install/centos/
      CentOS Linux release 8.0.1905 (Core) 
      ```
 
-2.  卸载旧版本
+2. 卸载旧版本
 
    - ```bash
      sudo yum remove docker \
@@ -161,3 +161,43 @@ https://docs.docker.com/engine/install/centos/
      ```
 
 3. yum安装gcc
+
+   - gcc 可以编译c/c++
+
+   - ```bash
+     # 查看是否通过yum安装过gcc
+     yum list installed | grep gcc
+     # 如果安装过，那么将会出现下面的两行
+     gcc.x86_64                            8.5.0-4.el8_5                     @AppStream
+     gcc-c++.x86_64                        8.5.0-4.el8_5                     @AppStream
+     
+     # 如果没有安装，通过下面的两个命令安装
+     yum -y install gcc
+     yum -y install gcc-c++
+     ```
+
+4. 安装相关软件包
+
+   - ```bash
+     # yum-utils 提供了yum-config-manager工具
+     yum install -y yum-utils
+     
+     # 通过yum-config-manager安装stable repository，这个库地址需要改为国内库地址，
+     # 如果连的是国外的库，
+     # 比如docker官网 https://download.docker.com/linux/centos/docker-ce.repo
+     # 经常会出现网络超时
+     # 报以下的错误：
+     # [Error 14] curl#35 - TCP connection reset by peer
+     # [Error 12] curl#35 - Timeout
+     
+     # 推荐使用阿里云，腾讯云，华为云，网易云的
+     # 
+     yum-config-manager \
+         --add-repo \
+         http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
+         
+     ```
+
+   - 
+
+5. 
