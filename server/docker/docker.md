@@ -176,7 +176,7 @@ https://docs.docker.com/engine/install/centos/
      yum -y install gcc-c++
      ```
 
-4. 安装相关软件包
+4. 设置stable镜像仓库
 
    - ```bash
      # yum-utils 提供了yum-config-manager工具
@@ -198,6 +198,190 @@ https://docs.docker.com/engine/install/centos/
          
      ```
 
-   - 
+5. 更新yum软件包索引
 
-5. 
+   ```bash
+   # centos 8 需要去掉fast执行
+   yum makecache fast
+   ```
+
+6. 安装docker ce
+
+   ```bash
+   yum -y install docker-ce docker-ce-cli containerd.io
+   ```
+
+7. 启动docker
+
+   ```bash
+   systemctl start docker
+   ```
+
+8.  测试
+
+   ```bash
+   docker version
+   
+   # Client: Docker Engine - Community
+   # Version:           20.10.17
+   # API version:       1.41
+   # Go version:        go1.17.11
+   # Git commit:        100c701
+   # Built:             Mon Jun  6 23:03:11 2022
+   # OS/Arch:           linux/amd64
+   # Context:           default
+   # Experimental:      true
+   
+   # Server: Docker Engine - Community
+   # Engine:
+   #  Version:          20.10.17
+   #  API version:      1.41 (minimum version 1.12)
+   #  Go version:       go1.17.11
+   #  Git commit:       a89b842
+   #  Built:            Mon Jun  6 23:01:29 2022
+   #  OS/Arch:          linux/amd64
+   #  Experimental:     false
+   # containerd:
+   #  Version:          1.6.6
+   #  GitCommit:        10c12954828e7c7c9b6e0ea9b0c02b01407d3ae1
+   # runc:
+   #  Version:          1.1.2
+   #  GitCommit:        v1.1.2-0-ga916309
+   # docker-init:
+   #  Version:          0.19.0
+   #  GitCommit:        de40ad0
+   
+   
+   docker run hello-world
+   
+   
+   docker run hello-world
+   Unable to find image 'hello-world:latest' locally
+   latest: Pulling from library/hello-world
+   2db29710123e: Pull complete 
+   Digest: sha256:53f1bbee2f52c39e41682ee1d388285290c5c8a76cc92b42687eecf38e0af3f0
+   Status: Downloaded newer image for hello-world:latest
+   
+   Hello from Docker!
+   This message shows that your installation appears to be working correctly.
+   
+   To generate this message, Docker took the following steps:
+    1. The Docker client contacted the Docker daemon.
+    2. The Docker daemon pulled the "hello-world" image from the Docker Hub.
+       (amd64)
+    3. The Docker daemon created a new container from that image which runs the
+       executable that produces the output you are currently reading.
+    4. The Docker daemon streamed that output to the Docker client, which sent it
+       to your terminal.
+   
+   To try something more ambitious, you can run an Ubuntu container with:
+    $ docker run -it ubuntu bash
+   
+   Share images, automate workflows, and more with a free Docker ID:
+    https://hub.docker.com/
+   
+   ```
+
+9.  卸载docker
+
+   ```bash
+   systemctl stop docker
+   yum remove docker-ce docker-ce-cli containerd.io
+   rm -rf /var/lib/docker
+   rm -rf /var/lib/containerd
+   ```
+
+   
+
+10. 阿里云镜像加速器
+
+    ![](./figure/阿里云镜像加速器.png)
+
+    ```bash
+    # 后面为了拉镜像，启动容器更快一点，必须配置一个阿里云的镜像加速器
+    
+    # 注册一个阿里云账户，阿里云为了把云生态做起来，给个体开发者了一些便利
+    
+    # 阿里官网的操作
+    mkdir -p /etc/docker
+    # tee命令用于将标准输入复制到指定文件，并显示到标准输出。tee指令会从标准输入设备读取数据，将其内容输出到标准输出设备，同时保存成文件。
+    # 镜像的地址记得要写成自己的，你如果直接从你的那个地方粘贴，那么你的地址就是你的加速器地址
+    tee /etc/docker/daemon.json <<-'EOF'
+    {
+      "registry-mirrors": ["https://ocx43prw.mirror.aliyuncs.com"]
+    }
+    EOF
+    
+    systemctl daemon-reload
+    systemctl restart docker
+    ```
+
+    
+
+11. 
+
+# 2 docker 常用命令
+
+## 2.1 帮助启动类命令
+
+```bash
+# 1.启动docker
+systemctl start docker
+# 2.停止docker
+systemctl stop docker
+# 3.重启docker
+systemctl restart docker
+# 4.查看docker状态
+systemctl status docker
+# 5.开启启动
+systemctl enable docker
+# 6.查看docker概要信息
+docker info
+# 7.查看docker帮助文档
+docker help
+# 8.查看docker命令帮助文档
+docker <command> --help
+
+```
+
+## 2.2 镜像命令
+
+```bash
+# 1.列出本地主机上的镜像
+docker images -[aq]
+REPOSITORY    TAG       IMAGE ID       CREATED        SIZE
+hello-world   latest    feb5d9fea6a5   9 months ago   13.3kB
+# repository：表示镜像仓库源
+# tag：镜像的标签版本号，同一仓库源可以有多个tag版本，我们可以使用repository:tag来定义不同的镜像
+# 如果你不指定某个镜像的版本标签，那么docker默认使用latest镜像
+# image id： 镜像id
+# created： 镜像创建时间
+# size 镜像的大小
+# 参数：
+-a 列出本地所有镜像(含历史映像层)
+-q 只列出image id
+
+# 2.镜像搜索
+docker search image_name
+docker search nginx
+# 查出前5个镜像，默认limit是25个
+docker search --limit 5 nginx
+NAME        DESCRIPTION                         STARS     OFFICIAL   AUTOMATED
+nginx      Official build of Nginx.             17124     [OK]       
+linuxserver/nginx  An Nginx container, brought to you by LinuxS…   169                  
+bitnami/nginx   Bitnami nginx Docker Image      137      				 [OK]
+ubuntu/nginx     Nginx, a high-performance reverse proxy & we…   55                   
+bitnami/nginx-ingress-controller   Bitnami Docker Image for NGINX…  19			 [OK]
+
+# 3.下载镜像
+docker pull image_name # 等同于docker pull image_name:latest
+docker pull image_name:tag # 下载指定版本的镜像
+
+# 4.查看镜像/容器/数据卷所占空间
+docker system df 
+
+```
+
+
+
+## 2.3 容器命令
