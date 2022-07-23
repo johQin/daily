@@ -378,10 +378,153 @@ docker pull image_name # 等同于docker pull image_name:latest
 docker pull image_name:tag # 下载指定版本的镜像
 
 # 4.查看镜像/容器/数据卷所占空间
-docker system df 
+docker system df
+TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE
+Images          1         1         13.26kB   0B (0%)
+Containers      2         0         0B        0B
+Local Volumes   0         0         0B        0B
+Build Cache     0         0         0B        0B
+
+# 5.删除镜像
+docker rmi image_name_or_image_id[:tag] # rm-remove i-image，
+docker rmi -f image_name_or_image_id[:tag] # 当本地正在运行镜像的容器时，执行上面的命令可能无法删除，这时需要用到-f，强制删除
+docker rmi img1:tag1 img2:tag2 # 删除多个镜像
+docker rmi -f $(docker images -qa)
+
+#docker commit / docker push
+```
+
+虚悬镜像：仓库名和版本名都是\<none>镜像
+
+## 2.3 容器命令
+
+下面打算安装一个ubuntu，意思就是在centos操作系统上的docker里面安装一个Ubuntu。
+
+### 2.3.1 启动容器
+
+```bash
+# 1.下载镜像
+docker pull ubuntu
+# 2.新建并启动容器
+docker run [option] image [command]
+# option :
+
+# --name="container_name" 为容器指定名称
+# -d 后台运行容器，并返回容器id，即：启动守护式容器
+
+# -i interactive，以交互模式运行容器，通常与-t同时使用
+# -t 为容器重新分配一个伪输入终端（tty），通常与-i同时使用
+# 启动一个交互式容器
+
+# -P 随机端口映射
+
+# -p 指定端口映射
+# -p hostPort:containerPort，如果访问宿主机的hostPort端口，就会映射到docker内部的containerPort端口，container端口也就是内部应用（鲸鱼背里的集装箱）监听的端口，例如nginx就监听的是80端口
+# -p ip:hostPort:containerPort
+
+docker run -it ubuntu /bin/bash
+# 使用镜像ubuntu:latest，并以交互模式启动一个容器，在容器内执行/bin/bash命令
+# -it 启动交互式终端
+# ubuntu 镜像名称
+# /bin/bash 通过这个命令，可以运行linux shell脚本命令，这个终端里面只能运行linux内核的一些命令，因为安装的镜像只有70多M，是一个内核的精简的ubuntu系统
+
+# 命令执行成功以后，出现的端口就是ubuntu的终端了
+# 输入exit 退出container，同时容器也关闭了
+
+[root:11:49@~]docker run -it --name=ubuntu1 ubuntu
+root@1ee74ac3f7e9:/ ls
+bin  boot  dev  etc  home  lib  lib32  lib64  libx32  media  mnt  opt  proc  root  run  sbin  srv  sys  tmp  usr  var
+
+
+# 3.查看所有容器启动运行情况
+docker ps
+# -a 列出当前所有的容器 ，包括启动 + 未启动的
+# -l 列出最近创建的容器
+# -n 显示最近n个创建的容器
+# -q 静默模式，只显示容器编号
+CONTAINER ID   IMAGE     COMMAND   CREATED            STATUS              PORTS     NAMES
+1ee74ac3f7e9   ubuntu    "bash"    About a minute ago   Up About a minute         ubuntu1
+
+# 4.退出容器
+# 两种退出方式
+# 方式一：exit，run进去容器，exit退出，容器停止
+# 方式二：ctrl + p + q， run进去容器，ctrl+p+q退出，容器不停止
+
+# 5.启动已停止的容器
+docker start container_id_or_container_name
+# 6.重启容器
+docker restart container_id_or_container_name
+# 7.停止容器
+docker stop container_id_or_container_name
+# 8.强制停止容器
+docker kill container_id_or_container_name
+# 9.删除容器
+docker rm container_id_or_container_name # 删除已停止的容器
+docker rm -f container_id_or_container_name # 强制删除容器，容器可以正在运行
 
 ```
 
+### 2.3.2  启动守护式容器
+
+在2.3.1中我们可以知道，退出容器有两种方式，通过ctrl+p+ q即可退出，但容器并不停止。
+
+```bash
+# 1. 以后台模式运行一个容器
+docker run -d ubuntu
+# 查看运行情况
+docker ps -a
+# 发现当前容器已经退出了
+
+# docker 容器后台运行必须要一个前台进程
+# 容器运行的如果不是那些一直挂起的命令（例如top，tail），就是会自动退出的，这是docker机制决定的。
+# 所以如果要启动守护式容器，那么就必须run 一些具备前台进程的镜像，例如redis，
+
+# 所以最佳的解决方式是：将你要运行的程序以前台进程的形式运行。
+# 常见的就是交互命令行模式（-it），然后ctrl + p + q退出
+
+# 2.查看容器运行日志
+docker log container_id
+
+# 3. 查看容器内运行的进程
+docker top container_id
+# docker里跑起来的容器都是一个个linux系统
+# 可以把容器看做一个简易版的linux环境
+UID    PID           PPID         C            STIME        TTY        TIME          CMD
+root   465017        464998       0            11:50        pts/0      00:00:00     bash
 
 
-## 2.3 容器命令
+# 4.查看容器内部细节
+docker inspect container_id
+# 可以查看网络，ip配置等等容器细节（简易版linux的容器细节）
+```
+
+### 2.3.3 进入正在运行的容器
+
+重新进入正在运行的容器，并以命令行交互。
+
+```bash
+# 5. 进入正在运行的容器
+# 两种方式
+# 方式1
+docker exec -it container_id /bin/bash
+# 方式2
+docker attach container_id
+# 区别：
+# exec：是在容器中打开新的终端，并且可以启动新的进程，用exit退出，不会导致容器的停止
+# attach：直接进入容器启动命令终端，不会启动新的进程，用exit退出，会导致容器的停止
+
+# 对容器里的文件进行备份
+#6. copy容器里的文件到宿主机
+docker cp container_id:container_inner_path host_path
+
+# 对整个容器进行备份，包括容器里的文件
+#7. 将容器导出为一个tar文件
+docker export container_id > container_file.tar
+#8. import从tar包中的内容创建一个新的文件系统再导入为镜像
+cat container_file.tar | docker import - 用户名/镜像名:版本号
+# 用户名镜像名版本号随意命名
+docker images 
+# 可以查看导入后的镜像已经在列表中了
+```
+
+![](./figure/docker_command.png)
