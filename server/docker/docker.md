@@ -528,3 +528,136 @@ docker images
 ```
 
 ![](./figure/docker_command.png)
+
+
+
+# 3 docker 镜像
+
+镜像是一种轻量级、可执行的独立软件包，它包含运行某个软件所需的所有内容，我们把应用程序和配置依赖打包好形成一个可交付的运行环境(包括代码、运行时需要的库、环境变量和配置文件等)，这个打包好的运行环境就是image镜像文件。
+
+## 3.1 镜像分层
+
+镜像是一个分层的文件系统。
+
+### 3.1.1 联合文件系统
+
+**docker的镜像实际上由一层一层的文件系统组成，这一层层的文件系统共同构成一个联合文件系统。**
+
+Union文件系统（UnionFS）是一种**分层、轻量级并且高性能**的文件系统，它支持对文件系统的修改作为一次提交来**一层层**的叠加，同时可以将**不同目录挂载到同一个**虚拟文件系统下。
+
+Union 文件系统是 Docker 镜像的基础。镜像可以通过分层来进行继承，基于基础镜像（没有父镜像），可以制作各种具体的应用镜像。
+
+特性：一次同时加载多个文件系统，但从外面看起来，只能看到一个文件系统，联合加载会把各层文件系统叠加起来，这样最终的文件系统会包含所有底层的文件和目录
+
+### 3.1.2 镜像层次与linux
+
+镜像底层是一个引导文件系统bootfs， bootfs主要包含boot loader 和 linux kernel，bootloader主要是用于引导加载kernel。
+
+inux系统刚启动时也会加载bootfs，所以在这一层上，镜像和我们的linux/unix系统是一样的。
+
+当boot加载完kernel以后，整个内核就在内存中了，此时内存的使用权就会移交给内核，此时系统就会卸载bootfs。
+
+rootfs在bootfs之上，包含的就是典型linux系统中的/dev、/proc、/bin、/etc等标准目录和文件。rootfs就是各种不同操作系统的发行版，比如Ubuntu，centos等。
+
+![](./figure/image分层.jpg)
+
+有时候，镜像底层可以直接使用host的kernel，所以镜像自己直接提供rootfs就行。
+
+镜像分层最大的好处就是共享资源，方便复制迁移，就是为了复用。
+
+比如说，多个镜像都是从相同的base镜像而来，那么docker host 只需要在磁盘上保存一份base镜像即可。同时内存中也只需加载一份base镜像，就可以为所有容器服务了，而且镜像的每一层都可以被共享。
+
+如果我想做一个包含vim的ubuntu镜像，所以只需要从基础ubuntu镜像扩展vim功能即可，没必要从头再来。
+
+### 3.1.3 容器层与镜像层
+
+docker的镜像层都是只读的，容器层是可写的。当容器启动时，一个新的可写层被加载到镜像的顶部，这一层通常被称作容器层，容器层之下都是镜像层。
+
+![](./figure/容器层与镜像层.jpg)
+
+## 3.2 制作镜像commit
+
+提交容器副本使之成为一个新的镜像
+
+例程：对官方的ubuntu扩展vim功能
+
+```bash
+# 进入ubuntu容器内部，并打开交互式的命令行（-it）
+# 1.更新ubuntu的包管理工具，类似于centos的yum命令
+apt-get update
+# 2.通过包管理工具安装vim
+apt-get -y install vim
+# 退出容器ctrl + p + q
+# 3.提交容器副本使之成为一个新的镜像
+docker commit -m="ubuntu extend vim" -a='khq' 702c56fdc2fa ubuntuVim:0.1
+
+docker images
+REPOSITORY             TAG       IMAGE ID       CREATED          SIZE
+sifang/ubuntuwithvim   1.1       4e56eda4bb5e   11 seconds ago   178MB
+tomcat                 latest    fb5657adc892   7 months ago     680MB
+ubuntu                 latest    ba6acccedd29   9 months ago     72.8MB
+hello-world            latest    feb5d9fea6a5   10 months ago    13.3kB
+
+# 可以看到新的镜像它的容量变大为178m
+
+```
+
+## 3.3 发布镜像
+
+![](./figure/发布镜像.jpg)
+
+镜像生成方法：dockerfile 和 基于容器commit镜像
+
+### 3.3.1 发布到阿里云
+
+选择控制台=>容器镜像服务=>实例列表=>个人实例=>命名空间=>创建命名空间，创建仓库
+
+![](./figure/发布镜像.png)
+
+这里的仓库名就是你的镜像名，而不是可以存放多个镜像的仓库名，所以下面的daily应实际为ubuntuVim
+
+然后在仓库页面中就会有相应的操作引导，让你的docker服务器与aliyun建立连接
+
+```bash
+docker login --username='' registry.cn-hangzhou.aliyuncs.com
+password:*****
+# 密码可以在个人实例=>访问凭证那里获取
+Login Succeeded
+# 标记镜像版本号
+docker tag [ImageId] registry.cn-hangzhou.aliyuncs.com/sifang/daily:[镜像版本号]
+# 推送镜像到阿里云
+docker push registry.cn-hangzhou.aliyuncs.com/sifang/daily:[镜像版本号]
+The push refers to repository [registry.cn-hangzhou.aliyuncs.com/sifang/daily]
+41e8d863aa21: Pushed 
+9f54eef41275: Pushed 
+1.1: digest: sha256:d1f39fbda865ee5a98ecdd2b37224f3d58081a0a1e347be4eda581af743306a5 size: 741
+
+# 删除本地镜像
+docker rmi -f 4e56eda4bb5e
+
+Untagged: sifang/ubuntuwithvim:1.1
+Untagged: registry.cn-hangzhou.aliyuncs.com/sifang/daily:1.1
+Untagged: registry.cn-hangzhou.aliyuncs.com/sifang/daily@sha256:d1f39fbda865ee5a98ecdd2b37224f3d58081a0a1e347be4eda581af743306a5
+Deleted: sha256:4e56eda4bb5efc1fab1591a83cecc3c36d97159a020894056ecee25448757fd4
+
+# 拉取远程服务器镜像
+docker pull registry.cn-hangzhou.aliyuncs.com/sifang/daily:1.1
+1.1: Pulling from sifang/daily
+7b1a6ab2e44d: Already exists 
+5579d8edfa40: Already exists 
+Digest: sha256:d1f39fbda865ee5a98ecdd2b37224f3d58081a0a1e347be4eda581af743306a5
+Status: Downloaded newer image for registry.cn-hangzhou.aliyuncs.com/sifang/daily:1.1
+registry.cn-hangzhou.aliyuncs.com/sifang/daily:1.1
+[root:17:47@~]docker images
+REPOSITORY          TAG       IMAGE ID       CREATED             SIZE
+.../sifang/daily   1.1       4e56eda4bb5e   About an hour ago   178MB
+tomcat         latest    fb5657adc892   7 months ago        680MB
+ubuntu         latest    ba6acccedd29   9 months ago        72.8MB
+hello-world    latest    feb5d9fea6a5   10 months ago       13.3kB
+
+# 再次运行镜像
+docker run -it 4e56eda4bb5e /bin/bash
+
+```
+
+### 3.3.2 发布到自己的docker私有库
