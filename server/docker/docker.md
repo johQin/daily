@@ -614,7 +614,7 @@ hello-world            latest    feb5d9fea6a5   10 months ago    13.3kB
 
 ![](./figure/发布镜像.png)
 
-这里的仓库名就是你的镜像名，而不是可以存放多个镜像的仓库名，所以下面的daily应实际为ubuntuVim
+**这里的仓库名就是你的镜像名，而不是可以存放多个镜像的仓库名，所以下面的daily应实际为ubuntuVim**
 
 然后在仓库页面中就会有相应的操作引导，让你的docker服务器与aliyun建立连接
 
@@ -661,3 +661,185 @@ docker run -it 4e56eda4bb5e /bin/bash
 ```
 
 ### 3.3.2 发布到自己的docker私有库
+
+docker.hub 也可以放镜像，但是它是国外的服务器，网络太慢。
+
+dockerhub、阿里云这样的公共镜像仓库可能不太方便，涉及机密的公司，不可能提供镜像给外网，所以需要创建一个本地私人库供团队使用，如同gitlab。
+
+Docker Registry是官方提供的工具，可以用于构建私有镜像仓库。
+
+docker registry 也是镜像，需要pull。
+
+```bash
+# 1.pull registry
+docker pull registry
+docker images
+REPOSITORY    TAG       IMAGE ID       CREATED         SIZE
+registry      latest    b8604a3fe854   8 months ago    26.2MB
+
+# 2. 启动仓库容器，创建镜像仓库
+docker run -d -p 5000:5000 -v /myimage/registry:/tmp/registry --privileged=true registry
+# -d 守护进程
+# -p 端口映射
+# -v host_path:container_path 把容器内外的文件夹进行关联,实现数据同步。
+# 即使在容器停止后,容器外挂载目录中文件的修改和添加依然会同步到停止的容器中
+# 这是容器数据卷的内容，下面的章节会说到
+# 默认情况下，仓库被创建在容器的/var/lib/registry目录下，建议自行用容器卷映射，方便宿主联调
+docker ps
+CONTAINER ID   IMAGE      COMMAND   				CREATED         STATUS     
+0c03542af8b0   registry   "/entrypoint.sh /etc…"	4 seconds ago   Up 3 seconds
+PORTS     										NAMES
+0.0.0.0:5000->5000/tcp, :::5000->5000/tcp 		eloquent_heyrovsky
+
+# 3. 运行ubuntu官方镜像的容器，并为它扩展ifconfig功能
+docker run -it ubuntu /bin/bash
+root@ddeea9efd3a4:/# ifconfig
+bash: ifconfig: command not found
+# 更新ubuntu包管理工具
+apt-get update
+# 安装ifconfig需要用的包
+apt-get install net-tools
+ 
+# 退出容器ctrl + p + q
+docker ps
+CONTAINER ID   IMAGE      COMMAND     CREATED          STATUS          PORTS    NAMES
+ddeea9efd3a4   ubuntu     "/bin/bash"  9 minutes ago    Up 9 minutes     blissful_kalam
+
+# 4.提交容器副本使之成为一个新的镜像
+docker commit -m="ubuntu extend ifconfig" -a='khq' ddeea9efd3a4 ubuntuifconfig:0.1
+sha256:4945474d6531b42336194e21d690b95f7821a7ec1dc33e8dc8a347f6e6e9c3a6
+
+# 5. 查看私有镜像库中已有镜像的情况
+curl -XGET 127.0.0.1:5000/v2/_catalog
+{"repositories":[]}
+
+# 6.标记镜像，使其符合私服库镜像的提交规范
+docker tag ubuntuifconfig:0.1 127.0.0.1:5000/ubuntuifconfig:0.1
+# 可以看到本地又生成了一个镜像，这个镜像是符合提交规范的，但两个镜像的id一模一样
+docker images
+REPOSITORY                      TAG       IMAGE ID       CREATED          SIZE
+127.0.0.1:5000/ubuntuifconfig   0.1       4945474d6531   16 minutes ago   111MB
+ubuntuifconfig                  0.1       4945474d6531   16 minutes ago   111MB
+
+# 7.修改配置文件使docker上传镜像支持http
+# docker 默认不允许http方式推送镜像，通过配置选项来取消这个限制。修改文成后如果不生效，建议重启docker
+cat /etc/docker/daemon.json
+# 新增下面一行,确保新增内容后，文件符合json规范
+"insecure-registries":["127.0.0.1:5000"]
+
+# 新增后，文件中的内容
+{
+  "registry-mirrors": ["https://ocx43prw.mirror.aliyuncs.com"],
+  "insecure-registries":["127.0.0.1:5000"]
+}
+
+# 8.推送镜像
+docker push 127.0.0.1:5000/ubuntuifconfig:0.1
+The push refers to repository [127.0.0.1:5000/ubuntuifconfig]
+9bc421be0601: Pushed 
+9f54eef41275: Pushed 
+0.1: digest: sha256:da3fad212f802e7aac9a56f249a2e1fe0ac59921065386e8e25023fb5ce81635 size: 741
+
+# 9.验证私服库上有什么镜像
+curl -XGET 127.0.0.1:5000/v2/_catalog
+{"repositories":["ubuntuifconfig"]}
+
+# 10.pull私服库镜像
+docker images
+REPOSITORY                      TAG       IMAGE ID       CREATED          SIZE
+127.0.0.1:5000/ubuntuifconfig   0.1       4945474d6531   34 minutes ago   111MB
+ubuntuifconfig                  0.1       4945474d6531   34 minutes ago   111MB
+# 删除本地镜像
+docker rmi -f 127.0.0.1:5000/ubuntuifconfig:0.1
+# 从私服库中拉取镜像
+docker pull 127.0.0.1:5000/ubuntuifconfig:0.1
+
+docker images
+REPOSITORY                      TAG       IMAGE ID       CREATED          SIZE
+127.0.0.1:5000/ubuntuifconfig   0.1       4945474d6531   40 minutes ago   111MB
+
+docker run -it 4945474d6531 /bin/bash
+ifconfig
+eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 172.17.0.3  netmask 255.255.0.0  broadcast 172.17.255.255
+        ether 02:42:ac:11:00:03  txqueuelen 0  (Ethernet)
+        RX packets 7  bytes 586 (586.0 B)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 0  bytes 0 (0.0 B)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 127.0.0.1  netmask 255.0.0.0
+        loop  txqueuelen 1000  (Local Loopback)
+        RX packets 0  bytes 0 (0.0 B)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 0  bytes 0 (0.0 B)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+```
+
+## 3.4 容器卷
+
+场景需求：run镜像形成容器，希望对容器内数据进行持久化。
+
+docker容器产生的数据，如果不备份，那么当容器实例删除后，容器内的数据自然也就没有了。为了能保存数据在docker中我们使用卷。
+
+卷就是一种目录或文件，存在于一个或多个容器中，由docker挂载到容器。但它不属于unionfs，因此能够绕过unionfs，以提供持续存储或共享数据的特性。
+
+卷设计的目的就是数据持久化，完全独立于容器的生存周期，因此docker不会在容器删除时，删除其挂载的数据卷。
+
+容器卷的意义在于，将容器内的重要数据同步备份到宿主机，而使数据不会因容器的消失而消失。
+
+特点：
+
+1. 数据卷可在容器之间共享或重用数据
+2. 容器中数据的更改可以实时同步到宿主机的卷中
+3. 数据卷中的更改不会包含在镜像的更新中
+4. 数据卷的生命周期一直持续到没有容器使用它为止。
+
+```bash
+docker run -it --privileged=true -v host_path:container_path image_name
+# -v volume 数据卷，v参数可以有多个，用于不同地址间的映射
+# docker 会默认在对应的path创建相应的文件夹，所以不需要事先创建文件夹
+```
+
+**关于privileged的错误**
+
+docker挂载主机目录访问如果出现：cannot open directory：permission denied
+
+解决办法：在挂载的目录后多加一个`--privileged=true`参数即可。
+
+centos7安全模块会比之前系统版本加强，不安全的会先禁止，所以目录挂载情况会被默认为不安全的行为。
+
+在SElinux里面挂载目录被禁止掉了，如果要开启，我们一般会使用`--privileged=true`命令，扩大容器的权限解决挂载目录没有权限的问题，也即使用该参数，container内的root就会拥有真正的root权限，否则，container内的root只是外部一个普通用户的权限。
+
+```bash
+# 1.启动容器，并添加容器卷，
+docker run -it --privileged=true -v /tmp/host_data:/tmp/container_data  --name=u1 ubuntu
+# 数据的变更在这两个映射的文件夹中，是双向绑定的，是互为同步的。
+# 在host中修改，会同步到container中
+# 在container中修改，会同步到host中
+# docker stop后，host修改，容器start后，再进入容器查看，可以看到同步依然存在。
+
+# 2.查看容器卷是否挂载成功
+docker inspect container_id
+···
+        "Mounts": [
+            {
+                "Type": "bind",
+                "Source": "/tmp/host_data",
+                "Destination": "/tmp/container_data",
+                "Mode": "",
+                "RW": true,
+                "Propagation": "rprivate"
+            }
+        ],
+
+···
+
+# 3.容器读写权限
+docker run -it --privileged=true -v /tmp/host_data:/tmp/container_data:container_right  --name=u1 ubuntu
+# container_right:默认读写（rw），可以不写，双向绑定
+# ro，read_only，宿主机可以读写，容器只能读取不能写
+```
+
