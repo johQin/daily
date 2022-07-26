@@ -348,7 +348,7 @@ docker <command> --help
 
 ```bash
 # 1.列出本地主机上的镜像
-docker images -[aq]
+docker images -[aq] [search_images_name]
 REPOSITORY    TAG       IMAGE ID       CREATED        SIZE
 hello-world   latest    feb5d9fea6a5   9 months ago   13.3kB
 # repository：表示镜像仓库源
@@ -841,5 +841,115 @@ docker inspect container_id
 docker run -it --privileged=true -v /tmp/host_data:/tmp/container_data:container_right  --name=u1 ubuntu
 # container_right:默认读写（rw），可以不写，双向绑定
 # ro，read_only，宿主机可以读写，容器只能读取不能写
+
+# 4.容器间数据共享
+# 也可以称作容器卷规则继承，停止u1，并不会影响u2容器的规则
+docker run -it --privileged=true --volumes-from u1 --name=u2 ubuntu
+```
+
+# 4 常用软件安装
+
+## 4.1 安装tomcat
+
+```bash
+# 安装任何一个程序，都需要查看宿主机是否有相应的应用程序开着，以及相应的端口是否被占用
+ps -ef | grep tomcat
+ps -ef | grep mysql
+
+# 1.安装tomcat
+# 因为最新版的tomcat镜像，在run以后无法通过访问地址直接看到tom猫，是因为官网最新的包安装后，在webapps里面没有内容了，它转移到webapps.dist里面去了，如果要想看到猫，那么需要将webapp删除，将webapp.dist重新命名为webapps即可。
+# 下面所用的包不是官网最新的tomcat，而用的是其他域下老的版本，这样就无需修改webapps
+docker pull billygoo/tomcat8-jdk8
+docker run -d -p 8080:8080 --name mytomcat8 billygoo/tomcat8-jdk8
+
+```
+
+## 4.2 安装mysql
+
+```bash
+# 安装教程：https://blog.csdn.net/qq_46122292/article/details/125001047
+# 查看是否被占用，下面即无mysql应用，端口未被占用
+ps -ef | grep mysql
+root     3107717 2929217  0 11:10 pts/0    00:00:00 grep --color=auto mysql
+# 拉取镜像
+docker pull mysql:5.7
+# 启动mysql，启动的命令需要在hub.docker 搜索mysql，然后在how to use this image锚点查看
+docker run -d 
+-p 3306:3306 
+--name mysql 
+privileged=true 
+-v /mysqldata/mysql/log:/var/log/mysql  
+-v /mysqldata/mysql/data:/var/lib/mysql  
+-v /mysqldata/mysql/conf:/etc/mysql 
+-e MYSQL_ROOT_PASSWORD=root  mysql:5.7
+
+# 修改mysql配置
+cd /mysqldata/mysql/conf
+touch my.conf
+vim my.conf
+# 解决中文乱码
+# 修改字符集，否则插入中文数据会报错
+#[client]
+#default_character_set=utf8
+#[mysqld]
+#collation_server = utf8_general_ci
+#character_set_server = utf8
+docker restart mysql
+docker ps
+
+# 重新进入mysql
+docker exec -it 07e4249aac56 /bin/bash
+# 登录数据库
+mysql -uroot -proot
+show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| mysql              |
+| performance_schema |
+| sys                |
++--------------------+
+4 rows in set (0.00 sec)
+
+# create database db01;
+# use db01;
+# create table t1(id int, name varchar(20));
+# show tables;
+# insert into t1 values(1, 'q1');
+# select * from t1;
++------+------+
+| id   | name |
++------+------+
+|    1 | q1   |
++------+------+
+# 通过navcat连接记得把3306的防火墙打开
+```
+
+## 4.3 安装redis
+
+```bash
+docker pull redis:6.0.8
+mkdir -p /app/redis
+# 提前准备好一个redis.conf 配置文件，然后复制到上面建的文件夹
+cp /myredis/redis.conf /app/redis/
+cd /app/redis
+# 修改redis.conf文件
+vim redis.conf
+# 解注释
+bind 127.0.0.1
+daemonize no # 必须改成no，因为该配置和docker run -d参数冲突，会导致容器一直启动失败。
+
+docker run
+-p 6379:6379
+--name myr3
+--privileged=true
+-v /app/redis/redis.conf:/etc/redis/redis.conf
+-v /app/redis/data:/data
+-d redis:6.0.8 redis-server /etc/redis/redis.conf
+
+docker ps
+docker exec -it myr3 /bin/bash
+
 ```
 
