@@ -444,6 +444,8 @@ docker ps
 # -q 静默模式，只显示容器编号
 CONTAINER ID   IMAGE     COMMAND   CREATED            STATUS              PORTS     NAMES
 1ee74ac3f7e9   ubuntu    "bash"    About a minute ago   Up About a minute         ubuntu1
+# 列出所有容器的id
+docker ps -a -q
 
 # 4.退出容器
 # 两种退出方式
@@ -461,7 +463,7 @@ docker kill container_id_or_container_name
 # 9.删除容器
 docker rm container_id_or_container_name # 删除已停止的容器
 docker rm -f container_id_or_container_name # 强制删除容器，容器可以正在运行
-
+docker rm $(docker ps -a -q) # 删除所有未运行的容器，它实际会对每一个容器都执行删除操作，只是删不掉正在运行的容器罢了
 ```
 
 ### 2.3.2  启动守护式容器
@@ -950,6 +952,136 @@ docker run
 
 docker ps
 docker exec -it myr3 /bin/bash
+
+```
+
+# 5 [dockerfile](https://docs.docker.com/engine/reference/builder/)
+
+dockerfile是用来构建docker镜像的文本文件，是一条条构建镜像所需的指令和参数构成的脚本。
+
+之前做扩展，做一次扩展，commit一次，提交记录就会很多，能不能给我一个扩展清单，我全部扩展完毕之后再commit，这就是dockerfile的场景。
+
+dockerfile构建镜像三步骤
+
+1. 编写dockerfile文件
+2. docker build
+3. docker run
+
+## 5.1 dockerfile构建过程
+
+dockerfile内容基础：
+
+1. 每条保留字指令都必须为大写字母且后面要跟随至少一个参数
+2. 指令按照从上到下，顺序执行
+3. #表示注释
+4. 每条指令都会创建一个新的镜像层并对镜像进行提交
+
+docker执行dockerfile的大致流程：     
+
+1. docker从基础镜像运行一个容器
+2. 执行一条指令并对容器作出修改
+3. 执行类似docker commit的操作提交一个新的镜像层
+4. docker再基于刚提交的镜像运行一个新容器
+5. 执行dockerfile中的下一条指令直到所有指令都执行完成
+
+## 5.2 dockerfile 常用保留字
+
+| 保留字         | 说明                                                         |
+| -------------- | ------------------------------------------------------------ |
+| **FROM**       | 1. 基础镜像，当前镜像是基于那个镜像，<br />2. 指定一个已经存在的镜像作为模板<br />3. 第一行必须是FROM |
+| **MAINTAINER** | 镜像维护者的姓名和邮箱地址                                   |
+| **RUN**        | 1.容器构建时，需要运行的shell脚本命令<br />2.RUN在docker build时运行 |
+| **EXPOSE**     | 当前容器对外暴露的端口                                       |
+| **WORKDIR**    | 1.指定在创建容器后，终端默认登录进来工作目录<br />2.就是-it进入时默认的工作目录 |
+| **USER**       | 1.指定该镜像以什么样的用户去执行，<br />2. 如果都不指定，默认root |
+| **ENV**        | 1.用来在构建镜像过程中设置的环境变量<br />2.ENV key1 val1<br />3.引用时：$key1 |
+| **ADD**        | 1.将**宿主机目录**下的文件copy进镜像<br />2.可自动处理URL和解压tar压缩包 |
+| **COPY**       | 1.类似于ADD，copy文件和目录到镜像中<br />2.从**构建的上下文目录**中，源路径的文件复制到新的一层的镜像内的目标路径 |
+| **CMD**        | 1.指定容器启动后要运行的命令<br />2.dockerfile中可以有多个CMD，但只有最后一个生效<br />3.CMD会被docker run之后的命令参数替换，例如docker run ... /bin/bash<br />4.和RUN的区别：CMD是在docker run是运行，RUN是在docker build时运行 |
+| **ENTRYPOINT** | 1.指定容器启动后要运行的命令<br />2.类似于CMD指令，但ENTRYPOINT不会被docker run后面的命令覆盖，<br />3.当指定了ENTRYPOINT后，CMD的含义就发生了变化，不再是直接运行其命令而是将CMD的内容作为参数传递给ENTRYPOINT指令，他们两个就会变成\<ENTRYPOINT> "\<CMD>"。<br />4.因为CMD会被docker run之后的命令参数替换，所以两者经常一起使用，作为命令**变参执行使用** |
+| **VOLUMN**     | 容器卷挂载                                                   |
+|                |                                                              |
+|                |                                                              |
+
+## 5.3 案例
+
+**在centos上安装vim、ifconfig、jdk8**
+
+```dockerfile
+# 文件名一定要使Dockerfile，首字母一定大写
+FROM centos
+MAINTAINER zzyy<zzyybs@126.com>
+ 
+ENV MYPATH /usr/local
+WORKDIR $MYPATH
+ 
+#安装vim编辑器
+RUN yum -y install vim
+#安装ifconfig命令查看网络IP
+RUN yum -y install net-tools
+#安装java8及lib库
+RUN yum -y install glibc.i686
+RUN mkdir /usr/local/java
+#ADD 是相对路径jar,把jdk-8u171-linux-x64.tar.gz添加到容器中,安装包必须要和Dockerfile文件在同一位置
+ADD jdk-8u171-linux-x64.tar.gz /usr/local/java/
+#配置java环境变量
+ENV JAVA_HOME /usr/local/java/jdk1.8.0_171
+ENV JRE_HOME $JAVA_HOME/jre
+ENV CLASSPATH $JAVA_HOME/lib/dt.jar:$JAVA_HOME/lib/tools.jar:$JRE_HOME/lib:$CLASSPATH
+ENV PATH $JAVA_HOME/bin:$PATH
+ 
+EXPOSE 80
+CMD echo $MYPATH
+CMD echo "success--------------ok"
+CMD /bin/bash
+
+```
+
+```bash
+# 构建镜像
+docker build -t ubuntujava8:1.0 .
+# ubuntujava8 新镜像的名字， 1.0 镜像的版本
+# tag后面有一个点“.”，使用当前目录的Dockerfile进行编译镜像
+```
+
+`docker build `每失败一次就会在`docker ps -a`中看到一些不寻常的东西
+
+```bash
+CONTAINER ID   IMAGE          COMMAND                  CREATED              STATUS                        PORTS                                                  NAMES
+46b53789d1ca   144339675590   "/bin/sh -c 'apt-get…"   About a minute ago   Exited (100) 58 seconds ago                                                          peaceful_bhaskara
+34ba71d9bf4c   f501aec82eca   "/bin/sh -c 'apt-get…"   8 minutes ago        Exited (100) 8 minutes ago                                                           thirsty_dijkstra
+e552ba402835   491eae041534   "/bin/sh -c 'apt ins…"   13 minutes ago       Exited (100) 13 minutes ago                                                          unruffled_euclid
+67faddf36baf   491eae041534   "/bin/sh -c 'yum -y …"   20 minutes ago       Exited (127) 20 minutes ago  
+```
+
+## 5.4 虚悬镜像
+
+虚悬镜像就是仓库名和tag都为`<none>`的镜像
+
+如果将上面的**Dockerfile**中的**FROM centos**修改为**FROM ubuntu**， 那么此时构建会失败，就会在执行**docker images**看见虚悬镜像
+
+```bash
+# 修改为FROM ubuntu，然后执行一次docker build，build肯定会失败，然后出现下面的结果
+# 查看是否有虚悬镜像，查看所有的虚悬镜像
+docker image ls -f dangling=true
+REPOSITORY                      TAG       IMAGE ID       CREATED          SIZE
+<none>                          <none>    144339675590   23 minutes ago   180MB
+# 删除所有的虚悬镜像
+docker image prune
+WARNING! This will remove all dangling images.
+Are you sure you want to continue? [y/N] y
+Deleted Images:
+deleted: sha256:144339675590d951679dab8ca844f309b87fe0d240944ebe89a5db57db2bcf39
+deleted: sha256:27fdfca96fd9e8de28d518d4fb835ad21713cf2b8c3c5e18111e9723fa4bf2d1
+deleted: sha256:cee1370811f44107f4b3ae0fae5075e059aa9095f641152fc763e6a9b170938b
+deleted: sha256:6fe1dd324b75a4b82819b05f541b427dd51cf6926778725ca2fb79618de193bd
+deleted: sha256:f501aec82eca1b7630a51c36908d946b15dc11019d7e43fdc02c7988c280e056
+deleted: sha256:a97bbd75086d10436607be591966137b80911ccc6ce559fd3c34db5a5f9ebb3e
+deleted: sha256:491eae041534201138d1682a3dd7446162ad985c6a61cc38459e9a4ae5644554
+deleted: sha256:d11ae435470f0ec96c73e44d9140b638001b11d9d3a65adec5cdaf391f40106a
+deleted: sha256:2cca0565511280911f7817b4656cb8cc14a6e1df3c94a8a37b69b25f54535c1f
+
+Total reclaimed space: 106.8MB
 
 ```
 
