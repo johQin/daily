@@ -3276,6 +3276,8 @@ BaseOS-source                                      CentOS-8 - BaseOS Sources    
     wget是一个下载文件的工具，它用在命令行下。对于Linux用户是必不可少的工具，我们经常要下载一些软件或从远程服务器恢复备份到本地服务器。 wget支持HTTP，HTTPS和FTP协议。
 
     ```bash
+    # 下载文件到当前目录下
+    wget http://www.minjieren.com/download.aspx?id=1080
     # -O：下载文件到对应目录，并且修改文件名称
     wget -O wordpress.zip http://www.minjieren.com/download.aspx?id=1080
     # -b：后台下载，查看下载进度：tail -f wget-log
