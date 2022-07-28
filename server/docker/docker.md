@@ -1058,7 +1058,9 @@ e552ba402835   491eae041534   "/bin/sh -c 'apt ins…"   13 minutes ago       Ex
 
 虚悬镜像就是仓库名和tag都为`<none>`的镜像
 
-如果将上面的**Dockerfile**中的**FROM centos**修改为**FROM ubuntu**， 那么此时构建会失败，就会在执行**docker images**看见虚悬镜像
+如果将上面的**Dockerfile**中的**FROM centos**修改为**FROM ubuntu**， 那么此时构建会失败，就会在执行**docker images**看见虚悬镜像。
+
+虚悬镜像会占用内存，有时会造成意想不到的错误。
 
 ```bash
 # 修改为FROM ubuntu，然后执行一次docker build，build肯定会失败，然后出现下面的结果
@@ -1082,6 +1084,374 @@ deleted: sha256:d11ae435470f0ec96c73e44d9140b638001b11d9d3a65adec5cdaf391f40106a
 deleted: sha256:2cca0565511280911f7817b4656cb8cc14a6e1df3c94a8a37b69b25f54535c1f
 
 Total reclaimed space: 106.8MB
+
+```
+
+# 6 docker网络
+
+作用：
+
+1. 容器间的互联和通信以及端口映射
+2. 容器ip变动的时候可以通过网络服务名直接进行网络通信
+
+```bash
+# 查看network有哪些命令
+docker network --help
+
+Usage:  docker network COMMAND
+
+Manage networks
+
+Commands:
+  connect     Connect a container to a network
+  create      Create a network
+  disconnect  Disconnect a container from a network
+  inspect     Display detailed information on one or more networks
+  ls          List networks
+  prune       Remove all unused networks
+  rm          Remove one or more networks
+
+Run 'docker network COMMAND --help' for more information on a command.
+
+# 查看有哪些网络
+docker network ls
+NETWORK ID     NAME      DRIVER    SCOPE
+f7907a8ad8ac   bridge    bridge    local
+cdca579c26ad   host      host      local
+9edddacf5ef8   none      null      local
+
+
+```
+
+## 6.1 网络模式
+
+| 网络模式  | 简介                                                         | 使用                                                         |
+| --------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| bridge    | 为每一个容器分配、设置ip<br />并将容器连接到一个docker0的虚拟网桥<br />默认为该模式 | 在docker run的时候，<br />使用`--network bridge`指定，默认使用docker0 |
+| host      | 容器不会虚拟出自己的网卡，配置自己的ip等，<br />而是直接使用宿主机的ip和端口 | `--network host`                                             |
+| none      | 容器有独立的network namespace，但并没有对其进行任何网络配置  | `--network none`                                             |
+| container | 新创建的容器不会创建自己的网卡和配置自己的ip，<br />而是和一个指定的容器共享ip、端口范围等 | `--network container:name_or_id`                             |
+|           |                                                              |                                                              |
+
+### bridge
+
+Docker服务默认会创建一个docker0网桥（其上有一个docker0内部接口），该桥接网络的名称为docker0，它在内核层联通了其他的物理或虚拟网卡，这就将所有容器和本地主机都放到同一物理网络。Docker默认指定了docker0接口的ip地址和子网掩码，**让主机和容器之间可以通过网桥相互通信**。
+
+![](./figure/bridge网络模式.jpg)
+
+```bash
+# 默认--net-work是bridge
+docker run -d -p 8081:8080 --name tomcat81 billygoo/tomcat8-jdk8
+docker run -d -p 8082:8080 --name tomcat82 billygoo/tomcat8-jdk8
+
+# 在宿主机查看ip地址
+ip addr
+# loop back 回环地址，127.0.0.1
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host 
+       valid_lft forever preferred_lft forever
+# 宿主机ip
+2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP group default qlen 1000
+    link/ether 52:54:00:ac:42:c1 brd ff:ff:ff:ff:ff:ff
+    inet 10.0.4.8/22 brd 10.0.7.255 scope global noprefixroute eth0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::5054:ff:feac:42c1/64 scope link noprefixroute 
+       valid_lft forever preferred_lft forever
+# docker网桥
+3: docker0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default 
+    link/ether 02:42:94:23:20:12 brd ff:ff:ff:ff:ff:ff
+    inet 172.17.0.1/16 brd 172.17.255.255 scope global docker0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::42:94ff:fe23:2012/64 scope link 
+       valid_lft forever preferred_lft forever
+# 虚拟网卡1
+75: vethb267661@if74: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master docker0 state UP group default 
+    link/ether 6e:64:75:e5:10:64 brd ff:ff:ff:ff:ff:ff link-netnsid 0
+    inet6 fe80::6c64:75ff:fee5:1064/64 scope link 
+       valid_lft forever preferred_lft forever
+# 虚拟网卡2
+77: veth14815b2@if76: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master docker0 state UP group default 
+    link/ether de:3d:41:76:f0:3b brd ff:ff:ff:ff:ff:ff link-netnsid 1
+    inet6 fe80::dc3d:41ff:fe76:f03b/64 scope link 
+       valid_lft forever preferred_lft forever
+
+
+# 在tomcat81容器中查看
+docker exec -it tomcat81 bash
+ip addr
+
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+# 与宿主机的虚拟网卡1是成对存在的
+74: eth0@if75: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default 
+    link/ether 02:42:ac:11:00:02 brd ff:ff:ff:ff:ff:ff link-netnsid 0
+    inet 172.17.0.2/16 brd 172.17.255.255 scope global eth0
+       valid_lft forever preferred_lft forever
+
+# 在tomcat82容器中查看
+docker exec -it tomcat82 bash
+ip addr
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+# 与宿主机的虚拟网卡2是成对存在的
+76: eth0@if77: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default 
+    link/ether 02:42:ac:11:00:03 brd ff:ff:ff:ff:ff:ff link-netnsid 0
+    inet 172.17.0.3/16 brd 172.17.255.255 scope global eth0
+       valid_lft forever preferred_lft forever
+```
+
+
+
+1. Docker使用Linux桥接，在宿主机虚拟一个Docker容器网桥(docker0)，Docker启动一个容器时会根据Docker网桥的网段分配给容器一个IP地址，称为Container-IP，同时Docker网桥是每个容器的默认网关。因为在同一宿主机内的容器都接入同一个网桥，这样容器之间就能够通过容器的Container-IP直接通信。
+2. docker run 的时候，没有指定network的话默认使用的网桥模式就是bridge，使用的就是docker0。在宿主机ifconfig,就可以看到docker0和自己create的network(后面讲)eth0，eth1，eth2……代表网卡一，网卡二，网卡三……，lo代表127.0.0.1，即localhost，inet addr用来表示网卡的IP地址
+3.  网桥docker0创建一对对等虚拟设备接口一个叫veth，另一个叫eth0，成对匹配。
+   - 整个宿主机的网桥模式都是docker0，类似一个交换机有一堆接口，每个接口叫veth，在本地主机和容器内分别创建一个虚拟接口，并让他们彼此联通（这样一对接口叫veth pair）；
+   - 每个容器实例内部也有一块网卡，每个接口叫eth0；
+   -  docker0上面的每个veth匹配某个容器实例内部的eth0，两两配对，一一匹配。
+
+ 通过上述，将宿主机上的所有容器都连接到这个内部网络上，两个容器在同一个网络下,会从这个网关下各自拿到分配的ip，此时两个容器的网络是互通的。
+
+### host
+
+容器将不再获得一个独立的network namespace，而是和宿主机共用一个network namespace，容器将不会虚拟出自己的网卡，而直接使用宿主机的ip和端口。
+
+![](./figure/host网络模式.jpg)
+
+```bash
+docker run -d -p 8083:8080 --network host --name toncat83 billygoo/tomcat8-jdk8
+# docker启动时指定--network=host或-net=host，
+# 如果还指定了-p映射端口，那这个时候就会有警告，如果不写端口映射就不会有警告
+# 并且通过-p设置的参数将不会起到任何作用，端口将会占用宿主机的端口，重复时则递增。
+WARNING: Published ports are discarded when using host network mode
+1b62f6e0d4f19a8e109887593500f00fb1dea2c131e2d7494cf877644c0a9b7f
+# docker ps可以看到port那一列，是空的
+docker ps
+CONTAINER ID   IMAGE         COMMAND     CREATED        STATUS    PORTS          NAMES
+1b62f6e0d4f1   billygoo/tomcat8-jdk8   "catalina.sh run"   About a minute ago   Up About a minute                     toncat83
+# 进入容器内部查看ip
+ip addr
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host 
+       valid_lft forever preferred_lft forever
+2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP group default qlen 1000
+    link/ether 52:54:00:ac:42:c1 brd ff:ff:ff:ff:ff:ff
+    inet 10.0.4.8/22 brd 10.0.7.255 scope global noprefixroute eth0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::5054:ff:feac:42c1/64 scope link noprefixroute 
+       valid_lft forever preferred_lft forever
+3: docker0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default 
+    link/ether 02:42:94:23:20:12 brd ff:ff:ff:ff:ff:ff
+    inet 172.17.0.1/16 brd 172.17.255.255 scope global docker0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::42:94ff:fe23:2012/64 scope link 
+       valid_lft forever preferred_lft forever
+# tomcat81 veth
+75: vethb267661@if74: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master docker0 state UP group default 
+    link/ether 6e:64:75:e5:10:64 brd ff:ff:ff:ff:ff:ff link-netnsid 0
+    inet6 fe80::6c64:75ff:fee5:1064/64 scope link 
+       valid_lft forever preferred_lft forever
+# tomcat82 veth
+77: veth14815b2@if76: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master docker0 state UP group default 
+    link/ether de:3d:41:76:f0:3b brd ff:ff:ff:ff:ff:ff link-netnsid 1
+    inet6 fe80::dc3d:41ff:fe76:f03b/64 scope link 
+       valid_lft forever preferred_lft forever
+
+# 查看toncat83 的情况
+docker inspect toncat83 | tail -n 20
+            "Networks": {
+                "host": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": null,
+                    "NetworkID": "cdca579c26ad7d6967958ad331a88debacf62fa4a60d41ea33f1f6a3c61814a2",
+                    "EndpointID": "7dac0c332605e4a169b14279fd463ac946a34475da84c556168cdc2387c18fef",
+                    
+                    # 网管和ip都没有了，然而tomcat81，和tomcat82都有自己的ip和网关
+                    "Gateway": "",
+                    "IPAddress": "",
+                    "IPPrefixLen": 0,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "MacAddress": "",
+                    "DriverOpts": null
+                }
+            }
+
+```
+
+### none
+
+禁用网络功能，只有lo回环网络。
+
+在none模式下，并不为Docker容器进行任何网络配置，也就是说这个Docker容器没有网卡，ip，路由等信息，只有一个lo，需要我们自己为Docker 容器添加网卡、配置ip等
+
+### container
+
+新建的容器和已经存在的一个容器共享一个网络ip配置而不是和宿主机共享。新创建的容器不会创建自己的网卡，配置自己的IP，而是和一个指定的容器共享IP、端口范围等。同样，两个容器除了网络方面，其他的如文件系统、进程列表等还是隔离的。
+
+网络宿主容器一旦被关掉，网络寄生容器的网络就只有lo了。
+
+![](./figure/container网络模式.jpg)
+
+```bash
+# 启动一个容器u1，查看网络情况
+docker run -it --name u1 ubuntu /bin/bash
+docker inspect u1 | tail -n 20
+"Networks": {
+                "bridge": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": null,
+                    "NetworkID": "f7907a8ad8acb243dc320f63044bbddedc17a109073aed...",
+                    "EndpointID": "544406774a6005d568f3d181fd3177a4c312d97e1e6f2...",
+                    "Gateway": "172.17.0.1",
+                    "IPAddress": "172.17.0.4",
+                    "IPPrefixLen": 16,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "MacAddress": "02:42:ac:11:00:04",
+                    "DriverOpts": null
+                }
+             }
+# 启动一个容器u2，查看网络情况
+docker run -it --name u2 ubuntu /bin/bash
+docker inspect u2 | tail -n 20
+            "Networks": {
+                "bridge": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": null,
+                    "NetworkID": "f7907a8ad8acb243dc320f63044bbddedc17a109073aed4b8...",
+                    "EndpointID": "e591d1e468290b6f5f070bbfa28b1596a6a018a1baff1081...",
+                    "Gateway": "172.17.0.1",
+                    "IPAddress": "172.17.0.5",
+                    "IPPrefixLen": 16,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "MacAddress": "02:42:ac:11:00:05",
+                    "DriverOpts": null
+                }
+            }
+# 并随后关闭u2
+docker kill u2
+
+# 启动一个容器u3，查看网络情况
+docker run -it --name u3 ubuntu /bin/bash
+docker inspect u3 | tail -n 20
+            "Networks": {
+                "bridge": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": null,
+                    "NetworkID": "f7907a8ad8acb243dc320f63044bbddedc17a109073aed4b8...",
+                    "EndpointID": "e591d1e468290b6f5f070bbfa28b1596a6a018a1baff1081...",
+                    "Gateway": "172.17.0.1",
+                    "IPAddress": "172.17.0.5",
+                    "IPPrefixLen": 16,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "MacAddress": "02:42:ac:11:00:05",
+                    "DriverOpts": null
+                }
+            }
+# 发现u3的ip地址和u2未宕机之前的一致。
+# u2的地址在u2宕机后又给了u3
+# 这就会导致访问同一个ip，却享用的不是同一个服务
+# 结论：docker容器的ip地址可能会改变
+```
+
+```bash
+# 查看bridge网络的细节
+docker network inspect bridge
+
+[
+    {
+    	# 网络名称
+        "Name": "bridge",
+        
+        "Id": "f7907a8ad8acb243dc320f63044bbddedc17a109073aed4b8fdcee876fa2aafa",
+        "Created": "2022-07-20T21:38:12.757367256+08:00",
+        # 
+        "Scope": "local",
+        "Driver": "bridge",
+        
+        "EnableIPv6": false,
+        "IPAM": {
+            "Driver": "default",
+            "Options": null,
+            "Config": [
+                {
+                    "Subnet": "172.17.0.0/16",
+                    "Gateway": "172.17.0.1"
+                }
+            ]
+        },
+        "Internal": false,
+        "Attachable": false,
+        "Ingress": false,
+        "ConfigFrom": {
+            "Network": ""
+        },
+        "ConfigOnly": false,
+        
+        # 在这个网络模式下的容器
+        "Containers": {
+            "07e4249aac564e464a3b59b95ebe89c80dc0131cb76bc1a5fcb85f6b2f49155c": {
+                "Name": "mysql",
+                "EndpointID": "9fdc1c3ab7e3c56e9fa2b03e806b415047f5707279edb035956313c8e75272ae",
+                "MacAddress": "02:42:ac:11:00:03",
+                "IPv4Address": "172.17.0.3/16",
+                "IPv6Address": ""
+            },
+            "0c03542af8b09f898b8bbbf77b91a93b77ceea3423a1598780e895e61f0ff7b0": {
+                "Name": "eloquent_heyrovsky",
+                "EndpointID": "4b0c14764e411d1f09a4288781cd92a2f245baef6ee1f894f4f90a2471b2c47e",
+                "MacAddress": "02:42:ac:11:00:02",
+                "IPv4Address": "172.17.0.2/16",
+                "IPv6Address": ""
+            },
+            "4d5b57bb780aa5b25997a2bcf217252c4ea52099da5a9eacf1fbb200895637b1": {
+                "Name": "u3",
+                "EndpointID": "e591d1e468290b6f5f070bbfa28b1596a6a018a1baff1081494ce19e64955140",
+                "MacAddress": "02:42:ac:11:00:05",
+                "IPv4Address": "172.17.0.5/16",
+                "IPv6Address": ""
+            },
+            "63d9e6a511de167791375611056593fe1fe0e5d3c28b0c860110e657b03e474b": {
+                "Name": "u1",
+                "EndpointID": "544406774a6005d568f3d181fd3177a4c312d97e1e6f2eac0739677c3dcc6920",
+                "MacAddress": "02:42:ac:11:00:04",
+                "IPv4Address": "172.17.0.4/16",
+                "IPv6Address": ""
+            }
+        },
+        "Options": {
+            "com.docker.network.bridge.default_bridge": "true",
+            "com.docker.network.bridge.enable_icc": "true",
+            "com.docker.network.bridge.enable_ip_masquerade": "true",
+            "com.docker.network.bridge.host_binding_ipv4": "0.0.0.0",
+            
+            "com.docker.network.bridge.name": "docker0",
+            
+            "com.docker.network.driver.mtu": "1500"
+        },
+        "Labels": {}
+    }
+]
 
 ```
 
