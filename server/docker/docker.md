@@ -1305,73 +1305,7 @@ docker inspect toncat83 | tail -n 20
 ![](./figure/container网络模式.jpg)
 
 ```bash
-# 启动一个容器u1，查看网络情况
-docker run -it --name u1 ubuntu /bin/bash
-docker inspect u1 | tail -n 20
-"Networks": {
-                "bridge": {
-                    "IPAMConfig": null,
-                    "Links": null,
-                    "Aliases": null,
-                    "NetworkID": "f7907a8ad8acb243dc320f63044bbddedc17a109073aed...",
-                    "EndpointID": "544406774a6005d568f3d181fd3177a4c312d97e1e6f2...",
-                    "Gateway": "172.17.0.1",
-                    "IPAddress": "172.17.0.4",
-                    "IPPrefixLen": 16,
-                    "IPv6Gateway": "",
-                    "GlobalIPv6Address": "",
-                    "GlobalIPv6PrefixLen": 0,
-                    "MacAddress": "02:42:ac:11:00:04",
-                    "DriverOpts": null
-                }
-             }
-# 启动一个容器u2，查看网络情况
-docker run -it --name u2 ubuntu /bin/bash
-docker inspect u2 | tail -n 20
-            "Networks": {
-                "bridge": {
-                    "IPAMConfig": null,
-                    "Links": null,
-                    "Aliases": null,
-                    "NetworkID": "f7907a8ad8acb243dc320f63044bbddedc17a109073aed4b8...",
-                    "EndpointID": "e591d1e468290b6f5f070bbfa28b1596a6a018a1baff1081...",
-                    "Gateway": "172.17.0.1",
-                    "IPAddress": "172.17.0.5",
-                    "IPPrefixLen": 16,
-                    "IPv6Gateway": "",
-                    "GlobalIPv6Address": "",
-                    "GlobalIPv6PrefixLen": 0,
-                    "MacAddress": "02:42:ac:11:00:05",
-                    "DriverOpts": null
-                }
-            }
-# 并随后关闭u2
-docker kill u2
 
-# 启动一个容器u3，查看网络情况
-docker run -it --name u3 ubuntu /bin/bash
-docker inspect u3 | tail -n 20
-            "Networks": {
-                "bridge": {
-                    "IPAMConfig": null,
-                    "Links": null,
-                    "Aliases": null,
-                    "NetworkID": "f7907a8ad8acb243dc320f63044bbddedc17a109073aed4b8...",
-                    "EndpointID": "e591d1e468290b6f5f070bbfa28b1596a6a018a1baff1081...",
-                    "Gateway": "172.17.0.1",
-                    "IPAddress": "172.17.0.5",
-                    "IPPrefixLen": 16,
-                    "IPv6Gateway": "",
-                    "GlobalIPv6Address": "",
-                    "GlobalIPv6PrefixLen": 0,
-                    "MacAddress": "02:42:ac:11:00:05",
-                    "DriverOpts": null
-                }
-            }
-# 发现u3的ip地址和u2未宕机之前的一致。
-# u2的地址在u2宕机后又给了u3
-# 这就会导致访问同一个ip，却享用的不是同一个服务
-# 结论：docker容器的ip地址可能会改变
 ```
 
 ```bash
@@ -1452,6 +1386,261 @@ docker network inspect bridge
         "Labels": {}
     }
 ]
+
+```
+
+## 6.2 自定义网络
+
+```bash
+# 启动一个容器u1，查看网络情况
+docker run -it --name u1 ubuntu /bin/bash
+docker inspect u1 | tail -n 20
+"Networks": {
+                "bridge": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": null,
+                    "NetworkID": "f7907a8ad8acb243dc320f63044bbddedc17a109073aed...",
+                    "EndpointID": "544406774a6005d568f3d181fd3177a4c312d97e1e6f2...",
+                    "Gateway": "172.17.0.1",
+                    "IPAddress": "172.17.0.4",
+                    "IPPrefixLen": 16,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "MacAddress": "02:42:ac:11:00:04",
+                    "DriverOpts": null
+                }
+             }
+# 启动一个容器u2，查看网络情况
+docker run -it --name u2 ubuntu /bin/bash
+docker inspect u2 | tail -n 20
+            "Networks": {
+                "bridge": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": null,
+                    "NetworkID": "f7907a8ad8acb243dc320f63044bbddedc17a109073aed4b8...",
+                    "EndpointID": "e591d1e468290b6f5f070bbfa28b1596a6a018a1baff1081...",
+                    "Gateway": "172.17.0.1",
+                    "IPAddress": "172.17.0.5",
+                    "IPPrefixLen": 16,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "MacAddress": "02:42:ac:11:00:05",
+                    "DriverOpts": null
+                }
+            }
+# 并随后关闭u2
+docker kill u2
+
+# 启动一个容器u3，查看网络情况
+docker run -it --name u3 ubuntu /bin/bash
+docker inspect u3 | tail -n 20
+            "Networks": {
+                "bridge": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": null,
+                    "NetworkID": "f7907a8ad8acb243dc320f63044bbddedc17a109073aed4b8...",
+                    "EndpointID": "e591d1e468290b6f5f070bbfa28b1596a6a018a1baff1081...",
+                    "Gateway": "172.17.0.1",
+                    "IPAddress": "172.17.0.5",
+                    "IPPrefixLen": 16,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "MacAddress": "02:42:ac:11:00:05",
+                    "DriverOpts": null
+                }
+            }
+# 发现u3的ip地址和u2未宕机之前的一致。
+# u2的地址在u2宕机后又给了u3
+# 这就会导致访问同一个ip，却享用的不是同一个服务
+# 结论：docker容器的ip地址可能会改变
+```
+
+所以通过ip去访问服务，是不稳定的。
+
+```bash
+# 1.通过network create 创建自定义网络，默认驱动模式mode是bridge，--driver 或 -d 指定
+# docker network create [-d network_mode] self_defined_net 
+docker network create -d bridge qq_net 
+# 2.在指定的网络名下运行容器
+docker run -d -p 8081:8080 --network qq_net --name tomcat81 billygoo/tomcat8-jdk8
+docker run -d -p 8082:8080 --network qq_net --name tomcat82 billygoo/tomcat8-jdk8
+
+# 3.进入tomcat81
+docker exec -it tomcat81 /bin/bash
+# 查看ip
+ip addr
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+79: eth0@if80: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default 
+    link/ether 02:42:ac:12:00:02 brd ff:ff:ff:ff:ff:ff link-netnsid 0
+    inet 172.18.0.2/16 brd 172.18.255.255 scope global eth0
+       valid_lft forever preferred_lft forever
+
+# 4.在同一个网络下，可以通过容器名(服务名)相互通信，
+# 记住这一点，服务名到时候需要写在application.yml里，
+# 通过tomcat:8081就能访问对应的服务，而不需要写10.80.3.123:8081，因为宕机会造成ip改变。
+ping tomcat2
+```
+
+# 7 容器编排compose
+
+docker-compose是docker官方的开源项目，负责实现对docker容器集群的快速编排。
+
+compose是docker公司推出的一个工具软件，可以管理多个Docker容器组成一个应用。你需要定义一个YAML格式的配置文件docker-compose.yml，**写好多个容器之间的调用关系**。然后，一个命令就能同时启动/关闭这些容器。
+
+![](./figure/容器编排compose.png)
+
+compose允许用户通过一个单独的docker-compose.yml模板文件来定义一组相关的应用容器为一个项目。
+
+## 7.1 [安装](https://www.cnblogs.com/LeeYi59/p/14529680.html)
+
+```bash
+curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+ % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:--  0:00:03 --:--:--     0
+100 12.1M  100 12.1M    0     0  25713      0  0:08:15  0:08:15 --:--:-- 51503
+
+sudo chmod +x /usr/local/bin/docker-compose
+
+docker-compose --version
+docker-compose version 1.29.2, build 5becea4c
+
+docker-compose -h                           # 查看帮助
+docker-compose up                           # 启动所有docker-compose服务
+docker-compose up -d                        # 启动所有docker-compose服务并后台运行
+docker-compose down                         # 停止并删除容器、网络、卷、镜像。
+docker-compose exec  yml里面的服务id                 # 进入容器实例内部  docker-compose exec docker-compose.yml文件中写的服务id /bin/bash
+docker-compose ps                      # 展示当前docker-compose编排过的运行的所有容器
+docker-compose top                     # 展示当前docker-compose编排过的容器进程
+ 
+docker-compose logs  yml里面的服务id     # 查看容器输出日志
+docker-compose config     # 检查配置
+docker-compose config -q  # 检查配置，有问题才有输出
+docker-compose restart   # 重启服务
+docker-compose start     # 启动服务
+docker-compose stop      # 停止服务
+
+
+```
+
+## 7.2 核心概念
+
+一个文件，docker-compose.yml
+
+两个要素：
+
+1. 服务（service），一个个应用容器实例，比如：订单微服务，库存微服务，mysql容器，nginx容器
+2. 工程（project），有一组关联的应用容器组成的一个完整业务单元，在docker-compose.yml中定义
+
+compose使用步骤：
+
+1. dockerfile定义镜像文件
+2. 编写docker-compose.yml，编排服务
+3. docker-compose up启动project
+
+不使用compose的问题
+
+1. 容器运行的先后顺序，需要固定，如果人工操作，那么不可避免的会出现错误。
+2. 需要运行的容器太多，人工执行太慢。
+3. 宕机可能导致网络ip发生变化，
+
+## 7.3 编排
+
+1. 编写docker-compose.yml
+
+```yml
+# docker-compose.yml
+version: "3"
+ 
+services:
+  microService:
+    image: zzyy_docker:1.6
+    container_name: ms01
+    ports:
+      - "6001:6001"
+    volumes:
+      - /app/microService:/data
+    networks: 
+      - atguigu_net 
+    depends_on: 
+      - redis
+      - mysql
+ 
+  redis:
+    image: redis:6.0.8
+    ports:
+      - "6379:6379"
+    volumes:
+      - /app/redis/redis.conf:/etc/redis/redis.conf
+      - /app/redis/data:/data
+    networks: 
+      - atguigu_net
+    command: redis-server /etc/redis/redis.conf
+ 
+  mysql:
+    image: mysql:5.7
+    environment:
+      MYSQL_ROOT_PASSWORD: '123456'
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'no'
+      MYSQL_DATABASE: 'db2021'
+      MYSQL_USER: 'zzyy'
+      MYSQL_PASSWORD: 'zzyy123'
+    ports:
+       - "3306:3306"
+    volumes:
+       - /app/mysql/db:/var/lib/mysql
+       - /app/mysql/conf/my.cnf:/etc/my.cnf
+       - /app/mysql/init:/docker-entrypoint-initdb.d
+    networks:
+      - atguigu_net
+    command: --default-authentication-plugin=mysql_native_password #解决外部无法访问
+ 
+networks: 
+   atguigu_net: 
+ 
+```
+
+2. 修改服务中的配置，主要修改ip为服务名
+
+```yml
+server.port=6001
+
+# ========================alibaba.druid相关配置=====================
+spring.datasource.type=com.alibaba.druid.pool.DruidDataSource
+spring.datasource.driver-class-name=com.mysql.jdbc.Driver
+#spring.datasource.url=jdbc:mysql://192.168.111.169:3306/db2021?useUnicode=true&characterEncoding=utf-8&useSSL=false
+spring.datasource.url=jdbc:mysql://mysql:3306/db2021?useUnicode=true&characterEncoding=utf-8&useSSL=false
+spring.datasource.username=root
+spring.datasource.password=123456
+spring.datasource.druid.test-while-idle=false
+
+# ========================redis相关配置=====================
+spring.redis.database=0
+#spring.redis.host=192.168.111.169
+spring.redis.host=redis
+spring.redis.port=6379
+spring.redis.password=
+spring.redis.lettuce.pool.max-active=8
+spring.redis.lettuce.pool.max-wait=-1ms
+spring.redis.lettuce.pool.max-idle=8
+spring.redis.lettuce.pool.min-idle=0
+
+# ========================mybatis相关配置===================
+mybatis.mapper-locations=classpath:mapper/*.xml
+mybatis.type-aliases-package=com.atguigu.docker.entities
+
+# ========================swagger=====================
+spring.swagger2.enabled=true
+ 
 
 ```
 
