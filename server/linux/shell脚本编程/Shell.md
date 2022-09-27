@@ -69,3 +69,36 @@ source myshell.sh
 # 后两个父shell 的位置跑到home下了
 ```
 
+### 0.2.4 bash shell 的环境配置文件
+
+环境配置文件让bash在启动是直接读取这些配置文件，以规划好bash的操作环境。
+
+配置文件又可以分为全体系统配置文件（`/etc/profile、/etc/bashrc`等）以及用户个人的偏好配置文件（`~/.bash_profile、~/.bashrc`），上面列举的文件是在登录shell的时候就会执行的配置。这两个配置文件是在退出登录的时候执行的`~/.bash_history、~/.bash_logout`。
+
+login shell 与 non-login shell详见linux9.4.3
+
+## 0.3 bash的常用知识点
+
+1. 命令和文件自动补齐【Tab】： 
+
+   - 在centos7当中，只要你安装了`bash-completion-2.7-5.el8.noarch`，你就有补全功能
+
+   - ```bash
+     [root@VM-4-8-centos ~]# rpm -qa | grep bash-comp
+     bash-completion-2.7-5.el8.noarch
+     ```
+
+2. 命令历史记忆功能【上下键】：
+
+   - 【!number】——执行history命令输出命令序列对应编号的命令
+   - 【!string】——找到history历史执行命令中最近以string开头的命令、
+   - 【!$】—— 上一个命令的最后一个参数
+   - 【!!】——上一个命令
+   - 【^R】——【ctrl + +】搜索历史命令
+
+3. 命令别名
+
+   - **alias  other_name='replace_operation'**
+   - 取消别名：**unalias other_name**
+
+4. 
