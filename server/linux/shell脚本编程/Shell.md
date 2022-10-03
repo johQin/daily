@@ -94,11 +94,108 @@ login shell 与 non-login shell详见linux9.4.3
    - 【!string】——找到history历史执行命令中最近以string开头的命令、
    - 【!$】—— 上一个命令的最后一个参数
    - 【!!】——上一个命令
-   - 【^R】——【ctrl + +】搜索历史命令
+   - 【^R】——【ctrl + R】搜索历史命令
 
 3. 命令别名
 
    - **alias  other_name='replace_operation'**
    - 取消别名：**unalias other_name**
 
-4. 
+4. 快捷键（ ^  —— ctrl ）：
+
+   - ^R——搜索历史命令
+   - ^D——logout，退出命令行
+   - ^A ^E——光标移动到命令的开头，结尾
+   - ^U ^K——从光标处删到开头、末尾
+   - ^L—— clear 清屏
+   - ^S  ^Q —— 锁定终端，使任何人不允许输入，但是输入操作会记录。解除ctrl +s的锁定，同时会展示或执行ctrl +s锁定时输入的指令
+
+5. 前后台控制作业
+
+   - & ——cmd &，命令丢到后台执行
+   - nohup——nohup cmd，让你在脱机或注销系统后，还能够让工作继续进行
+   - jobs -l ——查看作业，
+   - ^c——是强制中断程序的执，程序不会再运行。^z——中断当前作业，维持挂起状态，
+   - bg %jobnumber——后台运行jobs作业中jobnumber的作业，fg %jobnumber——前台运行jobs作业中jobnumber的作业
+   - kill -signal %number
+   - 通常在vim 编辑一个文档的时候，想干点其他什么事，这时候可以通过^Z去中断当前vim，做完之后，再通过fg回到之前中断的作业中来。
+
+6. 重定向
+
+   - 0——标准输入（<，<< EOF），1——正确输出（>覆盖内容，>> 追加内容），2——错误输出（2> 覆盖内容，2>>追加内容）
+   - tee 双向重定向
+
+7. 管道命令
+
+8. 命令排序
+
+   - 单行执行多个命令
+   - `;`——不具备逻辑判断能力，每个命令都会执行，不论是否报错
+   - `&& 逻辑与 ||逻辑或`——具备判断能力，
+     - 逻辑与&&，当逻辑符号左侧的命令执行成功才会执行逻辑符号右侧的命令
+     - 逻辑或||，当逻辑符号左侧的命令执行失败才会执行逻辑符号右侧的命令
+
+9. 通配符
+
+   ```bash
+   # * 匹配任意多个字符
+   ls ha*
+   ls *tx*
+   rm -rf *.pdf
+   rm -rf *
+   ll /dev/sd[a-z]*
+   
+   # ? 匹配任意一个字符
+   touch love loove live l7ve; ll l?ve
+   -rw-r--r-- 1 root root 0 Oct  3 15:24 l7ve
+   -rw-r--r-- 1 root root 0 Oct  3 15:24 live
+   -rw-r--r-- 1 root root 0 Oct  3 15:24 love
+   # rm -rf l*ve
+   
+   # [] 字符集，匹配中括号中任意一个字符
+   [a-zA-Z0-9] [^a-z]，尖角开头取非
+   
+   ll l[io]ve
+   -rw-r--r-- 1 root root 0 Oct  3 15:28 live
+   -rw-r--r-- 1 root root 0 Oct  3 15:28 love
+   
+   ll l[^a-Z]ve
+   -rw-r--r-- 1 root root 0 Oct  3 15:28 l7ve
+   
+   # (cmd) 在子shell中执行cmd
+   
+   # {} 枚举值
+   mkdir -pv ./{111/{aaa,bbb},222} || ls
+   mkdir: created directory './111'
+   mkdir: created directory './111/aaa'
+   mkdir: created directory './111/bbb'
+   111  222
+   
+   touch {a..c}{1..3} || ls
+   a1  a2  a3  b1  b2  b3  c1  c2  c3
+   
+   cp -rv /etc/sysconfig/network-scripts/ifcfg-eth0 /etc/sysconfig/network-scripts/ifcfg-eth0.old
+   # 可以写成下面的形式
+   cp -rv /etc/sysconfig/network-scripts/{ifcfg-eth0,ifcfg-eth0.old}
+   cp -rv /etc/sysconfig/network-scripts/ifcfg-eth0{,old}
+   
+   # \ 转义字符
+   touch qin\ fei
+   # 就创建了一个带有空格的文件
+   # 而并没有创建两个文件
+   
+   # 转义回车符，使命令可以多行书写
+   ls /etc/sysconfig/network \
+   >/etc/hosts \
+   >/etc/paaswd
+   
+   echo \\
+   \
+   echo "atb"
+   echo "a\tb"
+   echo "a\nb"
+   
+   ```
+
+10. 
+

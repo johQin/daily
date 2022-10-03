@@ -1038,30 +1038,37 @@ PATH="$PATH":/home/bin
 
 login shell与non-login shell
 
-1. login shell ：取得bash时需要完整流程的，就称login shell，eg：你要由tty登录，需要输入账号和密码，此时取得的bash就称login shell
+1. login shell ：取得bash时需要完整流程的，就称login shell，
+   - eg1：你要由tty登录，需要输入账号和密码，此时取得的bash就称login shell
+   - eg2： `su - user_name`
 2. non-login shell：取得bash接口的方法不需要重复登录的举动，
    - eg1：在x window图形界面中启动终端机（此时没有再输入账号密码）
    - eg2：在原本的bash环境下在次执行bash这个命令（此时没有再输入账号密码），那第二个bash（子进程）也为non-login shell
+   - eg3：`su user_name`
 
-这两种情况会导致读取的配置文件不一样，我们首先谈谈**login shell**会读取以下文件
+这两种情况会导致读取的配置文件不一样。
+
+**non-login shell会读配置文件：**`~/.bashrc，而bashrc还会调用/etc/bashrc`
+
+**login shell**会读取以下文件：
 
 1. 系统整体配置
    - `/etc/profile`：login shell 必读，他还会调取外部设置数据，centos5.x会默认依序被调用进来
      - `/etc/inputrc`：自定义输入按键功能
      - `/etc/profile.d/*.sh`：这个目录下面的文件规定了bash操作接口的颜色、语系、ll与ls、vi、which的命令别名等**，如果想帮所有用户设置一些共享的命令别名可以在这个目录下自行创建扩展名为.sh的文件，并将所需写入即可**
+
 2. 个人偏好设置
    - bash在读完整体环境配置后，接下来就会读取用户个人的配置文件
    - 依序读取`/~/.bash_profile > /~/.bash_login > /~/.profile`，前面的文件如存在，就不会再读后面的文件
    - `/~/.bash_profile会再调取/~/.bashrc`。**所以我们可以在此将自己的偏好设置写入该文件（`/~/.bashrc`）**
+
 3. login_shell的配置文件读取流程
 
-![](./legend/login_shell的配置文件读取流程.png)
+   ![](./legend/login_shell的配置文件读取流程.png)
 
 **手动更新配置：source**
 
 - **source 配置文件**
-
-**non-login shell会读：**`~/.bashrc，而bashrc还会调用/etc/bashrc`
 
 **其他相关配置文件**
 
@@ -1151,6 +1158,7 @@ find /home -name .bashrc > list_right 2> list_error
 
 #stdout与stderr写入同一个文件
 find /home -name .bashrc > list 2>&1
+# 混合重定向 &>
 find /home -name .bashrc &> list
 
 #垃圾黑洞设备/dev/null
@@ -2293,10 +2301,15 @@ bash只能够管理自己的工作而不能管理其他bash的工作
 
 2. 将目前的工作**先暂停再丢到后台**：**【 Ctrl + z 】**
 
+   - 将任务中断、停止进程。 此时此任务并没有结束,仍然在进程中他只是维持挂起的状态。
+     
+   - 【**Ctrl + c**】是强制中断程序的执，程序不会再运行
+     
    - ```bash
      vim ~/.bashrc
      #一般模式下按下Ctrl + z，会出现如下提示
      [1]+ Stopped   vim ~/.bashrc
+     #通过fg %number 可以恢复的中断的程序
      ```
 
 3. 查看当前的后台工作状态：**jobs**
