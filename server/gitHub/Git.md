@@ -1094,13 +1094,31 @@ git submodule add <url> <path>
 
 尽管新文件是工作目录下的一个子目录，但git将其视为一个子模块，当你不在该新文件夹中时，Git并不会跟踪其中的内容。
 
-### 4.9.2 克隆含有子模块的项目
+### 4.9.2 [克隆含有子模块的项目](https://blog.csdn.net/yanlaifan/article/details/110942035)
 
-如果简单实用`git clone url`，默认会得到子模块的目录，但是目录中并不会有子仓库的文件。所以要使用到--recursive参数
+克隆含有子模块的项目有两种方式：
+
+1. 先克隆当前项目，然后再更新子模块
+2. 克隆项目同时更新子模块
+
+注意：
+
+1. 用户必须含有父项目和子项目的权限，否则将会更新失败
+2. 用户克隆父项目和子模块的方式应保持一致（要么都用https的方式，要么都使用ssh的方式），否则可能更新会失败
+   - 如果不一致，可以先更新父项目，然后修改.gitmodules里的链接方式，再更新子模块
 
 ```bash
+# 1 先克隆当前项目，然后再更新子模块
+git submodule init
+git submodule update
+# 合并：git submodule update --init
+# 如果还存在嵌套的子模块：git submodule update --init --recursive
+
+# 2 克隆项目的同时更新子模块
+# 如果简单使用git clone url，默认会得到子模块的目录，但是目录中并不会有子仓库的文件。所以要使用到--recursive参数
 # --recursive选项，会自动初始化和更新父仓库father_url下的每一个子模块。
 git clone --recursive father_url
+
 ```
 
 如果在子模块的文件夹中，打开命令行，那么就可以像平常操作仓库一样对子仓库进行操作。
