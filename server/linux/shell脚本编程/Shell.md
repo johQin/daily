@@ -192,10 +192,127 @@ login shell 与 non-login shell详见linux9.4.3
    echo \\
    \
    echo "atb"
-   echo "a\tb"
-   echo "a\nb"
+   # -e可以输出转义后的字符
+   echo -e "a\tb"
+   echo -e "a\nb"
    
    ```
 
-10. 
+10. echo 打印颜色文本。printf指令也可以格式化输出
+
+    ```bash
+    # 31m是指代文本的颜色，31m是红色，32m是绿色，33m是黄色。4开头的是修改文本的背景色。
+    # 末尾一定要\e[0m，用于重置文本颜色，否则以后所有打印都是这个颜色
+    echo -e "\e[1;31mthis is a red text.\e[0m"
+    ```
+
+11. 
+
+# 1 变量
+
+## 1.1 自定义变量
+
+变量名：必须以字母或下划线开头，区分大小写。
+
+变量赋值：a=1，注意：**等号两边不能有空格**
+
+引用变量：`$var_name 或${var_name}`，`${var_name}`通常用在拼接字符串，变量的右侧有其他字符时。
+
+## [字符串](https://blog.csdn.net/qq_59311764/article/details/121954162)
+
+### 表示
+
+字符串有三种表示：
+
+1. 单引号
+
+   ```bash
+   # 1 单引号字符串中的变量是无效的，单引号里的任何字符（全部字符）都会原样输出
+   a=1
+   echo 'ab$acd'
+   # 输出 ab$acd
+   echo 'bb${a}bb'
+   # 输出 bb${a}bb
+   
+   # 2 单引号字符串不能使用单独的一个单引号，对单引号使用转义符后也不行，
+   echo 'abbbccc'ffff'
+   line 9: unexpected EOF while looking for matching `''
+   line 10: syntax error: unexpected end of file
+   
+   # 3 可以成对出现，作为字符串拼接使用
+   echo 'abbbccc'aaa'ffff'
+   # 输出 abbbcccaaaffff
+   a=1
+   echo 'ab'$a
+   # 输出ab1
+   echo 'ab'$a'ab'
+   # 输出ab1ab
+   ```
+
+2. 双引号
+
+   ```bash
+   # 1 双引号可以有变量
+   str='cd'
+   str1="ab$str"
+   echo $str1
+   # 输出 abcd
+   # 如果"ab$str"中$str后还有其他字符，就需要使用${}，如"ab${str}ef"，否则ef会被当做是变量名的一部分使用
+   str2="ab${str}ef"
+   # 输出 abcdef
+   ```
+
+3. 不用引号。
+
+```bash
+str1=abcd1
+echo $str1
+# 字符串拼接
+echo 12$str1
+echo 12${str1}34
+```
+
+
+
+### 单引号
+
+```bash
+# 1 单引号字符串中的变量是无效的，单引号里的任何字符（全部字符）都会原样输出
+a=1
+echo 'ab$acd'
+# 输出 ab$acd
+echo 'bb${a}bb'
+# 输出 bb${a}bb
+
+# 2 单引号字符串不能使用单独的一个单引号，对单引号使用转义符后也不行，
+echo 'abbbccc'ffff'
+line 9: unexpected EOF while looking for matching `''
+line 10: syntax error: unexpected end of file
+
+# 3 可以成对出现，作为字符串拼接使用
+echo 'abbbccc'aaa'ffff'
+# 输出 abbbcccaaaffff
+a=1
+echo 'ab'$a
+# 输出ab1
+echo 'ab'$a'ab'
+# 输出ab1ab
+```
+
+### 双引号
+
+```bash
+# 1 拼接字符串
+h="hello"
+str1="1","${h}"
+str2="1",$h
+str3="1,${h}"
+str4="1,$h"
+echo $str1
+echo $str2
+echo $str3
+echo $str4
+# 全部输出一致
+1,hello
+```
 
