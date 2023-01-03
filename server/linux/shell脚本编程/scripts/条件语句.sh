@@ -26,4 +26,4 @@
 
 # str='cd'
 # str1="ab$str"
-echo "a\tb"
+# echo "a\tb"
