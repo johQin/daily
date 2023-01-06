@@ -843,7 +843,7 @@ int fac(int n) {
 
 **type *pointer_name;**
 
-- type：基类型，用来指定指针变量可以指向的变量的类型
+- type：**基类型**，用来指定指针变量可以指向的变量的类型
 -  定义指针变量时必须指定基类型，因为要取出一个变量的数据，需要知道指定存储单元的地址和该变量的存储长度。
 - 一个变量的指针含义包括两方面：
   - 存储单元编号表示的地址
@@ -904,7 +904,7 @@ void swap(int *p1, int *p2){
 }
 ```
 
-## 6.3 通过指针引用数组
+## 6.3 指针引用数组
 
 ```c
 int a[10] = {1,2,3,4,5,6,7,8,9,10};
@@ -942,14 +942,273 @@ int a[3][4] = {
 }
 ```
 
+主要把握两个点：
+
+- `a+1 -> a[1] -> a[1][0]`
+- ``a+1指向a[1]，a+1 = &a[1]，a[1] = *(a+1),`
+- `a[1]指向a[1][0]，a[1] = &a[1][0]`
+
+| 表示形式                              | 含义                   |
+| ------------------------------------- | ---------------------- |
+| a                                     | a -> a[0]              |
+| `*a, *(a+0), a[0] `                   | a+0 -> a[0]，a -> a[0] |
+| `a+1, &a[1]`                          | a+1 -> a[1]            |
+| `*(a+1), a[1]`                        | a+1 -> a[1]            |
+| `*(a+1) +2, a[1] +2, &a[1][2] `       | `a[1] + 2 -> a[1][2]`  |
+| `*(*(a+1) + 2), *(a[1] + 2), a[1][2]` | `a[1] + 2 -> a[1][2]`  |
+
+注意：
+
+- a和a[0]的值虽然相同（都是地址2000），但由于指针类型不同，a指向一维数组a[0]，而a[0]指向第一行的列元素`a[0][0]`
+- 二维数组名a是指向行的，一维数组名a[0]是指向行的列元素的
+
+### 6.3.2 指向多维“数组元素”的指针变量
+
+```c
+#include<stdio.h>
+int main() {
+    int a[3][4] = {
+        {1,2,3,4},
+        {5,6,7,8},
+        {9,10,11,12}
+    };
+    int *p;
+    //注意这里的初值，p=a[0]
+    for(p=a[0];p < a[0]+12; p++) {
+        if((p-a[0])%4 ==0) printf("\n");
+        printf("%4d", *p);
+    }
+    printf("\n")
+}
+```
+
+p是一个int * 型的指针变量，它可以指向一般的整型变量，也可以指向整型的数组元素。
+
+二维数组大小m x n，`a[i][j] = *(p + i*n + j)`
+
+### 6.3.3 指向“一维数组”的指针变量
+
+在二维数组中，调整p指向一个包含n个元素的一维数组。使得p+1指向a[1]，而不再是`a[0][1]`
+
+```c
+#include<stdio.h>
+int main(){
+   int a[3][4] = {
+        {1,2,3,4},
+        {5,6,7,8},
+        {9,10,11,12}
+    };
+    int (*p)[4],i,j;
+    p=a;
+    printf("please enter row and column: ");
+    scanf("%d,%d",&i,&j);
+    printf("a[%d,%d]=%d\n", *(*(p+i)+j));
+}
+```
+
+`int (*p)[4]`表示定义一个指针变量，它指向包含4个整型元素的一维数组。`p -> a， a -> a[0]`
+
+注意`*p`两侧的括号不能少，如果写成`int *p[4]`，由于[]运算级别较高，因此p先与4结合，再与`*`结合，*p[4]就是指针数组了。
+
+```c
+#include<stdio.h>
+int main(){
+    int a[4] = {1,2,3,4};
+    int (*p)[4];
+    //这里不能写成p=a，因为这样写表示p的值是&a[0]。
+    // p=&a，表示p指向一维数组行，*p=a，(*p)[3]=a[4];
+    p = &a;
+    printf("%d\n", (*p)[3]);
+    return 0;
+}
+```
 
 
-| 表示形式         | 含义                                                         | 地址 |
-| ---------------- | ------------------------------------------------------------ | ---- |
-| a                | 二维数组名，指向一维数组a[0]，即0行的首地址                  | 2000 |
-| a[0], *(a+0), *a | 1. a[0]是一维数组名，也就是0行0列元素**地址**<br />2. 由于a是0行首地址，*a就是0行数组（名），也就是0行0列元素**地址** |      |
-| a+1, &a[1]       |                                                              |      |
-|                  |                                                              |      |
-|                  |                                                              |      |
-|                  |                                                              |      |
+
+
+
+![](./legend/指针指向一维数组.png)
+
+这里p的类型是不是`int *`型，而是`int (*)[4]`型，p被定义为指向一维整型数组的指针，一维数组有4个元素，因此p的基类型是一维数组，其长度为16字节。
+
+### 6.3.4 指向数组的指针做函数参数
+
+```c
+#include<stdio.h>
+int main() {
+    void average(float *p, int n);
+    void search(float (*p)[4], int n);
+	//3个学生，4门功课的成绩数组
+    float score[3][4] = {
+        {65,67,70,60},
+        {80,87,90,81},
+        {90,99,100,98}
+    };
+    average(*score, 12);//求12个数的平均分
+    search(score, 2);// 求序号为2的学生的成绩
+}
+void average(float *p, int n) {
+    float *p_end;
+    float sum=0,aver;
+    p_end = p+n -1;
+    for(;p<=p_end;p++) {
+        sum = sum + (*p);
+    }
+    aver = sum/n;
+    printf("average=%5.2f\n", aver);
+}
+void search(float (*p)[4], int n) {
+    int i;
+    printf("the score of No.%d is:\n",n);
+    for(i=0; i<4; i++) {
+        printf("%5.2f",*(*(p+n) + i));
+    }
+    printf("\n");
+}
+```
+
+## 6.4 指针引用字符串
+
+```c
+char string[] = "i love china";
+printf("%s",string);//"i love china"
+// 字符指针变量指向一个字符串常量
+// string指向了字符串的第一个字符
+char *string = "i love china";
+printf("%s",string);//"i love china"
+
+#include<stdio.h>
+int main() {
+    char a[] = "i am a boy", b[20], *p1, *p2;
+    p1=a;
+    p2=b;
+    for(;*p1!='\0';p1++,p2++) {
+        *p2=*p1;
+    }
+    *p2='\0';
+    printf("string a is:%s\n",a);
+    printf("string b is:%s\n",b);
+}
+```
+
+**调用函数时实参形参的类型都可以是字符数组名和字符指针变量**
+
+### 字符指针变量和字符数组
+
+```c
+//1.可以对字符指针变量赋值，但不能对数组名赋值
+char *a;
+a = "i love china";// 合法，将字符串首地址赋给指针变量
+char str[20];
+str = "i love china"; //非法，数组名是地址，是常量，不能赋值。
+
+//2.初始化的含义
+char *a = "china";
+//等价
+char *a;
+a = "china";
+//而
+char str[14] = "china";
+//不等价，并且出错
+char str[14];
+str[] = "china";
+
+//3.指针变量的值可以改变，而数组名的值不能改变（代表一个固定的值，数组首元素的地址）
+int *p = "i love china";
+p = p+7;
+printf("%s",p);//china
+//而
+char str[]= "i love china";
+str = str + 7;//报错
+
+//4.字符数组中各元素的值是可以改变的（可以对他们再赋值），但字符指针变量指向的字符串常量中的内容是不可以改变（不能再对他们赋值）
+char a[]="house";
+char *b="house";
+a[2]='r';
+b[2]='r';//非法，字符串常量不可改变
+
+//5.存储单元的内容，编译时为字符数组分配若干存储单元，以存放各元素的值，而对字符指针变量只分配一个存储单元
+char *a;
+scanf("%s",a);//错误，a的值为一个地址，而这个地址并未具体指向某一个对象，如果指向内存的有用空间，可能会造成系统的破坏。
+// 而
+char *a,str[10];
+a=str;
+scanf("%s",a);//正确
+```
+
+## 6.5 指向函数的指针
+
+**在编译时，编译系统为函数代码分配一段存储空间，这段存储空间的起始地址称为这个函数的指针。**
+
+```c
+#include<stdio.h>
+int main() {
+    int max(int, int);
+    int (*p)(int, int);
+    int a,b,c;
+    // 将函数max入口地址赋给p
+    p=max;
+    printf("please enter a and b:");
+    scanf("%d,%d",&a, &b);
+    // *p = max
+    c = (*p)(a,b);
+    printf("a=%d\nb=%d\nmax=%d\n",a,b,c);
+    return 0;
+}
+int max(int x,int y){
+    int z;
+    if(x>y)z=y;
+    else z=x;
+    return z;
+}
+```
+
+1. 指向函数的指针变量，在定义后，只能指向在定义时**“指定的类型”**的函数，如`int (*p)(int,int)`，这个指针变量p只能指向返回值为整型，参数数目相同且参数类型为整型的函数。一个指针变量可以先后指向同类型的不同函数。
+2. 指针变量调用函数比较灵活，可以根据不同情况，先后调用同类型的不同函数。
+
+### 6.5.1 指向函数的指针作为函数的参数
+
+指向函数的指针变量的一个重要用途是把函数的地址作为参数传递到其他函数。
+
+```c
+#include<stdio.h>
+int main() {
+    int fun(int x,int y,int (*p)(int, int));
+    int max(int,int);
+    int min(int,int);
+    int add(int,int);
+    int a=34,b=-21,n;
+    printf("please choose 1,2 or 3\n");
+    scanf("%d",&n);
+    if(n == 1) fun(a,b,max);
+    else if fun(a,b,min);
+    else if fun(a,b,sum);
+    return 0;
+}
+int fun(int x,int y,int (*p)(int, int)){
+    int result;
+    result=(*p)(x,y);
+    return result;
+}
+int max(int x,int y){
+    int z;
+    if(x>y) z=x;
+    else z=y;
+    printf("max=%d\n",z);
+    return z;
+}
+int min(int x,int y){
+    int z;
+    if(x<y) z=x;
+    else z=y;
+    printf("min=%d\n",z);
+    return z;
+}
+int add(int x,int y){
+    int z;
+    z = x+y;
+    printf("sum=%d\n",z);
+    return z;
+}
+```
 
