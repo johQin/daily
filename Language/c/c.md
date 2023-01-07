@@ -1006,7 +1006,7 @@ int main(){
 }
 ```
 
-`int (*p)[4]`表示定义一个指针变量，它指向包含4个整型元素的一维数组。`p -> a， a -> a[0]`
+`int (*p)[4]`表示定义一个指针变量（可以同数组定义方式做比较，`int a[4]`，*p替代的是就是a，所以p指向一维数组），它指向包含4个整型元素的一维数组。`p -> a， a -> a[0]`
 
 注意`*p`两侧的括号不能少，如果写成`int *p[4]`，由于[]运算级别较高，因此p先与4结合，再与`*`结合，*p[4]就是指针数组了。
 
@@ -1212,3 +1212,210 @@ int add(int x,int y){
 }
 ```
 
+## 6.6 返回指针值的函数
+
+`int *a(int x, int y);`，a是函数名，调用它后，能得到一个方`int*`型（指向整型数据）的指针，即整型数据的地址
+
+```c
+//3个学生，4门课的成绩，打印第k个学生的成绩
+#include<stdio.h>
+int main() {
+    float *search(float (*p)[4], int n);
+    float score[][4]={{60,70,80,90},{56,89,67,88},{34,78,90,66}};
+    float *p;
+    int i,k;
+    printf("enter the number of student:\n");
+    scanf("%d",&k);
+    printf("the scores of No.%d are :\n", k);
+    p=search(score,k);
+    for(i=0;i<4;i++){
+        printf("5.2f\t",*(p+i));
+    }
+    printf("\n");
+    return 0;
+}
+
+float *search(float (*p)[4], int n){
+    float *pt;
+    pt=*(p+n);
+    return pt;
+}
+```
+
+## 6.7 指针数组和多重指针
+
+一个数组，若其元素均为指针型数据，则称之为**指针数组**
+
+`int *p[4]`
+
+由于`[]`比`*`的优先级高，p先与[4]结合，形成p[4]形式（数组形式），表示p数组有4个元素。然后在于p前面的`*`结合，`*`表示此数组是指针类型的，**每个数组元素都可以指向一个整型变量**
+
+也可以同数组（**int a[4]**）的定义方式对比，`int *`是数组元素的类型。
+
+```c
+#include<stdio.h>
+#include<string.h>
+int main() {
+    void sort(char *name[], int n);
+    void print(char *name[], int n);
+    // 每个数组元素都指向字符串的首字符的地址，指针变量指向字符串：char *string="abcde"
+    char *name[]={"Follow me", "BASIC", "Greate Wall", "FORTRAN", "Computer design"};
+    
+    int n = 5;
+    sort(name, n);
+    print(name, n);
+    return 0;
+}
+void sort(char *name[], int n){
+    char *temp;
+    
+    // 选择法排序
+    int i,j,k;
+    for(i=0;i<n-1;i++){
+        k=i;
+        for(j=i+1;j<n;j++) {
+            if(strcmp(name[k],name[i])>0) k=i;
+        }
+        if(k!=i) {
+            temp = name[i];
+            name[i] = name[k];
+            name[k] = temp;
+        }
+    }
+}
+void print(char *name[], int n){
+    int i;
+    for(i=0;i<n;i++) {
+        printf("%s\n",name[i]);
+    }
+}
+```
+
+
+
+<img src="./legend/指针数组排序.png" style="zoom:60%;" />
+
+### 6.7.1 指向指针数据的指针
+
+`char **p`
+
+`p前面有两个*号，*号的结合性从右向左，因此**p相当于*(*p)`
+
+`可以把它分为两部分来看：char * 和 (*p)，后面的(*p)表示p是指针变量，前面的char*表示p指向的是char *型的数据`
+
+<img src="./legend/多重指针.png" style="zoom:67%;" />
+
+
+
+```c
+#include<stdio.h>
+int main() {
+    char *name[]={"Follow me", "BASIC", "Greate Wall", "FORTRAN", "Computer design"};
+    char **p;
+    int i;
+    for(i=0;i<5;i++){
+        p = name +i;
+        printf("%s\n",*p);
+    }
+    return 0;
+}
+```
+
+### 6.7.2 main函数的形参
+
+`int main (int argc, char *argv[])`
+
+- argc，参数个数
+- argv，参数字符串指针数组
+- 通常main函数和其他函数组成一个文件模块，有一个文件名（文件路径+文件名）。对这个文件进行编译和连接，得到一个可执行文件exe，用户执行这个可执行文件，操作系统就调用main函数，从而实现程序的功能。
+
+执行可执行文件，是通过命令行的形式：
+
+- `命令名 param1, param2,...paramn`
+- 命令名：文件路径 + 可执行文件名，
+- 执行，eg：`file1 china beijing`
+- ![](./legend/main函数参数argv指针数组.png)
+
+## 6.8 动态分配
+
+全局变量分配在内存中的静态存储区。
+
+局部变量（非静态）分配在内存中的动态存储区，这个区域叫做**栈**
+
+C语言还允许建立内存动态分配区域，以存放一些临时用的数据，这些数据不需要在程序的声明部分定义，也不必等到函数结束时才释放，随时开辟，随时释放，这些数据临时存放在一个特别的自由存储区，这个区域叫做**堆**
+
+**堆区**可以根据需要向系统申请所需大小的空间。由于未在声明部分定义他们为变量或数组，因此不能通过变量名或数组名引用这些数据，**只能通过指针来引用**
+
+### 6.8.1 void 指针类型
+
+c99允许使用基类型为void的指针类型。
+
+可以定义一个基类型为void的指针变量（即**`void *`**型变量），它不指向任何类型的数据。
+
+**不要**把“**指向void类型**”理解为能指向任何类型的数据，**而应**理解为**"指向空类型"或”不指向确定的类型“**的数据。
+
+**它仅提供一个纯地址，而不能指向任何具体的对象**
+
+在将它的值赋给另一指针变量时，由系统对它进行类型转换，使之适合于被赋值的变量的类型。
+
+```c
+int a=3;
+int *p1=&a;
+char *p2;
+void *p3;
+// 可以省略强制类型转换
+p3 = (void *) p1;// 可以写为 p3 = p1;
+p2 = (char *) p3;// 可以写为 p2 = p3;
+printf("%d", *p1);
+p3 = &a;
+printf("%d", *p3);
+```
+
+**当把void指针赋值给不同基类型的指针变量，或者不同基类型的指针变量赋值给void指针时，编译系统会自动进行转换，不必用户自己进行强制转换。**
+
+### 6.8.2 建立内存的动态分配
+
+对内存的动态分配是通过系统提供的库函数（**`#include<stdlib.h>`**）来实现的，主要有`malloc, calloc, free, realloc`这4个函数。
+
+除free外的3个函数都是返回值为指针的函数，它们的返回值都是void类型的指针。
+
+1. malloc
+   - 函数原型：`void *mall(unsigned int size);`
+   - 作用：在内存的动态存储区中分配一个长度为**size（单位：字节）的连续空间**
+   - 返回值：该分配域的开头位置（第1个字节的地址）
+   - 如果此函数未能成功（eg：内存空间不足）地执行，则返回空指针（NULL）
+2. calloc
+   - 函数原型：`void *calloc(unsigned n, unsigned int size);`
+   - 作用：在内存的动态存储区中分配**n个长度为size的连续空间**，calloc函数可以为一维数组开辟动态存储空间，n为数组元素的个数，每个元素长度为size，这就是动态数组
+   - 执行失败，返回NULL
+3. free
+   - 函数原型：`void  free(void *p)`
+   - 作用：**释放**指针变量p所指向的动态空间，p应是malloc或calloc的返回值
+4. realloc
+   - 函数原型：`void *realloc(void *p, unsigned int size);`
+   - 作用：如果已经通过malloc函数或call函数获得动态空间，想改变其大小，可以用realloc函数进行**重新分配空间**
+
+```c
+#include<stdlib.h>
+#include<stdio.h>
+int main(){
+    void check(int *);
+    int *p1,i;
+    p1 =(int *) malloc(5 * sizeof(int));
+    for(i=0;i<5;i++){
+        scanf("%d", p1+i);
+    }
+    check(p1);
+    return 0;
+}
+void check(int *p) {
+    int i;
+    printf("they are fail:");
+    for(i=0;i<5;i++) {
+        if(p[i]<60) printf("%d",p[i]);
+    }
+    printf("\n");
+}
+```
+
+## 6.8 指针小结
