@@ -1445,3 +1445,335 @@ void check(int *p) {
 
 # 7 自建数据类型
 
+## 7.1 结构体
+
+有些数据是有内在联系的，成组存在，例如：学生的学号、姓名、性别、年龄、成绩、家庭地址等（数据类型各不相同）。
+
+类似于java中的类。
+
+### 7.1.1 结构体声明、定义、初始化
+
+#### 7.1.1.1 结构体类型
+
+结构体变量所占内存的长度是各成员所占内存之和
+
+```c
+/*
+struct 结构体名{
+	type1 成员1;
+	type2 成员2;
+	...
+	typen 成员n;
+}
+*/
+struct Student{
+    int num;
+    char name[20];
+    char sex;
+    int age;
+    float score;
+    char addr[30];
+    struct Date birthday; //结构体嵌套
+};
+struct Date{
+	int year;
+    int month;
+    int day;
+}
+```
+
+![](./legend/结构体student.png)
+
+#### 7.1.1.2 定义结构体变量
+
+```c
+// 1.先声明，后定义
+struct Student{
+    int num;
+    char name[20];
+    char sex;
+    int age;
+    float score;
+    char addr[30];
+};
+struct Student stud1, stud2;
+
+//2.声明的同时，定义变量
+struct Student{
+    int num;
+    char name[20];
+    char sex;
+    int age;
+    float score;
+    char addr[30];
+} stud1, stud2;
+//3.结构体如需只使用一次，则可以不指定结构体名，而直接定义变量
+struct{
+    int num;
+    char name[20];
+    char sex;
+    int age;
+    float score;
+    char addr[30];
+} stud1, stud2;
+```
+
+#### 7.1.1.3 结构体变量的初始化和引用
+
+```c
+#include<stdio.h>
+int main(){
+    //1.定义结构体变量的同时，初始化
+    struct Student{
+        long int num;
+        char name[20];
+        char sex;
+    }stud1={10101, "Qin", 'm'};//无成员名时，这些常量依次赋给结构体变量中的各成员
+    //2.仅初始化部分成员
+    struct Student stud2 = {.num=100101, .name="Qin"};
+    	//“.name”隐含b中的成员name，其他未被初始化的成员，数值型被初始化为0，字符型成员被初始化为'\0';
+    //3.引用成员
+    printf("%s",stud1.name);
+    	//"."是成员运算符，它在所有运算符中，优先级最高
+    	//不能企图输出对结构体变量名来达到输出结构体变量所有成员的值，错误：printf("%s",stud1);
+    
+    //4.成员本身是又属另一个结构体类型, 只能对最低级的成员进行赋值或存取以及运算
+    stud1.name;
+    stud1.birthday.year;
+    stud1.birthday;//错误
+    
+    //5.结构体变量间可以相互赋值
+    stud1=stud2;
+    //6.可以引用结构体变量的地址，也可以引用结构体变量成员的地址
+    scanf("%d", &stud1.num);
+    printf("%o", &sutd1);//输出结构体首地址
+}
+```
+
+### 7.1.2 结构体数组
+
+```c
+//1.定义结构体同时定义结构体数组
+struct Student {
+    long int num;
+    char name[20];
+} list[10];
+//2.先定义结构体类型，然后再用此类型定义结构体数组
+struct Student list[10];
+
+//3.初始化
+//形式1
+list[10]={1001,"q1", 1002,"q2", 1003, "q3"};
+//形式2
+list[10]={
+    	{1001,"q1"},
+    	{1002,"q2"},
+    	{1003, "q3"}
+	};
+```
+
+### 7.1.3 结构体指针
+
+#### 7.1.3.1 指向结构体变量的指针
+
+`struct Student *p;`
+
+```c
+#include<stdio.h>
+void main() {
+    struct Student{
+        int num;
+        char name[20];
+    }
+    struct Student *p;
+    struct Student stud1 = {1001,"qqq"};
+    p = &stud1;
+    printf("num=%d\nname=%s\n",stud1.num,stud1.name);
+    printf("num=%d\nname=%s\n",(*p).num,(*p).name);
+    printf("num=%d\nname=%s\n",p->num,p->name);
+}
+```
+
+为了方便和直观，C语言规定，如果p指向一个结构体变量，以下三种用法等价：
+
+1. `stud1.name`
+2. `(*p).name`
+3. `p->name`，**`->`**称为**指向运算符**
+
+#### 7.1.3.2 指向结构体数组的指针
+
+```c
+#include<stdio.h>
+struct Student{
+    int num;
+    char name[20];
+}
+struct Student stud[3] = {
+    {1001, "Q1"},
+    {1002, "Q2"},
+    {1003, "Q3"}
+}
+void main() {
+    struct Student *p;
+    for(p=stud;p<stud+3;p++){
+        printf("num=%d,name=%s",p->num,p->name);
+    }
+}
+```
+
+#### 7.1.3.3 结构体变量和结构体变量的指针作函数参数
+
+### 7.1.4 用指针处理链表
+
+## 7.2 共用体
+
+同一段内存（同一地址开始的内存单元）存放不同类型的变量。
+
+把一个short int， char，float变量放在开始地址为1000的内存单元，使用覆盖技术，后一个数据覆盖前面的数据。
+
+这种使几个不同的变量共享同一段内存的结构，称为“共用体”类型的结构。
+
+<img src="./legend/共用体.png" style="zoom:50%;" />
+
+```c
+//1.同一个内存段可以用来存放几种不同类型的成员，但每一个瞬间只能存放其中一个成员
+union Data{
+    int i;
+    char ch;
+    float f;
+}a;
+a.i=97;
+// 2.在对共用体初始化时，但初始化表中只能有一个变量
+union Data{
+    int i;
+    char ch;
+    float f;
+}b={1,'a',1.05} //错误，只能由一个量
+union Data c={1}; //正确
+union Data d={.f=1.05}; //正确
+//3.共用体变量中起作用的成员是最后一次被赋值的成员
+a.ch ='a';
+a.f =1.5;
+a.i=40;
+	//内存中存放的值是40，前面的'a',1.5都被覆盖了
+//4.共用体变量的地址和它的各个成员的地址都是同一地址
+//5.不能对共用体变量名赋值，也能企图用共用体变量名来得到一个值（必须指定到成员）
+//6.c99以后允许共用体变量作为函数参数
+//7.共用体可以出现在共用体类型定义中，也可以定义共用体数组
+```
+
+## 7.3 枚举
+
+枚举常量的命名完全是为了见名知意，完全可以用常数代替其中的量。
+
+```c
+//1.声明枚举类型
+//enum 枚举类名{枚举元素列表};
+//每一个枚举元素都代表一个整数，c语言按照定义时的顺序，默认他们为0,1,2,3... 
+enum Weekday{sun,mon,tue,wed,thu,fri,sat};
+//也可以显式指定枚举元素所代表的值，后面的按顺序+1
+enum Weekday{sun=7,mon=1,tue,wed,thu,fri,sat};
+// 2.定义枚举类型变量
+enum Weekday workday,weekend;
+
+//3.枚举类型的枚举元素按常量处理，故称枚举常量，不能被赋值
+sun=1; //错误
+
+workday=sun;
+//相当于
+workday=0;
+//4.枚举元素可以用来判断和比较
+if(workday==mon){}
+if(workday>sun){}
+```
+
+```c
+#include<stdio.h>
+int main(){
+    enum Color{red,yellow,blue,white,black};
+    enum Color i,j,k,pri;
+    int n,loop;
+    n=0;
+    
+    for(i=red;i<=black;i++){
+        for(j=red;j<black;j++){
+            if(i!=j){
+                for(k=red;k<black;k++){
+                    if(k!=i && k!=j){
+                        n=n+1;
+                        printf("%-4d",n);
+                        for(loop=1;loop<=3;loop++){
+                            switch(loop){
+                                case 1: pri=i;break;
+                                case 2: pri=j;break;
+                                case 3: pri=k;break;
+                                default: break;
+                            }
+                        }
+                        switch(pri){
+                            case red: printf("%-10s","red");break;
+                            case yellow: printf("%-10s","yellow");break;
+                            case blue: printf("%-10s","blue");break;
+                            case white: printf("%-10s","white");break;
+                            case black: printf("%-10s","black");break;
+                            default: break;
+                        }
+                    }
+                    printf("\n");
+                }
+            }
+        }
+    }
+}
+```
+
+
+
+## 7.4 typedef声明新类型名
+
+C语言提供的标准类型名：基本类型（int，char，float，double，long等）和 自定义的结构体，共用体，枚举类型
+
+我们还可以用**typedef指定新的类型名来代替已有的类型名**。
+
+### 7.4.1 简单地用一个新类型名代替原有的类型名
+
+```c
+typedef int Integer;
+typedef float Real;
+Integer i; // <=> int i;
+Real a; // <=> float a;
+```
+
+### 7.4.2 命名一个简单的类型名代替复杂的类型表示方法
+
+C语言还会用到许多看起来比较复杂的类型：
+
+eg：`int *(*(*)[10])(void)`
+
+- 先看外围`int *()(void)`，表明是函数指针类型
+
+- 再看`* [10]`，指针数组
+
+- 再看`(*)`，指向
+
+- 指向一个一维指针数组
+
+声明一个新的类型名的方法是：
+
+1. 先按定义变量的方法写出定义体（如：`int arr[100];`）
+2. 将变量名替换成新的类型名（如：`int Num[100];`）
+3. 在前面加上typedef，得到`typedef int Num[100];`
+4. 定义变量：`Num a;`，就相当于把a替换Num，重新定义了一下，int a[100];
+
+```c
+typedef int (*Pointer)();
+Pointer p1,p2; //p1,p2为Pointer类型变量
+//就相当于将int (*Pointer)();替换成int (*p1)();
+//声明一个指向函数类型的指针p1，该函数返回整型值
+```
+
+以上方法发，**实际上是为特定类型制定了一个同义字**，在定义变量的时候，将新变量名重新替换，就形成了新的变量
+
+typedef名称，有利于程序的通用与移植，有时程序会依赖硬件的特性，例如：有的计算机int型数据占用2bit，而有的占4bit，一般办法是将每个int改为long，如果程序多处用到int定义变量，那么需要改多处，如果用`Integer`代替int，那么只需要修改`typedef int Integer`为`typedef long Integer`
+
+# 8 文件的输入输出
