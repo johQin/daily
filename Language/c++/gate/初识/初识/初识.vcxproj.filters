@@ -15,7 +15,13 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="常量和变量.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
     <ClCompile Include="HelloWorld.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="数据类型.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
