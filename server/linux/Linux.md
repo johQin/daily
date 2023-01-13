@@ -814,7 +814,11 @@ shell的版本众多，可以在**/etc/shells**文件中看到，我们可以使
 
 命令别名，自定义的变量在你注销bash后就会失效，所以你想要保留你的设置，就得将这些设置写入配置文件才行
 
+变量的类别：自定义变量和环境变量
+
 ### 9.2.1 变量的显示与设置
+
+**set——查看所有变量（包含环境变量与自定义变量）**
 
 1. **echo**：显示变量
 
@@ -902,7 +906,7 @@ shell的版本众多，可以在**/etc/shells**文件中看到，我们可以使
 
 **子进程会继承父进程的环境变量，而不继承自定义变量**
 
-**变量作用域**：被export后的变量，我们称为环境变量（全局变量）。环境变量可以被子进程所引用，但是自定义变量（局部变量）则不会存在于子进程中。
+**变量作用域**：被export后的变量，我们称为环境变量（全局变量）。环境变量可以被子进程（子shell）所引用，但是自定义变量（局部变量）则不会存在于子进程中。
 
 ### 9.2.3 键盘读取变量
 
@@ -972,6 +976,84 @@ echo ${var[1]},${var[2]},${var[3]}
 
 ```bash
 PATH="$PATH":/home/bin
+```
+
+### 9.2.7 字符串
+
+字符串有三种表示：
+
+1. 单引号
+
+   ```bash
+   # 1 单引号字符串中的变量是无效的，单引号里的任何字符（全部字符）都会原样输出
+   a=1
+   echo 'ab$acd'
+   # 输出 ab$acd
+   echo 'bb${a}bb'
+   # 输出 bb${a}bb
+   
+   # 2 单引号字符串不能使用单独的一个单引号，对单引号使用转义符后也不行，
+   echo 'abbbccc'ffff'
+   line 9: unexpected EOF while looking for matching `''
+   line 10: syntax error: unexpected end of file
+   
+   # 3 可以成对出现，作为字符串拼接使用
+   echo 'abbbccc'aaa'ffff'
+   # 输出 abbbcccaaaffff
+   a=1
+   echo 'ab'$a
+   # 输出ab1
+   echo 'ab'$a'ab'
+   # 输出ab1ab
+   ```
+
+2. 双引号
+
+   ```bash
+   # 1 双引号可以有变量
+   str='cd'
+   str1="ab$str"
+   echo $str1
+   # 输出 abcd
+   # 如果"ab$str"中$str后还有其他字符，就需要使用${}，如"ab${str}ef"，否则ef会被当做是变量名的一部分使用
+   str2="ab${str}ef"
+   # 输出 abcdef
+   
+   # 2 拼接字符串
+   h="hello"
+   str1="1","${h}"
+   str2="1",$h
+   str3="1,${h}"
+   str4="1,$h"
+   echo $str1
+   echo $str2
+   echo $str3
+   echo $str4
+   # 全部输出一致
+   1,hello
+   ```
+
+3. 不用引号。
+
+```bash
+str1=abcd1
+echo $str1
+# 字符串拼接
+echo 12$str1
+echo 12${str1}34
+```
+
+其他
+
+```bash
+# 1 获取字符串的长度
+name1="hello 1"
+echo ${#name1}
+# 输出 7
+
+# 2 提取子字符串
+name="hello123"
+echo ${name:2:5}
 ```
 
 
@@ -1342,6 +1424,8 @@ exit 0
    - 假设工作目录在/home/scripts，命令行直接输入：**bash myshell.sh** 或者 **sh myshell.sh**
 3. 利用source来执行脚本
    - 假设工作目录在/home/scripts，命令行直接输入：**source myshell.sh**
+4. 利用点命令来执行脚本
+   - sourse 在`Bourne Shell`中的等价命令是一个点`.`，`source ./*.sh`和`. ./*.sh`的执行方式是等价的
 
 **区别：**
 
@@ -1349,6 +1433,8 @@ exit 0
 2. 后者：**在父进程中执行**，各项操作数据都会在原本的bash内生效
 
 ![script执行方式的区别.jpg](./legend/script执行方式的区别.jpg)
+
+
 
 ### 9.7.2 判断式
 
