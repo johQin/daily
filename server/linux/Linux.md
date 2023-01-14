@@ -3395,10 +3395,12 @@ BaseOS-source                                      CentOS-8 - BaseOS Sources    
 
     
 
-13. 
+13.  [basename](https://blog.csdn.net/weixin_40734030/article/details/122674137)：用于打印目录或者文件的基本名称，还有其他用法
 
 ```bash
-
+ basename ./scripts/预定义变量.sh
+ # 打印出
+ 预定义变量.sh
 ```
 
 

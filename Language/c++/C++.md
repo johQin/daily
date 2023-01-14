@@ -126,6 +126,7 @@ C++融合了3种编程模式：面向过程编程（**Process-oriented programmi
 ```c++
 #include<iostream>
 using namespace std;
+#include<bits/stdc++.h>
 int main() {
 
 	// 1.整型数据
