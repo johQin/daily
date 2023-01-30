@@ -352,6 +352,7 @@ cat > catfile < introduce
    - n，顺便输出行号
    - v，反向选择，即显示出没有"查找字符串"的行
    - c，计算“关键字”在所在行出现的次数
+   - filename，可由通配符代替，执行多文件查找信息工作
 
 ### 1.4.2 排序去重统计命令
 
@@ -1068,10 +1069,158 @@ echo ${name:2:5}
 
 **调试脚本**
 
-| 命令             | 解释                               |
-| ---------------- | ---------------------------------- |
-| **sh -n 02.sh**  | 仅调试syntax error                 |
-| **sh -vx 02.sh** | 以调试的方式执行，查询整个执行过程 |
+| 命令             | 解释                                                         |
+| ---------------- | ------------------------------------------------------------ |
+| **sh -n 02.sh**  | 仅调试syntax error                                           |
+| **sh -vx 02.sh** | 以调试的方式执行，查询整个执行过程<br />执行该命令后，窗口中打印的结果中，+代表已经执行的动作 |
+
+# 3 程序结构
+
+## 3.1 判断式
+
+条件测试语句
+
+判断式就如同其他程序语言中用于输出true or false的条件判断句，然而在bash中是通过执行命令，命令返回**$?**这个变量来判断的。
+
+这里还有其他一些常用的判断式
+
+### 3.1.1 判断命令test
+
+**变量或常量字符串在判断式中最好用双引号括起来，括起来后，变量如果为空或未定义，不会报语法错误，并且长度都按0处理**
+
+**test expression**
+
+1. 判断文件名的类型，
+   - **test [ -efdbcSpL ] filename**，
+   - e—filename是否存在，f一判断是否存在并为file类型，d—directory，b—block device，c一character device，S一socket文件，L—连接文件，p—pipe文件
+2. 检验文件的权限
+   - **test [ -rwxugks ] filename**
+   - r一判断文件是否存在并具有可读权限，w一可写，x—可执行，u一SUID属性，g—SGID属性，s—非空白文件
+3. 两个文件之间比较
+   - **test file1 [-nt ot ef] file2**
+   - nt—newer than判断file1是否比file2更新，ot一older than，ef一判断是否为同一个文件
+4. 关于两个整数之间的判定
+   - **test n1 [-eq nq gt lt ge le] n2**
+   - eq一equal，ne一not equal，gt一greater than，lt一less than，ge—greater or equal，le—less or equal
+5. 判定字符串的数据
+   - **test [-zn] string**
+   - z一若为为空字符串，则true，n一若为非空字符串，则true
+   - **test str1[!]=str2**
+   - 判断两个字符串是否相等
+6. 多重条件判定
+   - **test cond1 [-ao] cond2**
+   - a—and 两个条件必须同时成立，则为true。o—or 任一条件成立，则为true
+   - **test ! cond**
+   - 条件取非
+   - 
+7. 
+
+### 3.1.2 判断符号命令——左中括号[
+
+**test expression** 可以被 **[ expression ]** 替换
+
+左中括号（ **`[`** 是一个命令）就相当于test，上面的命令判断语句，可以通过让中括号括起来而去掉test关键字，形成判断句。
+
+中括号常用在条件判断式中if...then...fi中
+
+注意：
+
+1. **中括号[ ]内的每一个组件都需要有空格键来分割**，
+
+   - ```bash
+     # 我们可以发现左中括号[是一个命令
+     which [
+     /usr/bin/[
+     # 而右中括号]不是一个命令
+     which ]
+     /usr/bin/which: no ] in (/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin)
+     ```
+
+   - 所以左中括号是一个命令，相当于test，左中括号后面的，直到右中括号之前，包括右中括号，都是左中括号的参数
+
+   - 所以左中括号之后，参数与参数之间，都必须空格相隔
+
+   - 注意：中括号与expression之间必须有空格，否则会报**command not found**
+
+2. **中括号内的变量和常量，都需要用双引号括起来（否则有可能会出现一些意想不到的错误）**
+
+```bash
+eg:
+[ "$HOME" == "/bin" ]
+# 当unset home之后，再执行上面的语句将会报语法报错，如果用双引号括起来，则不会出现语法错误。
+```
+
+## 3.2 选择结构
+
+### 3.2.1 if语句
+
+条件书写：
+
+```bash
+[cond1 -a cond2 ] && [ cond3 ] || [ cond4 ]
+```
+
+
+
+```bash
+#单判断条件语句
+if [ cond1 ]; then
+	程序段1
+else
+	程序段2
+fi #条件语句结束
+
+if [cond1]
+then		# 因为 if [cond1] 和 then 都是命令，所以多个命令放在一行需要加分号";"，如果换行则没必要加分号。
+	程序段1
+else
+
+#多判断条件语句
+if [ cond1 ]; then
+	程序段1
+elif [ cond2 ]; then
+	程序段2
+else
+	程序段3
+fi #条件语句结束
+```
+
+if后面可以跟任何一个语句，它会根据语句的返回值，来确定是成功还是失败
+
+```bash
+read -p "请输入用户名： " user
+if id $user &>/dev/null; then 
+	# 上面一行等价于下面两行
+    # id $user &>/dev/null
+    # if [ $? -eq 0]; then
+    echo "用户已存在"
+else
+    useradd $user
+    if [ $? -eq 0]; then
+        echo "$user 已创建成功"
+    fi
+fi
+
+```
+
+### 3.2.2 case语句
+
+```bash
+case $var in
+"state1")
+ 	程序段1
+ 	;;
+"state2")
+ 	程序段2
+ 	;;
+"state3" | "state4")
+ 	程序段2
+ 	;;
+*)#用*表示其他状态
+ 	程序段n
+ 	;;
+esac
+```
 
 
 
@@ -1139,58 +1288,7 @@ exit 0
 
 
 
-## 9.7.2 判断式
 
-判断式就如同其他程序语言中用于输出true or false的条件判断句，然而在bash中是通过执行命令，命令返回**$?**这个变量来判断的。
-
-这里还有其他一些常用的判断式
-
-### 1. 判断命令test
-
-**test expression**
-
-1. 判断文件名的类型，
-   - **test [ -efdbcSpL ] filename**，
-   - e—filename是否存在，f一判断是否存在并为file类型，d—directory，b—block device，c一character device，S一socket文件
-2. 检验文件的权限
-   - **test [ -rwxugks ] filename**
-   - r一判断文件是否存在并具有可读权限，w一可写，x—可执行，u一SUID属性，g—SGID属性，s—非空白文件
-3. 两个文件之间比较
-   - **test file1 [-nt ot ef] file2**
-   - nt—newer than判断file1是否比file2更新，ot一older than，ef一判断是否为同一个文件
-4. 关于两个整数之间的判定
-   - **test n1 [-eq nq gt lt ge le] n2**
-   - eq一equal，ne一not equal，gt一greater than，lt一less than，ge—greater or equal，le—less or equal
-5. 判定字符串的数据
-   - **test [-zn] string**
-   - z一若为为空字符串，则true，n一若为非空字符串，则true
-   - **test str1[!]=str2**
-   - 判断两个字符串是否相等
-6. 多重条件判定
-   - **test cond1 [-ao] cond2**
-   - a—and 两个条件必须同时成立，则为true。o—or 任一条件成立，则为true
-   - **test ! cond**
-   - 条件取非
-7. 
-
-### 2. 判断符号[ ]
-
-**test expression** 可以被 **[ expression ]** 替换
-
-中括号就相当于test，上面的命令判断语句，可以通过让中括号括起来而去掉test关键字，形成判断句。
-
-中括号常用在条件判断式中if...then...fi中
-
-注意：
-
-1. **中括号[ ]内的每一个组件都需要有空格键来分割**，
-   - 注意：中括号与expression之间必须有空格，否则会报**command not found**
-2. 中括号内的变量和常量，都需要用双引号括起来（否则有可能会出现一些意想不到的错误）
-
-```bash
-eg:
-[ "$HOME" == "/bin" ]
-```
 
 ## 9.7.3 命令的位置参数
 
@@ -1211,51 +1309,7 @@ eg：**/~/scripts/myshell.sh param1 param2 param3 param4**
 
 **shift [n]**，这个就如同javascript数组的shift函数功能，用于移除位置参数序列的前n个元素。
 
-## 9.7.4 条件语句
 
-条件书写：
-
-```bash
-[cond1 -a cond2 ] && [ cond3 ] || [ cond4 ]
-```
-
-
-
-```bash
-#单判断条件语句
-if [ cond1 ]; then
-	程序段1
-else
-	程序段2
-fi #条件语句结束
-
-if [cond1]
-then		# 因为 if [cond1] 和 then 都是命令，所以多个命令放在一行需要加分号";"，如果换行则没必要加分号。
-	程序段1
-else
-
-#多判断条件语句
-if [ cond1 ]; then
-	程序段1
-elif [ cond2 ]; then
-	程序段2
-else
-	程序段3
-fi #条件语句结束
-
-case $var in
-"state1")
- 	程序段1
- 	;;
-"state2")
- 	程序段2
- 	;;
-*)#用*表示其他状态
- 	程序段n
- 	exit 1
- 	;;
-esac
-```
 
 ## 9.7.5 循环语句
 
