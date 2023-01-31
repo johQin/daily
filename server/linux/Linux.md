@@ -326,8 +326,16 @@ Unix Software Resource
     cat > introduce
     ni hao, my name is lxx, hen gao xin ren shi ni men
     #写完内容后，[ctrl + d]结束输入，就会在当前文件夹下，生成introduce的文件
+    
+    # 在脚本中，可以不借助键盘操作而直接通过重定向和EOF，来生成包含指定内容的文件
+    cat > hello.txt <<-EOF
+    hello，
+    my name is zhanglang,
+    nice meet to you,
+    how it is going?
+    EOF
     ```
-
+    
   - 
 
 - **tac** 反向列示，由后往前
@@ -1252,6 +1260,14 @@ cat > introduce << "eof"
 my name is lxx, hen gao xin ren shi da jia
 eof
 #eof作为文本输入的结束，而不需要按Ctrl+d
+# eg：
+# 在脚本中，可以不借助键盘操作而直接通过重定向和EOF，来生成包含指定内容的文件
+cat > hello.txt <<-EOF
+hello，
+my name is zhanglang,
+nice meet to you,
+how it is going?
+EOF
 
 #将introduce的内容复制到catfile文件中
 cat > catfile < introduce
@@ -1269,6 +1285,12 @@ cat > catfile < introduce
   - cmd1 || cmd2 && cmd3，cmd1执行成功后执行cmd3，cmd1执行失败执行cmd2，cmd2执行成功后执行cmd3
 
 ## 9.6 管道命令（pipe）
+
+Shell 还有一种功能，就是可以将两个或者多个命令（程序或者进程）连接到一起，把一个命令的输出作为下一个命令的输入，以这种方式连接的两个或者多个命令就形成了**管道（pipe）**。
+
+Linux 管道使用竖线**`|`**连接多个命令，这被称为管道符。
+
+语法格式：**`command1 | command2 [ | commandN... ]`**
 
 ![](./legend/管道命令的处理示意图.png)
 

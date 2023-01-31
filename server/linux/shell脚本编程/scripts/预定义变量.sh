@@ -20,6 +20,7 @@ if [ ! -f $1 ];then
 fi
 
 # 循环ping ip
+# 如果是读文件得每行作为ip的内容，需要修改IFS，否则会报错
 for ip in `cat $1`
 do
     # echo $ip

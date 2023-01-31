@@ -10,6 +10,43 @@
 
 ### 0.2.1 hello bash
 
+注意：
+
+1. 命令的执行从上而下，从左而右。
+2. 命令、参数间的多个空白，空白行会被忽略，tab会视为空白
+3. 读到enter就会执行，"\\[enter]"让一条命令扩展至下一行
+4. #用来做批注
+
+#### 1 第一个script
+
+```bash
+#!/bin/bash
+# Program:
+# This program shows ...
+# History：
+# 2005/08/23
+PATH=/bin:/sbin:/usr/sbin/:/usr/local/sbin
+export PATH
+echo -e "Hello World! \a \n"
+exit 0
+```
+
+1. **#!/bin/bash**：第一行是声明这个script使用的shell名称（**shebang机制**）
+   - 通过这一句，当这个程序被执行时，它就能够加载bash的相关配置环境配置文件
+2. **PATH**：
+   - 主要环境变量的声明
+   - 这里相当于一般程序里的**import**的功能
+   - 建议务必要将一些重要的环境变量设置好（设置PATH与LANG等)，如此一来，则可让我们这个程序在进行时直接执行一些外部命令，而不必写绝对路径。
+3. **echo**
+   - 主要程序部分
+4. **exit**
+   - 告知执行结果。
+   - 讨论一个命令执行成功与否，可以使用**$?**这个变量来看看。
+   - exit n相当于一个return flag，我们可以通过查看$?这个flag来查看程序的执行情况如何
+   - 系统自带的命令返回0代表执行成功，1代表失败
+
+
+
 ```bash
 #!/usr/bin/bash
 ping -c1 www.baidu.com &> /dev/null && echo "baidu connected" || echo "baidu disconnected" 
@@ -27,6 +64,8 @@ echo $?
 # $? 的值表示最近一条命令是否成功，0:success，非零:fail
 ```
 
+
+
 ### 0.2.2 bash中临时执行其他语言脚本
 
 通过重定向，标准输入，然后执行其他语言脚本
@@ -43,6 +82,28 @@ echo "hello bash"
 ```
 
 ### 0.2.3 脚本执行方式与父子shell
+
+假设现在写了一个程序文件名是/home/scripts/myshell.sh
+
+1. 直接命令执行：myshell.sh文件必须要具备可读与可执行**（rx）**的权限
+   - 绝对路径：命令行直接输入：**/home/scripts/myshell.sh**
+   - 相对路径：假设工作目录在/home/scripts，则命令行直接输入：**./myshell.sh**
+   - 变量PATH的功能：将myshell.sh放到PATH指定的目录内，例如：/bin。然后在命令行直接输入：**myshell.sh**即可
+2. 以bash进程来执行
+   - 假设工作目录在/home/scripts，命令行直接输入：**bash myshell.sh** 或者 **sh myshell.sh**
+3. 利用source来执行脚本
+   - 假设工作目录在/home/scripts，命令行直接输入：**source myshell.sh**
+4. 利用点命令来执行脚本
+   - sourse 在`Bourne Shell`中的等价命令是一个点`.`，`source ./*.sh`和`. ./*.sh`的执行方式是等价的
+
+**区别：**
+
+1. 前二者：他们都会使用一个新的bash环境来执行script（**子进程的bash内执行**），script执行完毕后，bash内的数据都会被删除
+2. 后者：**在父进程中执行**，各项操作数据都会在原本的bash内生效
+
+![script执行方式的区别.jpg](../legend/script执行方式的区别.jpg)
+
+
 
 ```bash
 # script 的执行方式，细节见linux 9.7.1 script执行方式
@@ -327,6 +388,12 @@ cat > catfile < introduce
 
 ## 1.4 管道命令（pipe）
 
+Shell 还有一种功能，就是可以将两个或者多个命令（程序或者进程）连接到一起，把一个命令的输出作为下一个命令的输入，以这种方式连接的两个或者多个命令就形成了**管道（pipe）**。
+
+Linux 管道使用竖线**`|`**连接多个命令，这被称为管道符。
+
+语法格式：**`command1 | command2 [ | commandN... ]`**
+
 ![](../legend/管道命令的处理示意图.png)
 
 命令输出的数据需要经过几个连续命令的处理，才是我们想要的数据，就会用到管道命令。
@@ -465,7 +532,7 @@ xargs可以产生某个命令的参数，xargs 可以读入stdin的数据，并�
 
 5. 前后台控制作业
 
-   - & ——cmd &，命令丢到后台执行
+   - & ——cmd &，命令丢到后台执行，
    - nohup——nohup cmd，让你在脱机或注销系统后，还能够让工作继续进行
    - jobs -l ——查看作业，
    - ^c——是强制中断程序的执，程序不会再运行。^z——中断当前作业，维持挂起状态，
@@ -480,6 +547,8 @@ xargs可以产生某个命令的参数，xargs 可以读入stdin的数据，并�
    - tee 双向重定向
 
 7. 管道命令
+
+   - command1 | command2
 
 8. 命令排序
 
@@ -746,6 +815,71 @@ echo The final answer for this mass is $var5
 - HOME：代表用户主文件夹的位置，通过cd ~或者直接cd就可以切换到这个文件夹
 - SHELL：当前这个环境使用的shell是那个程序
 - PATH：就是执行文件查找的路径，目录与目录间通过冒号**":"**相隔
+- [IFS](https://blog.csdn.net/whatday/article/details/122508281)：internal field separator，字段分割符
+  - IFS=$'\n'  表示用 换行符 做分隔
+  - IFS="\n" 与 IFS='\n'  都是用 n 字符作为分隔
+- $BASH_SUBSHELL：子shell的个数
+- 
+
+```bash
+# 关于IFS，经常在读文件，做for循环时会用到。IFS它用在自定义分割字段
+# 在shell中，修改IFS后，记得还原
+
+#!/bin/sh
+ 
+conf="ABC
+A B C
+1|2|3
+1 2 3"
+echo "$conf"
+ 
+echo --------------
+echo IFS:
+echo -n "$IFS"|xxd # xxd能将一个给定文件或标准输入转换为十六进制形式
+echo --------------
+for c in $conf;do
+    echo "line='$c'";
+done
+ 
+echo --------------
+#IFS=$'\n'  表示用 换行符 做分隔
+#IFS="\n" 与 IFS='\n'  都是用 n 字符作为分隔
+IFS=$'\n'
+echo IFS:
+echo -n "$IFS"|xxd 
+echo --------------
+for c in $conf;do
+    echo "line='$c'";
+done
+
+# -----------------输出结果-----------------
+# ABC
+# A B C
+# 1|2|3
+# 1 2 3
+# --------------
+# IFS:
+# 00000000: 2d6e 2020 090a 0a                        -n  ...
+# --------------
+# line='ABC'
+# line='A'
+# line='B'
+# line='C'
+# line='1|2|3'
+# line='1'
+# line='2'
+# line='3'
+# --------------
+# IFS:
+# 00000000: 2d6e 200a 0a                             -n ..
+# --------------
+# line='ABC'
+# line='A B C'
+# line='1|2|3'
+# line='1 2 3'
+```
+
+
 
 **set——查看所有变量（包含环境变量与自定义变量）**
 
@@ -899,6 +1033,7 @@ echo ${var[1]},${var[2]},${var[3]}
 
 | 变量设置方式                         | 说明                                                         |
 | ------------------------------------ | ------------------------------------------------------------ |
+| ${#var}                              | 获取var变量所代表的字符串长度                                |
 | ${var#关键字}                        | 变量内容从开头匹配"关键字"，将符合的最短数据删除             |
 | ${var##关键字}                       | 从头，最长匹配删除                                           |
 | ${var%关键字}                        | 从尾，最短匹配删除                                           |
@@ -1052,7 +1187,7 @@ echo ${name:2:5}
 | **(())**  | 数值比较           |
 | **$()**   | 命令替换           |
 | **$(())** | 整数运算           |
-| **{}**    | 集合               |
+| **{}**    | 集合，eg：{1..254} |
 | **${}**   | 变量引用           |
 | **[]**    | 条件测试           |
 | **[[]]**  | 条件测试，支持正则 |
@@ -1106,7 +1241,7 @@ echo ${name:2:5}
    - **test [-zn] string**
    - z一若为为空字符串，则true，n一若为非空字符串，则true
    - **test str1[!]=str2**
-   - 判断两个字符串是否相等
+   - 判断两个字符串是，否（!）相等
 6. 多重条件判定
    - **test cond1 [-ao] cond2**
    - a—and 两个条件必须同时成立，则为true。o—or 任一条件成立，则为true
@@ -1160,8 +1295,6 @@ eg:
 [cond1 -a cond2 ] && [ cond3 ] || [ cond4 ]
 ```
 
-
-
 ```bash
 #单判断条件语句
 if [ cond1 ]; then
@@ -1185,7 +1318,7 @@ else
 fi #条件语句结束
 ```
 
-if后面可以跟任何一个语句，它会根据语句的返回值，来确定是成功还是失败
+条件测试不一定需要**test或[]**，**if后面可以跟任何一个可以返回真假的语句，它会根据语句的返回值，来确定是成功还是失败**
 
 ```bash
 read -p "请输入用户名： " user
@@ -1205,6 +1338,8 @@ fi
 
 ### 3.2.2 case语句
 
+case语句只能做字符串比较，不能做大小比较
+
 ```bash
 case $var in
 "state1")
@@ -1222,73 +1357,246 @@ case $var in
 esac
 ```
 
+```bash
+#!/usr/bin/bash
+read -p 'please input username: ' $user
+if [ ! -z "$user" ]; then
+    echo "input error"
+    exit
+fi
+
+id $user &>/dev/null
+if [ "$?" -ne 0 ];then
+    echo "$user is unexited"
+    exit
+fi
+
+read -p "are you sure? [y/n]" action
+
+# if语句的写法
+# if [ "$action" = "y" -o "$action" = "Y" -o "$action" = "yes" -o  "$action" = "YES" ]; then
+#     userdel -r $user
+#     echo "$user is deleted successfully"
+# else
+#     echo "action is canceled"
+# fi
+
+# case语句的写法
+case $action in
+"y" | "Y" | "yes" | "YES")
+    userdel -r $user
+    echo "$user is deleted successfully"
+    ;;
+*)
+    echo "action is canceled"
+    ;;
+esac
+```
+
+### 3.3.3 练习
+
+1. 拼指定主机测试，
+2. 判断用户是否存在
+3. 判断当前内核版本是否为3，且次版本是否大于10
+   - uname -r
+4. 判断vsftpd软件包是否安装，如果没有安装则自动安装
+   - rpm -q vsftpd
+5. 判断httpd是否运行
+6. 报警脚本
+   - 根分区剩余空间小于20%
+   - 内存已使用空间大于80%
+   - 想用户alice发送邮件
+   - 配合例行性任务crond每5分钟执行一次
+7. 
+
+## 3.3 循环结构
+
+### 3.3.1 for循环
+
+```bash
+#foreach循环
+# for 循环默认按照空格来分割序列，除非修改了环境变量IFS，
+for var in constant1 constant2 constant3
+do
+	程序段$var可以获取constant列表的内容
+done
+
+#for循环
+s=0
+for ((i=0; i<$var; i=i+1 ))
+do
+	s=$(($s+$i))
+done
+```
+
+创建序列的方式：
+
+- **{start..end}**，这种方式start和end不支持变量，只能是常量
+- **seq start end**，推荐，-w还可以做等位补齐功能
+- 读文件
+
+循环体丢到后台执行：**{循环体}&**
+
+等待循环所有执行内容在后台全部完全结束：**wait**
+
+```bash
+# 1.序列循环
+#!/usr/bin/bash
+# 这里有两种方式创建一个序列，一个是{start..end}，一个是seq start end
+for i in {2..254} # 不支持动态变量的改变序列长度
+# for i in `seq 2 254` # seq -w 100 w参数可以等位补齐，例如：001,002...100
+do
+    {
+        ip="10.80.5.$i"
+        ping -c1 -W1 $ip &>/dev/null
+        if [ $? -eq 0 ]; then
+            echo "$ip" | tee -a ip_up.txt
+            echo "is up"
+        else
+            echo "$ip is down"
+        fi
+    }& # 将花括号里面的命令丢到后台执行
+done
+wait # 等待所有后台进程结束再执行后面的的命令
+echo "finished"
+```
+
+```bash
+# 2.读文件，然后循环
+# 不推荐用for来处理文件，因为for默认按照空格来分割序列，需要修改IFS
+for ip in `cat ip.txt`
+do
+    # echo $ip
+    ping -c1 $ip &> /dev/null
+    if [ $? -eq 0 ];then
+        echo "${ip} is up."
+    else
+        echo "${ip} is down."
+    fi
+done
+```
+
+```bash
+# 3. 通过文件，批量创建用户，用户名和密码都在文件中
+# 需要改分割符IFS
+
+# 判断参数个数
+if [ $# -eq 0 ];then
+    echo "must input file parameters"
+fi
+
+# 判断文件是否存在
+if [ ! -f $1 ]; then
+    echo "file：$1 is unexisted"
+fi
+
+# 我们希望文件内容按回车分割，而不是按空格或tab分割
+# 这里需要重新设置IFS，使用完毕后需要还原
+IFSTemp=$IFS
+IFS=$'\n'
+# user.txt 内容
+# abc 145566
+# ttt 123456
+# dfd 145987
+for line in `cat user.txt`
+do
+    # 如果是空行，跳过
+    if [ ${#line} -eq 0 ]; then
+        continue
+    fi
+    # 分割每行内容
+    user=`echo "$line" | awk '{print $1}'`
+    pass=`echo "$line" | awk '{print $2}'`
+    id $user &>/dev/null
+    if [ $? -eq 0 ]; then
+        echo "$user already exists"
+    else
+        useradd $user
+        echo "$pass" | passwd --stdin $user &>/dev/null
+        if [ $? -eq 0 ]; then
+            echo "$user created successfully"
+        fi
+    fi
+done
+IFS=$IFSTemp
+```
+
+### 3.3.2 while循环
+
+条件为真执行循环。
+
+for循环需要读文件时需要修改分割符（默认空格和tab），而while没有这个问题，while默认换行符。
+
+逐行处理文件，请优先考虑while循环，而不是for。
+
+```bash
+#while循环
+while [ condition ]
+do
+	程序段
+done
+```
+
+```bash
+# 通过文件批量创建用户
+while read line
+do
+    # 不需要做空行判断，因为read 空行会得到1的返回值
+    # 分割每行内容
+    user=`echo "$line" | awk '{print $1}'`
+    pass=`echo "$line" | awk '{print $2}'`
+    id $user &>/dev/null
+    if [ $? -eq 0 ]; then
+        echo "$user already exists"
+    else
+        useradd $user
+        echo "$pass" | passwd --stdin $user &>/dev/null
+        if [ $? -eq 0 ]; then
+            echo "$user created successfully"
+        fi
+    fi
+done < user.txt
+```
+
+```bash
+# 如果网络环境正常，就一直send，如果网络环境异常，就跳出循环、
+ip=10.80.5.25
+while ping -c1 -w1 $ip &>/dev/null
+do
+	# send message
+	sleep 1
+done
+echo "$ip is down"
+```
+
+### 3.3.3 util循环
+
+条件为真跳出循环（条件为假，执行循环），和while正好相反
+
+```bash
+#do循环
+until [ condition ]
+do
+	程序段
+done
+```
+
+```bash
+# 如果网络环境异常，就一直send，如果网络环境正常，就跳出循环、
+ip=10.80.5.25
+util ping -c1 -w1 $ip &>/dev/null
+do
+	# send message
+	sleep 1
+done
+echo "$ip is up"
+```
+
 
 
 # 9.7 shell script
 
 shell script 是利用shell的功能所写的一个“程序”，这个程序是使用纯文本文件，将一些shell的语法与命令（含外部命令）写在里面，搭配正则表达式，管道命令与数据流重定向等功能，以达到我们所想要批处理的目的。
-
-## 9.7.1 script 基本
-
-注意：
-
-1. 命令的执行从上而下，从左而右。
-2. 命令、参数间的多个空白，空白行会被忽略，tab会视为空白
-3. 读到enter就会执行，"\\[enter]"让一条命令扩展至下一行
-4. #用来做批注
-
-#### 1 第一个script
-
-```bash
-#!/bin/bash
-# Program:
-# This program shows ...
-# History：
-# 2005/08/23
-PATH=/bin:/sbin:/usr/sbin/:/usr/local/sbin
-export PATH
-echo -e "Hello World! \a \n"
-exit 0
-```
-
-1. **#!/bin/bash**：第一行是声明这个script使用的shell名称
-   - 通过这一句，当这个程序被执行时，它就能够加载bash的相关配置环境配置文件
-2. **PATH**：
-   - 主要环境变量的声明
-   - 这里相当于一般程序里的**import**的功能
-   - 建议务必要将一些重要的环境变量设置好（设置PATH与LANG等)，如此一来，则可让我们这个程序在进行时直接执行一些外部命令，而不必写绝对路径。
-3. **echo**
-   - 主要程序部分
-4. **exit**
-   - 告知执行结果。
-   - 讨论一个命令执行成功与否，可以使用**$?**这个变量来看看。
-   - exit n相当于一个return flag，我们可以通过查看$?这个flag来查看程序的执行情况如何
-
-#### 2 script执行方式
-
-假设现在写了一个程序文件名是/home/scripts/myshell.sh
-
-1. 直接命令执行：myshell.sh文件必须要具备可读与可执行**（rx）**的权限
-   - 绝对路径：命令行直接输入：**/home/scripts/myshell.sh**
-   - 相对路径：假设工作目录在/home/scripts，则命令行直接输入：**./myshell.sh**
-   - 变量PATH的功能：将myshell.sh放到PATH指定的目录内，例如：/bin。然后在命令行直接输入：**myshell.sh**即可
-2. 以bash进程来执行
-   - 假设工作目录在/home/scripts，命令行直接输入：**bash myshell.sh** 或者 **sh myshell.sh**
-3. 利用source来执行脚本
-   - 假设工作目录在/home/scripts，命令行直接输入：**source myshell.sh**
-4. 利用点命令来执行脚本
-   - sourse 在`Bourne Shell`中的等价命令是一个点`.`，`source ./*.sh`和`. ./*.sh`的执行方式是等价的
-
-**区别：**
-
-1. 前二者：他们都会使用一个新的bash环境来执行script（**子进程的bash内执行**），script执行完毕后，bash内的数据都会被删除
-2. 后者：**在父进程中执行**，各项操作数据都会在原本的bash内生效
-
-![script执行方式的区别.jpg](../legend/script执行方式的区别.jpg)
-
-
-
-
 
 ## 9.7.3 命令的位置参数
 
@@ -1310,35 +1618,6 @@ eg：**/~/scripts/myshell.sh param1 param2 param3 param4**
 **shift [n]**，这个就如同javascript数组的shift函数功能，用于移除位置参数序列的前n个元素。
 
 
-
-## 9.7.5 循环语句
-
-```bash
-#while循环
-while [ condition ]
-do
-	程序段
-done
-
-#do循环
-until [ condition ]
-do
-	程序段
-done
-
-#foreach循环
-for var in constant1 constant2 constant3
-do
-	程序段$var可以获取constant列表的内容
-done
-
-#for循环
-s=0
-for ((i=0; i<$var; i=i+1 ))
-do
-	s=$(($s+$i))
-done
-```
 
 ## 9.7.6 函数
 
@@ -1363,7 +1642,7 @@ fname one two three
 
 # 常用
 
-1.  [basename](https://blog.csdn.net/weixin_40734030/article/details/122674137)：用于打印目录或者文件的基本名称，
+1. [basename](https://blog.csdn.net/weixin_40734030/article/details/122674137)：用于打印目录或者文件的基本名称，
 
    - ```bash
       basename ./scripts/预定义变量.sh
@@ -1375,4 +1654,68 @@ fname one two three
 
    
 
-2. 
+2. [command](https://blog.51cto.com/dlican/5097063)：调用指定的指令并执行，命令执行时不查询shell函数。command命令只能够执行shell内部的命令。
+
+   - **command [-pVv] command1 [参数 ...]**
+
+     - p，类似于type命令，用来查询，command1是不是可执行的内部命令
+
+     ```bash
+     #!/usr/bin/bash
+     
+     # 动态执行命令
+     read -p "input command: " command1
+     command $command1
+     
+     # 根据命令的有无，去安装某些软件
+     read -p "input command: " command2
+     if command -v $command2 &>/dev/null; then
+     	echo "$command2 is already existed”
+     else
+     	echo "yum install"
+     	# yum -y install 
+     fi
+     ```
+
+   - 
+
+3. 冒号(:)的作用
+
+   - 空命令
+
+   - 参数扩展
+   - [重定向](https://so.csdn.net/so/search?q=重定向&spm=1001.2101.3001.7020)
+   - 当注释使用
+
+4. whoami
+
+   - 用于显示自身用户名称。
+   - 相当于执行"id -un"指令
+
+5. [wait](https://www.jb51.net/article/272457.htm)
+
+   - 它**等待**后台运行的进程完成并返回退出状态。与等待指定时间的sleep 命令不同，该wait命令等待所有（不带任何参数）或特定后台任务完成。
+
+6. time
+
+   - time command1
+   - 测量一个命令或一个脚本的运行时间
+
+7. printf
+
+   ```bash
+   #!/usr/bin/bash
+   read -p "please input username\'prefix & password & creat_num" prefix password num
+   # 这里直接原样输出了多行内容
+   printf "
+   -------------
+   user prefix：$prefix
+   user password：$password
+   user number: $num
+   -------------
+   "
+   ```
+
+   
+
+8. 
