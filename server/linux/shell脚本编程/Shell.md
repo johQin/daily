@@ -760,8 +760,14 @@ num1=$[2**10]
 echo $num1
 
 # 4 let
+# 运算间不能加空格，必须写一起
 let num3=1+2
 echo $num3
+no=0
+let no++ # 自加1操作
+let no-- # 自减1操作
+let no+=10 # no=$no+10
+let no-=20 # no=$no-20
 
 #!/usr/bin/bash
 ip=127.0.0.1
@@ -990,7 +996,7 @@ eg：**/~/scripts/myshell.sh param1 param2 param3 param4**
 
 - $0：这个变量用于获取执行脚本的名字
 - $#：获取参数的个数
-- $@：获取整个参数字符串，每个参数间通过空格键分割
+- $@：获取整个参数字符串，每个参数间通过空格键分割，等价于`$*`
 - $n：n为位置的索引，$1，$2
 
 **shift未知参数的移除和偏移**
@@ -1001,12 +1007,14 @@ eg：**/~/scripts/myshell.sh param1 param2 param3 param4**
 
 - **declare**
 
-  - `declare [-aixr] var_name`
+  - `declare [-aAixr] var_name`
 
   - a，array，声明为数组变量
 
-  - i，integer，声明为整形变量
+  - A，关联数组
 
+  - i，integer，声明为整形变量
+  
     ```bash
     declare -i total=100+300+50
     echo $total
@@ -1014,7 +1022,7 @@ eg：**/~/scripts/myshell.sh param1 param2 param3 param4**
     ```
 
   - x，声明为环境变量，+-x，可以变换作用域
-
+  
   - r，设置为只读
 
 ## 2.6 array变量
@@ -1181,17 +1189,17 @@ echo ${name:2:5}
 
 ## 2.9 一般符号
 
-| 符号      | 含义               |
-| --------- | ------------------ |
-| **()**    | 在子shell中执行    |
-| **(())**  | 数值比较           |
-| **$()**   | 命令替换           |
-| **$(())** | 整数运算           |
-| **{}**    | 集合，eg：{1..254} |
-| **${}**   | 变量引用           |
-| **[]**    | 条件测试           |
-| **[[]]**  | 条件测试，支持正则 |
-| **$[]**   | 整数运算           |
+| 符号      | 含义                      |
+| --------- | ------------------------- |
+| **()**    | 在子shell中执行，定义数组 |
+| **(())**  | 数值比较                  |
+| **$()**   | 命令替换                  |
+| **$(())** | 整数运算                  |
+| **{}**    | 集合，eg：{1..254}        |
+| **${}**   | 变量引用                  |
+| **[]**    | 条件测试                  |
+| **[[]]**  | 条件测试，支持正则        |
+| **$[]**   | 整数运算                  |
 
 **执行脚本**
 
@@ -1435,7 +1443,7 @@ done
 - **seq start end**，推荐，-w还可以做等位补齐功能
 - 读文件
 
-循环体丢到后台执行：**{循环体}&**
+循环体丢到后台（**并发**）执行：**{循环体}&**
 
 等待循环所有执行内容在后台全部完全结束：**wait**
 
@@ -1521,9 +1529,19 @@ done
 IFS=$IFSTemp
 ```
 
+```bash
+# 如果这里不要in以及后面的序列，那么它默认会获取整个脚本（或函数）的参数列表
+for i
+do
+	let sum+=i
+done
+```
+
+
+
 ### 3.3.2 while循环
 
-条件为真执行循环。
+条件为真，执行循环。
 
 for循环需要读文件时需要修改分割符（默认空格和tab），而while没有这个问题，while默认换行符。
 
@@ -1536,6 +1554,21 @@ do
 	程序段
 done
 ```
+
+```bash
+i=1
+sum=0
+while [ $i -le 100]
+do
+	let sum+=$i
+	# 等价于
+	# let sum=$sum + $i
+	let i++
+done
+printf "sum=${sum}"
+```
+
+
 
 ```bash
 # 通过文件批量创建用户
@@ -1571,7 +1604,7 @@ echo "$ip is down"
 
 ### 3.3.3 util循环
 
-条件为真跳出循环（条件为假，执行循环），和while正好相反
+条件为假，执行循环。条件为真跳出循环，和while正好相反
 
 ```bash
 #do循环
@@ -1590,6 +1623,449 @@ do
 	sleep 1
 done
 echo "$ip is up"
+```
+
+### 3.3.4 循环汇总
+
+```bash
+for i in {2..254}
+do
+    {
+        ip="10.80.5.$i"
+        ping -c1 -w1 $ip &>/dev/null
+        if [ $? -eq 0 ];then
+            echo "$ip is up."
+        fi
+    }&
+done
+wait
+echo "all finished"
+
+j=2
+while [ $j -le 254 ]
+do
+    {
+        ip="10.80.5.$j"
+        ping -c1 -w1 $ip &>/dev/null
+        if [ $? -eq 0 ];then
+            echo "$ip is up."
+        fi
+    }&
+    let i++ # 这里不能扔到异步（后台）去自加
+done
+wait
+echo "all finished"
+
+k=2
+util [ $k -gt 254 ]
+do
+    {
+        ip="10.80.5.$k"
+        ping -c1 -w1 $ip &>/dev/null
+        if [ $? -eq 0 ];then
+            echo "$ip is up."
+        fi
+    }&
+    let k++
+done
+wait
+echo "all finished"
+```
+
+### 3.3.5 并发控制（控制并发数量）
+
+在上面的循环程序中，每执行一次循环体（后台执行），就会开启一个新的子进程，当循环体被执行了1000次，如果循环体内的执行过程较长，极有可能就会累积1000个子进程。
+
+就像下面这个批量后台创建1000个用户
+
+```bash
+for i in `seq -w 1000`
+do
+	{
+        user="u$i"
+        useradd user
+        echo 123456 | passwd --stdin $user &>/dev/null
+        if [ $? -eq 0 ]; then
+            echo "$user is created successfully"
+        fi
+	}&
+done
+```
+
+并发控制（控制并发数量），需要一下两个基础知识点：
+
+1. 文件描述符（文件句柄）
+   - 查看当前进程中，打开的文件描述符列表：`ll /proc/$$/fd`，fd——file description，$$——表示当前进程
+   - 打开file1文件并且指定文件描述符序号：`exec 6<> /file1`
+   - 关闭file1文件并且释放文件描述符：`exec 6>&-`
+   - 其实我们修改文件就是在修改文件描述符
+   - 当一个文件FD未被释放，删除源文件也不会影响FD，并且还可以通过fd恢复源文件
+2. 匿名管道和命名管道
+   - 管道对应的就是一个管道文件
+   - 匿名管道，就像一般的管道命令，这个文件没有名字，暗送，eg：`rpm -qa | grep bash`
+     - 匿名管道是由pipe函数创建 并打开的
+     - 在同一个终端上
+   - 命名管道，通过创建具体/path/file1文件来实现，eg：`mkfifo /tmp/tmpfifo`，
+     - 命名管道是由mkfifo函数创建 的 
+     - 可以实现不同终端之间的通信，一个端子向fifo文件里写数据，一个端子从fifo文件读数据。
+   - 管道里的数据，一旦看了或用了就没了， 并且是fifo（first input first output）
+
+#### 并发控制实例
+
+```bash
+thread_num=5
+tmpfifo='/tmp/$$.fifo'
+
+mkfifo $tempfifo    # 创建一个fifo管道文件
+exec 8<> $tempfifo  # 指定描述符序号为8
+rm $tempfifo    # 删除文件不会影响文件描述符
+
+for j in `seq $thread_num`
+do
+    echo >&8    
+    # echo 每次写入一个0a字符（换行符，不是没有内容哈），给文件描述符8，总共写了5次，文件里面有5个字符
+    # 还有这里的重定向符“>（覆盖）”，为什么不是">>(追加)"，因为管道文件是无法覆盖的，写一个就是一个，是无法覆盖的
+done
+for i in `seq 100`
+do
+    read -u 8
+    # -u 指定文件描述符 
+    # read必须读到内容，否则将会停滞在这里，而管道文件的内容读一个字符，少一个字符，所以每次最多只能有5个进程
+    {
+        ip="10.80.5.${i}"
+        ping -c1 -w1 $ip
+        if [ $? -eq 0 ];then
+            echo "$user is up"
+        else
+            echo "$user is down"
+        fi
+        echo >&8 # 每次进程结束，需要往管道文件里，加一个0a字符，相当于释放一个进程
+    }&
+done
+wait
+# 释放文件描述符
+exec 8>&-
+echo "all finished"
+```
+
+### 3.3.6 shell内置命令
+
+冒号**:**：空语句，永真，占位符
+
+break：结束当前循环，跳出本层循环
+
+continue：忽略本次循环剩余代码，直接进行下一次循环
+
+shift：使位置参数（函数和脚本通用）向左移动，默认移动一位，shift 2就移两位
+
+```bash
+while [ $# -eq 0 ]
+do
+	useradd $1 # 添加用户，./script.sh alice qqq kkk hhh
+	# let sum+=$1 # 所有参数求和，./script.sh 1 2 3 4
+	shift 1
+done
+```
+
+
+
+# 4 数组
+
+普通数组：只能用整数作为数组索引
+
+关联数组：可以使用字符串作为数组索引，类似于java的类
+
+## 4.1 数组定义
+
+```bash
+# 1.数组声明
+# shell默认能识别普通数组，而不能识别关联数组
+declare -aA [数组名]
+# a，声明普通数组
+# A，声明关联数组，在定义关联数组之前，一定要声明，否则引用数组元素将会出错
+# 如果没有数组名，将会打印出当前环境下的所有当前类型的数组
+declare -a # 查看当前环境，所有的普通数组
+declare -A # 查看当前环境，所有的关联数组
+
+# 2.普通数组定义
+# 一次赋一个值
+fruit[0]=apple
+fruit[1]=pear
+# 一次赋多个值
+books=(linux shell awk openstack docker) 
+arr1=(`cat /etc/passwd`) # 期望该文件的每一行作为一个数组元素，但记住默认是以空格为分割对象，需要修改IFS
+arr2=(`ls /var/ftp/shell/for*`)
+arr3=(qqq kkk "hhh ni") # 数组只有三个元素
+arr4=($red $blue $orange)
+arr5=(1 2 3 "linux shell" [20]=puppet) # 可以跳过中间索引值
+
+# 3.关联数组定义
+# 先声明
+declare -A info1
+# 一次赋一个值
+sex=([m]=1)
+sex+=([f]=1) # echo ${!sex[@]} m f
+# 一次赋多个值
+info1=([name]=qqq [sex]=male [age]=30 [height]=170)
+
+# 4.访问数组
+echo ${fruit[0]}	# 访问数组第一个元素
+echo ${fruit[@]} # 访问数组所有元素，等价于echo ${fruit[*]}
+echo ${#fruit[@]} # 统计数组元素个数
+echo ${!fruit[@]} # 获取所有数组元素的索引（包括关联数组的索引）
+echo ${fruit[@]:1} # 从数组索引1开始切片，关联数组不能切片
+echo ${fruit[@]:1:2} # 从数组索引1开始切2个数组元素
+
+```
+
+## 4.2 数组赋值与遍历
+
+ ```bash
+ #!/usr/bin/bash
+ while read line
+ do
+     hosts[i++]=$line
+ done < /etc/hosts
+ 
+ echo "hosts first: ${hosts{0}}"
+ echo
+ 
+ # ${!hosts[@]}返回数组的所有索引，以空格分割
+ for i in ${!hosts[@]}
+ do
+     echo "${i} : ${hosts[i]}"
+ done
+ ```
+
+## 4.3 应用案例
+
+### 4.3.1 统计性别
+
+```bash
+#!/usr/bin/bash
+# sex.txt
+# qqq f
+# kkk m
+# hhh x
+# rrr f
+# yyy f
+# xxx m
+# ttt x
+
+declare -A sex
+
+while read line
+do
+    type=`echo $line | awk '{print:$2}'`
+    # 这里可以在关联数组里面主动加键名
+    let sex[$type]++
+done < sex.txt
+
+for i in ${!sex[@]}
+do
+    echo "$i : ${sex[$i]}"
+done
+```
+
+### 4.3.2 统计shell类型的数量
+
+```bash
+#!/usr/bin/bash
+declare -A shells
+
+while read line
+do
+    type=`echo $line | awk -F ":" '{print $NF}'`
+    let shells[$type]++
+done </etc/passwd
+
+for i in ${!shells[@]}
+do
+    echo "$i : ${shells[$i]}"
+done
+```
+
+### 4.3.3 统计tcp链接状态的数量
+
+```bash
+declare -A status
+type=`ss -an | grep :80 | awk '{print $2}'`
+
+for i in $type
+do
+    let status[$i]++
+    let shells[$type]++
+done
+
+for j in ${!status[@]}
+do
+    echo "$j : ${status[$j]}"
+done
+```
+
+`watch -n2 ./count_tcpconn_status.sh`，每隔两秒统计一次
+
+当人也可以用while和sleep周期性统计
+
+```bash
+....
+while :
+do
+unset status
+	....
+	sleep 2
+	clear
+done
+```
+
+# 5 函数
+
+完成特定功能的代码块，使代码模块化，便于复用代码
+
+## 5.1 函数定义
+
+```bash
+# 1.方法1
+fun_name() {
+	# 函数体
+	# 函数体里的$1，代表函数的第一个参数
+	# 函数的返回值是，函数体内最后一条命令的返回码
+	# 如果采用return的方式，shell最大的返回值（码）是255，大于这个值将会得到一个错误的值，像浮点数等其他值就无法返回了
+	# 在函数内部推荐使用local声明的变量，因为这样不会影响shell的主体变量内容
+}
+# 2.方法2
+function fun_name {
+	# 函数体
+	# $1,$2,$3,$@,$#
+	# return
+}
+
+# 3.使用
+# 函数必须先定义再调用，否则报错
+# 函数如果在其他shell脚本中定义，必须 “先” 在父shell中执行其他脚本(. script.sh)，然后再使用该函数
+# 函数传参通过如命令的方式，直接续在函数名之后
+fun_name param1 param2
+```
+
+```bash
+#/bin/env bash
+# 这样的shebang，可以自动去查找bash的位置
+
+levelmultiple() {
+    res=1
+    # 函数里的$1是函数的位置参数，$1是函数的第一个参数
+    for ((i=1;i<=$1;i++)) #类c写法
+    do
+        # res=$((res * i))
+        let res*=i
+    done
+    echo "$1 的阶乘：$res"
+    # return方式的返回值最大是255，
+    return 200
+}
+
+# 最外层的$1是脚本的位置参数，$1是脚本的第一个位置参数
+levelmultiple $1
+echo $? # 这里将会打印200
+```
+
+### 函数体内的变量
+
+函数体内的变量
+
+- 不加local，那么函数外也可以获取到此变量的值，该变量属于全局变量
+- 加local，那么函数外不可获取此变量的值，该变量属于局部变量
+
+```bash
+# 1.函数定义，声明局部变量
+fun1() {
+	local a=100
+}
+# 调用
+fun1
+echo "a：$a"	# 无法获取
+
+# 2.函数定义，声明全局变量
+fun2() {
+	b=100
+}
+fun2
+echo "b：$b" # 100
+
+# 3.函数定义，命令替换下的全局变量
+fun3() {
+	c=100
+	echo 200
+}
+# 命令替代，相当于在子shell中执行，执行后，c就消失了
+result=`fun3;echo "子shellc：$c"`
+echo "c：$c" # 无法获取
+```
+
+
+
+## 5.2 函数返回任意值
+
+可以通过echo和变量的方式获取函数的返回值
+
+```bash
+#!/usr/bin/bash
+doublenum() {
+    read -p 'please input a number： ' num
+    # echo 'computing...'，注意此时函数里只能有一个echo,或者标准输出只能有一个
+    echo $((2 * num))
+}
+
+result=`doublenum`
+echo "doublenum return value: $result"
+```
+
+## 5.3 函数的输入和输出为数组
+
+```bash
+# 1.函数的输入为数组
+#!/usr/bin/bash
+num1=(1 2 3)
+# 以空格做分隔显示所有数组元素
+echo ${num1[@]}
+
+# 定义函数
+arr_fun() {
+    echo $*
+    # 如果函数里的变量
+    # 不加local，那么函数外也可以获取到此变量的值，该变量属于全局变量
+    # 加local，那么函数外不可获取此变量的值，该变量属于局部变量
+    local res=1
+    
+    # 如果用数组元素作为实参，那么函数体内通过$*,$@接收
+    for i in $*
+    # for i in $@
+    do
+    	echo $i
+        res=$[res * i]
+    done
+}
+
+# 函数调用，将数组的所有元素都做实参数
+arr_fun ${num1[@]}
+```
+
+```bash
+#2.函数的输入输出都为数组
+num1=(1 2 3)
+arr_fun() {
+    # $*本来就是参数的空格相隔的参数，用括号括起来就是定义数组
+    local newarray=($*)
+    local i
+    for((i=0;i<$#;i++))
+    do
+        newarray[$i]=$(( ${newarray[$i]} * 5 ))
+    done
+    echo ${newarray[@]}
+}
+# arr_fun ${num1[@]}
+result=`arr_fun ${num1[@]}`
+echo "result: ${result[@]}"
 ```
 
 
@@ -1718,4 +2194,26 @@ fname one two three
 
    
 
-8. 
+8. 文件描述符（文件句柄）
+
+   - 查看当前进程中，打开的文件描述符列表：`ll /proc/$$/fd`，fd——file description，$$——表示当前进程
+   - 打开file1文件并且指定文件描述符序号：`exec 6<> /file1`
+   - 关闭file1文件并且释放文件描述符：`exec 6>&-`
+   - 其实我们修改文件就是在修改文件描述符
+   - 当一个文件FD未被释放，删除源文件也不会影响FD，并且还可以通过fd恢复源文件
+
+9. 匿名管道和命名管道
+
+   - 管道对应的就是一个管道文件
+   - 匿名管道，就像一般的管道命令，这个文件没有名字，暗送，eg：`rpm -qa | grep bash`
+   - 命名管道，通过创建具体/path/file1文件来实现，eg：`mkfifo /tmp/tmpfifo`，
+     - 可以实现不同终端之间的通信，一个端子向fifo文件里写数据，一个端子从fifo文件读数据。
+   - 管道里的数据，一旦看了或用了就没了
+
+10. watch
+
+    - `watch -n command`
+    - watch是周期性的执行下个程序，并全屏显示执行结果
+    - eg：`watch -n2 ./count_tcpconn_status.sh`，间隔两秒钟，执行一次脚本
+
+11. 
