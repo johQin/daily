@@ -2085,7 +2085,7 @@ result=`arr_fun ${num1[@]}`
 echo "result: ${result[@]}"
 ```
 
-# 6 正则表达式
+# 6 文本处理
 
 元字符是这样一类字符，他们表达的是不同于字面本身的含义
 
@@ -2527,7 +2527,245 @@ sed -r 's/.*/#&/' /file
 sed -r 's/^[ \t#]**/#/' /file
 ```
 
+## 6.5 awk
 
+awk是一种编程语言，它能提供一个类编程环境来修改额重新组织数据。它也是逐行扫描数据
+
+数据可以来自标准注入，文件，管道。
+
+特点：
+
+- 定义变量来保存数据
+- 使用算术和字符串操作符来处理数据
+- 使用结构化编程概念（选择结构，循环结构）为数据增加处理逻辑
+- 提取数据文件中的数据元素，将其重新排列或格式化，生成格式化报告
+
+gawk程序是Unix中原始awk程序的GNU版本。所有linux发行版都没有默认安装gawk，需要自行安装。它提供了一种编程语言而不只是编辑器命令。
+
+awk命令格式
+
+- 命令方式：`awk [option] 'command' files`
+- 脚本方式：`awk [option] -f awk_scirpt_file files`
+
+### 6.5.1 awk工作流程
+
+`awk 'BEGIN{FS=":"}{print $1,$2}'`
+
+1. awk使用一行作为输入，并将这一行赋给内部变量$0，**每一行可称为一个记录**，以换行符结束
+2. 行被内部变量FS（字段分隔符，默认空格 or tab）分隔成字段，每个字段被依序存储在内部变量$1，$2，...$n，最多可以到100。
+3. 在处理时，原命令的逗号被映射为OFS（output FS），打印出$1,$2
+4. 一行处理后，换另一行，重复上述动作，直到所有行处理完毕
+
+### 6.5.2 awk选项
+
+- F，定义每行输入数据的字段分割符，默认是空格和tab
+- f，指定awk命令脚本文件
+- 
+
+### 6.5.3 awk内部变量
+
+1. $0：当前处理行的内容
+2. NR：当前行被处理的次序号（多个文件输入时，会依次递增）
+3. FNR：当前行被处理的次序号（多个文件输入时，一旦开始处理下一个文件，次序号会重新归1）
+4. NF：当前行一共有多少个字段，$NF是最后一个字段的内容
+5. FS：输入内容的分隔符，默认空格和tab
+6. OFS：输出内容的分隔符。默认空格
+7. RS：记录（行）分隔符。默认是换行符
+8. ORS：输出记录（行）的分隔符。默认是换行符
+
+```bash
+# 一行按照多种分隔符分隔字段，并且多个空格，多个：，多个tab都只算一个分隔符（符合正则语法）
+awk -F'[ :\t]+' '{print $1,$2,$3}' #这里按照空格，冒号，tab同时分
+```
+
+### 6.5.4 awk命令
+
+任何awk命令语句都是由**模式和动作**组成，模式里包括两个特殊模式（BEGIN，END），动作则由花括号括起来的语句
+
+模式用于匹配数据行，而动作则是对匹配行进行操作
+
+**`BEGIN{}		pattern{}		END{}`**
+
+1. **BEGIN模式**
+
+   - 发生在读文件之前（读第一行数据之前）
+
+   - 可以不要files参数，而另外两个过程需要files参数
+   - 通常用于定义一些变量，例如FS（字段分隔符），OFS（输出字符分隔符）
+   - 可以省略该模式
+
+2. **其他pattern模式**：处理行数据，**其他模式可以是任何条件语句或复合语句或正则**，省略则表示匹配所有行
+
+3. **END模式**：所有行处理结束之后，可以省略该模式
+
+三个过程之间可以没有分割（空格），一般分割是为了阅读友好
+
+模式之间在书写上也没有次序之分，谁先谁后都一样，按BEGIN，其他，END是为了阅读友好
+
+```bash
+awk 'BEGIN{print 1/2} {print "ok"} END{print "------"}' /etc/hosts	
+0.5		# 在读文件之前打印了一个1/2
+ok		# 在处理每行的时候，输出ok
+ok
+ok
+ok
+------	# 在处理完所有行之后，输出-------
+# 字符串需要用双引号括起来，否则无法打印
+
+# BEGIN定义变量
+awk 'BEGIN{FS=":";OFS="-----"} {print $1,$2}' /etc/passwd
+root-----x
+bin-----x
+daemon-----x
+adm-----x
+
+```
+
+#### 函数
+
+一般输出和格式化输出
+
+```bash
+# 将年月换行输出
+date | awk '{print "month: " $2 "\nYear: " $NF}' # 只要想原样输出的都应放置在双引号之中
+
+# 定宽输出，
+awk -F: '{printf "%-15s %-10s %-15s\n",$1,$2,$3}' /etc/passwd # 第一个字段15个字符，第二个字段10个字符
+awk -F: '{printf "|%-15s |%-10s |%-15s|\n",$1,$2,$3}'
+# %s——字符类型，%d——数值类型，%f——浮点类型，-表示左对齐（默认右对齐）
+# printf默认不会在行尾自动换行，需要自行添加换行符\n或其他
+```
+
+### 6.5.5 命令模式
+
+```bash
+# 正则表达式
+# 匹配整行（记录）
+awk '/^root/' /etc/passwd # 把以root开头的行打印出
+awk '!/root/' /etc/passwd # 把不是以root开头的行打印出
+# 匹配字段，等于不等于（~ !~）
+awk -F: '$1 ~ /root/' /etc/passwd # 第一个字段内容等于root，就打印
+awk -F: '$1 !~ /root/' /etc/passwd # 第一个字段内容不等于root，就打印
+
+# 比较表达式
+# 利用关系运算符来比较数字和字符串(字符串需要用双引号括起来)
+# 关系运算符，< > <= >= == != 
+awk -F: '$3 == 0' /etc/passwd
+awk -F: '$7 == "/bin/bash"' /etc/passwd
+awk -F: '$3>300{print $0}' /etc/passwd
+# 等价于
+awk -F: '{if($3>300) print $0}' /etc/passwd	# 把比较运算放在行处理里面
+awk -F: '{if($3>300) {print $0} }' /etc/passwd
+
+awk -F: '{if($3>300) {print $0} else {print $1} }' /etc/passwd
+
+# 算术运算，+ - * / % ^指数
+awk -F: '$3*10 > 500' /etc/passwd
+awk -F: '{if($3*10 > 500){print $0}}' /etc/passwd
+
+# 逻辑与复合模式
+# && 与，|| 或，!非
+awk -F: '!($1~/root/ || $3 <= 15)' /etc/passwd
+
+# 范围
+awk -F: '/Tom/,/susan/' /etc/passwd # 从TOm行到Susan行
+
+# 三目运算符
+awk '{print ($7>4 ? "high":"low"$7)}' datafile
+# 赋值运算
+awk '$3=="chris"{$3="chris你好";print $0}' datafile
+# 短加运算
+awk '{$7%=3;print $7}' datafile
+```
+
+
+
+### 6.5.5 命令动作——awk脚本编程
+
+注意：这里只写出动作部分，没有写全命令
+
+#### 程序结构
+
+```bash
+# 1.条件结构
+{ if(expression){sentence1; sentence2;} }
+{ if(expression){sentence1; sentence2;} else {sentence1; sentence2;} }
+{ if(expression){sentence1; sentence2;} else if(expression) {sentence1; sentence2;} else {sentence1; sentence2;} }
+
+# 统计符合$3字段大于0小于100的行的行数,
+{ if($3>0 && $3<100){ count++ }} END{print count}
+awk -F: '{if($3==0){i++} else{count++} } END {print "管理员个数："i; print "系统用户个数："count; }'
+
+# 2.循环结构
+{ i=1; while(i<=NF){print $i;i++} }	
+	# 打印每行的所有字段
+	# 每行都要执行这个循环，记得i复位，否则后面的行初始拿到的i的值就是之前行累加过的值
+	# 循环记得要有出口，否则死循环
+{ for(i=1;i<NF;i++){print $i} }
+```
+
+#### awk数组
+
+在awk中使用数组不需要提前声明，**本身支持关联数组类型**
+
+```bash
+# 数组生成
+awk -F: '{i=0;username[i++]=$1} END{print username[0]}' /etc/passwd
+# 等价
+awk -F: '{username[i++]=$1} END{print username[0]}' /etc/passwd # 数组的开始索引为0
+awk -F: '{username[++i]=$1} END{print username[0]}' /etc/passwd # 数组的开始索引为1
+
+# 数组遍历
+# 元素个数遍历（不推荐），因为容易搞不清起始索引,导致后面的for你不知道用<=还是小于
+awk -F: '{username[i++]=$1} END{ for(j=0;j<i;j++){print i,username[j]} }
+awk -F: '{username[i++]=$1} END{ for(j=0;j<=i;j++){print i,username[j]} }
+# 按索引遍历
+awk -F: '{username[i++]=$1} END{ for(i in username){print i,username[i]} }'  /etc/passwd
+
+# 统计shell的类型，这里包含关联数组
+awk -F: '{shells[$NF]++} END{for(i in shells){ print i,shells[i]} }'  /etc/passwd
+# 统计tcp连接状态
+netstat -ant | grep ':80' | awk '{status[$NF]++} END{for(i in status){print i,status[i]} }'
+```
+
+#### awk使用外部变量
+
+```bash
+var=bash
+# 法一：command 用双引号，变量用双引号，再用反斜杠转义
+echo "unix scripts" | awk "gsub(/unix/,\"$var\")"
+# 法二：command 用单引号，变量用双引号套单引号"'"$var"'"，
+echo "unix scripts" | awk 'gsub(/unix/,"'"$var"'")'
+# 法三：command 用单引号，变量用三个单引号,不能在函数中使用
+df -h | awk '{if(int($5) > '''$var'''){print $6":"$5}}'
+# 法四：awk -v
+echo "unix scripts" | awk -v var="bash" 'gsub(/unix/,var)'
+```
+
+### 6.5.6 函数
+
+```bash
+# 一般输出print 
+# 将年月换行输出
+date | awk '{print "month: " $2 "\nYear: " $NF}' # 只要想原样输出的都应放置在双引号之中
+
+# 格式化输出printf
+# 定宽输出，
+awk -F: '{printf "%-15s %-10s %-15s\n",$1,$2,$3}' /etc/passwd # 第一个字段15个字符，第二个字段10个字符
+awk -F: '{printf "|%-15s |%-10s |%-15s|\n",$1,$2,$3}'
+# %s——字符类型，%d——数值类型，%f——浮点类型，-表示左对齐（默认右对齐）
+# printf默认不会在行尾自动换行，需要自行添加换行符\n或其他
+
+# 计算变量的长度length
+awk -F: 'length($1)==4{count++;print $1} END{print "count is "count}' /etc/passwd # 统计用户名长度为4的个数
+
+# 查找替换sub，全量查找替换gsub
+echo "unix script" | awk 'gsub(/unix/,bash)'
+
+# 转整数int，int(20%)=>20
+```
+
+### 
 
 # 常用
 
