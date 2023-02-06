@@ -25,4 +25,7 @@ node_modules
 spring_gate
 
 #c++-------------------**
-.vs
+*.vs
+*.obj
+*.log
+.*log
