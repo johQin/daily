@@ -130,6 +130,7 @@
     <ClCompile Include="HelloWorld.cpp" />
     <ClCompile Include="常量和变量.cpp" />
     <ClCompile Include="数据类型.cpp" />
+    <ClCompile Include="源.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

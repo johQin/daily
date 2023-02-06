@@ -1,6 +1,6 @@
 #include<iostream>
 using namespace std;
-int main() {
+int main3() {
 
 	// 1.整型数据
 	short num1 = 10;
