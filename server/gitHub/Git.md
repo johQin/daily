@@ -1224,4 +1224,12 @@ git config list
 
      
 
-3. 
+3. 去掉已经托管的文件
+
+   ```bash
+   git rm -r --cached filename
+   ```
+
+   
+
+4. 

@@ -24,8 +24,12 @@ node_modules
 #spring
 spring_gate
 
-#c++-------------------**
-*.vs
+#c++-------------------
+*.d
 *.obj
-*.log
-.*log
+*.o
+*.tlog
+*.lastbuildstate
+*.idb
+*.pdb
+*.swp
