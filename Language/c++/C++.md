@@ -123,7 +123,9 @@ C++中面向过程的语法兼容大部分C语言，只是在版本不同时，�
 
 ## 1.2 命名空间namespace
 
-解决命名冲突，用于约束标识符name的作用范围，name可以包括常量，变量，函数，结构体，枚举，类，对象等等
+解决命名冲突，用于约束标识符name的作用范围，name可以包括常量，变量，函数，结构体，枚举，类，对象等等。
+
+**作用域运算符：“ :: ”**
 
 ```c++
 // 1. 定义命名空间
@@ -654,7 +656,755 @@ int main(){
 }
 ```
 
+## 1.11 new和delete
 
+C++提供了一些关键字，可以按需动态分配内存空间，也可以把不再使用的空间回收再次利用。
+
+静态分配：
+
+1. 在程序编译或运行过程中，按事先规定大小分配内存空间的分配方式，eg：int a[10];
+2. 必须事先知道所需空间大小
+3. 分配在栈区或全局变量区，一般以数组的形式。
+
+动态分配：
+
+1. 在程序运行过程中，根据需要大小自由分配所需空间
+2. 按需分配
+3. **分配在堆区，使用一些关键字进行分配**
+
+**new申请堆区空间，delete释放空间。**
+
+new 和 delete 必须成对存在
+
+```c++
+// 1. 操作基本类型空间
+
+int *p = NULL;
+// 从堆区申请int类型大小的空间
+p = new int;
+*p = 100;
+cout << "*p = " << *p << endl;
+// 释放空间
+delete p;
+
+int *p1 = NULL;
+// 申请空间的同时，初始化
+p1 = new int(100);
+cout << "*p1 = " << *p1 << endl;
+delete p1;
+
+
+// 2. 操作数组空间
+int *arr = NULL;
+arr = new int[5]{10,20,30,40,50};
+for(int i=0;i<5;i++){
+    // cout<< *(arr+i) << " ";
+    cout << arr[i] << " ";
+}
+cout<<endl;
+delete [] arr;
+```
+
+
+
+# 2 类和对象
+
+类抽象了事物的属性和行为。
+
+封装性：类将具有共性的数据和方法封装在一起，加以权限区分，用户只能通过公共方法 访问私有数据。
+
+类的权限分为：private（私有）、protected（保护）、public（公有）3种权限。
+
+关于权限的问题，只针对类外。在类的外部，只有public修饰的成员才能被访问，而private、protected都无法被访问。用户在外部可以通过public方法来间接访问private和protected成员数据。
+
+## 2.1 定义类
+
+1. 类中指的是类的定义体里面
+2. 类中默认用private修饰成员
+3. 类中可以直接使用任意成员变量
+
+```c++
+#include <iostream>
+using namespace std;
+//类Data 是一个类型
+class Data{
+	//类中 默认为私有
+	private:
+		int a;//不要给类中成员 初始化
+	protected://保护
+		int b;
+	public://公共
+		int c;
+		//在类的内部不存在权限之分
+		void showData(void)
+		{
+			cout<<a<<" "<<b<<" "<<c<<endl;
+		}
+};
+int main(){
+    //类实例化一个对象
+    Data ob;
+    //类外不能直接访问 类的私有和保护数据
+	//cout<<ob.a <<endl;//err
+	//cout<<ob.b <<endl;//err
+	cout<<ob.c <<endl;
+	//类中的成员函数 需要对象调用
+	ob.showData();
+}
+```
+
+## 2.2 成员函数在类外实现
+
+如果成员函数过多，可以在类外进行实现，这样看起来不臃肿。
+
+实现和声明可以在同文件中，也可以是声明在.h文件中，实现在c或cpp中。
+
+### 同文件中
+
+```c++
+
+class Data{
+	private:
+		int mA;
+	public:
+		//类中声明
+		void setA(int a);
+		int getA(void);
+};
+
+void Data::setA(int a){
+	mA = a;
+}
+int Data::getA(){
+	return mA;
+}
+```
+
+### 其他源文件中实现
+
+```c++
+// data.h，声明
+#ifndef DATA_H
+#define DATA_H
+
+class Data{
+	private:
+		int mA;
+	public:
+		void setA(int a);
+		int getA(void);
+};
+#endif // DATA_H
+```
+
+```c++
+//data.cpp，实现
+#include "data.h"
+void Data::setA(int a){
+	mA=a;
+}
+int Data::getA(){
+	return mA;
+}
+```
+
+```c++
+// main.cpp
+#include <iostream>
+#include "data.h"
+using namespace std;
+int main(int argc, char *argv[]){
+	Data ob;
+	ob.setA(100);
+	cout<<"mA = "<<ob.getA()<<endl;//mA = 100
+	return 0;
+}
+```
+
+## 2.3 构造与析构函数
+
+创建对象的时候，这个对象与应该一个初始化状态，当对象销毁之前，应该销毁对象自身创建的一些数据。
+
+C++提供了**构造函数和析构函数**，这两个函数会被编译器**自动调用**，完成**对象初始化和对象清理**工作。
+
+即使，我们不提供初始化和清理工作，编译器也会为我们增加默认操作。
+
+### 2.3.1 构造函数
+
+类实例化对象的时候，系统自动调用构造函数，完成对象的初始化工作。
+
+先给对象开辟空间（实例化），然后调用构造函数（初始化）。
+
+如果用户不提供构造函数，编译器会自动添加一个默认的构造函数（空函数）。
+
+构造函数和类名相同，没有返回值类型（连void都不可以有），可以有参数，可以重载，权限必须为public
+
+#### 构造函数的定义
+
+```c++
+class Data{
+    public:
+    	int a;
+    public:
+    	Data(){
+            a = 0;
+            cout<<"无参构造器"<<endl;
+        }
+    	Data(int ma){
+            a = ma;
+            cout<<"有参构造器 a = "<< ma <<endl;
+        }
+};
+int main() {
+    // 隐式调用无参构造
+    Data ob1;
+    // 显式调用无参构造
+    Data ob2 = Data();
+    // 隐式调用有参构造
+    Data ob3(10);
+    // 显式调用有参构造
+    Data ob4 = Data(11);
+    
+	// 调用拷贝构造函数（浅拷贝），后在拷贝构造函数中，会讲到
+    Data ob5(ob4)
+    
+    // 匿名对象，一旦当前语句结束，匿名对象就会被释放
+    Data();//调用无参构造
+    Data(10);//调用有参构造
+    
+    // 构造函数的隐式转换，针对类中有单参数构造函数时。
+    Data ob6 = 100;// 等价于 Data ob5(100);
+}
+```
+
+### 2.3.2 析构函数
+
+析构函数名和类名相同，但需要在函数前面加**波浪号~**。
+
+**没有返回值类型，没有函数形参（不能重载）**
+
+当对象的生命周期结束的时候，系统自动调用析构函数。
+
+**先调用析构函数，再释放对象空间。**
+
+析构函数不是必须写的，在没有析构函数的情况下，会调用默认析构函数。
+
+**什么情况下需要写析构函数：**
+
+1. 默认析构函数无法释放我们动态分配的内存（**new出来的**），因此**当存在动态内存分配（以及打开文件）时，要写析构函数释放一下内存。**
+2. 类如果存在指针成员，这个类必须写析构函数，释放指针成员所指向的空间
+3. 类如果是一个基类，期望用其来派生各种子类。
+4. **成员变量有指向堆内存的时候都要写**，默认生成的析构函数只会释放成员变量所占的栈内存，如果存在指针指向一块堆内存是不会被释放的，这就造成了内存泄漏
+
+```c++
+class Data{
+    public:
+    	int a;
+    public:
+    	Data(){
+            a = 0;
+            cout<<"无参构造器"<<endl;
+        }
+    	Data(int ma){
+            a = ma;
+            cout << "有参构造器 a = " << ma << endl;
+        }
+    	~Data() {
+         	cout << "析构函数 a = " << a << endl;
+        }
+};
+
+// 查看打印结果
+Data ob1(10);
+int main() {
+    Data ob2(20);
+    {
+	    Data ob3(30);        
+    }
+    Data ob4(40);
+}
+// 构造与释放，在同作用域是符合栈的思想，先进后出，后进先出的思想。
+有参构造器 a = 10
+    有参构造器 a = 20
+    	有参构造器 a = 30
+    	析构函数 a = 30
+    有参构造器 a = 40
+    析构函数 a = 40
+    析构函数 a = 20
+析构函数 a = 10
+
+```
+
+## 2.4 拷贝构造函数
+
+```c++
+// 没有自定义拷贝构造函数时
+class Data {
+    public:
+        int a;
+    public:
+        Data() {
+            cout << "无参构造器" << endl;
+        }
+        Data(int ma) {
+            a = ma;
+            cout << "有参构造器：a = " << ma << endl;
+        }
+        ~Data() {
+            cout << "析构函数" << endl;
+        }
+};
+int main() {
+    Data ob(10);
+    Data ob1 = ob;
+}
+
+//命令行打印了，这里可以看到构造函数只调用了一次，而析构函数调用了两次
+有参构造器：a = 10
+析构函数
+析构函数
+```
+
+
+
+拷贝构造的本质是构造函数。
+
+**拷贝构造函数的调用时机：旧对象 初始化 新对象 才会调用拷贝拷贝构造**
+
+如果用户不提供拷贝构造，编译器会自动提供一个默认的拷贝构造（完成赋值操作——浅拷贝）
+
+一旦定义拷贝构造，系统就会屏蔽系统默认提供的无参构造。
+
+```c++
+// 有拷贝构造函数时
+class Data {
+    public:
+        int a;
+    public:
+        Data() {
+            cout << "无参构造器" << endl;
+        }
+        Data(int ma) {
+            a = ma;
+            cout << "有参构造器：a = " << ma << endl;
+        }
+    	// 浅拷贝构造定义形式：ob就是就对象的引用
+    	// 如果不写拷贝构造，系统默认也会提供这样的浅拷贝构造
+        Data(const Data &ob) {
+			// 一旦实现了拷贝构造，必须完成赋值操作，否则a的内存里将出现意想不到的值。并且连浅拷贝的效果都无法实现
+            a = ob.a;
+            cout << "浅拷贝构造 a = " << a << endl;
+        }
+        ~Data() {
+            cout << "析构函数" << endl;
+        }
+};
+int main() {
+    Data ob(10);
+    Data ob1 = ob;
+}
+
+//命令行打印了，这里可以看到构造函数只调用了一次，而析构函数调用了两次
+有参构造器：a = 10
+浅拷贝构造 a = 10
+析构函数
+析构函数
+```
+
+### 2.4.1 拷贝构造的调用时机
+
+```c++
+// 1.旧对象给新对象初始化时
+Data ob1(10);
+Data ob2 = ob1;
+
+Data ob3(ob1);
+
+// 2.普通对象作为函数参数，调用函数时，会发生拷贝构造
+void func(Data ob){	//Data ob = ob1
+    
+}
+int main() {
+    Data ob1(10);
+    func(ob1);//此时会调用拷贝构造
+}
+
+// 3.函数返回普通对象。有些环境不会发生拷贝构造，而发生了对象接管（整个过程只有一次有参构造和一次析构）
+Data func1(){
+    Data ob;
+    return ob;
+}
+int main(){
+    // 调用拷贝构造，
+    func1();// 匿名对象，使用了拷贝构造
+    // 和有没有赋值没有关系
+    Data ob2 = func1();
+}
+```
+
+### 2.4.2 深拷贝
+
+默认的拷贝构造都是浅拷贝。
+
+如果类中没有指针成员，则可以不用实现拷贝构造。
+
+如果类中有指针成员，且指向堆区，必须实现析构和深拷贝构造函数。
+
+```C++
+class Data1 {
+    public:
+        char* name;
+    public:
+  		// 有参构造
+        Data1(char* str){
+            name = new char[strlen(str) + 1];
+            strcpy(name, str);
+        }
+    	// 拷贝构造
+        Data1(const Data1 &ob){
+            name = new char[strlen(ob.name) + 1];
+            strcpy(name, ob.name);
+        }
+    	// 析构函数
+        ~Data1() {
+            if (name != NULL) {
+                delete[] name;
+                name = NULL;
+            }
+        }
+};
+```
+
+## 2.5 [初始化列表](https://blog.csdn.net/gx714433461/article/details/124285721)
+
+类中的成员可以是对象，叫做**对象成员**
+
+一个类在构造对象的时候，会先调用成员对象的构造函数，在调用自身的构造函数。
+
+而一个对象在析构的时候，会先调用自身析构函数，在调用成员对象的析构函数。
+
+构造和析构的调用先后顺序恰好相反。
+
+**类如果想调用对象成员的有参构造，必须使用初始化列表。**
+
+**初始化列表：**
+
+- 以一个冒号开始，接着是一个以逗号分隔的数据成员列表。
+- 每个"成员变量"后面跟一个放在括 号中的初始值、参数列表或表达式。
+
+```c++
+class Day {
+    public:
+        int day;
+        int hour;
+        int minute;
+        int second;
+    public:
+        Day() {
+            cout << "day的无参构造" << endl;
+        }
+        Day(int d,int h, int m, int s) {
+            day = d;
+            hour = h;
+            minute = m;
+            second = s;
+        }
+};
+class Date {
+    private:
+        int _year;
+        int _month;
+        Day _day;
+    public:
+    	
+	    // 初始化列表
+        Date(int year, int month, int day,int h,int m,int s):_month(month),_day(day,h,m,s) {
+            _year = year;
+        }
+    	
+    	// 不使用初始化列表
+    	//Date(int year, int month, int day, int h, int m, int s) {
+        //    // 如果在这里赋值，而不使用初始化列表，那么就会调用对象成员的无参构造函数
+        //    _day.day = 12;
+        //}
+    	
+        void printDate() {
+            cout << "Date:" << _year << "-" << _month << "-" << _day.day << " " << _day.hour << ":" << _day.minute << ":" << _day.second << endl;
+        }
+};
+int main() {
+    Date d(2023, 2, 8, 17, 49, 25);
+    d.printDate();
+}
+```
+
+注意：
+
+  1. 而初始化列表能只能初始化一次。冒号:后面的_month(),或者是_day()只能出现一次，不能多重复。
+  2. 编译器允许构造函数赋初值和初始化列表初始化混用，也就是说_month既可以出现在初始化列表中，也可以出现在构造函数中
+  3. const成员变量、引用成员变量、没有默认构造函数的自定义类型成员只能在初始化列表初始化。
+  4. 成员变量初始化的顺序就是成员变量在类中的声明次序，与初始化列表中的先后次序无关。
+
+## 2.6 [explicit关键字](https://blog.csdn.net/k6604125/article/details/126524992)
+
+C++中的explicit关键字的作用是表明该构造函数是显示的, 而非隐式的。
+
+跟它相对应的另一个关键字是implicit， 意思是隐藏的，类构造函数默认情况下即声明为implicit(隐式)。
+
+ **explicit关键字只对有一个参数的类构造函数有效**，如果类构造函数参数大于或等于两个时, 是不会产生隐式转换的
+
+但是, 也有一个例外，就是当除了第一个参数以外的其他参数都有默认值的时候, explicit关键字依然有效
+
+```c++
+class CxString  
+{  
+    public:  
+        char *_pstr;  
+        int _size;  
+	    // 没有使用explicit关键字的类声明, 即默认为隐式声明  
+        CxString(int size)  
+        {  
+            _size = size;                // string的预设大小  
+            _pstr = malloc(size + 1);    // 分配string的内存  
+            memset(_pstr, 0, size + 1);  
+        }  
+        CxString(const char *p)  
+        {  
+            int size = strlen(p);  
+            _pstr = malloc(size + 1);    // 分配string的内存  
+            strcpy(_pstr, p);            // 复制字符串  
+            _size = strlen(_pstr);  
+        }  
+        // 析构函数这里不讨论, 省略...  
+};  
+  
+    // 下面是调用:  
+  
+    CxString string1(24);     // 这样是OK的, 为CxString预分配24字节的大小的内存  
+    CxString string2 = 10;    // 这样是OK的, 为CxString预分配10字节的大小的内存  
+    CxString string3;         // 这样是不行的, 因为没有默认构造函数, 错误为: “CxString”: 没有合适的默认构造函数可用  
+    CxString string4("aaaa"); // 这样是OK的  
+    CxString string5 = "bbb"; // 这样也是OK的, 调用的是CxString(const char *p)  
+    CxString string6 = 'c';   // 这样也是OK的, 其实调用的是CxString(int size), 且size等于'c'的ascii码  
+    string1 = 2;              // 这样也是OK的, 为CxString预分配2字节的大小的内存  
+    string2 = 3;              // 这样也是OK的, 为CxString预分配3字节的大小的内存  
+    string3 = string1;        // 这样也是OK的, 至少编译是没问题的, 但是如果析构函数里用
+
+```
+
+```c++
+class CxString    
+{  
+public:  
+    char *_pstr;  
+    int _size;  
+    // 使用关键字explicit的类声明, 显示转换
+    explicit CxString(int size)  
+    {  
+        _size = size;  
+        // 代码同上, 省略...  
+    }  
+    CxString(const char *p)  
+    {  
+        // 代码同上, 省略...  
+    }  
+}; 
+
+// 下面是调用:  
+  
+    CxString string1(24);     // 这样是OK的  
+    CxString string2 = 10;    // 这样是不行的, 因为explicit关键字取消了隐式转换  
+    CxString string3;         // 这样是不行的, 因为没有默认构造函数  
+    CxString string4("aaaa"); // 这样是OK的  
+    CxString string5 = "bbb"; // 这样也是OK的, 调用的是CxString(const char *p)  
+    CxString string6 = 'c';   // 这样是不行的, 其实调用的是CxString(int size), 且size等于'c'的ascii码, 但explicit关键字取消了隐式转换  
+    string1 = 2;              // 这样也是不行的, 因为取消了隐式转换  
+    string2 = 3;              // 这样也是不行的, 因为取消了隐式转换  
+    string3 = string1;        // 这样也是不行的, 因为取消了隐式转换, 除非类实现操作符"="的重载 
+```
+
+## 2.7 动态对象的创建
+
+
+
+### 2.7.1 c语言方式创建动态对象的问题
+
+c中提供了动态内存的分配，函数malloc，free可以在运行时，从堆中分配存储单元。
+
+然而这些函数在C++中不能很方便的运行，因为它不能帮我们完成对象的初始化工作。
+
+```c++
+class Person{
+  public:
+    int mAge;
+    char *pName;
+  public:
+    Person(){
+        mAge=20;
+        pName = (char *) malloc(strlen("john") + 1);
+        strcpy(pName, "john");
+    }
+    void Init(){
+        mAge=20;
+        pName = (char *) malloc(strlen("john") + 1);
+        strcpy(pName, "john");
+    }
+    void Clean(){
+        if(pName != NULL){
+            free(pName);
+        }
+    }
+};
+int main(){
+    //分配内存
+    Person *person = (Person *) malloc(sizeof(Person));
+    if(person == NULL){
+        return 0;
+    }
+    // 调用初始化函数，需要手动去初始化
+    person->Init();
+    // 清理对象
+    person->Clean();
+    // 释放person空间
+    free(person);
+    return 0;
+}
+```
+
+问题：
+
+1. 必须知道对象的长度（sizeof）
+2. malloc后，必须强转为指针
+3. malloc后，可能内存申请失败
+4. 在使用对象之前，必须记住为它初始化（Init)
+
+### 2.7.2 new创建和delete释放动态对象
+
+当用new创建一个对象时，它就在堆区里为对象**分配内存并调用构造函数完成初始化**。
+
+而delete表达式先调用析构函数，然后释放内存。
+
+只需要一个简单的new表达式，它带有内置的长度计算，类型转换和安全检查。
+
+这样在堆里创建对象可以想在栈里创建对象一样简单。
+
+```c++
+class Person {
+    public:
+        char* pName;
+        int mAge;
+    public:
+        Person() {
+            cout << "无参构造" << endl;
+            pName = new char[strlen("undefined") + 1];
+            strcpy(pName, "undefined");
+            mAge = 0;
+        }
+        Person(char *name, int age) {
+            cout << "有参构造" << endl;
+            pName = new char[strlen(name) + 1];
+            strcpy(pName, name);
+            mAge = age;
+        }
+        ~Person() {
+            cout << "析构" << endl;
+            if (pName != NULL) {
+                delete[] pName;
+                pName = NULL;
+            }
+        }
+        void showPersonInfo() {
+            cout << "Name: " << pName << " age: " << mAge << endl;
+        }
+};
+int main() {
+    Person* person1 = new Person;
+    Person* person2 = new Person("john", 25);
+    person1->showPersonInfo();
+    person2->showPersonInfo();
+    
+}
+```
+
+### 2.7.3 动态对象数组
+
+```c++
+Person* persons = new Person[20];
+delete [] persons;
+```
+
+## 2.8 静态成员
+
+在类定义中，它的成员（包括成员变量和成员函数），这些成员可以用**关键字static声明为静态的，称为 静态成员**。 
+
+不管这个类创建了多少个对象，**静态成员只有一个拷贝**，
+
+静态成员在类的所有对象中是共享的。
+
+static修饰的成员属于类，而非对象，先于对象存在。
+
+static修饰的成员，在定义类的时候，必须分配空间。
+
+静态成员：在成员变量和成员函数前加上关键字static。
+
+静态成员分为：静态成员变量和静态成员函数
+
+静态成员变量：
+
+1. 在编译阶段分配内存。
+2. 类内声明，类外初始化（C++11支持类中初始化)。
+3. 所有对象共享同一份数据。
+
+静态成员函数：
+
+1. 所有对象共享同一个函数。
+2. 静态成员函数没有 this 指针，只能访问静态成员变量。普通成员函数有 this 指针，可以访问类中的任意成员
+
+静态成员的两种访问方式：
+
+- 通过对象（A a; a.b;a.func）。
+- 通过类名（A::b;A::func）
+
+```c++
+class Data{
+  public:
+    int a;
+    // 类中定义
+    static int b;//静态成员变量
+  public:
+    static int addB(){
+        //只能访问静态成员
+        return b+=10;
+    }
+};
+// 类外初始化
+Data::b = 10;
+int main(){
+    Data ob1;
+    //对象访问静态成员变量
+    cout<<ob1.b<<endl;// 10
+    //类名访问静态成员
+    cout<<Data::b<<endl;//10
+    Data::addB();
+    cout<<Data::b<<endl;//20
+    
+    ob1.b = 30;
+    cout<<Data::b<<endl;//30
+    Data ob2;
+    ob2.b = 40;
+    cout<<Data::b<<endl;//40
+}
+```
+
+## 2.9 this指针
+
+成员变量和成员函数时分开存储的。
+
+C++中，非静态成员变量是直接内含在类对象中，静态成员和函数都不占对象空间。
+
+成员函数是独立存储的，成员函数只有一份，所有对象共享。
+
+sizeof(ClassName)——计算的是类对象所占的空间大小。
 
 # visual studio
 
