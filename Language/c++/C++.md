@@ -674,7 +674,7 @@ C++提供了一些关键字，可以按需动态分配内存空间，也可以�
 
 **new申请堆区空间，delete释放空间。**
 
-new 和 delete 必须成对存在
+**new 和 delete 必须成对存在**
 
 ```c++
 // 1. 操作基本类型空间
@@ -1365,6 +1365,10 @@ static修饰的成员，在定义类的时候，必须分配空间。
 - 通过对象（A a; a.b;a.func）。
 - 通过类名（A::b;A::func）
 
+**静态成员变量使用前必须先初始化(如int MyClass::m_nNumber = 0;)，否则会在linker时出错。**
+
+**非静态可以访问静态，静态无法访问非静态。**
+
 ```c++
 class Data{
   public:
@@ -1378,7 +1382,7 @@ class Data{
     }
 };
 // 类外初始化
-Data::b = 10;
+int Data::b = 10; // 前面需要加类型符int，否则会报：缺少类型说明符
 int main(){
     Data ob1;
     //对象访问静态成员变量
@@ -1400,14 +1404,627 @@ int main(){
 
 成员变量和成员函数时分开存储的。
 
-C++中，非静态成员变量是直接内含在类对象中，静态成员和函数都不占对象空间。
+C++中，非静态成员变量是直接内含在类对象中，**静态成员和函数都不占对象空间。**
 
 成员函数是独立存储的，成员函数只有一份，所有对象共享。
 
 sizeof(ClassName)——计算的是类对象所占的空间大小。
 
+由于成员函数只有一份，函数需要知道是哪一个对象在调用自己。
+
+**this指针指向当前对象（正在调用成员函数的对象）**
+
+成员函数通过this指针即可知道当前正在操作哪个对象的数据。**this指针是一种隐含指针，它隐含于每个类的非静态成员函数中**，this指针无需定义，直接使用
+
+```c++
+class Data {
+public:
+    int ma;
+    int b;
+public:
+    // 隐含this
+    void setMa(int a) {
+        ma = a; // 这里隐含了this指针，实际为this->ma = a;
+    }
+    int getMa() {
+        cout << "ma = " << ma << endl; // cout << this->ma <<endl
+        return ma;
+    }
+    // this指针应用1：当形参和成员变量名相同时，做区分
+    void setB(int b) {
+        this->b = b;// 显式this
+    }
+    int getB() {
+        cout << "b = " << this->b << endl;
+        return this->b;
+    }
+    // this指针应用2：做链式操作
+    Data& printField() {
+        cout << "ma = " << ma << " b = " << b << endl;
+        return *this;
+    }
+};
+int main() {
+    Data ob;
+    
+    // 隐式this操作
+    ob.setMa(10);
+    ob.getMa();
+    
+    // 显式this操作
+    ob.setB(20);
+    ob.getB();
+    
+	// 链式操作
+    ob.printField().printField().printField();
+}
+```
+
+### const修饰成员函数
+
+const修饰成员函数时，const会实际应用到this指针指向的内存区域，
+
+也就是说**成员函数体内不可修改对象中的任何非静态成员变量，但是可以修改静态成员变量和mutable修饰的成员变量。**
+
+```c++
+class Data{
+  public:
+    int ma;
+    mutable int b;
+    static int c;
+  public:
+    void setMa(int a) const {
+        ma = a; // 出错，表达式必须是可修改的左值
+        c = 100;// ok，但在使用c前，必须初始化，否则会报错
+        b=50;// ok
+    }
+};
+int Data::c = 10;
+int main() {
+    Data ob;
+    ob.setMa();
+    return 0;
+}
+```
+
+## 2.10 友元
+
+类的私有成员无法在类的外部访问，但是有时候，需要在类的外部访问私有成员，友元就是用来解决这个问题。友元破坏了封装性。
+
+程序员可以把一个全局函数，某个类中的成员函数、甚至整个类声明为友元。
+
+### 2.10.1友元语法
+
+使用friend关键字声明友元，friend关键字只出现在声明处。
+
+一个函数或者类，作为了另一个类的友元，那么这个函数或者类就可以直接访问另个类的所有数据（包括私有）。
+
+类似于类里声明了一个白名单，告诉编译器哪些函数，哪些类可以访问我的私有数据。
+
+友元的重要应用在运算符重载上。
+
+#### 全局函数做类的友元
+
+```c++
+#include<iostream>
+#include<string.h>
+using namespace std;
+class Home {
+    //1.全局函数做友元
+    friend void visit01(Home& home);
+    
+private:
+    string bedRoom;
+public:
+    string livingRoom;
+public:
+    Home(string bedRoom, string livingRoom) {
+        this->bedRoom = bedRoom;
+        this->livingRoom = livingRoom;
+    }
+};
+
+void visit01(Home& home) {
+    cout << "friend visit01 private bedRoom："<<home.bedRoom << endl;
+    cout << "friend visit01 public livingRoom：" << home.livingRoom << endl;
+}
+int main1() {
+    Home h("bed01", "living01");
+    visit01(h);
+}
+
+```
+
+#### [类的public函数做友元](https://blog.csdn.net/qq_43259304/article/details/89605118?spm=1001.2014.3001.5502)
+
+在同一个cpp里面写两个类，并且存在友元关系的时候，**尤为注意书写顺序。**
+
+B::bfunc做A的友元函数
+
+1. A需要在B的上方，前向声明类名。因为B中会用到类名A
+2. B::bfunc需要在A前面做声明。否则friend那里无法识别B::func
+3. B::bfunc的实现需要放在A定义的后面，因为B::bfunc需要使用到A及其成员。
+
+```c++
+// 这里要尤为注意，Home和Mom两个类的定义位置，
+
+#include<iostream>
+#include<string.h>
+using namespace std;
+
+//前向声明，让Mom的clean声明知道有Home这个类
+class Home;
+
+
+class Mom {
+public:
+    void clean(Home& home);
+    // 这里不能对clean进行实现，因为clean里面用到了Home的bedRoom字段，
+    // 前向声明类名是无法让编译器知道有bedRoom这个字段的
+    // 所以这个函数的实现只能放到Home声明的后面
+    
+};
+
+// Mom这个类声明了，下面的Mom::clean才会识别到
+class Home {
+    
+    friend void Mom::clean(Home& home);
+    
+    
+private:
+    string bedRoom;
+public:
+    string livingRoom;
+public:
+    Home(string bedRoom, string livingRoom) {
+        this->bedRoom = bedRoom;
+        this->livingRoom = livingRoom;
+    }
+};
+
+// 因为这个实现里面使用到了Home的bedRoom，所以实现需要放在Home类的后面
+void Mom::clean(Home& home) {
+    cout << "Mom need clean bedRoom：" << home.bedRoom << endl;
+}
+int main() {
+    Mom m;
+    Home h("bedRoom01", "livingRoom01");
+    m.clean(h);
+    return 0;
+}
+```
+
+#### 类做友元
+
+```c++
+#include<iostream>
+#include<string.h>
+using namespace std;
+
+class Home;
+
+class Mom1 {
+public:
+    void clean(Home& home);
+};
+
+class Home {
+
+    
+    // 整个类做友元
+    friend class Mom1;
+    
+    
+private:
+    string bedRoom;
+public:
+    string livingRoom;
+public:
+    Home(string bedRoom, string livingRoom) {
+        this->bedRoom = bedRoom;
+        this->livingRoom = livingRoom;
+    }
+};
+
+
+void Mom1::clean(Home& home) {
+    cout << "Mom need clean bedRoom：" << home.bedRoom << endl;
+}
+
+
+int main() {
+    Mom1 m;
+    Home h("bedRoom01", "livingRoom01");
+    m.clean(h);
+    return 0;
+}
+```
+
+### 2.10.2 友元注意事项
+
+1. **友元关系不能被继承。**
+2. **友元关系是单向的。**类A是类B的朋友，但类B不一定是类A的朋友。
+3. **友元关系不具有传递性。**类B是类A的朋友，类C是类B的朋友，但类C不一定是类A的朋友
+
+## 2.11 运算符重载
+
+运算符重载，就是对已有的运算符重新进行定义，赋予其另一种功能，以适应不同的数据类型。
+
+运算符的操作数类型不同，会使用不同的定义，所以这里叫做**运算符的重载**，和函数重载差不多是一个意思。
+
+语法： 定义重载的运算符就像定义函数，只是该函数的名字是operator@，这里的@代表了被重载的运算符。
+
+思路：
+
+1. 弄懂运算符的运算对象的个数。（个数决定了 重载函数的参数个数）
+2. 识别运算符左边的运算对象 是类的对象 还是其他. 
+   - 类的对象：全局函数实现（不推荐） 成员函数实现（推荐，少一个参数）
+   -  其他：只能是全局函数实现
+
+如果使用全局函数 重载运算符 必须将全局函数设置成友元。
+
+如果减号由成员函数实现重载，**`ob1.operator-(ob2)`等价于 `ob1 - ob2`，**
+
+可以重载的运算符
+
+![](./legend/可以重载的运算符.jpeg)
+
+### 2.11.1 [重载输出输入运算符](https://blog.csdn.net/lu_embedded/article/details/121599696)
+
+全局函数重载输出运算符
+
+```c++
+
+#include<iostream>
+using namespace std;
+class Student {
+    //添加友元函数
+	friend ostream& operator<<(ostream& out, Student& stu);
+	friend istream& operator>>(istream& in, Student& stu);
+private:
+	int num;
+	string name;
+	float score;
+public:
+	Student() {};
+	Student(int num, string name, float score) :num(num), name(name), score(score) {}
+};
+
+// 函数的参数为运算符两侧的数据。 
+// 由于这个函数需要访问到类的private数据，所以需要用到友元
+ostream& operator<<(ostream& out, Student& stu) {
+	out << "num: " << stu.num << " name: " << stu.name << " score: " << stu.score << endl;
+	//如果需要在其后继续<<endl，那么返回值应是out的引用
+	return out;
+}
+istream& operator>>(istream& in, Student& stu) {
+	in >> stu.num >> stu.name  >> stu.score;
+	//如果需要在其后继续<<endl，那么返回值应是out的引用
+	return in;
+}
+
+int main() {
+	Student lucy(100, "lucy", 80.5f);
+	Student bob(101, "bob", 90.5f);
+	// 如果没有定义重载运算符<<，那么将会报：没有找到接收Student类型的右操作数的运算符（或没有可接受的转换）
+	// <<运算符左边不是我们定义的对象，所以采用全局函数来实现运算符的重载。
+	//cout << lucy;
+	cout << lucy << bob << endl;
+	Student john;
+	Student joe;
+	cin >> john >> joe;
+	cout << john << joe;
+
+//num: 100 name : lucy score : 80.5
+//num : 101 name : bob score : 90.5
+//
+//145 john 104.5
+//125 joe 100.5
+//num : 145 name : john score : 104.5
+//num : 125 name : joe score : 100.5
+}
+```
+
+### 2.11.2 重载"+"运算符
+
+#### 全局函数实现重载+
+
+```c++
+
+#include<iostream>
+using namespace std;
+class Student1 {
+	friend ostream& operator<<(ostream& out, Student1& stu);
+	friend Student1 operator+(Student1& stu1, Student1& stu2);
+private:
+	int num;
+	string name;
+	float score;
+public:
+	Student1() {};
+	Student1(int num, string name, float score) :num(num), name(name), score(score) {}
+};
+
+
+ostream& operator<<(ostream& out, Student1& stu) {
+	out << "num: " << stu.num << " name: " << stu.name << " score: " << stu.score << endl;
+	return out;
+}
+Student1 operator+(Student1& stu1, Student1& stu2) {
+	Student1 stu;
+	stu.num = stu1.num + stu2.num;
+	stu.name = stu1.name + stu2.name;
+	stu.score = stu1.score + stu2.score;
+	return stu;
+}
+
+int main() {
+	Student1 lucy(100, "lucy", 80.5f);
+	Student1 bob(101, "bob", 90.5f);
+	cout << lucy << bob << endl;
+
+	// 这样写没问题
+	Student1 john = lucy + bob;
+	cout << john;
+
+	// 可如果这样写,在有的开发环境上会报错，
+	// cout << lucy + bob;
+	//因为operator+返回的是一个局部匿名对象，而cout的入参是一个对象的引用
+	// 局部对象时无法引用的，所以会报错，
+	// 所以在重载运算符的时候，像这里的Student1& stu，应该修改为Student1 stu
+	
+	return 0;
+}
+```
+
+#### 成员函数实现重载+
+
+```c++
+#include<iostream>
+using namespace std;
+class Student2 {
+	friend ostream& operator<<(ostream& out, Student2& stu);
+private:
+	int num;
+	string name;
+	float score;
+public:
+	Student2() {};
+	Student2(int num, string name, float score) :num(num), name(name), score(score) {};
+	// 成员函数实现+：lucy+bob ===》lucy.operator+(bob)
+	// 所以下面如果定两个形参，将会报错。
+	Student2 operator+(Student2& stu2) {
+		Student2 stu;
+		stu.num = num + stu2.num;
+		stu.name = name + stu2.name;
+		stu.score = score + stu2.score;
+		/*
+		stu.num = this->num + stu2.num;
+		stu.name = this->name + stu2.name;
+		stu.score = this->score + stu2.score;
+		*/
+		return stu;
+	}
+};
+
+
+ostream& operator<<(ostream& out, Student2& stu) {
+	out << "num: " << stu.num << " name: " << stu.name << " score: " << stu.score << endl;
+	return out;
+}
+
+int main() {
+	Student2 lucy(100, "lucy", 80.5f);
+	Student2 bob(101, "bob", 90.5f);
+	cout << lucy << bob << endl;
+
+	// 成员函数实现+：lucy+bob ===》lucy.operator+(bob)
+	//Student2 john = lucy + bob;
+	// 二者等价。lucy.operator+(bob) 可以简写为 lucy + bob
+	Student2 john = lucy.operator+(bob);
+	cout << john;
+
+
+	return 0;
+}
+```
+
+### 2.11.3 重载逻辑运算符==
+
+```c++
+#include<iostream>
+using namespace std;
+class Student3 {
+	friend ostream& operator<<(ostream& out, Student3& stu);
+private:
+	int num;
+	string name;
+	float score;
+public:
+	Student3() {};
+	Student3(int num, string name, float score) :num(num), name(name), score(score) {};
+    
+    
+	bool operator==(Student3 &stu) {
+		if (num == stu.num  && score == stu.score)return true;
+		return false;
+	}
+    
+    
+};
+
+
+ostream& operator<<(ostream& out, Student3& stu) {
+	out << "num: " << stu.num << " name: " << stu.name << " score: " << stu.score << endl;
+	return out;
+}
+
+int main() {
+	Student3 lucy(100, "lucy", 80.5f);
+	Student3 bob(100, "bob", 80.5f);
+	cout << lucy << bob << endl;
+	
+	// ==的原定义操作
+	if (1 == 1) {
+		cout << "你好"<<endl;
+	}
+	// ==重载后的定义操作
+	if (lucy == bob) {
+		cout << "lucy 等于 bob";
+	}
+	else {
+		cout << "lucy不等于bob";
+	}
+	return 0;
+}
+```
+
+### 2.11.4 重载++和--
+
+由于该操作符有两种运算，分别为前置++和后置++，**通过占位参数的方法去区分这种操作。**
+
+- ++a(前置++)，它就调用operator++(a)；
+- a++（后置++），它就会去调用operator++(a,int)；
+
+```c++
+#include<iostream>
+using namespace std;
+class Student4 {
+	friend ostream& operator<<(ostream& out, Student4& stu);
+private:
+	int num;
+	string name;
+	float score;
+public:
+	Student4() {};
+	Student4(int num, string name, float score) :num(num), name(name), score(score) {};
+	//后置++，ob++，因为++符号前有ob，在成员函数中属于this（第一个参数省略），后面是空，用一个int来占位。
+	Student4 operator++(int) {
+		Student4 old = *this;
+		this->num++;
+		this->score++;
+		return old;
+	}
+	// 前置++,++ob
+	Student4 operator++() {
+		this->num++;
+		this->score++;
+		return *this;
+	}
+
+};
+
+
+ostream& operator<<(ostream& out, Student4& stu) {
+	out << "num: " << stu.num << " name: " << stu.name << " score: " << stu.score << endl;
+	return out;
+}
+
+int main() {
+	Student4 lucy(100, "lucy", 80.5f);
+	Student4 bob;
+	bob = ++lucy;
+	cout << bob<<endl;
+	cout << lucy << endl;
+
+	return 0;
+}
+```
+
+### 2.11.5 重载函数调用符"()"
+
+重载"()"运算符一般用于为算法提供策略
+
+当对象和()结合会触发重载函数运算调用运算符。
+
+```c++
+#include<iostream>
+using namespace std;
+class Print {
+public:
+	//重载函数调用符()
+	void operator()(char* str) {
+		cout << str << endl;
+	}
+};
+int main() {
+	Print p;
+    // 伪函数
+	p("hello world");
+
+	// Print()匿名对象，
+	Print()("你好，世界");
+	return 0;
+}
+```
+
+### 2.11.6 重载”->和*“
+
+智能指针实现堆区空间自动释放。
+
+```c++
+#include<iostream>
+using namespace std;
+class Data{
+public:
+	Data() {
+		cout << "无参构造" << endl;
+	}
+	~Data() {
+		cout << "析构" << endl;
+	}
+	void func() {
+		cout << "func" << endl;
+	}
+};
+class SmartPointer {
+public:
+	Data* p;
+public:
+	SmartPointer(Data* p) {
+		this->p = p;
+	}
+	~SmartPointer() {
+		delete p;
+	}
+	Data* operator->() {
+		return p;
+	}
+	Data& operator*() {
+		return *p;
+	}
+};
+int main() {
+	/*
+	Data* p = new Data;
+	p->func();
+	delete p;
+	*/
+
+	SmartPointer sp(new Data);
+	// 在->没重载之前，是这样调用func的。
+	//sp.p->func();
+	// ->重载之后
+	sp->func();
+
+	// *重载后
+	(*sp).func();
+	return 0;
+}
+```
+
+
+
 # visual studio
 
 1. [VS2022：如何在一个项目里写多个cpp文件并可以分别独立运行](https://blog.csdn.net/yang2330648064/article/details/123191912)
+
 2. [在VS Studio中管理多个cpp文件或项目](https://blog.csdn.net/Kern5/article/details/127350204)
+
 3. [Visaul Studio不小心点击【从项目中排除】怎么办？](https://zhuanlan.zhihu.com/p/509737464)
+
+4. 快速生成成员函数实现块
+
+   ![](./legend/快速生成成员函数实现框架.png)
+
+5. 
