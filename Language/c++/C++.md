@@ -2,7 +2,11 @@
 
 C++融合了3种编程模式：面向过程编程（**Process-oriented programming，POP**），面向对象编程（**OOP**），泛型编程。
 
-C++中面向过程的语法兼容大部分C语言，只是在版本不同时，有兼容差异，在一定程度上可以说C++是C语言的超集
+C++中面向过程的语法兼容大部分C语言，只是在版本不同时，有兼容差异，在一定程度上可以说C++是C语言的超集。
+
+面向对象编程思想：封装，继承，多态
+
+泛型编程思想：模板
 
 # 0 初识
 
@@ -1665,7 +1669,7 @@ int main() {
 
 如果减号由成员函数实现重载，**`ob1.operator-(ob2)`等价于 `ob1 - ob2`，**
 
-可以重载的运算符
+可以重载的运算符，其中不要重载&&和||，因为我们无法实现它的短路特性。
 
 ![](./legend/可以重载的运算符.jpeg)
 
@@ -1958,7 +1962,7 @@ int main() {
 }
 ```
 
-### 2.11.6 重载”->和*“
+### 2.11.6 重载”->和*“——智能指针实现堆区空间自动释放
 
 智能指针实现堆区空间自动释放。
 
@@ -2013,6 +2017,695 @@ int main() {
 }
 ```
 
+# 3 继承
+
+c++最重要的特征是代码重用。
+
+通过继承机制可以利用已有的数据类型来定义新的数据类型，新的类不仅拥有旧类的成员，还拥有新定义的成员。
+
+## 3.1 继承与派生
+
+```c++
+class A{};
+class B : extend_type A{};
+```
+
+继承方式`extend_type`有三种：
+
+1. 公共继承public，父类成员的修饰方式保持不变
+2. 保护继承protected，父类成员的修饰方式变保护
+3. 私有继承private，父类成员的修饰方式变私有
+
+**所有父类的私有成员在子类中不可访问，私有依旧私有。**
+
+<img src="./legend/继承方式.png" style="zoom:67%;" />
+
+```c++
+#include<iostream>
+using namespace std;
+class Base {
+public:
+	int a;
+protected:
+	int b;
+private:
+	int c;
+};
+class Son : public Base {
+public:
+	void func() {
+		cout << "a = " << a << " b = " << b << endl;
+		//cout << "c = " << c << endl;
+	}
+};
+int main() {
+	Son s;
+	s.func();
+	//类外无法访问
+	//cout << s.b << endl;
+	//cout << s.c << endl;
+}
+```
+
+## 3.2 继承中的构造与析构
+
+### 3.2.1 子类构造析构顺序
+
+<img src="./legend/继承中的构造与析构顺序.png" style="zoom:67%;" />
+
+```c++
+#include<iostream>
+using namespace std;
+class Base2 {
+public:
+	Base2() {
+		cout << "父类构造" << endl;
+	}
+	~Base2() {
+		cout << "父类析构" << endl;
+	}
+};
+class Member {
+public:
+	Member() {
+		cout << "子类成员构造" << endl;
+	}
+	~Member() {
+		cout << "子类成员析构" << endl;
+	}
+};
+class Son2 : public Base2 {
+public:
+	Member m;
+public:
+	Son2() {
+		cout << "子类构造" << endl;
+	}
+	~Son2() {
+		cout << "子类析构" << endl;
+	}
+};
+int main() {
+	Son2 s;
+
+	return 0;
+	//父类构造
+	//子类成员构造
+	//子类构造
+
+	//子类析构
+	//子类成员析构
+	//父类析构
+}
+```
+
+### 3.2.2 子类调用成员对象、父类的有参构造
+
+子类实例化对象时，会自动调用成员对象和父类的默认构造。
+
+子类实例化对象是，如果想要调用成员对象和父类的有参构造，则必须使用初始化列表。
+
+初始化列表中：父类写类名称，成员对象用对象名。
+
+```c++
+#include<iostream>
+using namespace std;
+class Base3 {
+public:
+	int a;
+public:
+	Base3() {
+		cout << "父类构造" << endl;
+	}
+	Base3(int a) {
+		this->a = a;
+		cout << "父类有参构造" << endl;
+	}
+
+};
+class Member3 {
+public:
+	int b;
+public:
+	Member3() {
+		cout << "子类成员构造" << endl;
+	}
+	Member3(int b) {
+		this->b = b;
+		cout << "子类成员有参构造" << endl;
+	}
+};
+class Son3 : public Base3 {
+
+public:
+	int c;
+	Member3 m;
+public:
+	Son3() {
+		cout << "子类构造" << endl;
+	}
+	Son3(int a, int b, int c) :Base3(a),m(b),c(c){
+		cout << "子类有参构造" << endl;
+	}
+};
+int main() {
+	Son3 s(1,2,3);
+	return 0;
+
+}
+```
+
+## 3.3 子类成员重名
+
+同名成员最安全最有效的处理方式：加作用域**::**
+
+```c++
+#include<iostream>
+#include<string.h>
+using namespace std;
+class Base4 {
+public:
+	int a;
+	string b;
+	Base4(int a) {
+		this->a = a;
+		b = "父类b";
+	}
+	void func() {
+		cout << "父类func：a = " << a << endl;
+	}
+	void func01() {
+		cout << "父类func01：b = " << b << endl;
+	}
+};
+class Son4 : public Base4 {
+public:
+	int a;
+	Son4(int x, int y) :Base4(x) {
+		a = y;
+	}
+	void func() {
+		cout << "子类func：a = " << a << endl;
+	}
+};
+int main() {
+	Son4 s(10,20);
+
+	// 子类默认优先查找自身类有没有对应的成员
+	// 如果有则直接返回
+	// 如果没有则继续向上在父类中查找
+	cout<<s.a<<endl; // 20
+	cout << s.b << endl; //父类b
+	s.func();// 子类func
+	s.func01();// 父类func01
+
+	// 重名时，加作用域区分，即可正确使用父类对应的成员
+	cout<<s.Base4::a<<endl;
+	s.Base4::func();
+	return 0;
+}
+```
+
+### 3.3.1 子类定义父类中同名有重载的函数
+
+重载：是没有继承的。
+
+重定义：是有继承的。
+
+子类一旦定义了父类同名并且父类中有重载的函数，子类中都将屏蔽父类的所有同名函数。
+
+子类可以通过作用域来访问父类中的同名重载函数。
+
+```c++
+#include<iostream>
+#include<string.h>
+using namespace std;
+class Base5 {
+public:
+	void func() {
+		cout << "父类func()" << endl;
+	}
+	void func(int a) {
+		cout << "父类func(int a)" << endl;
+	}
+	void func(float a) {
+		cout << "父类func(float a)" << endl;
+	}
+};
+class Son5 : public Base5 {
+public:
+	void func() {
+		cout << "子类func()" << endl;
+	}
+};
+int main() {
+	Son5 s;
+	
+	s.func();
+
+	//屏蔽所有父类中同名函数，重载效果消失
+	//s.func(1);
+	//s.func(1.05f);
+
+	//父类中的重载函数依然被继承，但是需要加作用域
+	s.Base5::func(1);
+	s.Base5::func(1.05f);
+}
+```
+
+## 3.4 子类不能继承的成员
+
+构造函数，析构函数，operator=，private都不能继承。
+
+私有成员不可直接访问，但可以通过public成员间接访问。
+
+## 3.5 多继承
+
+子类可同时继承多个父类。
+
+多继承可能会造成较多歧义，饱受争议。
+
+```c++
+class Base1{};
+class Base2{};
+class Son:extend_type1 Base1, extend_type2 Base2{};
+```
+
+多重继承对代码维护性的影响是灾难的， 在设计方法上，任何多继承都可以用单继承代替。
+
+## 3.6 菱形继承
+
+菱形继承：有公共祖先的继承，叫菱形继承。
+
+最底层的子类数据会包含多份公共祖先的数据。
+
+```c++
+// 菱形
+		Animal
+   	  /		   \
+    Sheep	   Tuo
+	  \        /
+       SheepTuo
+
+            
+#include<iostream>
+#include<string.h>
+using namespace std;
+class Animal {
+public: 
+	//通过static可以解决菱形继承数据多份的问题。
+	//static int data;
+	int data;
+};
+// 静态成员使用前必须初始化
+//int Animal::data = 100;
+class Sheep : public Animal{};
+class Tuo : public Animal{};
+
+class SheepTuo:public Sheep,public Tuo{};
+
+int main() {
+	SheepTuo st;
+	// 这个好像必须写，暂时不知道原因
+	memset(&st, 0, sizeof(SheepTuo));
+	
+	// 产生了二义性，从羊那继承了一份data，从驼那继承了一份data，所以有两份data
+	// 可以通过static和虚继承来解决。
+	//cout<<st.data;
+
+	cout << st.Sheep::data<<endl;
+	cout << st.Tuo::data << endl;
+	return 0;
+}
+```
+
+## 3.7 虚继承
+
+虚继承解决 菱形继承中，多份公共祖先数据的问题。
+
+在继承方式前加virtual修饰，子类虚继承父类，子类只会保存一份公共数据。
+
+```c++
+#include<iostream>
+#include<string.h>
+using namespace std;
+class Animal1 {
+public:
+	int data;
+};
+class Sheep1 : virtual public Animal1 {};
+class Tuo1 : virtual public Animal1 {};
+
+class SheepTuo : public Sheep1, public Tuo1 {};
+
+int main() {
+	SheepTuo st;
+	cout<<st.data;
+
+	return 0;
+}
+```
+
+# 4 多态
+
+多态性（polymorphism）提供了接口与具体实现之间的另一层隔离，从而将what和how分离开来。
+
+多态性改善了代码的可读性和组织性，同时也使**创建的程序具有可扩展性。**
+
+静态多态（编译时多态，早绑定）：函数重载，运算符重载，重定义
+
+动态多态（运行时多态，晚绑定）：虚函数
+
+**同一类型的多个实例，在执行同一方法时，呈现出多种行为特征——多态**
+
+## 4.1 虚函数
+
+我们在实际场景中，不管一个基类存在多少个子类，都希望有一个父类指针保存某一子类对象的地址，然后通过父类指针去调用子类对象的方法。
+
+理想状态：
+
+你给我一个子类对象（父类指针保存其地址，**运行时绑定**），我就通过这个父类指针区调用这个子类的方法。
+
+不然，你创一个子类，我就要新写一个子类去调用它的方法，这样是低效的。
+
+多态的成立：父类指针（或引用）指向子类的空间。
+
+### 4.1.1 父类指针指向子类对象的问题。
+
+父类指针如果不做任何处理，就直接指向子类对象，那么父类指针访问的仅仅是子类中父类空间的成员，达不到我们的需求。
+
+```c++
+#include<iostream>
+using namespace std;
+class Animal {
+public:
+	void speak() {
+		cout << "我在说话" << endl;
+	}
+};
+class Dog :public Animal {
+public:
+	void speak() {
+		cout << "我在汪汪汪" << endl;
+	}
+};
+int main() {
+	Animal* b = new Dog;
+	b->speak();//我在说话，我们的需求是调用子类的方法，我在汪汪汪。
+	// 父类的指针无法到达子类方法的位置。
+    // 我不知道这里怎么去清理堆区空间，这里涉及到虚析构，后面会说到。
+	return 0;
+}
+```
+
+![](./legend/父类指针指向子类空间的问题.png)
+
+### 4.1.2 虚函数定义
+
+成员函数前加virtual修饰。
+
+```c++
+#include<iostream>
+using namespace std;
+class Animal {
+public:
+	//虚函数
+	virtual void speak() {
+		cout << "我在说话" << endl;
+	}
+};
+class Dog :public Animal {
+public:
+	//子类重写父类的虚函数：函数名，返回值类型，参数类型个数顺序，必须完全一致
+	void speak() {
+		cout << "我在汪汪汪" << endl;
+	}
+};
+class Cat :public Animal {
+public:
+	//子类重写父类的虚函数：函数名，返回值类型，参数类型个数顺序，必须完全一致
+	void speak() {
+		cout << "我在喵喵喵" << endl;
+	}
+};
+int main() {
+	Animal* b1 = new Dog;
+	b1->speak();//我在汪汪汪
+
+	Animal* b2 = new Cat;
+	b2->speak();//我在喵喵喵
+    // 我不知道这里怎么去清理堆区空间，这里涉及到虚析构，后面会说到。
+	return 0;
+}
+```
+
+### 4.1.3 虚函数动态绑定原理
+
+1. 建立Animal，并且声明speak为虚函数的时候，就会产生一个**虚函数指针vfptr**，虚函数指针指向一张**虚函数表vftable**，这个表记录着这个虚函数的入口地址。
+2. Dog继承Animal的时，也会继承虚函数指针和虚函数表， 一旦Dog重写了父类的虚函数，那么此时speak的入口地址就会被替换为Dog::speak。
+3. 当我们调用时，用父类指针指向子类的空间，本质上还是调的是父类的speak，但当它去调父类speak的时候，发现这个speak是一个虚函数指针，那么speak的入口地址在哪呢，就需要通过这个指针指向的虚函数表去查，查到入口地址，发现这个入口地址指向的是Dog::speak，所以这里就间接的调用了Dog::speak
+
+
+
+![](./legend/虚函数动态绑定原理.png)
+
+```c++
+#include<iostream>
+using namespace std;
+
+// 接口类
+class Animal {
+public:
+	//虚函数
+	virtual void speak() {
+		cout << "我在说话" << endl;
+	}
+};
+
+// 实现类
+class Dog :public Animal {
+public:
+	void speak() {
+		cout << "我在汪汪汪" << endl;
+	}
+};
+class Cat :public Animal {
+public:
+	void speak() {
+		cout << "我在喵喵喵" << endl;
+	}
+};
+
+// 调用类
+class Speaker{
+public:
+	// 动态绑定，接口类指针
+	void animalSpeak(Animal* p) {
+		p->speak();
+	}
+};
+
+int main() {
+	Speaker sp;
+	// 传什么实现类进去，就调用那个实现类的方法。
+	sp.animalSpeak(new Dog);
+	sp.animalSpeak(new Cat);
+
+	// 我不知道这里怎么去清理堆区空间，这里涉及到虚析构，后面会说到。
+	return 0;
+}
+```
+
+### 4.1.4 重载，重定义，重写
+
+1. 重载：
+   - 同一作用域，同名函数，参数的顺序、个数、类型不同 都可以重载。函数重载、运算符重载
+   - 函数的返回值类型不能作为重载条件
+2. 重定义
+   - 有继承，子类 重定义 父类的同名函数（非虚函数）， 参数顺序、个数、类型可以不同。
+   - 子类的同名函数会屏蔽父类的所有同名函数（可以通过作用域解决）
+3. 重写（覆盖）
+   - 有继承，子类 重写 父类的虚函数。
+   - 返回值类型、函数名、参数顺序、个数、类型都必须一致。
+
+## 4.2 纯虚函数
+
+如果基类一定会派生子类（基类一般不单独使用），而子类一定会重写父类的虚函数。那么父类的虚函数中的函数体感觉是无意义，可不可以不写父类虚函数的函数体呢？可以的，那就必须了解纯虚函数。
+
+**含有纯虚函数的类，称为抽象类**
+
+```c++
+class Animal{
+    public:
+    	// 注意后面的=0，如果不写就成了函数声明了，而不是纯虚函数
+    	virtual void speak(void)=0;
+}
+```
+
+注意：
+
+1. **一旦类中有纯虚函数，那么这个类 就是抽象类。**
+2. 抽象类 不能实例化 对象。（Animal ob；错误）
+3. **抽象类 必须被继承 同时 子类 必须重写 父类的所有纯虚函数，否则 子类也是抽象类。**
+4. 抽象类主要的目的 是设计 类的接口
+
+```c++
+#include<iostream>
+using namespace std;
+
+// 接口类
+class Animal {
+public:
+	//纯虚函数
+	virtual void speak() = 0;
+};
+
+// 实现类
+class Dog :public Animal {
+public:
+	void speak() {
+		cout << "我在汪汪汪" << endl;
+	}
+};
+class Cat :public Animal {
+public:
+	void speak() {
+		cout << "我在喵喵喵" << endl;
+	}
+};
+
+// 调用类
+class Speaker {
+public:
+	//抽象类的主要作用是作为接口。
+	void animalSpeak(Animal* p) {
+		p->speak();
+	}
+};
+
+int main() {
+	Speaker sp;
+	sp.animalSpeak(new Dog);
+	sp.animalSpeak(new Cat);
+
+	// error：Animal 无法实例化抽象类
+	//Animal a;
+	return 0;
+}
+```
+
+## 4.3 虚析构
+
+virtual修饰析构函数
+虚析构：通过父类指针 释放整个子类空间。
+
+和虚函数的动态绑定原理相似，有点区别就是，找到虚析构函数实际指的是子类的析构函数，子类析构之后，会自动调父类的析构函数。
+
+![](./legend/虚析构原理.jpg)
+
+```c++
+#include<iostream>
+using namespace std;
+
+
+class Animal {
+public:
+	//纯虚函数
+	virtual void speak() = 0;
+	Animal() {
+		cout << "animal 构造" << endl;
+	}
+	// 虚析构函数，通过父类指针释放子类所有空间。
+	// 不用虚析构，那么delete *a的时候，只会释放子类中包含的父类部分空间
+	virtual ~Animal() {
+		cout << "animal 析构" << endl;
+	}
+};
+
+class Dog :public Animal {
+public:
+	void speak() {
+		cout << "我在汪汪汪" << endl;
+	}
+	Dog() {
+		cout << "Dog 构造" << endl;
+	}
+	~Dog() {
+		cout << "Dog 析构" << endl;
+	}
+};
+
+int main() {
+	Animal* a = new Dog;
+	a->speak();
+	delete a;
+
+	return 0;
+}
+```
+
+### 4.3.1 纯虚析构
+
+纯虚析构的本质：是析构函数，各个类的回收工作。而且析构函数不能被继承。
+
+必须为纯虚析构函数提供一个函数体，并且纯虚析构函数 必须在类外实现。
+
+```c++
+#include<iostream>
+using namespace std;
+
+
+class Animal01 {
+public:
+	//纯虚函数
+	virtual void speak() = 0;
+	//纯虚析构函数，必须在类外实现
+	virtual ~Animal01() = 0;
+};
+
+class Dog :public Animal01 {
+public:
+	void speak() {
+		cout << "我在汪汪汪" << endl;
+	}
+	~Dog() {
+		cout << "Dog 析构" << endl;
+	}
+};
+
+Animal01:: ~Animal01() {
+	cout << "Animal01 析构" << endl;
+}
+int main() {
+	Animal01* a = new Dog;
+	a->speak();
+	delete a;
+
+	return 0;
+}
+```
+
+
+
+### 4.3.2 虚析构和纯虚析构的区别
+
+虚析构：virtual修饰，有函数体，不会导致父类为抽象类。
+
+纯虚析构：virtual修饰，=0，函数体必须类外实现，导致父类为抽象类。
+
+# 5 模板
+
+C++泛型编程思想：模板
+
+模板分类：
+
+- 函数模板：在函数中运用模板
+- 类模板。
+
+将功能相同，类型不同的函数（类）的类型抽象成虚拟的类型。当调用函数（类实例化对象）的时 候，编译器自动将虚拟的类型 具体化。这个就是函数模板（类模板）。
+
+## 5.1 函数模板
+
 
 
 # visual studio
@@ -2027,4 +2720,8 @@ int main() {
 
    ![](./legend/快速生成成员函数实现框架.png)
 
-5. 
+5. 无法解析外部符号main
+
+   - 这是说明，cpp文件中找不到入口，main函数
+
+6. 
