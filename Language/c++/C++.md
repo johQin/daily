@@ -2709,6 +2709,16 @@ C++泛型编程思想：模板
 模板关键字template
 
 ```c++
+// 声明定义拥有多个模板的函数
+template <typename T1, typename T2, ...,typename Tn>
+void func(){}
+
+// 调用函数模板
+func();// 需要编译器自动推导
+func<t1,t2,...tn>();// 强制执行函数模板，并且指定模板的类型
+```
+
+```c++
 #include<iostream>
 #include<string.h>
 using namespace std;
@@ -2741,7 +2751,139 @@ int main() {
 
 函数模板的目标：模板是为了实现泛型，可以减少编程的工作量，增强函数的重用性。
 
-## 5.2 函数模板的注意点
+### 5.1.1 函数模板的注意点
+
+1. 当编译器发现函数模板 和 普通函数 都可以识别和调用时（多义性），
+
+   - 编译器优先选择 普通函数
+
+   - 如果想 强制使用函数模板，使用 **" <> "**调用
+
+   - ```c++
+     // 1. 函数模板 和 普通函数 都能识别时，编译器优先选择 普通函数。也可以通过<>强制调用模板函数
+     template<typename T>
+     void swapAll(T& a, T& b) {
+     	cout << "模板函数" << endl;
+     	T tmp = a;
+     	a = b;
+     	b = tmp;
+     }
+     void swapAll(int &a, int &b) {
+     	cout << "普通函数" << endl;
+     	int tmp = a;
+     	a = b;
+     	b = tmp;
+     	
+     }
+     int main() {
+     	int a = 10, b = 20;
+         // 优先选择普通函数进行调用
+     	swapAll(a, b);
+     	cout << "a = " << a << " b = " << b << endl;
+         // 普通函数
+     	// a = 20 b = 10
+         
+         // <> 强制调用函数模板，
+         swapAll<>(a, b);
+         // swapAll<int>(a, b);//指定模板类型，不用进行自动推导
+     	cout << "a = " << a << " b = " << b << endl;
+         // 模板函数
+     	// a = 10 b = 20
+     	return 0;
+     }
+     ```
+
+2. 函数模板 自动类型推导时，
+
+   - 函数模板推导出现逻辑不自洽时，不能对函数的参数进行自动转换。
+
+   - 如果强制<>调用时，就支持参数进行自动转换。
+
+   - ```c++
+     #include<iostream>
+     #include<string.h>
+     using namespace std;
+     
+     template<typename T>
+     void myPrintAll(T a, T b) { //下面给的是简单类型常量，所以形参不能写引用
+     	cout << "模板函数" << endl;
+     	cout  << a << "   " << b << endl;
+     }
+     void myPrintAll(int a, int b) {
+     	cout << "普通函数" << endl;
+     	cout << a << "   " << b << endl;
+     }
+     int main() {
+     	
+     	// 普通函数。二者都可以调用，优先普通函数
+     	myPrintAll(10,20);
+     	// 模板函数。模板函数参数类型逻辑自洽，这里使用模板函数
+     	myPrintAll('a', 'b');
+     	// 普通函数。模板函数类型自动推导，参数类型逻辑不自洽，普通函数也是如此，但普通函数支持类型转换，char->int
+     	myPrintAll(10, 'b');
+     	// 模板函数。强制调用模板函数，指定参数类型，此时模板函数支持自动类型转换。
+     	myPrintAll<int>(10, 'b');
+     
+     
+     	return 0;
+     }
+     ```
+
+### 5.1.2 模板函数的重载
+
+```c++
+template<typename T>
+void myPrintAll(T a) {
+	cout << "模板函数一个参数" << endl;
+	cout  << a << endl;
+}
+template<typename T>
+void myPrintAll(T a, T b) {
+	cout << "模板函数两个参数" << endl;
+	cout  << a << "   " << b << endl;
+}
+```
+
+### 5.1.3 函数模板的局限性
+
+当函数模板 推导出 T为数组或其他自定义类型数据，可能导致运算符 不识别。
+
+#### 解决方案1：重载运算符
+
+```c++
+#include<iostream>
+#include<string.h>
+using namespace std;
+
+class Data{
+private:
+	int a;
+public:
+	friend ostream& operator<<(ostream& out, Data ob);
+public:
+	Data() {};
+	Data(int a) {
+		this->a = a;
+	}
+};
+ostream& operator<<(ostream& out, Data ob) {
+	cout << ob.a << endl;
+	return out;
+}
+template<typename T>
+void myPrintAll(T a) {
+    // 当T为自定义类型时，<<符不能识别该自定义类型，除非采用重载的运算符。
+	cout  << a  << endl;
+}
+
+int main() {
+	Data d(10);
+	myPrintAll(d);
+
+	return 0;
+}
+
+```
 
 
 
