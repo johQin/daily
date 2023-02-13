@@ -11,7 +11,7 @@ void swapAll(T& a, T& b) {
 	a = b;
 	b = tmp;
 }
-int main1() {
+int main2() {
 	int a = 10, b = 20;
 	swapAll(a, b);
 	cout << "a = " << a << " b = " << b << endl;

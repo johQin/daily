@@ -979,6 +979,10 @@ int main() {
 
 一旦定义拷贝构造，系统就会屏蔽系统默认提供的无参构造。
 
+如果产生了新的对象实例,那调用的就是拷贝构造函数; 如果没有,那就是对已有的对象赋值,调用的是赋值运算符。
+
+拷贝构造函数使用已有的对象创建一个新的对象，赋值运算符是将一个对象的值复制给另一个已存在的对象。区分是调用拷贝构造函数还是赋值运算符，主要看是否有新的对象产生。
+
 ```c++
 // 有拷贝构造函数时
 class Data {
@@ -992,7 +996,7 @@ class Data {
             a = ma;
             cout << "有参构造器：a = " << ma << endl;
         }
-    	// 浅拷贝构造定义形式：ob就是就对象的引用
+    	// 浅拷贝构造定义形式：ob就是旧对象的引用
     	// 如果不写拷贝构造，系统默认也会提供这样的浅拷贝构造
         Data(const Data &ob) {
 			// 一旦实现了拷贝构造，必须完成赋值操作，否则a的内存里将出现意想不到的值。并且连浅拷贝的效果都无法实现
@@ -2709,9 +2713,15 @@ C++泛型编程思想：模板
 模板关键字template
 
 ```c++
-// 声明定义拥有多个模板的函数
+// 声明定义拥有多个模板的函数。
+// 为了书写美观，函数名和模板类型换行书写。
+// 函数模板仅作用于当前函数
 template <typename T1, typename T2, ...,typename Tn>
 void func(){}
+
+// 模板具体化
+// 具体化函数模板，如果推导出来，模板类型为具体化后的ClassName1，就执行当前具体化后的函数模板。
+template <> void func()<ClassName1>{}
 
 // 调用函数模板
 func();// 需要编译器自动推导
@@ -2882,6 +2892,596 @@ int main() {
 
 	return 0;
 }
+
+```
+
+#### 解决方案2：具体化函数模板
+
+```c++
+#include<iostream>
+#include<string.h>
+using namespace std;
+
+// 当调用模板函数的时候，如果类型自动推导出模板类型为Data，那么就会调用具体化函数模板
+template<typename T>
+void myPrintAll(T a) {
+	cout << a << endl;
+}
+class Data{
+private:
+	int a;
+public:
+	friend void myPrintAll<Data>(Data d);
+public:
+	Data() {};
+	Data(int a) {
+		this->a = a;
+	}
+};
+
+
+template<>
+void myPrintAll<Data>(Data d) {
+	cout << d.a << endl;
+}
+int main() {
+	Data d(10);
+    // 先调用非具体化模板函数去，自动推导类型，发现类型为Data，然后再掉转头去掉具体化后的模板函数。
+	myPrintAll(d);
+
+	return 0;
+}
+
+```
+
+## 5.2 类模板
+
+**类模板实例化对象时，不支持自动类型推导，必须显式指定模板类型。**
+
+```c++
+// 用class 修饰模板
+// 类模板仅作用于当前类
+template<class T1, class T2>
+class Data{};
+
+// 实例化对象时,必须显式指定模板类型。
+Data<int,int> d(10,20);
+```
+
+```c++
+#include<iostream>
+using namespace std;
+
+template <class T1,class T2>
+class Data {
+private:
+	T1 a;
+	T2 b;
+public:
+	Data(){}
+	Data(T1 a, T2 b) {
+		this->a = a;
+		this->b = b;
+	}
+	void toString() {
+		cout << "a = " << a << " b = " << b << endl;
+	}
+};
+int main() {
+    // 实例化的时候，必须显式指定模板的类型。
+	Data<int,int> ob;
+	ob.toString();
+	Data<int, int> ob1(10, 20);
+	ob1.toString();
+	Data<int, char> ob2(10, 'b');
+	ob2.toString();
+	return 0;
+}
+```
+
+### 5.2.1 类模板成员函数在类外实现
+
+```c++
+#include<iostream>
+using namespace std;
+
+template <class T1, class T2>
+class Data {
+private:
+	T1 a;
+	T2 b;
+public:
+	Data() {}
+	Data(T1 a, T2 b);
+	void toString();
+};
+
+// 由于模板只作用于当前类，所以成员函数在类外实现，必须重新声明模板。
+// 类模板的构造器在类外实现
+template <class T1, class T2>
+Data<T1, T2>::Data(T1 a, T2 b)
+{
+	this->a = a;
+	this->b = b;
+}
+
+// 类模板的成员函数在类外实现
+template <class T1, class T2>
+ // 不管成员函数是否携参，在类外实现都必须附上类的作用域
+// 而类模板的作用域书写应该为Data<T1,T2>
+// 既然此处用到了T1，T2，那么就必须在语句前面加上template
+void Data<T1,T2>::toString()
+{
+	cout << "a = " << a << " b = " << b << endl;
+}
+
+int main() {
+	Data<int, int> ob(10, 20);
+	ob.toString();
+	return 0;
+}
+```
+
+### 5.2.2 模板函数作为类模板的友元
+
+```c++
+#include<iostream>
+using namespace std;
+
+template <class T1, class T2>
+class Data {
+	template<class T3, class T4>
+	friend void myPrint(Data<T3, T4>& ob);
+private:
+	T1 a;
+	T2 b;
+public:
+	Data() {}
+	Data(T1 a, T2 b) {
+		this->a = a;
+		this->b = b;
+	}
+};
+
+template<class T3, class T4> void myPrint(Data<T3, T4>& ob) {
+	cout << ob.a << " " << ob.b << endl;
+}
+
+int main() {
+	Data<int, int> ob(10, 20);
+	myPrint(ob);
+	return 0;
+}
+```
+
+### 5.2.3 普通函数作为类模板的友元
+
+```c++
+#include<iostream>
+using namespace std;
+
+template <class T1, class T2>
+class Data {
+	friend void myPrint(Data<int, char>& ob);
+private:
+	T1 a;
+	T2 b;
+public:
+	Data() {}
+	Data(T1 a, T2 b) {
+		this->a = a;
+		this->b = b;
+	}
+};
+
+void myPrint(Data<int, char>& ob) {
+	cout << ob.a << " " << ob.b << endl;
+}
+
+int main() {
+	Data<int, char> ob(10, 'b');
+	myPrint(ob);
+	return 0;
+}
+```
+
+### 5.2.4 模板头文件和源文件分离问题
+
+data.h（接口层），data.cpp（实现层），main.cpp（调用层）
+
+类模板需要经过两次编译，
+
+- 第一次：在编译（预处理阶段）时，对类模板（data.h）、data.cpp本身的编译，
+- 第二次：实例化对象（调用时），需要把实际模板类型传入类实现（data.cpp)
+
+**所以main.cpp（调用层）中需要同时include data.h（接口层）和data.cpp（实现层）**
+
+但这里就出现，调用层同时包含接口层和实现层，此时就有点不符合规范。
+
+所以在条件允许的情况下，可以将实现层和接口层放在一起，便于调用层直接面向接口使用。
+
+所以类模板的头文件，它是接口层和定义层的结合体，是一个.h和.cpp的结合体。
+
+但我们的.h文件一般是拿来定义接口的而不是定义实现的，基于此考虑，类模板的头文件就改成.hpp这种特殊的头文件。
+
+#### 头源分离解决方案
+
+main.cpp（调用层）中需要同时include data.h（接口层）和data.cpp（实现层）
+
+```c++
+// 头源分离.h
+
+#pragma once
+#include<iostream>
+using namespace std;
+template<class T1, class T2>
+class Data {
+private:
+	T1 a;
+	T2 b;
+public:
+	Data();
+	Data(T1 a, T2 b);
+	void toString();
+};
+
+// 头源分离类实现
+
+#include "头源分离.h"
+template<class T1, class T2>
+Data<T1, T2>::Data() {
+	cout << "无参构造" << endl;
+}
+
+template<class T1, class T2>
+Data<T1, T2>::Data(T1 a, T2 b) {
+	this->a = a;
+	this->b = b;
+}
+
+template<class T1, class T2>
+void Data<T1, T2>::toString() {
+	cout << "a = " << a << " b = "<< b << endl;
+}
+
+// main.cpp，调用
+
+#include<iostream>
+#include "头源分离.h"
+// 如果在调用文件中，只include .h文件
+// 模板类的运行，需要两次编译，
+// 第一次是在预处理阶段，对类模板它本身进行编译
+// 第二次是在调用实例化时，这时还要对类模板进行编译，但此时在.h中找不到它的实现，所以无法再次将实际模板类型编译入实现中
+// 所以这里就会出现问题，直接报：undefined reference to Data<int,int>::Data()
+// 所以这里还需要将.h的实现data.cpp包括进来。
+#include "头源分离_类实现.cpp"
+using namespace std;
+int main() {
+	Data<int, int> ob(10, 20);
+	ob.toString();
+	return 0;
+}
+```
+
+#### 类模板的.hpp头源结合文件
+
+```c++
+// 头源结合.hpp
+#pragma once
+#include<iostream>
+using namespace std;
+template<class T1, class T2>
+class Data {
+private:
+	T1 a;
+	T2 b;
+public:
+	Data();
+	Data(T1 a, T2 b);
+	void toString();
+};
+
+template<class T1, class T2>
+Data<T1, T2>::Data() {
+	cout << "无参构造" << endl;
+}
+
+template<class T1, class T2>
+Data<T1, T2>::Data(T1 a, T2 b) {
+	this->a = a;
+	this->b = b;
+}
+
+template<class T1, class T2>
+void Data<T1, T2>::toString() {
+	cout << "a = " << a << " b = " << b << endl;
+}
+
+
+// main.cpp 调用
+
+#include<iostream>
+#include "头源结合.hpp"
+
+using namespace std;
+int main() {
+	Data<int, int> ob(10, 20);
+	ob.toString();
+	return 0;
+}
+```
+
+### 5.3 类模板的继承
+
+### 5.3.1 类模板派生普通类
+
+普通类继承类模板，模板类型必须具体化，否则无法派生
+
+```c++
+#include<iostream>
+using namespace std;
+
+template<class T1,class T2>
+class Base {
+private:
+	T1 a;
+	T2 b;
+public:
+	Base() {};
+	Base(T1 a, T2 b) {
+		this->a = a;
+		this->b = b;
+	}
+	void toString() {
+		cout << "a = " << a << " b = " << b << endl;
+	}
+};
+
+// 普通类继承类模板，模板类型必须具体化，否则无法派生
+class Sub:public Base<int,char>{
+public:
+	int c;
+public:
+	Sub(int a, char b, int c) :Base(a, b) {
+		this->c = c;
+	}
+};
+int main() {
+	Sub s(10, 'a', 100);
+	s.toString();
+	cout << s.c << endl;
+	return 0;
+}
+```
+
+
+
+### 5.3.2 类模板派生类模板
+
+```c++
+#include<iostream>
+using namespace std;
+
+template<class T1, class T2>
+class Base {
+private:
+	T1 a;
+	T2 b;
+public:
+	Base() {};
+	Base(T1 a, T2 b) {
+		this->a = a;
+		this->b = b;
+	}
+	void toString() {
+		cout << "a = " << a << " b = " << b << endl;
+	}
+};
+
+template<class T1,class T2,class T3>
+class Sub:public Base<T1, T2> {
+public:
+	T3 c;
+public:
+	Sub(T1 a, T2 b, T3 c) :Base<T1, T2>(a, b) {
+		this->c = c;
+	}
+};
+int main() {
+    
+    // 调用时需要模板类型具体化
+	Sub<int, char, int> s(10, 'a', 100);
+	s.toString();
+	cout << s.c << endl;
+	return 0;
+}
+```
+
+# 6 类型转换
+
+C++风格的强制转换的好处在于：更能清晰的表达转换的意图，可以提供更好的强制转换过程。
+
+## 6.1 上行/下行转换
+
+![](./legend/上下行转换.png)
+
+
+
+## 6.2 static_cast
+
+**静态类型转换用于类层次结构中基类（父类）和派生类（子类）之间指针或引用的转换。**
+
+```c++
+#include<iostream>
+using namespace std;
+
+class Base {};
+class Sub:public Base {};
+class Other {};
+int main() {
+	//基本类型：支持
+	int num = static_cast<int>(3.14);
+	//上行转换：支持 安全
+	Base * p1 = static_cast<Base *> (new Sub);
+	//下行转换：支持 （不安全）
+	Sub * p2 = static_cast<Sub *> (new Base);
+	//不相关类型转换：不支持
+	//Base* p3 = static_cast<Base *> (new Other);// error
+	return 0;
+}
+```
+
+## 6.3 dynamic_cast
+
+动态类型转换主要用于类层次间的上行转换
+
+```c++
+#include<iostream>
+using namespace std;
+
+class Base {};
+class Sub :public Base {};
+class Other {};
+int main() {
+	//基本类型：不支持
+	int num = dynamic_cast<int>(3.14);// error
+	//上行转换：支持 安全
+	Base* p1 = dynamic_cast<Base*> (new Sub);
+	//下行转换：不支持 （不安全）
+	Sub* p2 = dynamic_cast<Sub*> (new Base); // error
+	//不相关类型转换：不支持
+	Base* p3 = static_cast<Base *> (new Other);// error
+	return 0;
+}
+```
+
+
+
+## 6.4 const_cast
+
+将const修饰的指针或引用 转换成 非const （支持） 
+
+将非const修饰的指针或引用 转换成 const （支持）
+
+```c++
+#include<iostream>
+using namespace std;
+
+
+int main() {
+	int a = 10;
+
+	//将const修饰的指针或引用转换为 非const
+	const int* p1 = &a;
+	int* p2 = const_cast<int*>(p1);
+
+	const int& ob=20;
+	int& ob1 = const_cast<int&>(ob);
+
+
+	int b = 20;
+	
+	//将非const修饰的指针或引用 转换成 const （支持）
+	int* p3 = &b;
+	const int* p4 = const_cast<const int*>(p3);
+
+	int c = 30;
+	int& ob2 = c;
+	const int& p5 = const_cast<const int&>(ob2);
+
+
+	return 0;
+}
+```
+
+## 6.5 reinterpret
+
+重新解释类型转换最不推荐
+
+```c++
+#include<iostream>
+using namespace std;
+
+class Base {};
+class Sub :public Base {};
+class Other {};
+int main() {
+	//基本类型：不支持
+	//int num = reinterpret_cast<int>(3.14f); //error
+	//上行转换：支持 安全
+	Base* p1 = reinterpret_cast<Base*> (new Sub);
+	//下行转换：支持 （不安全）
+	Sub* p2 = reinterpret_cast<Sub*> (new Base);
+	//不相关类型转换：支持
+	Base* p3 = reinterpret_cast<Base*> (new Other);
+	return 0;
+}
+```
+
+# 7 异常
+
+C++异常处理机制比C语言异常的优点在于：
+
+- 函数的返回值可以忽略，但异常不可忽略
+- 整型返回值无语义信息，而异常包含语义信息。
+
+```c++
+try{
+    throw 异常值;
+}
+catch(异常类型1 异常值1){
+    
+}
+catch(异常类型2 异常值2){
+    
+}
+...
+catch(...){//捕获所有异常
+    
+}
+```
+
+```c++
+#include<iostream>
+using namespace std;
+int main() {
+	int ret = 0;
+	try {
+		throw 1;
+		//throw 'a';
+		//throw 2.14f;
+	}
+	catch (int e) {
+		cout << "int异常值为：" << e << endl;
+	}
+	// 同类型的异常无法重复捕获
+	catch (char e) {
+		cout << "char异常值为：" << e << endl;
+	}
+	catch (...) {
+		cout << "其他异常" << endl;
+	}
+	cout << "------" << endl;
+	return 0;
+}
+```
+
+## 7.1 栈解旋
+
+异常被抛出后，从进入try块起，到异常被抛掷前，这段代码间在栈上构造的所有对象，都会被自动析构。（析构在throw error之前执行）。析构的顺序与构造的顺序相反，这一过程称为栈的解旋.
+
+## 7.2 异常的接口声明
+
+```c++
+// 1. 函数默认可以抛出任何类型的异常
+void func(){}
+// 2. 只能抛出特定类型的异常
+void func() throw(int,char){
+	// func函数的上下文不能捕获到func抛出的float类型的异常
+    throw 2.14f；
+}
+// 3. 不能抛出任何异常
+void func() throw(){}
 
 ```
 

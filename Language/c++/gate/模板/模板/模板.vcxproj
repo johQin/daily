@@ -127,7 +127,23 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="函数模板.cpp" />
+    <ClCompile Include="函数模板具体化.cpp" />
+    <ClCompile Include="模板函数定义.cpp" />
+    <ClCompile Include="模板函数作为类模板的友元.cpp" />
+    <ClCompile Include="普通函数作为类模板的友元.cpp" />
+    <ClCompile Include="头源分离_类实现.cpp" />
+    <ClCompile Include="头源分离_调用.cpp" />
+    <ClCompile Include="头源结合_调用.cpp" />
+    <ClCompile Include="类模板派生类模板.cpp" />
+    <ClCompile Include="自定义数组_调用.cpp" />
+    <ClCompile Include="类模板派生普通类.cpp" />
+    <ClCompile Include="类模板.cpp" />
+    <ClCompile Include="类模板成员函数在类外实现.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="头源分离.h" />
+    <ClInclude Include="头源结合.hpp" />
+    <ClInclude Include="自定义可存放任意类型的数组.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
