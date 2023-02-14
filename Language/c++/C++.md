@@ -3470,7 +3470,11 @@ int main() {
 
 异常被抛出后，从进入try块起，到异常被抛掷前，这段代码间在栈上构造的所有对象，都会被自动析构。（析构在throw error之前执行）。析构的顺序与构造的顺序相反，这一过程称为栈的解旋.
 
-## 7.2 异常的接口声明
+## 7.2 异常规范
+
+异常规范是 C++98 新增的一项功能，但是后来的 C++11 已经将它抛弃了，不再建议使用。
+
+所以下面的代码在有些环境不生效。
 
 ```c++
 // 1. 函数默认可以抛出任何类型的异常
@@ -3484,6 +3488,792 @@ void func() throw(int,char){
 void func() throw(){}
 
 ```
+
+## 7.3 异常变量的生命周期
+
+**推荐使用引用来接手异常**
+
+```c++
+#include<iostream>
+using namespace std;
+class MyException {
+public:
+	MyException() {
+		cout << "异常变量无参构造" << endl;
+	}
+	MyException(const MyException& e) {
+		cout << "拷贝构造" << endl;
+	}
+	~MyException() {
+		cout << "异常变量析构" << endl;
+	}
+};
+//1.普通变量接手异常
+void test01(){
+	try {
+		throw MyException();//构造
+	}
+	catch (MyException e) {// 发生拷贝构造，效率略低
+		cout << "普通变量接手异常" << endl;
+	}
+}
+//2.指针对象接手异常
+// 无需发生拷贝构造
+// 指针本身需要占用空间
+// 析构需要手动调用
+void test02() {
+	try {
+		throw new MyException;//构造
+	}
+	catch (MyException *e) {
+		cout << "指针接手异常" << endl;
+		delete e;//析构，需要人为手动释放。
+	}
+}
+//3. 引用接手异常
+// 不占用空间
+// 析构无需手动
+void test03() {
+	try {
+		throw MyException();//构造
+	}
+	catch (MyException& e) {
+		cout << "引用接手异常" << endl;
+	}
+}
+int main() {
+	test01();
+	//异常变量无参构造
+	//拷贝构造
+	//普通变量接手异常
+	//异常变量析构
+	//异常变量析构
+	cout<<"-----------" << endl;
+	test02();
+	//异常变量无参构造
+	//指针接手异常
+	//异常变量析构
+	cout << "-----------" << endl;
+	test03();
+	//异常变量无参构造
+	//引用接手异常
+	//异常变量析构
+	return 0;
+}
+```
+
+## 7.4 异常的多态
+
+```c++
+#include<iostream>
+using namespace std;
+class BaseException {
+public:
+	virtual void printError() = 0;
+};
+class NullPointerException :public BaseException {
+	void printError() {
+		cout << "空指针异常" << endl;
+	}
+};
+class OutOfRangeException :public BaseException {
+	void printError() {
+		cout << "数组越界异常" << endl;
+	}
+};
+void doWork() {
+	throw NullPointerException();
+}
+int main() {
+	try {
+		doWork();
+	}
+	catch (BaseException& e) {//上行转换，虚函数
+		e.printError();
+	}
+	return 0;
+}
+```
+
+## 7.5 C++标准异常
+
+`#include<exception>`
+
+![](./legend/c++标准异常.jpg)
+
+```c++
+#include<exception>
+try{
+    throw out_of_range("越界");
+}
+catch(exception &e){
+    //what()存放的是异常信息(char *方式存在)
+    cout<<e.what()<<endl;
+}
+```
+
+## 7.6 自定义异常
+
+基于标准异常基类，自定义异常类。
+
+```c++
+#include<iostream>
+#include<exception>
+#include<string.h>
+using namespace std;
+class NewException : public exception {
+private:
+	string msg;
+public:
+	NewException(){}
+	NewException(string msg) {
+		this->msg = msg;
+	}
+	const char* what() const throw()
+	//const throw()防止父类在子类之前抛出异常，
+	// 否则catch中e.what将会捕捉到std::exception
+	{
+		//将string类转换为char*
+		return this->msg.c_str();
+	}
+	~NewException(){}
+
+};
+int main() {
+	try {
+		throw NewException("哦哦，发生异常");
+	}
+	catch (exception &e) {
+		cout << e.what() << endl;
+	}
+	return 0;
+}
+```
+
+# 8 STL之容器
+
+为了建立数据结构（数据的存储，容器）和算法（操作容器）的一套标准，并且降低他们之间的耦合关系，以提升各自的独立性、弹性、交互操作性（相互合作），诞生了STL
+
+## 8.1 STL基本概念
+
+STL（standard Template Library，标准模板库），是惠普实验室开发的一系列软件的统称。
+
+STL从广义上来分：容器，算法，迭代器。容器和算法之间通过迭代器进行无缝连接。
+
+STL几乎所有代码都采用模板类或模板函数，这相比普通类和普通函数来说，提供了更好的代码重用机会。
+
+### STL的6大组件
+
+这六大组件分别是：容器、算法、迭代器、仿函数、适配器（配接器）、空间配置器。
+
+1. 容器：存放数据
+2. 算法：操作数据
+3. 迭代器：算法 通过迭代器 操作容器数据，容器和迭代器一一对应。
+4. 仿函数：为算法提供更多的策略
+5. 适配器：为算法提供更多参数的接口
+6. 空间配置器：为算法和容器 动态分配、管理空间
+
+STL 的一个重要特性是将数据和操作分离。数据由容器类别加以管理，操作则由 特定的算法完成。
+
+## 8.2 string 类
+
+String 和 c 风格字符串对比：
+
+1. Char * 是一个指针，String 是一个类
+2. string 封装了 char * ，管理这个字符串，是一个 char 型的容器。
+3. String 封装了很多实用的成员方法，查找 find，拷贝 copy，删除 delete 替换 replace，插入 insert
+4. 不用考虑内存释放和越界
+
+### 8.2.1 string容器常用操作
+
+```c++
+// 1.string 构造函数
+
+string();//创建一个空的字符串 例如: string str;
+string(const string& str);//使用一个 string 对象初始化另一个 string 对象
+string(const char* s);//使用字符串 s 初始化
+string(int n, char c);//使用 n 个字符 c 初始化 v
+
+// 2.string基本赋值操作
+
+//操作符=重载
+string& operator=(const char* s);//char*类型字符串 赋值给当前的字符串
+string& operator=(const string &s);//把字符串 s 赋给当前的字符串
+string& operator=(char c);//字符赋值给当前的字符串
+// string成员函数
+string& assign(const char *s);//把字符串 s 赋给当前的字符串
+string& assign(const char *s, int n);//把字符串 s 的前 n 个字符赋给当前的字符串
+string& assign(const string &s);//把字符串 s 赋给当前字符串
+string& assign(int n, char c);//用 n 个字符 c 赋给当前字符串
+string& assign(const string &s, int start, int n);//将 s 从 start 开始 n 个字符赋值给字符串
+    
+// 3.string存取字符操作
+
+char& operator[](int n);//通过[]方式取字符
+char& at(int n);//通过 at 方法获取字符
+//[] 越界不会抛出异常 at方法 越界会抛出异常
+
+
+// 4.string 拼接操作
+
+string& operator+=(const string& str);//重载+=操作符
+string& operator+=(const char* str);//重载+=操作符
+string& operator+=(const char c);//重载+=操作符
+
+string& append(const char *s);//把字符串 s 连接到当前字符串结尾
+string& append(const char *s, int n);//把字符串 s 的前 n 个字符连接到当前字符串结尾
+string& append(const string &s);//同 operator+=()
+string& append(const string &s, int pos, int n);//把字符串 s 中从 pos 开始的 n 个字符连接到当前字符串结尾
+string& append(int n, char c);//在当前字符串结尾添加 n 个字符 c
+
+// 5.查找和替换
+
+int find(const string& str, int pos = 0) const; //查找 str 第一次出现位置, 从 pos 开始查找
+int find(const char* s, int pos = 0) const; //查找 s 第一次出现位置,从 pos开始查找
+int find(const char* s, int pos, int n) const; //从 pos 位置查找 s 的前 n 个字符第一次位置
+int find(const char c, int pos = 0) const; //查找字符 c 第一次出现位置
+int rfind(const string& str, int pos = npos) const;//查找 str 最后一次位置, 从 pos开始查找
+int rfind(const char* s, int pos = npos) const;//查找 s 最后一次出现位置,从pos 开始查找
+int rfind(const char* s, int pos, int n) const;//从 pos 查找 s 的前 n 个字符最后一次位置
+int rfind(const char c, int pos = 0) const; //查找字符 c 最后一次出现位置
+
+string& replace(int pos, int n, const string& str); //替换从 pos 开始 n 个字符为字符串 str
+string& replace(int pos, int n, const char* s); //替换从 pos 开始的 n 个字符为字符串s
+
+// 6.string 比较操作
+
+//比较区分大小写，比较时参考字典顺序，排越前面的越小。大写的 A 比小写的 a 小。
+int compare(const string &s) const;//与字符串 s 比较
+int compare(const char *s) const;//与字符串 s 比较
+
+// 7.子串
+string substr(int pos = 0, int n = npos) const;//返回由 pos 开始的 n 个字符组成的字符串
+
+//8 string插入和删除操作
+
+string& insert(int pos, const char* s); //插入字符串
+string& insert(int pos, const string& str); //插入字符串
+string& insert(int pos, int n, char c);//在指定位置插入 n 个字符 c
+string& erase(int pos, int n = npos);//删除从 Pos 开始的 n 个字符
+
+//9.string与char*互转
+
+//string 转 char*
+string str = "itcast";
+const char* cstr = str.c_str();
+//char* 转 string
+char* s = "itcast";
+string str(s);
+```
+
+## 8.3 vector容器
+
+vector容器更像是一个单端动态数组。
+
+Array是静态空间，一旦配置了就不能改变，如果要更换一个空间，需要手动自行迁移和释放。
+
+vector的实现技术，关键在于其对大小的控制，以及重新配置时的数据移动效率。
+
+<img src="./legend/vector容器.png" style="zoom:150%;" />
+
+1. v.begin()：获取容器的起始迭代器（指向第0个元素）
+2. v.end():获取容器的结束迭代器（指向最后一个元素的下一个位置）
+
+Vector采用的数据结构非常简单，**线性连续空间**。
+
+所谓动态增加大小，并不是在原空间之后续接新空间（因为无法保证原空间之后尚有可配置的空间），而是一块更大的内存空间，然后将原数据拷贝到新空间，并释放原空间。因此，**对vector的任何操作，一旦引起空间的重新配置，指向原vector的所有迭代器就都失效了。这一点尤为小心。**
+
+```c++
+#include<vector>
+// 1.vector构造函数
+vector<T> v; //采用模板实现类实现，默认构造函数
+vector(v.begin(), v.end());//将 v[begin(), end())区间中的元素拷贝给本身。
+vector(n, elem);//构造函数将 n 个 elem 拷贝给本身。
+vector(const vector &vec);//拷贝构造函数。
+
+```
+
+### 8.3.1 vector迭代器
+
+```c++
+#include<vector>
+#include<iostream>
+using namespace std;
+
+// 1.vector迭代器的使用
+void iteratorUsing() {
+	vector<int> v1;
+	v1.push_back(10);
+	v1.push_back(30);
+	v1.push_back(20);
+	v1.push_back(50);
+	v1.push_back(40);
+	
+	// 遍历该容器
+	// 定义一个迭代器iterator,保存起始迭代器
+	vector<int>::iterator it = v1.begin();
+	for (; it != v1.end(); it++) {
+        // it是当前元素的迭代器。可以把it看成是指针，但不要认为it是指针，它底层有很多细节
+		cout << *it << " ";
+	}
+	cout << endl;
+}
+```
+
+### 8.3.2 vector开辟空间机制
+
+```c++
+#include<vector>
+#include<iostream>
+using namespace std;
+
+// 2.vector开辟新的空间
+// 开辟新的空间后，vector的起始迭代器就会变化。
+void reCreateSpace() {
+	vector<int> v2;
+	cout << "容量：" << v2.capacity() << " 大小：" << v2.size() << endl;// 0 0
+	
+	// 预留空间，大致可以减少重复开辟空间的次数。
+	//v2.reserve(1000);
+
+	vector<int>::iterator it;
+
+	int count = 0;
+	for (int i = 0; i < 1000; i++) {
+
+		v2.push_back(i);
+
+		if (it != v2.begin()) {
+			count++;
+			cout << "第" << count << "次开辟空间容量是" << v2.capacity() << endl;
+			it = v2.begin();
+		}
+		
+	}
+}
+```
+
+### 8.3.3 vector常用API操作
+
+```c++
+// 1. vector构造器
+
+vector<T> v; //采用模板实现类实现，默认构造函数
+vector(v.begin(), v.end());//将 v[begin(), end())区间中的元素拷贝给本身。
+vector(n, elem);//构造函数将 n 个 elem 拷贝给本身。
+vector(const vector &vec);//拷贝构造函数。
+
+//2. vector 常用赋值操作
+
+assign(beg, end);//将[beg, end)区间中的数据拷贝赋值给本身。
+assign(n, elem);//将 n 个 elem 拷贝赋值给本身。
+vector& operator=(const vector &vec);//重载等号操作符
+swap(vec);// 将 vec 与本身的元素互换。
+
+//3.vector 大小操作
+
+size();//返回容器中元素的个数
+empty();//判断容器是否为空
+// resize不会改变空间的大小
+resize(int num);//重新指定容器的长度为 num，若容器变长，则以默认值填充新位置。如果容器变短，则末尾超出容器长度的元素被删除。
+resize(int num, elem);//重新指定容器的长度为 num，若容器变长，则以 elem 值填充新位置。如果容器变短，则末尾超出容器长>度的元素被删除。
+capacity();//容器的容量
+reserve(int len);//容器预留 len 个元素长度，预留位置不初始化，元素不可访问。
+
+//4.vector 数据存取操作
+
+at(int idx); //返回索引 idx 所指的数据，如果 idx 越界，抛出 out_of_range 异常。
+operator[];//返回索引 idx 所指的数据，越界时，运行直接报错
+front();//返回容器中第一个数据元素
+back();//返回容器中最后一个数据元素
+
+// 5.vector 插入和删除操作
+
+insert(const_iterator pos, int count,ele);//迭代器指向位置 pos 插入 count个元素 ele.
+push_back(ele); //尾部插入元素 ele
+pop_back();//删除最后一个元素
+erase(const_iterator start, const_iterator end);//删除迭代器从 start 到 end 之间的元素
+erase(const_iterator pos);//删除迭代器指向的元素
+clear();//删除容器中所有元素
+
+// 6.swap收缩内存空间
+cout<<"容量:"<<v1.capacity()<<", 大小:"<<v1.size()<<endl;//1000 4
+//v1.resize(4); //resize只能修改大小 不能修改容量
+vector<int>(v1).swap(v1);
+cout<<"容量:"<<v1.capacity()<<", 大小:"<<v1.size()<<endl;//4 4
+
+// 7.reserve预留空间
+vector<int> v1;
+v1.reserve(100);
+```
+
+### 8.3.4 案例
+
+```c++
+// vector 容器嵌套
+#include<vector>
+#include<iostream>
+using namespace std;
+
+int main() {
+	vector<int> v1(5, 10);//5个10
+	vector<int> v2(5, 100);
+	vector<int> v3(5, 1000);
+	
+	vector<vector<int>> v4;
+	v4.push_back(v1);
+	v4.push_back(v2);
+	v4.push_back(v3);
+
+	vector<vector<int>>::iterator it = v4.begin();
+    
+	for (; it != v4.end(); it++) {
+        
+		vector<int>::iterator mit = (*it).begin();
+        
+		for (; mit != (*it).end(); mit++) {
+			cout << *mit << " ";
+		}
+		cout << endl;
+	}
+	return 0;
+}
+```
+
+```c++
+// vector<Person>排序
+#include<vector>
+#include<iostream>
+#include<string>
+#include<algorithm>
+using namespace std;
+
+class Person;
+bool comparePerson(Person p1, Person p2);
+
+class Person {
+	friend bool comparePerson(Person p1, Person p2);
+	friend ostream& operator<<(ostream& out, Person& stu);
+private:
+	string name;
+	int num;
+	float score;
+public:
+	Person() {};
+	Person(string name, int num, float score) {
+		this->name = name;
+		this->num = num;
+		this->score = score;
+	}
+};
+
+ostream& operator<<(ostream& out, Person& p) {
+	out << "num: " << p.num << " name: " << p.name << " score: " << p.score << endl;
+	return out;
+}
+
+void printVectorPerson(vector<Person> &v) {
+	vector<Person>::iterator it = v.begin();
+	for (; it != v.end(); it++) {
+		cout << *it << " ";
+	}
+	cout << endl;
+}
+
+bool comparePerson(Person p1,Person p2) {
+	// 从大到小
+	return p1.score > p2.score;
+}
+
+void vectorPersonSort() {
+	vector<Person> v1;
+	v1.push_back(Person("john", 101, 80.5f));
+	v1.push_back(Person("Tom", 102, 70.5f));
+	v1.push_back(Person("bob", 103, 90.5f));
+	v1.push_back(Person("joe", 105, 60.5f));
+	v1.push_back(Person("lucy", 104, 82.5f));
+    
+    // #include<algorithm>
+	sort(v1.begin(), v1.end(), comparePerson);
+    
+	printVectorPerson(v1);
+}
+
+
+// 对vector<int>排序
+void vectorIntSort() {
+	vector<int> v1;
+	v1.push_back(10);
+	v1.push_back(30);
+	v1.push_back(20);
+	v1.push_back(50);
+	v1.push_back(40);
+	sort(v1.begin(),v1.end());
+	printVector03(v1);
+}
+```
+
+## 8.4 deque容器
+
+Vector 容器是单向开口的连续内存空间，deque 则是一种双向开口的连续线性空间。
+
+deque容器与vector容器的最大差异在于：
+
+1. deque容器头部插入删除数据非常方便，而vector则很繁琐
+2. deque**没有容量的概念**，因为**它是动态的以分段连续空间组合而成**，随时可以增加一段新的空间并连接起来。而vector会因旧空间不足而重新分配一整块更大的新空间，赋值元素，然后释放旧空间。
+
+deque容器和vector容器一样提供了Random Access Iterator，但是它的迭代器并不是普通指针，复杂程度和vector不是一个量级。
+
+所以除非必要，**我们应该尽可能的使用vector，而不是deque**。对deque的排序操作，为了最高效率，可将deque先完整的复制到一个vector中，对vector排序，在复制会deque。
+
+
+
+![](./legend/deque容器.jpeg)
+
+### 8.4.1 deque容器实现原理
+
+连续线性空间：
+
+1. array，静态空间，整体性。
+2. vector，伪动态，整体性。
+   - 成长的代价非常昂贵。首先申请更大的空间，其次原数据复制到新空间，最后释放原空间。
+3. deque，真动态，分散性。
+   - 串接一段段定量连续空间，一旦有需要，在deque头尾端增加新的空间，然后串接在头尾端。
+   - deque最大的工作就是维护这些分段连续的内存空间的整体性假象。
+   - 提供随机存取的接口，避开重新配置空间，复制，释放的轮回，**代价就是复杂的迭代器架构**
+
+Deque代码实现远比vector、array复杂的多。
+
+deque采取一块所谓的map（注意不是stl的map容器）作为主控，它是一小块连续的内存空间，其中每一个元素都是一个指针，指向另一段连续型内存空间，称作缓冲区。缓冲区才是deque的存储空间主体。
+
+![](./legend/deque容器的实现原理.gif)
+
+### 8.4.2 deque常用api
+
+```c++
+// 1.构造函数
+deque<T> deqT;//默认构造形式
+deque(beg, end);//构造函数将[beg, end)区间中的元素拷贝给本身。
+deque(n, elem);//构造函数将 n 个 elem 拷贝给本身。
+deque(const deque &deq);//拷贝构造函数。
+
+//2.deque 赋值操作
+assign(beg, end);//将[beg, end)区间中的数据拷贝赋值给本身。
+assign(n, elem);//将 n 个 elem 拷贝赋值给本身。
+deque& operator=(const deque &deq); //重载等号操作符
+swap(deq);// 将 deq 与本身的元素互换
+
+//3.deque 大小操作
+deque.size();//返回容器中元素的个数
+deque.empty();//判断容器是否为空
+deque.resize(num);//重新指定容器的长度为 num,若容器变长，则以默认值填充新位置。如果容器变短，则末尾超出容器长度的元素被删除。
+deque.resize(num, elem); //重新指定容器的长度为 num,若容器变长，则以 elem 值填充新位置,如果容器变短，则末尾超出容器长度的元素被删除。
+
+//4.deque 双端插入和删除操作
+push_back(elem);//在容器尾部添加一个数据
+push_front(elem);//在容器头部插入一个数据
+pop_back();//删除容器最后一个数据
+pop_front();//删除容器第一个数据
+
+//5.deque 数据存取
+at(idx);//返回索引 idx 所指的数据，如果 idx 越界，抛出 out_of_range。
+operator[];//返回索引 idx 所指的数据，如果 idx 越界，不抛出异常，直接出错。
+front();//返回第一个数据。
+back();//返回最后一个数据
+
+//6.deque 插入操作
+insert(pos,elem);//在 pos 位置插入一个 elem 元素的拷贝，返回新数据的位置。
+insert(pos,n,elem);//在 pos 位置插入 n 个 elem 数据，无返回值。
+insert(pos,beg,end);//在 pos 位置插入[beg,end)区间的数据，无返回值。
+
+//7.删除操作
+clear();//移除容器的所有数据
+erase(beg,end);//删除[beg,end)区间的数据，返回下一个数据的位置。
+erase(pos);//删除 pos 位置的数据，返回下一个数据的位置。
+```
+
+## 8.5 stack容器
+
+Stack栈容器 所有元素的进出都必须符合”先进后出”的条件，只有 stack 顶端的元素，才有机会被外界取用。
+
+**Stack 不提供遍历功能，也不提供迭代器。**
+
+![](./legend/stack容器.jpg)
+
+```c++
+//1.stack 构造函数
+stack<T> stkT;//stack 采用模板类实现， stack 对象的默认构造形式：
+stack(const stack &stk);//拷贝构造函数
+
+//2.stack 赋值操作
+stack& operator=(const stack &stk);//重载等号操作符
+
+//3.stack 数据存取操作
+push(elem);//向栈顶添加元素
+pop();//从栈顶移除第一个元素
+top();//返回栈顶元素
+
+//4.stack 大小操作
+empty();//判断堆栈是否为空
+size();//返回堆栈的大小
+```
+
+```c++
+#include<stack>
+#include<iostream>
+using namespace std;
+
+int main5() {
+	stack<int> s;
+	s.push(10);
+	s.push(20);
+	s.push(30);
+	s.push(40);
+	s.push(50);
+	while (!s.empty()) {
+		cout << s.top()<<" ";
+		s.pop();
+	}
+	cout << endl;
+	return 0;
+}
+
+
+```
+
+
+
+## 8.6 queue容器
+
+Queue队列容器 所有元素的进出都必须符合”先进先出”的条件，只有 queue 的顶端元素，才有机会被外界取用。
+
+Queue 不提供遍历功能，也不提供迭代器。
+
+![](./legend/queue容器.jpg)
+
+```c++
+queue<T> queT;//queue 采用模板类实现，queue 对象的默认构造形式：
+queue(const queue &que);//拷贝构造函数
+push(elem);//往队尾添加元素
+pop();//从队头移除第一个元素
+back();//返回最后一个元素
+front();//返回第一个元素
+queue& operator=(const queue &que);//重载等号操作符
+empty();//判断队列是否为空
+size();//返回队列的大小
+```
+
+```c++
+#include<queue>
+#include<iostream>
+using namespace std;
+
+int main() {
+	queue<int> q;
+	q.push(10);
+	q.push(20);
+	q.push(30);
+	q.push(40);
+	q.push(50);
+	while (!q.empty()) {
+		cout << q.front() << " ";
+		q.pop();
+	}
+	cout << endl;
+	return 0;
+}
+```
+
+
+
+## 8.7 list容器
+
+链表是一种物理存储单元上非连续、非顺序的存储结构，数据元素的逻辑顺序是通过链表中的指针链接次序实现的。
+
+元素的插入删除是常数时间。
+
+List是一个双向链表。采用动态存储分配，不会造成内存浪费和溢出 链表执行插入和删除操作十分方便，修改指针即可，不需
+要移动大量元素 链表灵活，但是空间和时间额外耗费较大。
+
+![](./legend/list容器.png)
+
+```c++
+//1.list 构造函数
+
+list<T> lstT;//list 采用采用模板类实现,对象的默认构造形式：
+list(beg,end);//构造函数将[beg, end)区间中的元素拷贝给本身。
+list(n,elem);//构造函数将 n 个 elem 拷贝给本身。
+list(const list &lst);//拷贝构造函数。
+
+//2.list 数据元素插入和删除操作
+
+push_back(elem);//在容器尾部加入一个元素
+pop_back();//删除容器中最后一个元素
+push_front(elem);//在容器开头插入一个元素
+pop_front();//从容器开头移除第一个元素
+insert(pos,elem);//在 pos 位置插 elem 元素的拷贝，返回新数据的位置。
+insert(pos,n,elem);//在 pos 位置插入 n 个 elem 数据，无返回值。
+insert(pos,beg,end);//在 pos 位置插入[beg,end)区间的数据，无返回值。
+clear();//移除容器的所有数据
+erase(beg,end);//删除[beg,end)区间的数据，返回下一个数据的位置。
+erase(pos);//删除 pos 位置的数据，返回下一个数据的位置。
+remove(elem);//删除容器中所有与 elem 值匹配的元素。
+
+//3.list 大小操作
+size();//返回容器中元素的个数
+empty();//判断容器是否为空
+resize(num);//重新指定容器的长度为 num，若容器变长，则以默认值填充新位置。如果容器变短，则末尾超出容器长度的元素被删除。
+resize(num, elem);//重新指定容器的长度为 num，若容器变长，则以 elem 值填充新位置。如果容器变短，则末尾超出容器长度的元素被删除。
+
+//4.list 赋值操作
+assign(beg, end);//将[beg, end)区间中的数据拷贝赋值给本身。
+assign(n, elem);//将 n 个 elem 拷贝赋值给本身。
+list& operator=(const list &lst);//重载等号操作符
+swap(lst);//将 lst 与本身的元素互换。
+
+
+//5.list 数据的存取
+front();//返回第一个元素。
+back();//返回最后一个元素。
+
+//6.list 反转排序
+reverse();//反转链表，比如 lst 包含 1,3,5 元素，运行此方法后，lst 就包含 5,3,1元素。
+sort(); //list 排序
+```
+
+```c++
+#include<list>
+#include<iostream>
+using namespace std;
+void printListInt(list<int>& l) {
+	list<int>::iterator it = l.begin();
+	//list是双向链表，它的迭代器是双向迭代器，不支持+2操作，支持++操作
+	for (; it != l.end(); it++) {
+		cout << (*it) << " ";
+	}
+	cout << endl;
+}
+int main6() {
+	list<int> l;
+	l.push_back(10);
+	l.push_back(30);
+	l.push_back(20);
+	l.push_back(50);
+	l.push_back(40);
+
+	//stl提供的算法 只支持随机访问迭代器，而list是双向迭代器，所以sort不支持
+	//sort(l.begin(),l.end());
+	l.sort();
+	printListInt(l);
+	cout << endl;
+
+	return 0;
+}
+
+
+```
+
+## 8.8 set容器
 
 
 

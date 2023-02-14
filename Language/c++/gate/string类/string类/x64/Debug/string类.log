@@ -1,0 +1,7 @@
+﻿C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Microsoft\VC\v170\Microsoft.CppBuild.targets(517,5): warning MSB8028: 中间目录(x64\Debug\)包含从另一个项目(string类.vcxproj)共享的文件。   这会导致错误的清除和重新生成行为。
+  vector容器.cpp
+D:\gitRepository\daily\Language\c++\gate\string类\string类\vector容器.cpp(48,22): error C3878: 语法错误: "expression" 后出现意外标记 "标识符"
+D:\gitRepository\daily\Language\c++\gate\string类\string类\vector容器.cpp(6,6): message : 此诊断出现在编译器生成的函数“void printVector(std::vector<T,std::allocator<_Ty>> &)”中
+D:\gitRepository\daily\Language\c++\gate\string类\string类\vector容器.cpp(48,22): message : 已跳过错误恢复:“标识符 = 标识符  . . . (”
+D:\gitRepository\daily\Language\c++\gate\string类\string类\vector容器.cpp(6,6): message : 此诊断出现在编译器生成的函数“void printVector(std::vector<T,std::allocator<_Ty>> &)”中
+D:\gitRepository\daily\Language\c++\gate\string类\string类\vector容器.cpp(53,1): fatal  error C1903: 无法从以前的错误中恢复；正在停止编译

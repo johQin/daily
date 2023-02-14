@@ -127,7 +127,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="源.cpp" />
+    <ClCompile Include="异常变量的生命周期.cpp" />
+    <ClCompile Include="异常的多态.cpp" />
+    <ClCompile Include="异常规范.cpp" />
+    <ClCompile Include="自定义异常.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
