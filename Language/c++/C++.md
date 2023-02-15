@@ -4557,6 +4557,542 @@ int main() {
 
 # 9 STL之算法
 
+## 9.1 函数对象
+
+**重载函数调用符的类，其对象称为函数对象，即它们是行为类似函数的对 象**，也叫**仿函数(functor)**。
+
+其实就是重载“()”操作符，使得类对象可以像函数那样调用。
+
+```c++
+#include<iostream>
+using namespace std;
+
+class Print {
+public:
+	void operator()(string p) {
+		cout << p << endl;
+	}
+};
+
+int main() {
+	Print p;
+    //对象()
+	p("hello world");
+	//匿名对象()
+	Print()("how are you?");
+
+	return 0;
+}
+```
+
+注意:
+
+1. 函数对象(仿函数)是一个类，不是一个函数。
+2. 函数对象(仿函数)重载了”() ”操作符使得它可以像函数一样调用。
+
+函数对象按照参数的多少，被称为n元函数对象。
+
+1. 函数对象通常不定义构造函数和析构函数，所以在构造和析构时不会发生任何问题，避免了函数调用的运行时问题。
+2. **函数对象超出普通函数的概念，函数对象可以有自己的状态**
+3. 函数对象可内联编译，性能好。用函数指针几乎不可能
+4. 模版函数对象使函数对象具有通用性，这也是它的优势之一
+
+## 9.2 谓词
+
+**返回值为bool类型的普通函数或仿函数** 都叫谓词。
+
+按参数的多少，被称作n元谓词
+
+```c++
+#include<iostream>
+#include<vector>
+#include<algorithm>
+using namespace std;
+
+bool greaterThan30(int p){
+	return p > 30;
+}
+class GreaterThan30 {
+public:
+	bool operator()(int p) {
+		return p > 30;
+	}
+};
+int main() {
+	vector<int> v;
+	v.push_back(20);
+	v.push_back(10);
+	v.push_back(40);
+	v.push_back(50);
+	v.push_back(30);
+
+	vector<int>::iterator ret;
+	// 普通函数提供策略，直接函数名
+	//ret = find_if(v.begin(), v.end(), greaterThan30);
+	// 
+	// 仿函数提供策略，需要类名+()
+	ret = find_if(v.begin(), v.end(), GreaterThan30());
+	
+	if (ret != v.end()) {
+		cout << "寻找的结果：" << *ret << endl;
+	}
+
+	return 0;
+}
+```
+
+## 9.3 内建函数对象
+
+STL 内建了一些函数对象。
+
+分为:
+
+- 算数类函数对象,
+- 关系运算类函数对象，
+- 逻辑运算类仿函数。
+
+这些仿函数所产生的对象，用法和一般函数完全相同，当然我们还可以产生无名的临时对象来履行函数功能。
+
+```c++
+//1.算数类函数对象,
+template<class T> T plus<T>//加法仿函数
+template<class T> T minus<T>//减法仿函数
+template<class T> T multiplies<T>//乘法仿函数
+template<class T> T divides<T>//除法仿函数
+template<class T> T modulus<T>//取模仿函数
+template<class T> T negate<T>//取反仿函数
+//2.关系运算类函数对象，
+template<class T> bool equal_to<T>//等于
+template<class T> bool not_equal_to<T>//不等于
+template<class T> bool greater<T>//大于
+template<class T> bool greater_equal<T>//大于等于
+template<class T> bool less<T>//小于
+template<class T> bool less_equal<T>//小于等于
+//3.逻辑运算类仿函数
+template<class T> bool logical_and<T>//逻辑与
+template<class T> bool logical_or<T>//逻辑或
+template<class T> bool logical_not<T>//逻辑非
+```
+
+```c++
+#include<iostream>
+#include<vector>
+#include<algorithm>
+#include<functional>
+using namespace std;
+void printAll(vector<int> v1) {
+	vector<int>::iterator it = v1.begin();
+	for (; it != v1.end(); it++) {
+		cout << *it << " ";
+	}
+	cout << endl;
+}
+int main() {
+	vector<int> v;
+	v.push_back(20);
+	v.push_back(10);
+	v.push_back(40);
+	v.push_back(50);
+	v.push_back(30);
+
+	sort(v.begin(), v.end(), greater<int>());
+	printAll(v);//50 40 30 20 10
+
+	vector<int>::iterator ret;
+	// bind1st和bind2nd是将二元函数对象转换为一元函数对象
+	// 比如一个比较大小的函数是二元函数，当在某些情况下我们想要固定第一个参数或者第二个参数时，就成了一元函数
+    // 属于适配器内容，可以看后面
+	ret = find_if(v.begin(), v.end(), bind2nd(greater<int>(), 40));
+	if (ret != v.end()) {
+		cout << "寻找的结果：" << *ret << endl;
+	}
+	return 0;
+}
+```
+
+## 9.4 适配器
+
+包装函数或者类，使它适应功能的需要。
+
+为算法提供接口
+
+### 9.4.1 函数对象适配器
+
+函数对象作为适配器。
+
+```c++
+#include<iostream>
+#include<vector>
+#include<algorithm>
+#include<functional>
+using namespace std;
+// 第二步：公共继承binary_function<first_param_type,second_param_type,return_val_type>
+// binary_function可以作为一个二元函数对象的基类，它只定义了参数和返回值的类型，本身并不重载（）操作符，这个任务应该交由派生类去完成。
+// unary_function可以作为一个一元函数对象的基类
+class GreaterGate :public binary_function<int, int, void> {
+public:
+	//第三步：const修饰调用运算符重载函数
+	void operator()(int val, int gate) const{
+		cout << "val = " << val << " gate = " << gate << endl;
+	}
+};
+int main() {
+	vector<int> v;
+	v.push_back(20);
+	v.push_back(10);
+	v.push_back(40);
+	v.push_back(50);
+	v.push_back(30);
+	// 第一步：绑定需要适配的参数
+	// bind2nd，绑定第2个参数为函数对象的gate，
+	for_each(v.begin(), v.end(), bind2nd(GreaterGate(), 40));
+	//val = 20 gate = 40
+	//val = 10 gate = 40
+	//val = 40 gate = 40
+	//val = 50 gate = 40
+	//val = 30 gate = 40
+	// 
+	// bind1st，绑定第1个参数为函数对象的gate，
+	//for_each(v.begin(), v.end(), bind1st(GreaterGate(), 40));
+}
+```
+
+### 9.4.2 函数指针适配器ptr_fun
+
+prt_fun将一个普通函数包装成函数对象。`#include <functional>`
+
+此函数与关联类型从 C++11 起被弃用，被更通用的 std::function 和 std::ref 所替代。
+
+普通函数作为适配器。
+
+```c++
+#include<iostream>
+#include<vector>
+#include<algorithm>
+#include<functional>
+using namespace std;
+
+void greaterGate(int val, int gate) {
+	cout << "val = " << val << " gate = " << gate << endl;
+}
+int main() {
+	vector<int> v;
+	v.push_back(20);
+	v.push_back(10);
+	v.push_back(40);
+	v.push_back(50);
+	v.push_back(30);
+
+    //
+	for_each(v.begin(), v.end(), bind2nd(ptr_fun(greaterGate), 40));
+	return 0;
+}
+```
+
+### 9.4.3 成员函数作为适配器mem_fun_ref
+
+mem_fn：把类成员函数转换为函数对象（仿函数），使用**对象引用，指针，临时对象**都能进行绑定。
+
+mem_fun：把类成员函数转换为函数对象（仿函数），使用**对象指针**进行绑定。
+
+mem_fun_ref：把类成员函数转换为函数对象（仿函数），使用**对象引用**进行绑定。
+
+```c++
+class Ani{
+    void printDog(){}
+}
+Ani d;
+// 函数名：Ani::printDog
+// &Ani::printDog，取函数的地址。
+auto func1 = mem_fun(&Ani::printDog);
+func1(&d);//传指针（地址）
+auto fun2 = mem_fun_ref(&Ani::printDog);
+fun2(d);//传引用
+```
+
+```c++
+#include<iostream>
+#include<vector>
+#include<algorithm>
+#include<functional>
+using namespace std;
+
+class Data {
+public:
+	int data;
+public:
+	Data() {};
+	Data(int data) {
+		this->data = data;
+	}
+	void printInt(int tmp) {
+		cout << "value=" << data + tmp << endl;
+	}
+};
+int main() {
+	vector<Data> v;
+	v.push_back(Data(10));
+	v.push_back(Data(20));
+	v.push_back(Data(50));
+	v.push_back(Data(30));
+	v.push_back(Data(70));
+	//&Data::printInt,成员函数取地址。
+	for_each(v.begin(), v.end(), bind2nd(mem_fun_ref(&Data::printInt), 100));
+
+
+	return 0;
+}
+```
+
+### 9.4.4 取反适配器
+
+not1：对一元谓词的取反
+
+not2：对二原谓词取反
+
+```c++
+#include<iostream>
+#include<vector>
+#include<algorithm>
+#include<functional>
+using namespace std;
+int main() {
+	vector<int> v;
+	v.push_back(10);
+	v.push_back(20);
+	v.push_back(50);
+	v.push_back(30);
+	v.push_back(70);
+	auto ret=find_if(v.begin(), v.end(), not1(bind2nd(greater<int>(),50)));
+	if (ret != v.end()) {
+		cout << (*ret) << endl;
+	}
+	return 0;
+}
+```
+
+## 9.5 算法
+
+算法的头文件#include。 是所有 STL 头文件中最大的一个,其中常用的功能涉及到比较，交换，查找，遍历，复制，修改，反转，排序，合并等。
+
+### 9.5.1 遍历算法
+
+```c++
+/*
+遍历算法 遍历容器元素
+@param beg 开始迭代器
+@param end 结束迭代器
+@param _callback 函数回调或者函数对象
+@return 函数对象
+*/
+for_each(iterator beg, iterator end, _callback);
+
+/*
+transform 算法 将指定容器区间元素搬运到另一容器中
+注意 : transform 不会给目标容器分配内存，所以需要我们提前分配好内存
+@param beg1 源容器开始迭代器
+@param end1 源容器结束迭代器
+@param beg2 目标容器开始迭代器
+@param _cakkback 回调函数或者函数对象
+@return 返回目标容器迭代器
+*/
+transform(iterator beg1, iterator end1, iterator beg2, _callback);
+```
+
+### 9.5.2 查找算法
+
+```c++
+/*
+find 算法 查找元素
+@param beg 容器开始迭代器
+@param end 容器结束迭代器
+@param value 查找的元素
+@return 返回查找元素的位置
+*/
+find(iterator beg, iterator end, value);
+
+/*
+find_if 算法 条件查找
+@param beg 容器开始迭代器
+@param end 容器结束迭代器
+@param callback 回调函数或者谓词(返回 bool 类型的函数对象)
+@return bool 查找返回 true 否则 false
+*/
+find_if(iterator beg, iterator end, _callback);
+
+/*
+adjacent_find 算法 查找相邻重复元素
+@param beg 容器开始迭代器
+@param end 容器结束迭代器
+@param _callback 回调函数或者谓词(返回 bool 类型的函数对象)
+@return 返回相邻元素的第一个位置的迭代器
+*/
+adjacent_find(iterator beg, iterator end, _callback);
+
+/*
+binary_search 算法 二分查找法
+注意: 在无序序列中不可用
+@param beg 容器开始迭代器
+@param end 容器结束迭代器
+@param value 查找的元素
+@return bool 查找返回 true 否则 false
+*/
+bool binary_search(iterator beg, iterator end, value);
+
+/*
+count 算法 统计元素出现次数
+@param beg 容器开始迭代器
+@param end 容器结束迭代器
+@param value 回调函数或者谓词(返回 bool 类型的函数对象)
+@return int 返回元素个数
+*/
+count(iterator beg, iterator end, value);
+
+/*
+count_if 算法 统计元素出现次数
+@param beg 容器开始迭代器
+@param end 容器结束迭代器
+@param callback 回调函数或者谓词(返回 bool 类型的函数对象)
+@return int 返回元素个数
+*/
+count_if(iterator beg, iterator end, _callback);
+```
+
+### 9.5.3 排序算法
+
+```c++
+/*
+merge 算法 容器元素合并，并存储到另一容器中
+注意:两个容器必须是有序的
+@param beg1 容器 1 开始迭代器
+@param end1 容器 1 结束迭代器
+@param beg2 容器 2 开始迭代器
+@param end2 容器 2 结束迭代器
+@param dest 目标容器开始迭代器
+*/
+merge(iterator beg1, iterator end1, iterator beg2, iterator end2, iterator dest);
+
+/*
+sort 算法 容器元素排序
+@param beg 容器 1 开始迭代器
+@param end 容器 1 结束迭代器
+@param _callback 回调函数或者谓词(返回 bool 类型的函数对象)
+*/
+sort(iterator beg, iterator end, _callback);
+
+/*
+random_shuffle 算法 对指定范围内的元素随机调整次序
+@param beg 容器开始迭代器
+@param end 容器结束迭代器
+*/
+random_shuffle(iterator beg, iterator end);
+
+/*
+reverse 算法 反转指定范围的元素
+@param beg 容器开始迭代器
+@param end 容器结束迭代器
+*/
+reverse(iterator beg, iterator end);
+```
+
+### 9.5.4 拷贝替换算法
+
+```c++
+/*
+copy 算法 将容器内指定范围的元素拷贝到另一容器中
+@param beg 容器开始迭代器
+@param end 容器结束迭代器
+@param dest 目标起始迭代器
+*/
+copy(iterator beg, iterator end, iterator dest);
+
+/*
+replace 算法 将容器内指定范围的旧元素修改为新元素
+@param beg 容器开始迭代器
+@param end 容器结束迭代器
+@param oldvalue 旧元素
+@param oldvalue 新元素
+*/
+replace(iterator beg, iterator end, oldvalue, newvale);
+
+/*
+replace_if 算法 将容器内指定范围满足条件的元素替换为新元素
+@param beg 容器开始迭代器
+@param end 容器结束迭代器
+@param callback 函数回调或者谓词(返回 Bool 类型的函数对象)
+@param oldvalue 新元素
+*/
+replace_if(iterator beg, iterator end, _callback, newvalue);
+
+/*
+swap 算法 互换两个容器的元素
+@param c1 容器 1
+@param c2 容器 2
+*/
+swap(container c1, container c2);
+```
+
+### 9.5.5 算术生成算法
+
+```c++
+/*
+accumulate 算法 计算容器元素累计总和
+@param beg 容器开始迭代器
+@param end 容器结束迭代器
+@param value 累加值
+*/
+accumulate(iterator beg, iterator end, value);
+
+/*
+fill 算法 向容器中添加元素
+@param beg 容器开始迭代器
+@param end 容器结束迭代器
+@param value t 填充元素
+*/
+fill(iterator beg, iterator end, value);
+```
+
+### 9.5.6 集合算法
+
+```c++
+/*
+set_intersection 算法 求两个 set 集合的交集
+注意:两个集合必须是有序序列
+@param beg1 容器 1 开始迭代器
+@param end1 容器 1 结束迭代器
+@param beg2 容器 2 开始迭代器
+@param end2 容器 2 结束迭代器
+@param dest 目标容器开始迭代器
+@return 目标容器的最后一个元素的迭代器地址
+*/
+set_intersection(iterator beg1, iterator end1, iterator beg2, iterator end2,iterator dest);
+
+/*
+set_union 算法 求两个 set 集合的并集
+注意:两个集合必须是有序序列
+@param beg1 容器 1 开始迭代器
+@param end1 容器 1 结束迭代器
+@param beg2 容器 2 开始迭代器
+@param end2 容器 2 结束迭代器
+@param dest 目标容器开始迭代器
+@return 目标容器的最后一个元素的迭代器地址
+*/
+set_union(iterator beg1, iterator end1, iterator beg2, iterator end2, iterator dest);
+
+/*
+set_difference 算法 求两个 set 集合的差集
+注意:两个集合必须是有序序列
+@param beg1 容器 1 开始迭代器
+@param end1 容器 1 结束迭代器
+@param beg2 容器 2 开始迭代器
+@param end2 容器 2 结束迭代器
+@param dest 目标容器开始迭代器
+@return 目标容器的最后一个元素的迭代器地址
+*/
+set_difference(iterator beg1, iterator end1, iterator beg2, iterator end2,
+iterator dest)
+```
+
 
 
 # visual studio
