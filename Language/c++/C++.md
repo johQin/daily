@@ -1950,14 +1950,14 @@ int main() {
 using namespace std;
 class Print {
 public:
-	//重载函数调用符()
+	//重载函数调用符()，仿函数
 	void operator()(char* str) {
 		cout << str << endl;
 	}
 };
 int main() {
 	Print p;
-    // 伪函数
+    // 伪函数，
 	p("hello world");
 
 	// Print()匿名对象，
@@ -4273,7 +4273,289 @@ int main6() {
 
 ```
 
-## 8.8 set容器
+## 8.8 set/multiset容器
+
+set 的特性是。所有元素都会根据元素的键值自动被排序，**set 的元素即是键值又是实值。**
+
+set 不允许两个元素有相同的键值。
+
+set容器的迭代器是**只读迭代器（const_iterator），不允许修改键值**，会破坏set的内存布局（平衡二叉树）。
+
+multiset 特性及用法和 set 完全相同，唯一的差别在于它允许键值重复。
+
+```c++
+//1.set 构造函数
+set<T> st;//set 默认构造函数：
+mulitset<T> mst; //multiset 默认构造函数:
+set(const set &st);//拷贝构造函数
+
+//2、set 赋值操作
+set& operator=(const set &st);//重载等号操作符
+swap(st);//交换两个集合容器
+
+//3、set 大小操作
+size();//返回容器中元素的数目
+empty();//判断容器是否为空
+
+//4、set 插入和删除操作
+insert(elem);//在容器中插入元素。
+clear();//清除所有元素
+erase(pos);//删除 pos 迭代器所指的元素，返回下一个元素的迭代器。
+erase(beg, end);//删除区间[beg,end)的所有元素 ，返回下一个元素的迭代器。
+erase(elem);//删除容器中值为 elem 的元素。
+
+//5、set 查找操作
+find(key);//查找键 key 是否存在,若存在，返回该键的元素的迭代器；若不存在，返回 set.end();
+count(key);//查找键 key 的元素个数
+lower_bound(keyElem);//返回第一个 key>=keyElem 元素的迭代器。
+upper_bound(keyElem);//返回第一个 key>keyElem 元素的迭代器。
+equal_range(keyElem);//返回容器中 key 与 keyElem 相等的上下限的两个迭代器
+```
+
+```c++
+#include<set>
+#include<iostream>
+using namespace std;
+
+void printSetInt(set<int>& s) {
+	set<int>::const_iterator it = s.begin();
+	for (; it != s.end(); it++) {
+		cout << (*it) << " ";
+	}
+	cout << endl;
+}
+
+// 伪函数的类，MySort()
+class MySort {
+public:
+	//c++ 17 需要在重载这里加const
+	bool operator()(int a, int b) const {
+		return a > b;
+	}
+};
+void printSetIntSort(set<int,MySort > &s) {
+	set<int,MySort>::const_iterator it = s.begin();
+	for (; it != s.end(); it++) {
+		cout << (*it) << " ";
+	}
+	cout << endl;
+}
+
+
+class MyGreaterPerson;
+class Person {
+	friend class MyGreaterPerson;
+	friend ostream& operator<<(ostream& out, const Person& stu);
+private:
+	string name;
+	int num;
+	float score;
+public:
+	Person() {};
+	Person(string name, int num, float score) {
+		this->name = name;
+		this->num = num;
+		this->score = score;
+	}
+};
+class MyGreaterPerson {
+public:
+	bool operator()(Person p1, Person p2) const {
+		return p1.score > p2.score;
+	}
+};
+ostream& operator<<(ostream& out,const Person& p) {
+	out << "num: " << p.num << " name: " << p.name << " score: " << p.score << endl;
+	return out;
+}
+
+void printSetPerson(set<Person, MyGreaterPerson>& s) {
+	set<Person, MyGreaterPerson>::const_iterator it = s.begin();
+	for (; it != s.end(); it++) {
+		cout << (*it) << " ";
+	}
+	cout << endl;
+}
+
+
+int main() {
+	set<int> s;
+	s.insert(10);
+	s.insert(30);
+	s.insert(20);
+	s.insert(50);
+	s.insert(40);
+	printSetInt(s);//平衡二叉树，10 20 30 40 50
+
+	//修改排序方式。从大到小，
+	// set<int
+	set<int, MySort> s1;
+	s1.insert(10);
+	s1.insert(30);
+	s1.insert(20);
+	s1.insert(50);
+	s1.insert(40);
+	printSetIntSort(s1); //50 40 30 20 10
+
+	//set存放自定义数据类型，必须修改排序
+	set<Person, MyGreaterPerson> s2;
+	s2.insert(Person("john", 101, 80.5f));
+	s2.insert(Person("Tom", 102, 70.5f));
+	s2.insert(Person("bob", 103, 90.5f));
+	s2.insert(Person("joe", 105, 60.5f));
+	s2.insert(Person("lucy", 104, 82.5f));
+	printSetPerson(s2);
+	//num : 103 name : bob score : 90.5
+	//num : 104 name : lucy score : 82.5
+	//num : 101 name : john score : 80.5
+	//num : 102 name : Tom score : 70.5
+	//num : 105 name : joe score : 60.5
+}
+```
+
+## 8.9 pair对组
+
+对组(pair)将一对值组合成一个值，这一对值可以具有不同的数据类型，两个值可以分别用 pair 的两个公有属性 first 和 second 访问。
+
+```c++
+//第一种方法创建一个对组
+pair<string, int> pair1(string("name"), 20);
+cout << pair1.first << endl; //访问 pair 第一个值
+cout << pair1.second << endl;//访问 pair 第二个值
+//第二种
+pair<string, int> pair2 = make_pair("name", 30);
+cout << pair2.first << endl;
+cout << pair2.second << endl;
+//pair=赋值
+pair<string, int> pair3 = pair2;
+cout << pair3.first << endl;
+cout << pair3.second << endl;
+```
+
+## 8.10 map/multimap容器
+
+Map 的特性是，所有元素都会根据元素的键值自动排序。**Map 所有的元素都是pair**，同时拥有实值和键值，pair 的第一元素被视为键值，第二元素被视为实值，map 不允许两个元素有相同的键值。
+
+multimap允许键值重复。
+
+```c++
+//1.map 构造函数
+map<T1, T2> mapTT;//map 默认构造函数:
+map(const map &mp);//拷贝构造函数
+
+//2.map 赋值操作
+map& operator=(const map &mp);//重载等号操作符
+swap(mp);//交换两个集合容器
+
+//3. map 大小操作
+size();//返回容器中元素的数目
+empty();//判断容器是否为空
+
+//4. map 插入数据元素操作
+map.insert(...); //往容器插入元素，返回 pair<iterator,bool>
+map<int, string> mapStu;
+// 第一种 通过 pair 的方式插入对象
+mapStu.insert(pair<int, string>(3, "小张"));
+// 第二种 通过 pair 的方式插入对象
+mapStu.inset(make_pair(-1, "校长"));
+// 第三种 通过 value_type 的方式插入对象
+mapStu.insert(map<int, string>::value_type(1, "小李"));
+// 第四种 通过数组的方式插入值
+mapStu[3] = "小刘";
+mapStu[5] = "小王";
+
+//5. map 删除操作
+clear();//删除所有元素
+erase(pos);//删除 pos 迭代器所指的元素，返回下一个元素的迭代器。
+erase(beg,end);//删除区间[beg,end)的所有元素 ，返回下一个元素的迭代器。
+erase(keyElem);//删除容器中 key 为 keyElem 的对组。
+
+//6. 查找操作
+find(key);//查找键 key 是否存在,若存在，返回该键的元素的迭代器；/若不存在，返回 map.end();
+count(keyElem);//返回容器中 key 为 keyElem 的对组个数。对 map 来说，要么是 0，要么是 1。对 multimap 来说，值可能大于 1。
+lower_bound(keyElem);//返回第一个 key>=keyElem 元素的迭代器。
+upper_bound(keyElem);//返回第一个 key>keyElem 元素的迭代器。
+equal_range(keyElem);//返回容器中 key 与 keyElem 相等的上下限的两个迭代器
+```
+
+```c++
+#include<map>
+#include<string>
+#include<iostream>
+using namespace std;
+
+class MyGreaterStudent;
+class Student {
+	friend class MyGreaterStudent;
+	friend ostream& operator<<(ostream& out, const Student& stu);
+private:
+	string name;
+	int num;
+	float score;
+public:
+	Student() {};
+	Student(string name, int num, float score) {
+		this->name = name;
+		this->num = num;
+		this->score = score;
+	}
+};
+class MyGreaterStudent {
+public:
+	bool operator()(Student p1, Student p2) const {
+		return p1.score > p2.score;
+	}
+};
+ostream& operator<<(ostream& out, const Student& p) {
+	out << "num: " << p.num << " name: " << p.name << " score: " << p.score << endl;
+	return out;
+}
+
+void printMapAll(map<int, Student>& m) {
+	map<int, Student>::const_iterator it = m.begin();
+	for (; it != m.end(); it++) {
+		cout << (*it).first << " " << (*it).second << endl;
+	}
+}
+int main() {
+	map<int, Student> m;
+	// 方式1
+	m.insert(pair<int, Student>(103, Student("john", 103, 80.5f)));
+	// 方式2（推荐）
+	m.insert(make_pair(104,Student("bob",104,60.5f)));
+	// 方式3
+	m.insert(map<int, Student>::value_type(105, Student("joe", 105, 70.5f)));
+	// 方式4（危险）
+	m[106] = Student("lucy", 106, 90.5f);
+
+	printMapAll(m);
+
+	// 当m[107]不存在时，引用m[107]，会在map中新增一个pair<107,>
+	//cout << m[107] << endl;
+	//printMapAll(m);
+	return 0;
+}
+
+//
+```
+
+
+
+## 8.11 容器对比
+
+<table><thead><tr><th></th><th>vector</th><th>deque</th><th>list</th><th>set</th><th>multiset</th><th>map</th><th>multimap</th></tr></thead><tbody><tr><td>典型内存结构</td><td>单端数组</td><td>双端数组</td><td>双向链表</td><td>二叉树</td><td>二叉树</td><td>二叉树</td><td>二叉树</td></tr><tr><td>可随机存取</td><td>是</td><td>是</td><td>否</td><td>否</td><td>否</td><td>对key而言：不是</td><td>否</td></tr><tr><td>元素搜寻速度</td><td>慢</td><td>慢</td><td>非常慢</td><td>快</td><td>快</td><td>对key而言：快</td><td>对key而言：快</td></tr><tr><td>元素安插移除</td><td>尾端</td><td>头尾两端</td><td>任何位置</td><td>-</td><td>-</td><td>-</td><td>-</td></tr></tbody></table>
+
+1. vector的使用场景：比如软件历史操作记录的存储，我们经常要查看历史记录，比如上一次的记录，上上次的记录，但却不会去删除记录，因为记录是事实的描述。
+2. deque的使用场景：比如排队购票系统，对排队者的存储可以采用deque，支持头端的快速移除，尾端的快速添加。如果采用vector，则头端移除时，会移动大量的数据，速度慢。
+   vector与deque的比较：
+   - vector.at()比deque.at()效率高，比如vector.at(0)是固定的，deque的开始位置 却是不固定的。
+   - 如果有大量释放操作的话，vector花的时间更少，这跟二者的内部实现有关。
+   - deque支持头部的快速插入与快速移除，这是deque的优点。
+3. list的使用场景：比如公交车乘客的存储，随时可能有乘客下车，支持频繁的不确实位置元素的移除插入。
+4. set的使用场景：比如对手机游戏的个人得分记录的存储，存储要求从高分到低分的顺序排列。
+5. map的使用场景：比如按ID号存储十万个用户，想要快速要通过ID查找对应的用户。二叉树的查找效率，这时就体现出来了。如果是vector容器，最坏的情况下可能要遍历完整个容器才能找到该用户。
+
+# 9 STL之算法
 
 
 

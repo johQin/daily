@@ -2,7 +2,7 @@
 #include<iostream>
 using namespace std;
 
-int main() {
+int main7() {
 	queue<int> q;
 	q.push(10);
 	q.push(20);

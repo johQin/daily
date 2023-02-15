@@ -129,7 +129,9 @@
   <ItemGroup>
     <ClCompile Include="deque容器.cpp" />
     <ClCompile Include="list容器.cpp" />
+    <ClCompile Include="map容器.cpp" />
     <ClCompile Include="queue容器.cpp" />
+    <ClCompile Include="set容器.cpp" />
     <ClCompile Include="vector排序.cpp" />
     <ClCompile Include="vector迭代器.cpp" />
     <ClCompile Include="vector容器嵌套.cpp" />
