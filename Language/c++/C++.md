@@ -248,6 +248,66 @@ void test() {
 
 ## 1.4 struct类型增强
 
+C++中的`struct`对C中的`struct`进行了扩充。
+
+在C++中，struct特点：
+
+1. 能够包含函数，不再仅仅是一个数据结构
+
+   - c++中，class与struct区别不大，本质区别在于访问控制，`struct`作为数据结构的实现体，它默认的数据访问控制是public的，而`class`作为对象的实现体，它默认的成员变量访问控制是private的。
+
+   - 一旦包含构造函数或虚函数（不包含普通成员函数），struct的花括号初始化方式失效。
+
+   - ```c++
+     struct A //定义一个struct
+     	{
+     		char c1;
+     		int n2;
+     		double db3;
+     		void func() {
+     			printf("afdsfd");
+     		}
+     	    // 一旦包含构造函数或虚函数（不包含普通成员函数），struct的花括号初始化方式失效。
+     		A(){}
+     	};
+     
+     A a = { 'p',7,3.1415926 }; //定义时直接赋值
+     a.func();
+     
+     // class在使用public修饰时，也可以使用{}初始化。
+     class A{ //定义一个class
+     public:
+     	char c1;
+     	int n2;
+     	double db3;
+     };
+     
+     A a={'p',7,3.1415926}; //定义时直接赋值
+     ```
+
+   - 
+
+2. 能继承，
+
+   - struct默认继承权限是public，而class是private
+
+   - struct`可以继承`class`，同样`class`也可以继承`struct，主要取决于子类的类型。
+
+   - ```c++
+     struct A{
+     	char a;
+     }；
+     
+     struct B : A{
+     	char b;
+     }；
+     
+     class C : B{};
+     struct D : C{};
+     ```
+
+3. 能多态。
+
 1. C++中定义结构体变量**不需要**加struct
    - C中，`struct Student s1;`
    - C++中，`Student s1;`
@@ -2761,6 +2821,34 @@ int main() {
 
 函数模板的目标：模板是为了实现泛型，可以减少编程的工作量，增强函数的重用性。
 
+**为了这些目标，牺牲了空间，因为每使用一次函数模板（模板的类型不同的话），都会产生一个新的函数空间。**
+
+```c++
+#include <iostream>
+using namespace std;
+template <class T, class F>
+void func(T t, F f)
+{
+	static int a = 0; // 如果模板只实例化一次，每个a的地址是一样的
+	cout << &a << endl;
+}
+
+int main()
+{
+	func(1, 1);
+	func(1, 2);
+	func(1, 1.1);
+	func('1', 2);
+	return 0;
+}
+//00007FF71901C170
+//00007FF71901C170
+//00007FF71901C174
+//00007FF71901C178
+```
+
+
+
 ### 5.1.1 函数模板的注意点
 
 1. 当编译器发现函数模板 和 普通函数 都可以识别和调用时（多义性），
@@ -3098,7 +3186,7 @@ data.h（接口层），data.cpp（实现层），main.cpp（调用层）
 
 但这里就出现，调用层同时包含接口层和实现层，此时就有点不符合规范。
 
-所以在条件允许的情况下，可以将实现层和接口层放在一起，便于调用层直接面向接口使用。
+所以在条件允许的情况下，可以将实现层和接口层放在一起（.h文件），便于调用层直接面向接口使用。
 
 所以类模板的头文件，它是接口层和定义层的结合体，是一个.h和.cpp的结合体。
 
@@ -5092,6 +5180,738 @@ set_difference 算法 求两个 set 集合的差集
 set_difference(iterator beg1, iterator end1, iterator beg2, iterator end2,
 iterator dest)
 ```
+
+# 10 C++11
+
+## 10.1 [lambda函数](https://blog.csdn.net/qq_37085158/article/details/124626913)
+
+![](./legend/lambda函数.png)
+
+1. 捕获列表。在C++规范中也称为Lambda导入器， 捕获列表总是出现在Lambda函数的开始处。实际上，`[]`是Lambda引出符。编译器根据该引出符判断接下来的代码是否是Lambda函数，捕获列表能够捕捉上下文中的变量以供Lambda函数使用。
+2. 参数列表。与普通函数的参数列表一致。如果不需要参数传递，则可以连同括号“()”一起省略。
+3. 可变规格。`mutable`修饰符， 默认情况下Lambda函数总是一个`const`函数，`mutable`可以取消其常量性。在使用该修饰符时，参数列表不可省略（即使参数为空）。
+4. 异常说明。用于Lamdba表达式内部函数抛出异常。
+5. 返回类型。 追踪返回类型形式声明函数的返回类型。我们可以在不需要返回值的时候也可以连同符号”->”一起省略。此外，在返回类型明确的情况下，也可以省略该部分，让编译器对返回类型进行推导。
+6. lambda函数体。内容与普通函数一样，不过除了可以使用参数之外，还可以使用所有捕获的变量。
+
+### 10.1.1 捕获列表
+
+- `[]`表示不捕获任何变量
+
+```cpp
+auto function = ([]{
+		std::cout << "Hello World!" << std::endl;
+	}
+);
+
+function();
+123456
+```
+
+- `[var]`表示值传递方式捕获变量`var`
+
+```cpp
+int num = 100;
+auto function = ([num]{
+		std::cout << num << std::endl;
+	}
+);
+
+function();
+1234567
+```
+
+- `[=]`表示值传递方式捕获所有**父作用域**的变量（包括`this`）
+
+```cpp
+int index = 1;
+int num = 100;
+auto function = ([=]{
+			std::cout << "index: "<< index << ", " 
+                << "num: "<< num << std::endl;
+	}
+);
+
+function();
+123456789
+```
+
+- `[&var]`表示**引用传递**捕捉变量`var`
+
+```cpp
+int num = 100;
+auto function = ([&num]{
+		num = 1000;
+		std::cout << "num: " << num << std::endl;
+	}
+);
+
+function();
+12345678
+```
+
+- `[&]`表示引用传递方式捕捉所有父作用域的变量（包括`this`）
+
+```cpp
+int index = 1;
+int num = 100;
+auto function = ([&]{
+		num = 1000;
+		index = 2;
+		std::cout << "index: "<< index << ", " 
+            << "num: "<< num << std::endl;
+	}
+);
+
+function();
+1234567891011
+```
+
+- `[this]`表示值传递方式捕捉当前的`this`指针
+
+```cpp
+#include <iostream>
+using namespace std;
+ 
+class Lambda
+{
+public:
+    void sayHello() {
+        std::cout << "Hello" << std::endl;
+    };
+
+    void lambda() {
+        auto function = [this]{ 
+            this->sayHello(); 
+        };
+
+        function();
+    }
+};
+ 
+int main()
+{
+    Lambda demo;
+    demo.lambda();
+}
+123456789101112131415161718192021222324
+```
+
+- ```
+  [=, &]
+  ```
+
+   
+
+  拷贝与引用混合
+
+  - `[=, &a, &b]`表示以引用传递的方式捕捉变量`a`和`b`，以值传递方式捕捉其它所有变量。
+
+```cpp
+int index = 1;
+int num = 100;
+auto function = ([=, &index, &num]{
+		num = 1000;
+		index = 2;
+		std::cout << "index: "<< index << ", " 
+            << "num: "<< num << std::endl;
+	}
+);
+
+function();
+1234567891011
+```
+
+- `[&, a, this]`表示以值传递的方式捕捉变量`a`和`this`，引用传递方式捕捉其它所有变量。
+
+不过值得注意的是，捕捉列表**不允许变量重复传递**。下面一些例子就是典型的重复，会导致编译时期的错误。例如：
+
+- `[=,a]`这里已经以值传递方式捕捉了所有变量，但是重复捕捉`a`了，会报错的；
+- `[&,&this]`这里`&`已经以引用传递方式捕捉了所有变量，再捕捉`this`也是一种重复。
+
+如果Lambda主体`total`通过引用访问外部变量，并`factor`通过值访问外部变量，则以下捕获子句是等效的：
+
+```cpp
+[&total, factor]
+[factor, &total]
+[&, factor]
+[factor, &]
+[=, &total]
+[&total, =]
+```
+
+### 10.1.2 返回类型
+
+Lambda表达式的**返回类型会自动推导**。除非你指定了返回类型，否则不必使用关键字。返回型类似于通常的方法或函数的返回型部分。但是，返回类型必须在参数列表之后，并且必须在返回类型->之前包含类型关键字。如果Lambda主体仅包含一个`return`语句或该表达式未返回值，则可以省略Lambda表达式的`return-type`部分。如果Lambda主体包含一个`return`语句，则编译器将从`return`表达式的类型中推断出`return`类型。否则，编译器将返回类型推导为`void`。
+
+```cpp
+auto x1 = [](int i){ return i; };
+```
+
+### 10.1.3 Lambda表达式的优缺点
+
+**优点：**
+
+- 可以直接在需要调用函数的位置定义短小精悍的函数，而不需要预先定义好函数
+
+```cpp
+std::find_if(v.begin(), v.end(), [](int& item){return item > 2});
+1
+```
+
+- 使用Lamdba表达式变得更加紧凑，结构层次更加明显、代码可读性更好
+
+**缺点：**
+
+- Lamdba表达式语法比较灵活，增加了阅读代码的难度
+- 对于函数复用无能为力
+
+### 10.1.4 Lambda表达式工作原理
+
+编译器会把一个Lambda表达式生成一个匿名类的**匿名对象**，并在类中**重载函数调用运算符**，实现了一个`operator()`方法。
+
+```cpp
+auto print = []{cout << "Hello World!" << endl; };
+1
+```
+
+编译器会把上面这一句翻译为下面的代码：
+
+```cpp
+class print_class
+{
+public:
+	void operator()(void) const
+	{
+		cout << "Hello World!" << endl;
+	}
+};
+// 用构造的类创建对象，print此时就是一个函数对象
+auto print = print_class();
+```
+
+## 10.2 [移动语义与右值引用](https://blog.csdn.net/K346K346/article/details/52447842)
+
+### 10.2.1 移动语义
+
+C++11 标准中一个最主要的特性就是提供了移动而非拷贝对象的能力。如此做的好处就是，在某些情况下，对象拷贝后就立即被销毁了，此时如果移动而非拷贝对象会大幅提升程序性能。
+
+```c++
+#include <iostream>
+#include <vector>
+using namespace std;
+
+class Obj {
+public:
+	Obj() {
+		cout <<"create obj" << endl;
+	}
+	Obj(const Obj& other) {
+		cout<<"copy create obj"<<endl;
+	}
+};
+
+vector<Obj> foo() {
+	 vector<Obj> c;
+     c.push_back(Obj());
+	 cout<<"---- exit foo ----"<<endl;
+     return c;
+}
+
+int main() {
+	vector<Obj> v;
+	v=foo();
+}
+
+
+// 在非C++11中
+// create obj
+// copy create obj
+// ---- exit foo ----
+// copy create obj
+// 两次拷贝构造的时机：
+//（1）第一次是在函数 foo() 中通过 Obj 的临时对象 Obj() 构造一个 Obj 对象并入 vector 中。
+//（2）第二次是通过从函数 foo() 中返回的临时的 vector 对象来给 v 赋值时发生了元素的拷贝。
+
+// 由于对象拷贝构造的开销是非常大的，因此我们想尽可能地避免。其中，第一次拷贝构造是 vector 的特性所决定的，不可避免。但第二次拷贝构造，在 C++ 11 中是可以避免的。
+
+// 在c++11中
+// create obj
+// copy create obj
+// ---- exit foo ----
+
+// 执行过程
+// 1.foo() 函数返回一个临时对象（这里用 tmp 来标识它）；
+// 2.执行 vector 的 ‘=’ 函数，释放对象 v 中的成员，并将 tmp 的成员移动到 v 中，此时 v 中的成员就被替换成了 tmp 中的成员；
+// 3.删除临时对象 tmp。
+
+//关键的过程就是第 2 步，它是移动而不是复制，从而避免了成员的拷贝，但效果却是一样的。不用修改代码，性能却得到了提升，对于程序员来说就是一份免费的午餐。但是，这份免费的午餐也不是无条件就可以获取的
+
+```
+
+### 10.2.2 右值引用
+
+为了支持移动操作，C++11 引入了一种新的引用类型——右值引用（rvalue reference）
+
+#### 1 左值和右值
+
+右值指**只能出现**在赋值运算符右边的表达式。
+
+左值指**能够出现**在赋值运算符左边的表达式就是左值。它既可以出现在左边也可以出现在右边
+
+- 左值一般是可寻址的变量，右值一般是不可寻址的字面常量或者是在表达式求值过程中创建的可寻址的无名临时对象；
+- 左值具有持久性，右值具有短暂性。
+
+#### 2 左值引用和右值引用
+
+右值引用指的是绑定右值的引用，使用 && 表示。引用是一个类型。
+
+左值引用指的是常规引用，用&表示。
+
+**因为右值引用本身是个左值**，因为它在等号的左边
+
+```c++
+int i=42;
+int& r=i;			// 正确，左值引用
+int& r2=i*42;		// 错误，i*42是一个右值
+const int& r3=i*42;	// 正确：可以将一个const的引用绑定到一个右值上
+int&& rr2=i*42;		// 正确：将 rr2 绑定到乘法结果上，这个乘法结果是一个右值。
+```
+
+#### 3 右值引用的作用
+
+右值引用的作用是用于移动构造函数（Move Constructors）和移动赋值运算符（ Move Assignment Operator）。
+
+为了让我们自己定义的类型支持移动操作，我们需要为其定义移动构造函数和移动赋值运算符。
+
+这两个成员对应于拷贝构造和赋值运算符，**它们从给定对象窃取资源而不是拷贝资源。**
+
+```c++
+#include <iostream>
+#include <string>
+using namespace std;
+
+class Obj {
+public:
+	Obj(){cout <<"create obj" << endl;}
+	Obj(const Obj& other){cout<<"copy create obj"<<endl;}
+};
+
+template <class T> class Container {
+public:
+    T* value;
+public:
+    Container() : value(NULL) {};
+    ~Container() {
+		if(value) delete value; 
+	}
+
+	// 拷贝构造函数
+	Container(const Container& other) {
+        value = new T(*other.value);
+		cout<<"in constructor"<<endl;
+    }
+	// 移动构造函数
+    Container(Container&& other) {
+		if(value!=other.value){
+			value = other.value;
+			other.value = NULL;
+		}
+		cout<<"in move constructor"<<endl;
+    }
+	// 赋值运算符
+    const Container& operator = (const Container& rhs) {
+		if(value!=rhs.value) {
+			delete value;
+			value = new T(*rhs.value);
+		}
+		cout<<"in assignment operator"<<endl;
+        return *this;
+    }
+	// 移动赋值运算符
+    const Container& operator = (Container&& rhs) {
+		if(value!=rhs.value) {
+			delete value;
+			value=rhs.value;
+			rhs.value=NULL;
+		}
+		cout<<"in move assignment operator"<<endl;
+        return *this;
+    }
+
+    void push_back(const T& item) {
+        delete value;
+        value = new T(item);
+    }
+};
+
+Container<Obj> foo() {
+	 Container<Obj> c;
+     c.push_back(Obj());
+	 cout << "---- exit foo ----" << endl;
+     return c;
+}
+
+int main() {
+	Container<Obj> v;
+	v=foo();	//采用移动构造函数来构造临时对象，再将临时对象采用移动赋值运算符移交给v
+	getchar();
+}
+
+// 如果定义了移动构造函数和移动赋值运算符
+create obj
+copy create obj
+---- exit foo ----
+in move constructor
+in move assignment operator
+
+// 没定义情况如下
+create obj
+copy create obj
+---- exit foo ----
+copy create obj
+in constructor
+copy create obj
+in assignment operator
+```
+
+
+
+#### 4 std::move 强制转化为右值引用
+
+虽然不能直接对左值建立右值引用，但是我们可以显示地将一个左值转换为对应的右值引用类型。
+
+```c++
+int&& rr1=42;
+int&&　rr2=rr1;				//error，表达式rr1是左值
+int&&　rr2=std::move(rr1);	//ok
+```
+
+#### 5 std::forward 实现完美转发
+
+完美转发（perfect forwarding）指在函数模板中，完全依照模板参数的类型，将参数传递给函数模板中调用的另外一个函数
+
+```c++
+template<typename T>
+void PrintT(T& t) {
+	cout << "lvalue" << endl;
+}
+
+template<typename T>
+void PrintT(T && t) {
+	cout << "rvalue" << endl;
+}
+
+template<typename T>
+void TestForward(T&& v) {
+	PrintT(v);						
+}
+
+int main() {
+	TestForward(1);		//输出lvaue，理应输出rvalue
+}
+
+
+// 转发
+template<typename T>
+void TestForward(T&& v) {
+	PrintT(std::forward<T>(v));		
+}
+
+int main() {
+	TestForward(1);		// 输出 rvalue
+	int x=1;
+	TestForward(x);		// 输出 lvalue
+}
+```
+
+## 10.3 [可变参数模板](https://blog.csdn.net/aiyubaobei/article/details/128365319)
+
+C++11的新特性可变参数模板能够让我们创建可以**接受可变参数的函数模板和类模板**
+
+```c++
+#include <iostream>
+using namespace std;
+// 递归终止函数
+template<class T>
+void showlist(T t)
+{
+	cout << t << endl; // 当参数包只剩下最后一个参数时，会适配这个函数
+}
+
+// 递归函数
+template <class T, class ...Args>
+void showlist(T val, Args... args)
+{
+	cout << val << endl;
+	showlist(args...); // 通过递归调用，函数会自动适配参数个数，此处的三个...不能省略
+}
+
+int main()
+{
+	showlist(1);
+	showlist(1, "fff");
+	showlist(3, 1.1, string("hello"));
+	return 0;
+}
+```
+
+## 10.4 函数包装器
+
+function包装器也叫做适配器，C++中的function本质是一个类模板，也是一个包装器。
+
+```c++
+#include <iostream>
+using namespace std;
+template <class T, class F>
+void func(T t, F f)
+{
+	static int a = 0; // 如果模板只实例化一次，每个a的地址是一样的
+	cout << &a << endl;
+}
+
+int main()
+{
+	func(1, 1);
+	func(1, 1.1);
+	func('1', 2);
+	return 0;
+}
+
+//可以发现通过函数模板去实例化的函数是三分不同的函数。浪费了空间。
+// 而包装器只会实例化一次模板函数
+```
+
+而包装器只会实例化一次模板函数
+
+```c++
+// 通过函数包装器使用函数
+#include <iostream>
+#include <functional>
+
+template <class T, class F>
+void fun(T t, F f)
+{
+	static T x;
+	x = t;
+	std::cout << typeid(t).name() << std::endl;
+}
+
+class functest
+{
+public:
+	int add(int x, int y)
+	{
+		return x + y;
+	}
+
+	static int mul(int x, int y)
+	{
+		return x * y;
+	}
+};
+
+int main()
+{
+	functest ft;
+	// 使用包装器,包装成员函数，需要加上类类型
+	std::function<int(functest,int, int)> f1 = &functest::add;
+	std::cout << f1(functest(),1, 2) << std::endl;
+	// 使用包装器，包装静态成员函数,不需要加上类类型
+	std::function<int(int, int)> f2 = &functest::mul;
+	std::cout << f2(2, 3) << std::endl;
+	// 使用包装器包装lambda表达式
+	double x = 1.2;
+	std::function<double(double)> f3 = [&](double y)->double { return x *= y; };
+	std::cout << f3(4) << std::endl;
+	return 0;
+}
+```
+
+### bind函数
+
+std::bind函数定义在头文件中，是一个函数模板，他像一个函数包装器（适配器），接受一个可调用对象，生成一个新的可调用对象来“适应”对象的参数列表。一般而言，我们用它可以把一个原本接收N个参数的函数，通过绑定一些参数，返回一个接收M个（M可以大于N）参数的新函数。同时，使用std::bind函数还可以实现参数顺序调整等操作。
+
+bind可以替代适配器中的bind1st，bind2se
+
+## 10.5 [智能指针](https://blog.csdn.net/liqingbing12/article/details/107395954)
+
+**智能指针其实是一些模板类，它们负责自动管理一个指针的内存，免去了手动 new/delete 的麻烦**，这个类的构造函数中传入一个普通指针，析构函数中释放传入的指针。
+
+智能指针的类都是栈上的对象，所以当函数（或程序）结束时会自动被释放。
+
+C++11中所新增的智能指针包括**shared_ptr**, **unique_ptr**, **weak_ptr**,在C++11之前还存在**auto_ptr(C++17废弃)。**三种类型都定义在**头文件memory**中。
+
+**auto_ptr**可能导致对同一块堆空间进行多次delete，即当两个智能指针都指向同一个堆空间时，每个智能指针都会delete一下这个堆空间，这会导致未定义行为。
+
+### 10.5.1 智能指针并非完全智能
+
+```c++
+#include<iostream>
+#include<string>
+#include<memory>
+
+using namespace std;
+class T1{};
+class T2{};
+void func(shared_ptr<T1>, shared_ptr<T2>){}
+int main() {
+	// 方式1：匿名对象直接构造智能指针（不安全）
+	shared_ptr<T1> ptr1(new T1());
+	shared_ptr<T2> ptr2(new T2());
+	func(ptr1, ptr2);
+
+	// main函数执行步骤：
+	//1、分配内存给T1
+	//2、分配内存给T2
+	//3、构造T1对象
+	//4、构造T2对象
+	//5、构造T1的智能指针对象
+	//6、构造T2的智能指针对象
+	//7、调用func
+
+	// 如果程序在执行第3步失败，那么在第1,2步，分配给T1和T2的内存将会造成泄漏。
+	// 解决这个问题很简单，不要在shared_ptr构造函数中使用匿名对象。
+	// 
+	// 方式2：优先选用make_shared/make_unique而非直接使用new。（安全）
+	// 简单说来，相比于直接使用new表达式，make系列函数有三个优点：消除了重复代码、改进了异常安全性和生成的目标代码尺寸更小速度更快
+
+	shared_ptr<T1> ptr3 = make_shared<T1>();
+	shared_ptr<T2> ptr4 = make_shared<T2>();
+
+	func(ptr3, ptr4);
+	return 0;
+
+}
+```
+
+### 10.5.2 shared_ptr
+
+- **shared_ptr**多个指针指向相同的对象，使用**引用计数**来完成自动析构的功能。
+- shared_ptr的引用计数是**线程安全**的，但是其对象的写操作在多线程环境下需要加锁实现。
+- 不要用同一个指针初始化多个shared_ptr，这样可能会造成**二次释放**。
+
+```c++
+#include<iostream>
+#include<memory>
+
+using namespace std;
+int main() {
+    int a = 10;
+    shared_ptr<int> ptra = make_shared<int>(a);
+    shared_ptr<int> ptr(ptra);     //拷贝构造函数
+    cout << ptra.use_count() << endl;   //2
+
+    int b = 20;
+    int* pb = &b;
+
+    shared_ptr<int> ptrb = make_shared<int>(b);
+    // ptr从ptra转换到ptrb
+    ptr = ptrb;
+    pb = ptrb.get();    //获取指针
+
+    cout << *pb << endl; // 20, 指向b本身
+
+
+    cout << ptra.use_count() << endl;   //1，只有ptra引用
+    cout << ptrb.use_count() << endl;   //2，ptr和ptrb引用
+
+    return 0;
+}
+```
+
+### 10.5.3 weak_ptr
+
+其最大的作用是**协助shared_ptr工作，像旁观者那样检测资源的使用情况，解决shared_ptr相互引用时的死锁问题。**
+
+**weak_ptr没有共享资源，它的构造不会引起指针引用计数的增加。**
+
+weak_ptr可以从一个shared_ptr或另一个weak_ptr对象构造，获得资源的观测权。
+
+**weak_ptr和shared_ptr之间可以相互转化**，shared_ptr可以直接赋值给它，它可以通过调用lock函数来获得shared_ptr。
+
+```c++
+#include<iostream>
+#include<memory>
+using namespace std;
+
+class B;
+class A{
+public:
+    weak_ptr<B> pb_;
+    ~A(){
+        cout << "A delete." << endl;
+    }
+};
+
+class B{
+public:
+    shared_ptr<A> pa_;
+    ~B()
+    {
+        cout << "B delete." << endl;
+    }
+};
+
+void fun(){
+    shared_ptr<B> pb(new B());
+    shared_ptr<A> pa(new A());
+
+    // 相互引用
+    pb->pa_ = pa;
+    pa->pb_ = pb;
+
+    cout << pb.use_count() << endl;//1，weak_ptr没有共享资源，它的构造不会引起指针引用计数的增加。
+    cout << pa.use_count() << endl;//2，B里面使用shared_ptr修饰pa_,所以pa被引用两次。
+}
+
+int main()
+{
+    fun();
+    return 0;
+    //1
+    //2
+    //B delete.
+    //A delete.
+}
+```
+
+
+
+### 10.5.4 unique_ptr
+
+unique_ptr **唯一拥有**所指对象，**同一时刻只能有一个unique_ptr指向给定对象**，这是通过禁止拷贝语义、只允许移动语义来实现的。
+
+unique_ptr指针本身的生命周期是从创建开始，直到离开作用域。在智能指针生命周期内，可以改变指针所指向对象，如创建智能指针时使用构造函数指定、通过reset方法重新指定、通过release方法释放所有权、通过移动语义转移所有权。
+
+只有一个智能指针能真正指向一个特定的对象，也只有该指针能析构这个对象所占用的空间，**直到把这个指针赋给另一个指针，后一个指针才能真正指向这个对象，而前一个指针就不再起作用了**，从而避免了两次delete而导致的未定义行为。
+```c++
+
+#include<iostream>
+#include<memory>
+ 
+using namespace std;
+ 
+int main() {
+    {
+        unique_ptr<int> uptr(new int(10));  //绑定动态对象
+ 
+        unique_ptr<int> uptr2 = uptr;   //不能赋值
+        unique_ptr<int> uptr2(uptr);    //不能拷贝
+ 
+        unique_ptr<int> uptr2 = std::move(uptr);    //转换所有权
+        uptr2.release();    //释放所有权
+    }
+    
+    //超出uptr作用域，内存释放
+}
+```
+
+
+
+# 其他
+
+## 1 [const详解](https://blog.csdn.net/qq_40337086/article/details/125519833)
 
 
 
