@@ -127,6 +127,8 @@ C++中面向过程的语法兼容大部分C语言，只是在版本不同时，�
 
 ## 1.2 命名空间namespace
 
+C++里作用域可分为6种：全局，局部，类，语句，命名空间和文件作用域
+
 解决命名冲突，用于约束标识符name的作用范围，name可以包括常量，变量，函数，结构体，枚举，类，对象等等。
 
 **作用域运算符：“ :: ”**
@@ -5482,7 +5484,7 @@ int&& rr2=i*42;		// 正确：将 rr2 绑定到乘法结果上，这个乘法结�
 
 右值引用的作用是用于移动构造函数（Move Constructors）和移动赋值运算符（ Move Assignment Operator）。
 
-为了让我们自己定义的类型支持移动操作，我们需要为其定义移动构造函数和移动赋值运算符。
+为了让我们自己**定义的类型支持移动操作**，我们需要为其定义移动构造函数和移动赋值运算符。
 
 这两个成员对应于拷贝构造和赋值运算符，**它们从给定对象窃取资源而不是拷贝资源。**
 
@@ -5907,11 +5909,73 @@ int main() {
 }
 ```
 
+## 10.6 [关键字nullptr](https://blog.csdn.net/weixin_43340455/article/details/124888946)
+
+nullptr是nullptr_t类型的右值常量，专门用于初始化空类型的指针。
+
+而nullptr_t是在C++11新增加的数据类型，跟int类型的功能一样，只是int是整型类型，而nullptr_t是指针空值类型。
+
+也就是说呢，nullptr仅仅是该类型的一个实例对象（也就是已经定义好的，可以直接使用）。当然了，我们也可以定义出多个和nullptr完全一样的实例对象。
+
+ 不同类型的指针变量都可以使用nullptr类初始化，编译器会将nullptr隐式转换成`int*、char*、double*`指针类型。
+
+但是使用nullptr_t一定要在支持C++11的编译平台上才可以使用。像Visual Studio平台都要2010版本之后才能使用。G++编译器至少要4.6.1才能使用。
+
+nullptr作用：**一般使用nullptr来编程会使我们的程序更加健壮。**
+
+```c++
+#include <iostream>
+using namespace std;
+ 
+void Func(void* param_void){
+       cout<<"I am void fucntion!"<<endl;
+}
+ 
+void Func(int param_zero){
+       cout<<"I am zero fucntion!"<<endl;
+}
+ 
+int main(int argc, char *argv[])
+{
+ 
+   Func((void*) NULL);        // I am void fucntion!，强制类型转换
+   Func(NULL);					// I am zero fucntion!，由于#define NULL 0，它是一个宏定义。
+   Func_int(0);						// I am zero fucntion!
+ 
+    Func(nullptr);				//I am void fucntion!
+    nullptr_t ser_ptr;               // 你可以定义属于自己的空对象
+   Func(ser_ptr);				//I am void fucntion!
+    return 0;
+}
+```
+
+```c++
+// nullptr可以调用成员函数，因为成员函数在编译对象时，就已经绑定了函数地址，和指针空不空没有关系
+//给出实例
+class animal{
+	public:
+		void sleep(){ cout << "animal sleep" << endl; }
+		void breathe(){ cout << "animal breathe haha" << endl; }
+};
+class fish :public animal{
+	public:
+		void breathe(){ cout << "fish bubble" << endl; }
+};
+int main(){
+	animal *pAn=nullptr;
+	pAn->breathe(); // 输出：animal breathe haha
+	fish *pFish = nullptr;
+	pFish->breathe(); // 输出：fish bubble
+}
+```
+
 
 
 # 其他
 
 ## 1 [const详解](https://blog.csdn.net/qq_40337086/article/details/125519833)
+
+[**const默认作用于其左边的东西，如果左边没东西，则作用于其右边的东西。**](https://blog.csdn.net/weiyuanzhang123/article/details/117592035)
 
 
 
