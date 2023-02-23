@@ -2345,6 +2345,46 @@ int main(void)
 2. .模块内不想被外部引用的函数和全局变量需在“.c”文件头冠以static关键字声明。 
 3. 变量的声明必须加上extern，否则编译器无法识别声明。
 
+# 11 C标准库
+
+## 11.1 [stdarg.h]()
+
+stdarg.h 头文件定义了一个变量类型 va_list 和三个宏，这三个宏可用于在参数个数未知（即参数个数可变）时获取函数中的参数.可变参数的函数通在参数列表的末尾是使用省略号(,…)定义的。
+
+**使用可变参数还是有一定的限制的，你必须准确知道参数的个数与类型，才能准确适用。**
+
+```c
+#include<stdarg.h>
+int fun(int n, ...){
+    //1. 在函数中创建一个va_list类型的变量
+    val_list ap;
+    //2. 初始化一个参数列表
+    va_start(ap,n);
+//    for(int i = 0;i < n; i++){
+		//3.访问参数列表的内容
+    	va_arg(ap,int);
+//    }
+	//4. 清理
+    va_end(ap);
+};
+// n,表示省略号部分的参量个数
+
+//val_list:该数据对象用于存放省略号部分代表的参量，可以看出变量类似于一个字符串指针
+typedef char* val_list
+
+//va_start: 可变函数需要将参数列表复制到va_list变量，
+//在调用时，函数参数放在连续的栈中，可以通过首参数的位置来获取变参数的位置
+#define va_start(ap,v) ( ap = (va_list)(&v) + sizeof(v) )
+    
+//va_arg：依次取可变参数的值
+#define va_arg(ap,t) (   *  (t *)(   (ap += sizeof(t)) - sizeof(t)  )      )
+    
+//va_end：清理指针
+#define va_end(ap) ( ap = NULL )
+```
+
+
+
 # 其他
 
 ## 1 [assert](https://blog.csdn.net/qq_41854911/article/details/119453790)
