@@ -2383,7 +2383,194 @@ typedef char* val_list
 #define va_end(ap) ( ap = NULL )
 ```
 
+# 12 [动静态库](https://blog.csdn.net/weixin_69725192/article/details/125986479)
 
+[参考地址1](https://blog.csdn.net/qq_45489600/article/details/124640807)
+
+动态库和静态库
+
+- 静态库（.a）：程序在编译链接的时候把库的代码链接到可执行文件中。程序运行的时候将不再需要静态库。
+- 动态库（.so）：程序在运行的时候才去链接动态库的代码，多个程序共享使用库的代码。
+- 一个与动态库链接的可执行文件仅仅包含它用到的函数入口地址的一个表，而不是外部函数所在目标文件的整个机器码。
+- 在可执行文件开始运行以前，外部函数的机器码由操作系统从磁盘上的该动态库中复制到内存中，这个过程称为动态链接（dynamic linking）。
+- 动态库可以在多个程序间共享，所以动态链接使得可执行文件更小，节省了磁盘空间。操作系统采用虚拟内存机制允许物理内存中的一份动态库被要用到该库的所有进程共用，节省了内存和磁盘空间。
+  
+
+![](./legend/动静态库.png)
+
+环境：
+
+- 生成add.h，add.c，
+- 生成sub.h，sub.c
+- linux下，gcc，ar，工具
+
+```c
+//add.h
+#pragma once
+#include<stdio.h>
+
+extern int my_add(int x, int y);
+
+//add.c
+#include "add.h"
+
+int my_add(int x, int y) {
+	return x + y;
+}
+
+//sub.h
+#pragma once
+#include<stdio.h>
+
+extern int my_sub(int x, int y);
+
+//sub.c
+#include "sub.h"
+
+int my_sub(int x, int y) {
+	return x - y;
+}
+```
+
+
+
+## 12.1 静态库
+
+### 12.1.1 生成静态库
+
+**生成静态库的工具是 ar 。**
+
+```bash
+gcc -c add.c
+gcc -c sub.c
+ar -rc libcal.a add.o sub.o
+
+# 生成静态库
+# libcal.a，lib是前缀，.a是后缀，库名cal
+```
+
+### 12.1.2 给别人使用
+
+```bash
+mkdir -p mathlib/lib
+mkdir -p mathlib/include
+cp *.a mathlib/lib
+cp *.h  mathlib/include
+
+#生成了一个mathlib的文件
+#mathlib
+#	|__include
+#	|	|__add.h
+#	|	\__sub.h
+#	|
+#	|__lib
+#		\__libcal.a
+```
+
+![](./legend/库结构.png)
+
+### 12.1.3 如何使用
+
+代码中使用：
+
+```c
+//test.c
+#include<stdio.h>
+#include<add.h>
+int main(){
+    int x = 10, y = 10;
+    int z = my_add(x, y);
+    printf("z=%d",z);
+    return 0;
+}
+```
+
+编译代码
+
+```bash
+gcc test.c -I ./mathlib/include -L ./mathlib/lib -l cal -o mytest
+# -I，指定头文件位置
+# -L，指定库文件位置（函数实现位置）
+# -l，指定库名cal
+# 生成可执行程序mytest.out
+
+#那么我们如果不想使用这么多选项也是可以的。
+#我们之所以要使用这么多选项是因为我们自己实现的头文件和库没有在系统里，如果把我们的头文件和库拷贝到系统路径下，那么我们也就不需要带那些选项了
+sudo cp mathlib/include/* /usr/include/
+sudo cp mathlib/lib/libcal.a /lib64
+
+# 编译的时候依旧要带库文件的名字
+gcc test.c -l cal -o mytest
+
+# 编译完成后，就可以直接运行
+./mytest
+```
+
+## 12.2 动态库
+
+### 12.2.1 生成动态库
+
+**生成动态库就不用 ar 了，直接就 gcc 或者 g++ 。**
+
+- **shared: 表示生成共享库格式**
+- **fPIC：产生位置无关码(position independent code)**
+- **库名规则：libxxx.so**
+
+```bash
+gcc -fPIC -c add.c
+gcc -fPIC -c sub.c
+gcc -shared -o libcal.so add.o sub.o
+```
+
+### 12.2.2 打包给别人用
+
+```bash
+#生成了一个mathlib的文件
+#mlib
+#	|__include
+#	|	|__add.h
+#	|	\__sub.h
+#	|
+#	|__lib
+#		\__libcal.so
+```
+
+### 12.2.3 如何使用
+
+```bash
+gcc test.c -I mlib/include/ -L mlib/lib/ -l cal -o mytest
+# -I，指定头文件位置
+# -L，指定库文件位置（函数实现位置）
+# -l，指定库名cal
+# 生成可执行程序mytest.out
+
+# 因为是动态库，所以可执行程序中并没有包含要执行的函数，需要告诉环境，动态库在哪找
+# 这里有三种方法：
+# 1.将这个 libcal.so 这个库拷贝到系统路径下(不推荐)
+# 2.在系统中做配置(ldconfig 配置/etc/ld.so.conf.d/，ldconfig更新)
+# 3.导出一个环境变量 LD_LIBRARY_PATH ，它代表的是程序运行时，动态查找库时所要搜索的路径。
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/mylib/lib/
+
+# 然后就可以运行了
+./mytest 
+```
+
+## 12.3 总结
+
+![](./legend/库文件使用总结.png)
+
+## 12.4 [动态链接库dll](https://zhuanlan.zhihu.com/p/490440768?utm_id=0)
+
+dynamic linking library
+
+加载动态库有两种方式：分为隐式加载和显示加载。
+
+- 隐式加载：
+  - 所需文件：接口.h头文件，dll文件，lib文件。.h和.lib加载方式与静态加载完全一致。但.dll文件必须放在环境变量指定的目下。当然通常是与目标.exe文件放在一起。
+
+- 显式加载：
+  - 所需文件：dll文件。
+  - 利用LoadLibrary（）函数进行加载。
 
 # 其他
 
