@@ -776,6 +776,51 @@
 14. push_back和emplace_back的区别
 
     - 传匿名对象或旧对象时，二者效率相同，会先调构造，再调移动构造
-    - 传单构造参数时，emplace_back效率高，都回调构造，但emplace_back不会调用移动构造
+    - 传单构造参数时，emplace_back效率高，都会调构造，但emplace_back不会调用移动构造
 
 15. 
+
+## 1.5 新特性
+
+1. c++11新特性
+
+   - 统一初始化形式，还提供了模板类initializer_list
+   - 成员变量默认初始化：构建一个类的对象不需要用构造函数初始化成员变量。
+   - auto关键字：用于定义变量，编译器可以自动判断的类型，定义时必须初始化，否则无法推导类型
+   - decltype(exp)：根据exp表达式来推导类型，定义时可不必初始化，因为变量的类型和左值右值没有关系，类型由exp决定。
+   - 智能指针：shared_ptr，weak_ptr（配合shared_ptr解决循环引用的问题），unique_ptr
+   - 空指针nullptr：nullptr_t类型的右值常量，专用于初始化空类型指针。依据nullptr 我们也可以创建属于自己的空指针对象
+   - 右值引用和move语义 让程序员有意识减少进行深拷贝操作
+   - 增加stl模板类：无序关联容器unordered_map/~multimap，~set/~multiset
+   - 正则表达式，实质是一个字符串，该字符串描述了一种特定模式的字符串
+   - Lambda表达式：最简：`[捕获上下文列表](参数列表){函数体}`，底层实现是一个匿名对象。
+   - 可变参数模板
+
+   ```c++
+   // 统一初始化形式
+   int a{1};//等价int a(1);，等价int a=1;
+   int b{2+2};
+   	//c++11后
+   Student stu{ 1,85.5f,"qqq" };//结构体
+   Data d{1,1.2};//自定义对象
+   
+   // 成员变量默认初始化
+   class Data {
+   public:
+   	int a = 1;
+   };
+   
+   // auto
+   auto var = 55; 
+   vector< vector<int> >::iterator i = v.begin();// 类型太长时，可以不用写，用auto代替
+   auto i = v.begin();
+   
+   // decltype
+   decltype<1+1> a;
+   a = 100;
+   sizeof(decltype(1+1.5));
+   ```
+
+   
+
+2. 

@@ -1223,6 +1223,82 @@ int main() {
   3. const成员变量、引用成员变量、没有默认构造函数的自定义类型成员只能在初始化列表初始化。
   4. 成员变量初始化的顺序就是成员变量在类中的声明次序，与初始化列表中的先后次序无关。
 
+### [c++11中的初始化列表](https://blog.csdn.net/qq_45254369/article/details/126859787)
+
+```c++
+// c++98
+int a{2};
+int a[]={1,5,2};
+
+// c++11
+int a = {5 + 5};
+int a{2+1};
+int a{3+1};
+int* p = new int(1)；
+int* p = new int{9};
+class animal{
+public:
+	animal(){}
+	animal(int a, double b) {
+		cout << "hah" << endl;
+		this->a = a;
+		this->b = b;
+	}
+    void toString(){
+        cout<<"a = "<<a<<" b = "<<b<<endl;
+    }
+public:
+    int a;
+private:
+    int b;
+}
+animal an{1,10.5}//hah，可以看来它是调用了构造函数，而不是直接对变量赋值，等价于an(1, 10.5)
+an.toString()//a = 1 b = 10.5
+```
+
+#### c++11提供initializer_list模板类
+
+```c++
+#include <iostream>
+#include <vector>
+#include <initializer_list>
+
+using namespace std;
+
+class A{
+    public:
+        A(int a, int b){}
+};
+
+enum class Gender{
+	boy = 1,
+	girl = 2,
+};
+
+class People{
+    public:
+        People(initializer_list<pair<string, Gender>> l){
+            initializer_list<pair<string, Gender>>::const_iterator iter = l.begin();
+            for(; iter != l.end(); ++iter)
+            {
+                data.push_back(*iter);
+            }
+        }
+
+    private:
+        vector<pair<string, Gender>> data;
+};
+
+int main()
+{
+	People pp = { {"aa", Gender::boy}, {"bb", Gender::girl} };
+	return 0;
+}
+
+```
+
+
+
 ## 2.6 [explicit关键字](https://blog.csdn.net/k6604125/article/details/126524992)
 
 C++中的explicit关键字的作用是表明该构造函数是显示的, 而非隐式的。
@@ -2209,6 +2285,37 @@ public:
  
 	}
  
+```
+
+## 2.13 [枚举类](https://blog.csdn.net/weixin_42817477/article/details/109029172)
+
+c++98中enum称为不限范围的枚举类型
+
+c++11新增了枚举类enum class，是限定作用域枚举类型，仅在枚举类型内可见，且只能通过强制转换转换为其他类型。
+
+两种枚举都支持底层类型指定，enum class默认是int，enum没有默认底层类型
+
+enum class可以前置声明，enum仅在指定默认底层类型的情况下才能前置声明
+
+```c++
+// 1.降低命名空间污染
+enum Color{black,white,red};	//black、white、red作用域和color作用域相同
+auto white = false;	//错误，white已经被声明过了
+
+enum class Color{black,white,red}; //black、white、red作用域仅在大括号内生效
+auto white = false;		//正确，这个white并不是Color中的white
+Color c = white;	//错误，在作用域范围内没有white这个枚举量
+Color c = Color::white;	//正确
+auto c = Color::white;	//正确
+
+
+// 前置声明
+enum Color;			//错误
+enum class Color;	//正确
+enum Color:std::uint8_t;	//提前指定底层型别，可以进行前置声明
+
+enum class Status;		//默认底层型别是int
+enum class Status:std::uint32_t; //修改底层型别为uint32_t
 ```
 
 
