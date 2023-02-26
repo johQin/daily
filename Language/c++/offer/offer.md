@@ -824,3 +824,177 @@
    
 
 2. 
+
+# 2 操作系统
+
+1. 常用的linux命令
+
+   - 文件权限：chmod
+   - 文件与目录管理：
+     - 目录：cd/pwd
+     - 文件：touch/rm/mv/cp
+   - 文件压缩与备份：
+     - 压缩：tar/gzip/zip
+     - 备份：dump/restore
+   - 用户管理：
+     - su/useradd/userdel/usermod
+   - 例行工作：
+     - 突发性：at
+     - 例行性：crontab/anacron(任务补漏)
+   - 程序管理：
+     - 工作管理：jobs(查看后台工作情况)/fg/bg/nohup(脱机管理)
+     - 进程管理：ps(当前进程情况)/top(持续检测)/kill/free(资源查看)
+   - 服务管理
+     - stand alone：service
+     - super daemon：xinted
+   - 软件安装：
+     - yum/apt-get
+
+2. 文件权限修改chmod
+
+   - `chmod nnn file_name`
+
+3. 如何以root权限运行某程序
+
+   ```bash
+   sudo chown root filename
+   sudo chmod u+s filename # 就是给某个程序的所有者以suid权限,可以像root用户一样操作。
+   ./filename
+   ```
+
+4. 软连接和硬链接
+
+   - 文件系统将文件数据分为两个部分：文件权限和属性、文件内容
+   - 文件权限和属性，存放在inode中，文件内容存放在data block中，inode有指向datablock的指针
+   - 定义上：
+     - 软连接又叫符号链接，这个文件的文件内容里包含了另一个文件的路径名，相当于**具有快捷方式功能的文件**。
+     - 硬连接就是**一个文件的一个或多个多件名**，
+     - ![](./legend/连接文件.png)
+   - 限制上：
+     + 硬链接只能对同一文件系统下的文件进行链接
+     + 软连接可以跨文件系统，对文件和目录都可以链接
+   - 操作上：
+     - 修改：通过链接来编辑文件，都会导致源文件爱被修改
+     - 删除：
+       - 当指向inode的硬链接（所有文件名的都是硬链接）数目为0的时候就会删除源文件本身。
+       - 软链接是本身就是一个文件，你删除了就删除了软链接本身，不会对源文件造成影响。但如果源文件被删除，这个软链接就成了死链接，如果恢复源文件，那这个软链接也可恢复。
+
+5. 动态库和静态库的制作，及区别
+
+   ```bash
+   # 静态库制作
+   # 1.编译生成.o文件
+   gcc -c add.c
+   gcc -c sub.c
+   # 2.由.o文件生成静态库，使用ar工具
+   ar -rc libcal.a add.o sub.o # 库名称cal，lib是它的前缀，.a是它的后缀
+   # 3.整理liccal.a和add.h，sub.h到一个文件结构下，供他人使用
+   mkdir -p mathlib/lib
+   mkdir -p mathlib/include
+   cp *.a mathlib/lib
+   cp *.h mathlib/include
+   
+   #4.编译含有main函数的test.c文件，test.c中用到了add.h的函数
+   gcc test.c -I ./mathlib/include -L ./mathlib/lib -l cal -o mytest
+   #5.运行可执行文件
+   ./mytest
+   
+   # 动态库制作
+   # 1.编译生成位置无关的.o文件
+   gcc -fPIC -c add.c
+   gcc -fPIC -c sub.c
+   # 2.由.o文件生成共享库格式的动态库
+   gcc -shared -o libcal.so add.o sub.o
+   # 3.整理库结构，同上
+   # 4.编译含有main函数的test.c文件
+   gcc test.c -I mlib/include/ -L mlib/lib/ -l cal -o mytest
+   # 5.告诉操作系统运行时在哪找动态库
+   export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/mylib/lib/
+   # 6.运行可执行文件
+   ./mytest
+   ```
+
+   - 区别：
+     - 静态库代码装载速度快，执行速度也比动态库快
+     - 动态库更加节省内存，可执行文件体积比静态库小很多
+     - 静态库在编译时加载，动态库是在运行时加载
+     - 生成静态库，windows是.lib，linux是.a。生成动态库，windows是.dll，linux是.so
+   - 
+
+6. LRU算法及其实现方式
+
+   - LRU算法：用于缓存淘汰，思路是将缓存中最近最少使用的对象删除掉
+
+   - 实现方式：利用链表和hashmap
+
+     - 当需要插入新的数据项的时候，如果新数据项在链表中存在（一般称为命中），则把该节点移到链表头部，如果不存在，则新建一个节点，放到链表头部，若缓存满了，则把链表最后一个节点删除即可。
+     - 如果命中，则移至头部，如果未命中，则创建在头部，链表最后一个节点即为最久未访问数据
+
+   - ```c++
+     class LRUCache {
+     	list<pair<int, int>> cache;//创建双向链表
+     	unordered_map<int, list<pair<int, int>>::iterator> map;//创建哈希表
+     	int cap;
+     public:
+     	LRUCache(int capacity) {
+     		cap = capacity;
+     	}
+     	int get(int key) {
+             if (map.count(key) > 0){
+                 auto temp = *map[key];
+                 cache.erase(map[key]);
+                 map.erase(key);
+                 cache.push_front(temp);
+                 map[key] = cache.begin();//映射头部
+                 return temp.second;
+             }
+             return -1;
+     	}
+         void put(int key, int value) {//添加数据
+             //如果查询到链表里有这个数据，则删除；这个if{}里的和else if{}后面的内容和get方法内容相似
+             //都为的是将历史同样数移至链表头部
+             if (map.count(key) > 0){
+                 cache.erase(map[key]);
+                 map.erase(key);
+             }
+             else if (cap == cache.size()){//这里是查询链表是否已满，如果满，则删除链表尾部数据
+                 auto temp = cache.back();
+                 map.erase(temp.first);
+                 cache.pop_back();
+             }
+             cache.push_front(pair<int, int>(key, value));
+             map[key] = cache.begin();//映射头部
+         }
+     };
+     
+     int main(){
+         LRUCache* obj = new LRUCache(capacity);
+     	//访问查询数据
+         int param_1 = obj->get(key);
+         // 添加数据
+         obj->put(key,value);
+     }
+     ```
+
+7. 一个线程占多大的内存
+
+   - linux中大概8M
+
+8. 什么是页表
+
+   - 操作系统虚拟内存到物理内存的映射表，就被称之为页表
+   - 如果虚拟内存的每个字节都对应到物理内存上，那么这张表将大得真正的物理地址也放不下。于是操作系统引入页（page）的概念。
+   - 在64位的操作系统中，虚拟内存每页的大小为4kbyte（物理内存的页框大小同样），即2*12次方，需要12位来表示页内的所有地址（页内偏移最大为2^12）,如果用64位中的48位来表示虚拟地址，48位的低12位用来记录数据在页内的地址，高36位用来表示页码（页号）
+   - 系统在启动时，操作系统将将整个物理内存以4K为单位，划分为各个页，之后进行内存分配时，都以页为单位，那么虚拟内存页到物理内存页框的映射表就大大减小，4G内存只需要8M大小的页表就可以映射。
+
+9. 缺页，缺页异常，缺页中断
+
+   - 缺页：一个程序被加载运行时，只是加载了很少一部分到内存，另外一部分在需要时再从磁盘载入，被加载到内存的部分标识为“驻留”，而未被加载的部分标识为“未驻留”，当操作系统根据需要读取虚拟地址表，如果读取到虚拟地址表中记录的地址为“未驻留”，表示这部分地址记录内存
+
+10. linux系统态（内核态）与用户态，什么时候会进入系统态
+
+11. 简述操作系统如何申请和管理内存
+
+12. GDB常见调试命令，条件断点，多进程如何调试
+
+13. 大端小端，如何判断大端小端
