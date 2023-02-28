@@ -1,16 +1,29 @@
-#include <iostream>
-#include <vector>
-#include <initializer_list>
-
+#include<iostream>
 using namespace std;
 
-class Data {
-public:
-	int a = 1;
-};
-int main()
+bool isLittleEndian() {
+    unsigned short a = 0x1218;
+    cout << &a << endl;
+    cout << (char*)&a << endl;
+    cout << *(char*)&a << endl;
+    if ((*(char*)&a) == 0x18) {
+        return true;
+    }
+    else {
+        return false;
+    }
+}
+
+
+int main(int argc, char* argv[])
 {
-	cout << sizeof(decltype(1 + 1.5));
-	return 0;
-	
+
+    if (isLittleEndian()) {
+        cout << "LitteEndian";
+    }
+    else {
+        cout << "BigEndian";
+    }
+
+    return 0;
 }
