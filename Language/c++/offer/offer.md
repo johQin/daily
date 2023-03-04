@@ -2122,9 +2122,146 @@ DDL，DML，DCL，DQL
    #在偏移量非常大的时候，例如 LIMIT 10000,20 这样的查询，这时MySQL需要查询10020条记录然后
    #只返回最后20条，前面的10000条记录都将被抛弃，这样的代价是非常高的。
    
-   # 2.利用索引覆盖扫描
+   # 2.利用索引覆盖扫描，并且尽可能查询索引列，然后关联回原表获取所需的内容列
+   SELECT prod_name,prod_desc FROM products P 
+   RIGHT JOIN  (SELECT prod_id FROM products LIMIT 1,2) AS PID# prod_id建了索引，并查询了尽可能少的列，然后右关联了
+   ON P.prod_id = PID.prod_id;
+   # 2.扫描
+   ```
+
+2. 聚合函数
+
+   - COUNT()、AVG()、SUM()、MAX()、MIN()
+   - 经常可以结和GROUP BY用来计算每个分组的情况
+
+3. 表关联
+
+   - 内连接（inner）
+   - 外连接（左外，右外，满外，除左，除右，除中），两个重叠圆的各个部分
+   - 左外（左连接），右外（右链接）
+
+4. sql中怎么将行转列
+
+   ```txt
+   id	userid	subject	score			=>		userid	语文	数学	英语	政治
+   1	001		语文		85			  			001		85	90	  95	0
+   2	001		数学		90						002		80	95	  80    0
+   3	001		英语		95						003		80	95	  90	80
+   4	002		语文		80
+   5	002		数学		95
+   6	002		英语		90
+   7	003		语文		80
+   8	003		数学		95
+   9	003		英语		90
+   10	003		政治		80
+   ```
+
+   - 解决思路：将记录通过GROUP BY对userid进行分组，每一组里面的每个学科做聚合操作
+
+   ```mysql
+   # 如果每个学生只有一条语文记录，那sum score就是她的成绩，如果有多个成绩就是所有单科成绩之和
+   SELECT userid,
+   SUM(CASE `subject` WHEN '语文' THEN score ELSE 0 END) as '语文',
+   SUM(CASE `subject` WHEN '数学' THEN score ELSE 0 END) as '数学',
+   SUM(CASE `subject` WHEN '英语' THEN score ELSE 0 END) as '英语',
+   SUM(CASE `subject` WHEN '政治' THEN score ELSE 0 END) as '政治'
+   FROM tb_score
+   GROUP BY userid
+   
+   # if也是如此，0是它的默认值
+   SELECT userid,
+   SUM(IF(`subject`='语文',score,0)) as '语文',
+   SUM(IF(`subject`='数学',score,0)) as '数学',
+   SUM(IF(`subject`='英语',score,0)) as '英语',
+   SUM(IF(`subject`='政治',score,0)) as '政治'
+   FROM tb_score
+   GROUP BY userid
    ```
 
    
 
-2. 
+5. sql注入
+
+   - SQL注入的原理是将SQL代码伪装到输入参数中，传递到服务器解析并执行的一种攻击手法。
+
+   - 在一些对SERVER端发起的请求参数中植入一些SQL代码，SERVER端在执行SQL操作时，会拼接对应参数，同时也将一些SQL注入攻击的“SQL”拼接起来，导致会执行一些预期之外的操作。
+
+   - ```sql
+     # 参数正常
+     SELECT * FROM user WHERE username = 'ls' AND password = '123456'
+     # 如果username的参数值等于 “ ' or 1=1 #  ”，出现下面的意外操作
+     select * from user where username='' or 1=1 #' and password='123456'
+     ```
+
+   - 解决：
+
+     - 进行严格的参数校验
+
+     - [sql预编译](https://blog.csdn.net/sangfor_edu/article/details/127571616)
+
+       - sql语句在很多时候都是相似的，就像下面这两条，除了id的值不同，其余没什么不同，如果两条语法树相似的SQL语句都需要经过“词法语义解析优化、制定执行计划、执行并返回结果”这样一个过程，则很容易造成时间的浪费、效率的下降。
+
+       - 所谓预编译语句就是将这类语句中的值用占位符（“?”）替代，可以视为将SQL语句模板化或者参数化
+
+       - 预编译的机制下，用户在向原有SQL语句传入输入值之前，原有SQL语句的语法树就已经构建完成，因此无论用户输入什么样的内容，都无法再更改语法树的结构。至此，任何输入的内容都只会被当做值来看待，不会再出现非预期的查询，这便是预编译能够防御SQL注入的根本原因。
+
+         ```sql
+         SELECT username, password FROM users WHERE id=1;
+         
+         SELECT username, password FROM users WHERE id=2;
+         ```
+
+6. 将一个表的部分数据更新到另一张表
+
+   - 可以采用关联（join）和更新（update）的方式
+
+     ```mysql
+     update b set b.col1=a.col1, b.col2=a.col2 from a,b where a.id=b.id;
+     update b set col1=a.col1, b.col2=a.col2 from b inner join a on a.id=b.id;
+     update b set b.col1=a.col1, b.col2=a.col2 from b left Join a on b.id = a.id;
+     ```
+
+7. where和having的区别
+
+   - where是针对数据库文件过滤，having是针对查询结果过滤。
+
+     - where可以使用表中有的字段，having中比较的字段只能是前面查询出来有的字段
+     - where查询只能使用表里有的字段，不能使用字段的别名，having是可以的。
+
+     ```sql
+     select goods_price,goods_name from sw_goods where goods_price > 100
+     select goods_price,goods_name from sw_goods having goods_price > 100
+     
+     # where不能使用ag，因为不能使用字段别名
+     ```
+
+   - where先于group by 先于having执行
+
+     - where在分组之前过滤（过滤数据库的行），having在分组之后过滤（过滤分组）
+     - where中不能使用聚合函数，而having可以
+
+## 4.2 索引
+
+1. 对索引的理解
+
+   - 索引是一个单独的、存储在磁盘上的数据库结构，包含着对数据表里所有记录的引用指针。
+   - 所有列都可被索引，对相关列使用索引是提高查询操作速度的最佳途径。
+   - 索引是在存储引擎中实现的，不同的引擎支持不同的索引类型，MySQL中索引的存储类型有两种，即BTREE和HASH，具体和表的存储引擎相关。MyISAM和InnoDB存储引擎只支持BTREE索引；MEMORY/HEAP存储引擎可以支持HASH和BTREE索引。
+   - 索引分类：
+     - 单列索引
+       - 普通索引，无限制
+       - 唯一索引，允许多列设置多个唯一索引，列值可以有多个null，列值要唯一
+       - 主键索引，一张表只能有一个主键索引，列唯一且不能为null
+     - 全文索引
+     - 组合索引
+     - 外键索引
+   - 优点：
+     - 大大加快数据的查询速度
+     - 加速表和表之间的连接。
+     - 降低查询中分组和排序的时间。
+     - 通过索引的唯一性，可以保证数据库表中的每一行数据的唯一性
+   - 缺点：
+     - 索引的存储需要占用磁盘空间；
+     - 当每次执行CUD操作时，索引也需要动态维护，降低了数据的维护速度。随着数据量增大，维护时间愈长
+
+   

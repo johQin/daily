@@ -633,6 +633,17 @@ SELECT student.name,student.mark FROM student,mark WHERE student.id=mark.stu_id;
 SELECT student.name,student.mark FROM student INNER JOIN mark WHERE student.id=mark.stu_id;
 ```
 
+### 6.6.4 using关键字
+
+using关键字的概念：
+
+- 连接查询时如果是同名字段作为连接条件，using可以代替on出现（比on更好）
+- using 是针对同名字段（using(id)===on A.id=B.id）
+- using 关键字使用后会自动合并对应字段为一个
+- using 可以同时使用多个字段作为条件
+
+
+
 ## 6.7联合查询(UNION ALL)
 
 一般业务场景是，结果来自于多个表，且多个表没有直接的连接关系，但查询的信息一致（查询相同的字段）时，查询的内容以记录追加的形式形成查询结果。
@@ -796,13 +807,26 @@ END
 
 可视为书的目录，可以加快了查询记录的速度，但也降低了增删改的速度
 
+- 索引是一个单独的、存储在磁盘上的数据库结构，包含着对数据表里所有记录的引用指针。
+- 所有列都可被索引，对相关列使用索引是提高查询操作速度的最佳途径。
+- 索引是在存储引擎中实现的，不同的引擎支持不同的索引类型，MySQL中索引的存储类型有两种，即BTREE和HASH，具体和表的存储引擎相关。MyISAM和InnoDB存储引擎只支持BTREE索引；MEMORY/HEAP存储引擎可以支持HASH和BTREE索引。
+
 常用索引：
 
-1. 普通索引，key
-2. 唯一索引，unique key，记录值需唯一
-3. 主键索引，primary key，唯一
-4. 全文索引，fulltext，mysql5.6之前，InnoDB引擎不支持全文索引，一个表只能有一个全文索引，因此每个有全文索引的表只属于一个全文目录。
-5. 外键约束，之前有个场景需求就是，学生和成绩，在成绩表中的stu_id被student表中的id约束着，所以我们需要在mark表中，加一个外键约束。这之后，就不会存在有成绩没学生的情况了。
+1. 单列索引
+   - 普通索引，key，无限制
+   - 唯一索引，unique key，允许多列创建多个唯一索引，记录值需唯一，可以有多个NULL，
+     - NULL 的定义是指 未知值。 所以多个 NULL ，都是未知的，不能说它们是相等的。
+   - 主键索引，primary key，数据列不允许重复，一个表只能有一个主键。不允许为NULL，
+2. [组合索引（多列索引）](https://blog.csdn.net/qq_34606496/article/details/125914586)
+   - 在多个列上建立单独的索引大部分情况下并不能提高MySQL的查询性能。
+   - 指在表的多个字段组合上创建的索引，只有在查询条件中使用了这些字段的左边字段时，索引才会被使用。使用组合索引时遵循**最左**前缀集合。
+   - 建一个联合索引(col1,col2,col3)，实际相当于建了(col1),(col1,col2),(col1,col2,col3)三个索引。
+3. 全文索引，fulltext，mysql5.6之前，InnoDB引擎不支持全文索引，一个表只能有一个全文索引，因此每个有全文索引的表只属于一个全文目录。
+   - **原理**是先定义一个词库，然后在文章中查找每个词条(term)出现的频率和位置，把这样的频率和位置信息按照词库的顺序归纳，这样就相当于对文件建立了一个以词库为目录的索引，这样查找某个词的时候就能很快的定位到该词出现的位置。
+   - 出现这样的问题使“分词”成为全文索引的关键技术。
+   - 全文索引可以在CHAR、VARCHAR或者TEXT类型的列上创建。
+4. 外键约束，之前有个场景需求就是，学生和成绩，在成绩表中的stu_id被student表中的id约束着，所以我们需要在mark表中，加一个外键约束。这之后，就不会存在有成绩没学生的情况了。
 
 
 
@@ -819,10 +843,14 @@ CREATE TABLE user(
   user_name VARCHAR(20) NOT NULL,
   password VARCHAR(32) NOT NULL,
   age TINYINT UNSIGNED NOT NULL,
+  phone varchar(11) NOT NULL,
+  address VARCHAR(100),
   PRIMARY KEY(id),
   UNIQUE(user_name),
   KEY(age),
-  INDEX(EMAIL)
+  INDEX(EMAIL),
+  KEY `name_cid_INX` (`phone`,`address`)
+    # 多列索引，KEY | INDEX  [indexname] (propname1 [(length)] [ ASC | DESC ],Propname2 [])
 );
 #看索引
 DESC user;
@@ -899,6 +927,8 @@ primary key(id)
 ## 7.6 数据库编程
 
 主要用在，需要使用条件语句、执行多条语句和 执行procedure中，用的不多，知道即可。
+
+
 
 ## 7.7 其他关键字
 
