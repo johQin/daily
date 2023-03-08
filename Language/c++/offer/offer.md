@@ -2245,23 +2245,241 @@ DDL，DML，DCL，DQL
 1. 对索引的理解
 
    - 索引是一个单独的、存储在磁盘上的数据库结构，包含着对数据表里所有记录的引用指针。
+
    - 所有列都可被索引，对相关列使用索引是提高查询操作速度的最佳途径。
+
    - 索引是在存储引擎中实现的，不同的引擎支持不同的索引类型，MySQL中索引的存储类型有两种，即BTREE和HASH，具体和表的存储引擎相关。MyISAM和InnoDB存储引擎只支持BTREE索引；MEMORY/HEAP存储引擎可以支持HASH和BTREE索引。
+
    - 索引分类：
+
      - 单列索引
+
        - 普通索引，无限制
        - 唯一索引，允许多列设置多个唯一索引，列值可以有多个null，列值要唯一
        - 主键索引，一张表只能有一个主键索引，列唯一且不能为null
+
      - 全文索引
+
+       - 全文索引类型为FULLTEXT，在定义索引的列上支持值的全文查找
+
+       - 全文索引可以在CHAR、VARCHAR或者TEXT类型的列上创建。
+
+         ```mysql
+         KEY `name_cid_INX` (`phone`,`address`)
+         ```
+
      - 组合索引
+
+       - 在多个列上建立单独的索引大部分情况下并不能提高MySQL的查询性能。
+       - 指在表的多个字段组合上创建的索引，只有在查询条件中使用了这些字段的左边字段时，索引才会被使用。使用组合索引时遵循**最左**前缀集合。
+       - 建一个联合索引(col1,col2,col3)，实际相当于建了(col1),(col1,col2),(col1,col2,col3)三个索引。
+
+     - 空间索引
+
+       - 空间索引是对空间数据类型的字段建立的索引
+
      - 外键索引
+
    - 优点：
+
      - 大大加快数据的查询速度
      - 加速表和表之间的连接。
      - 降低查询中分组和排序的时间。
      - 通过索引的唯一性，可以保证数据库表中的每一行数据的唯一性
+
    - 缺点：
+
      - 索引的存储需要占用磁盘空间；
      - 当每次执行CUD操作时，索引也需要动态维护，降低了数据的维护速度。随着数据量增大，维护时间愈长
 
+1. 如何创建和保存mysql的索引
+
+   ```mysql
+   #1.已存在表上，添加索引
+   # ALTER方式
+   ALTER TABLE 表名 ADD [PRIMARY | UNIQUE | FULLTEXT | SPATIAL] [INDEX | KEY] [索引名] (字段名) [ASC | DESC] ;
+   # CREATE方式
+   CREATE [PRIMARY | UNIQUE | FULLTEXT | SPATIAL] INDEX 索引名 ON table_name (字段名 [length],...) [ASC|DESC]
    
+   #2.创建表时，添加索引
+   CREATE TABLE table_name(
+   	[col_name data_type],
+       ...
+       [PRIMARY|UNIQUE|FULLTEXT|SPATIAL] [INDEX|KEY] [index_name] (col_name [length]) [ASC|DESC],
+       ...
+   )
+   
+   #3.删除索引
+   ALTER TABLE 表名 DROP INDEX 索引名;
+   DROP INDEX 索引名 ON 表名;
+   ```
+
+   
+
+1. mysql 怎么判断要不要加索引（索引的合理性）
+
+   - 较频繁的作为查询条件的字段应该创建索引
+   - 唯一性太差的字段不适合单独创建索引，即使频繁作为查询条件。如状态字段、类型字段
+   - 更新非常频繁的字段不适合创建索引
+     - 避免对经常更新的表进行过多的索引，并且索引中的列要尽可能少。
+   - **不会出现**在WHERE子句中的字段不该创建索引
+   - 当唯一性是某种数据本身的特征时，指定唯一索引。使用唯一索引需能确保定义的列的数据完整性，以提高查询速度。
+   - 在频繁进行排序或分组（即进行group by或order by操作）的列上建立索引，如果待排序的列有多个，可以在这些列上建立组合索引。
+   - 参与列计算的列不适合建索引。
+   - 数据比较少的表不需要建索引；
+
+1. [创建了索引，就一定会走索引吗？](https://zhuanlan.zhihu.com/p/66099093)，索引失效，
+
+   - ```mysql
+     # 不走索引情况
+     # 1.查询条件在索引列上使用函数操作,或者运算的情况
+     select * from student where abs(age) =18;
+     # 2.查询条件字符串和数字之间的隐式转换
+     select * from student where name=88;
+     # 3.特殊修饰符 like %xx（左模糊）, 关键字“Or”将不走索引
+     select * from student where name like'%name' ;
+     select * from student where name ='name' or age = 18;
+     # 左模糊不能使用索引，而右模糊可以使用索引
+     # 4.使用组合索引的时候，如果没有遵从“最左前缀”的原则进行搜索，则索引是不起作用的。
+     ```
+
+   - 索引优化器选择最优索引，索引基数（不同值的行数）越大，那么区分度越高，查询速度越快。
+
+     - 指定优化器执行固定索引force index，或者忽略某些索引ignore index
+
+       ```mysql
+       select * from student force index(idx_name) where name like 'name%';
+       ```
+
+1. 索引覆盖
+
+   - select的数据列只用从索引中就能够取得（索引中存储有所需查询的数据的值），不必回表读取数据行。
+
+1. explain
+
+   - explain命令是查看MySQL查询优化器如何执行查询的主要方法，可以很好的分析SQL语句的执行情况。
+   - id，select type，table，partitions，type，possible_key，key，key_len，ref，rows，filtered，extra
+
+1. 如何判断数据库的索引有没有生效
+
+   - 通过explain关键字分析select语句
+   - possible_keys行给出了MySQL在搜索数据记录时可选用的各个索引。
+   - key行是MySQL实际选用的索引。
+
+1. Mysql的hash索引和B树索引的区别
+
+   - hash索引底层就是hash表，进行查找时，调用一次hash函数就可以获取到相应的键值，之后进行回表（hash表）查询获得实际数据。hash表映射了键值和数据存储的地址。
+   - BTREE：多路平衡查找数，每一次查询都是从根节点出发，查到叶子结点获取地址（回表查询）或数据
+   - 区别：
+     - hash索引进行等值查询更快(一般情况下)，而BTREE可进行范围查询。
+     - hash不支持索引排序
+     - hash不支持模糊和组合索引的最左匹配，也是因为hash函数的不可预测。
+     - hash索引任何时候都避免不了回表查询数据，而B+树在符合某些条件(聚簇索引，覆盖索引等)的时候可以只通过索引完成查询。
+     - hash索引虽然在等值查询上较快，但是不稳定，性能不可预测，当某个键值存在大量重复的时候，发生hash碰撞，此时效率可能极差。而B+树的查询效率比较稳定，对于所有的查询都是从根节点到叶子节点，且树的高度较低。
+   - 因此，在大多数情况下，直接选择B+树索引可以获得稳定且较好的查询速度。而不需要使用hash索引。
+
+1. [索引实现原理](https://blog.csdn.net/weixin_45525272/article/details/126483797)
+
+   - MyISAM
+
+     - MyISAM引擎使用B+Tree作为索引结构，叶节点的data域存放的是数据记录的地址
+
+     - MyISAM索引文件和数据文件是分离的，索引文件仅保存数据记录的地址。
+
+     - 辅助索引和主索引没有什么区别，只是主索引不能有重复的值
+
+     - 下图为col1字段做索引的存储原理图
+
+       ![B+Tree索引实现原理.png](./legend/B+Tree索引实现原理.png)
+
+   - InnoDB
+
+     - InnoDB也使用B+Tree作为索引结构，但实现完全不一样。叶节点data域保存了完整的数据记录。
+     - InnoDB的数据文件本身就是索引文件。**索引的key是数据表的主键，因此InnoDB表数据文件本身就是主索引**。
+     - InnoDB的辅助索引data域存储相应记录**主键的值而不是地址**。
+     - 聚簇索引是根据主键创建的一棵B+树，聚簇索引的叶子节点存放了表中的所有记录
+     - innoDB不建议使用过长的字段作为主键，因为所有辅助索引都引用主索引，过长的主索引会令辅助索引变得过大
+     - 用非单调的字段作为主键在InnoDB中不是个好主意，非单调的主键会造成在插入新记录时数据文件为了维持B+Tree的
+       特性而频繁的分裂调整
+     - <img src="./legend/innoDB_索引实现原理.png" style="zoom:67%;" />
+
+     
+
+     
+
+1. 聚簇索引和非聚簇索引有什么区别？
+
+   - 在InnoDB存储引擎中，可以将B+树索引分为聚簇索引和辅助索引（非聚簇索引）。
+   - 聚簇索引是根据主键创建的一棵B+树，聚簇索引的叶子节点存放了表中的所有记录。
+   - 辅助索引是根据索引键创建的一棵B+树，其叶子节点仅存放索引键值，以及该索引键值指向的主键。
+   - 通过辅助索引来查找数据，那么当找到辅助索引的叶子节点后，很有可能还需要根据主键值查找聚簇索引来得到数据，这种查找方式又被称为书签查找。因为辅助索引不包含行记录的所有数据，这就意味着每页可以存放更多的键值，因此其高度一般都要小于聚簇索引。
+
+1. 数据库索引重建过程
+
+   - 什么时候需要重建索引
+
+     - 表记录频繁发生update,delete操作；
+     - [表发生了alter table ..move操作（move操作导致了rowid变化）](https://blog.csdn.net/gumengkai/article/details/51019998)。[参考二](https://blog.csdn.net/royzhang7/article/details/39317213)
+       - 1.用来移动table到其他表空间
+       - 2.用来减少table中的存储碎片，优化存储空间和性能
+
+     ```mysql
+     # 移动表空间
+     alter table scott.change_tbs move tablespace roy;
+     # 重建索引
+     alter index scott.PK_1 rebuild online tablespace roy;
+     ```
+
+   - 怎么判断索引是否应该重建？
+
+     - 一般看索引是否倾斜的严重，是否浪费了空间，对索引进行结构分析：
+
+       ```mysql
+       analyze index index_name validate structure;
+       ```
+
+     - 在相同的session中查询index_stats表
+
+       当查询的height>=4（索引的深度，即从根到叶节点的高度）或DEL_LF_ROWS/LF_ROWS>0.2的情况下，就应该考虑重建该索引。
+
+     ```mysql
+     select height,DEL_LF_ROWS/LF_ROWS from index_stats;
+     ```
+
+   - 如何重建索引？
+
+     - drop原索引，然后再创建索引，相当耗时，一般不建议使用。
+
+       ```mysql
+       drop index index_name;
+       create index index_name on table_name (index_column);
+       ```
+
+     - 直接重建索引
+
+       - rebuild是快速重建索引的一种有效的办法，因为它是一种使用现有索引项来重建新索引的方法。
+       - 如果重建索引时有其他用户在对这个表操作，尽量使用带online参数来最大限度的减少索引重建时将会出现的任何加锁问题
+       - 由于新旧索引在建立时同时存在，因此，使用这种重建方法需要有额外的磁盘空间可供临时使用，当索引建完后把老索引删除，如果没有成功，也不会影响原来的索引。利用这种办法可以用来将一个索引移到新的表空间。
+
+       ```mysql
+       alter index indexname rebuild;
+       alter index indexname rebuild online;
+       ```
+
+1. MySQL的索引为什么用B+树?
+
+   - B+树是在B树和索引顺序访问演化而来，它是为磁盘或其他直接存取辅助设备设计的一种平衡查找树
+   - B+树索引在数据库中的一个特点就是高扇出性，B+树的高度一般都在2～4层，这意味着查找某一键值最多只需要2到4次IO操作，一般的磁盘每秒至少可以做100次IO操作，2～4次的IO操作意味着查询时间只需0.02～0.04秒。
+
+1. 联合索引的存储结构是什么？
+
+   - 联合索引是指对表上的多个列进行索引，联合索引的创建方法与单个索引创建的方法一样，不同之处仅在于有多个索引列。
+   - 从本质上来说，联合索引还是一棵B+树，不同的是联合索引的键值数量不是1，而是大于等于2
+   - ![](./legend/联合索引的存储结构.jpg)
+
+1. 模糊查询语句中如何使用索引
+
+   - 左模糊无法使用索引，建立需要左模糊查询的反转字段reverse_field（冗余列），再使用reverse_field like reverse("%xxx");
+
+## 4.3 事务
+
