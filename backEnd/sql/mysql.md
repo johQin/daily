@@ -262,6 +262,8 @@ DELIMITER ;   #恢复;为语句结束符
    ALTER TABLE TABLENAME DROP fieldname
    ```
 
+
+
 # 4.DML数据操作语言
 
 ​	对表记录的操作（表记录的增删改）
@@ -711,6 +713,57 @@ sql执行顺序
 select distinct expression[,expression...] from tables [where conditions];
 ```
 
+## 6.12 查询优化
+
+### 6.12.1 [慢查询日志](https://blog.csdn.net/qq_41721746/article/details/125224018)
+
+```mysql
+SHOW VARIABLES LIKE '%slow%';
+SET GLOBAL log_slow_ queries = ON ;#开启慢查询日志
+
+SHOW VARIABLES LIKE '%long%';
+SET long_query_time = 0.5;#设置快慢的时间标准，long_query_time只影响当前session
+
+SHOW VARIABLES LIKE '%slow%';#这个语句也可以查看慢查询日志文件放在什么位置
+
+#在日志中找到查询慢的语句后，用explain分析语句sql语句
+EXPLAIN sql语句;
+```
+
+### 6.12.2 [分析慢查询profiling](https://blog.csdn.net/qq_41721746/article/details/125224018)
+
+profiling 是一项非常重要的，但又对很多程序员陌生的技术，它尤其对性能调优有显著帮助。
+
+```mysql
+SHOW VARIABLES LIKE '%profiling%';
+SET profiling = ON;
+
+SHOW profiles;
+SHOW profile FOR query QUERY_ID;#这里写id
+#最后看到的就是这个语句的时间节点。
+```
+
+### 6.12.3 数据库缓存
+
+```mysql
+SHOW VARIABLES LIKE '%cache%';
+#query_cache_size(缓存的容量）,query_cache_type（缓存的开启状态）
+SHOW VARIABLES LIKE '%qcache%';
+#Qcache_hits(缓存命中率)
+#关缓存，缓存开启会对测试有影响
+SET GLOBAL query_cache_size = 0;
+SET GLOBAL query_cache_type = OFF;
+
+```
+
+### 6.12.4 其他优化
+
+1. WHERE 后面的查询字段尽量添加索引
+2. 需要什么字段就查什么字段，不要select * 。。
+3. limit也可以提高性能
+4. 不要在sql语句中做运算
+5. LIKE做左模糊和全模糊的时候不做索引
+
 # 7.其他
 
 ## 7.1 引擎
@@ -725,7 +778,7 @@ Mysql的逻辑分成连接层-->服务层--->引擎层--->存储层
 常见引擎：
 
 - MyISAM（支持全文索引，不支持事务，表级锁，崩溃恢复性能不好，数据量小的时候查询快）
-- InnoDB(不支持全文索引，支持事务，从5.6起就为默认的存储引擎并支持全文索引，行级锁，崩溃恢复性能尚佳，数据量大的时候查询快 )
+- InnoDB(不支持全文索引，支持事务，从5.6起就为默认的存储引擎并支持全文索引，行级锁，崩溃恢复性能尚佳，能处理巨大的数据量)
 - BlackHole(黑洞：任何写入到此引擎的数据均会被丢弃掉， 不做实际存储)
 - CSV(处理excel的）
 - Memory、ARCHIVE
@@ -809,7 +862,7 @@ COMMIT;
 3. 幻读（可重复读）
    - 对于两个事务T1,T2，T1在A表中**读取了一个字段**，然后T2又在A表中**插入**了一些新的数据时，T1再读取该表时，就会发现神不知鬼不觉的多出几行了
 
-为了避免以上出现的各种并发问题，我们就必然要采取一些手段。mysql数据库系统提供了四种事务的隔离级别，用来隔离并发运行各个事务，使得它们相互不受影响，这就是数据库事务的隔离性。
+为了避免以上出现的各种并发问题，我们就必然要采取一些手段。mysql数据库系统提供了四种事务的隔离级别，用来隔离并发运行各个事务，
 
 #### 2 事务的隔离级别
 
@@ -817,6 +870,60 @@ COMMIT;
 2. read committed（读已提交数据）：只允许事务读取已经被其他事务提交的变更。（可以避免脏读，但不可重复读和幻读的问题仍然可能出现）
 3. repeatable read（可重复读）：确保事务可以多次从一个字段中读取相同的值，在这个事务持续期间，禁止其他事务对这个字段进行更新(update)。（可以避免脏读和不可重复读，但幻读仍然存在）
 4. serializable（串行化）：确保事务可以从一个表中读取相同的行，在这个事务持续期间，禁止其他事务对该表执行插入、更新和删除操作，所有并发问题都可避免，但性能十分低下（因为你不完成就都不可以弄，效率太低）
+
+事务隔离是为了解决脏读、不可重复读、幻读问题，下表展示了 4 种隔离级别对三个并发问题的解决程度：
+
+| 隔离级别                      | 脏读   | 不可重复读 | 幻读   |
+| ----------------------------- | ------ | ---------- | ------ |
+| read uncommitted              | 可能   | 可能       | 可能   |
+| read committed                | 不可能 | 可能       | 可能   |
+| repeatable read（InnoDB默认） | 不可能 | 不可能     | 可能   |
+| serializable                  | 不可能 | 不可能     | 不可能 |
+
+上述4种隔离级别MySQL都支持，并且InnoDB存储引擎默认的支持隔离级别是REPEATABLE READ，innoDB存储引擎在REPEATABLE READ事务隔离级别下，使用Next-Key Lock的锁算法，因此避免了幻读的产生。所以innoDB存储引擎在默认的事务隔离级别下已经完全保证事务的隔离性要求。即达到SQL标准的SERIALIZABLE隔离级别。
+
+#### 3 隔离性的实现
+
+锁是计算机协调多个进程或线程并发访问某一资源的机制。
+
+[隔离性的实现（锁机制）](https://blog.csdn.net/m0_37377048/article/details/127766157)
+
+- 按锁的粒度：表锁、行锁 、间隙锁，记录锁，临键锁
+- 悲观锁、乐观锁（概念）
+- 排他锁（写锁 ，X，不可读也不可写）、共享锁（读锁，S，可读不可写）
+
+##### [悲观锁和乐观锁](https://blog.csdn.net/m0_69234258/article/details/128216704)
+
+1. 悲观锁：
+   - 一种对数据的修改抱有悲观态度的并发控制方式。我们一般认为数据被并发修改的概率比较大，所以需要在修改之前先加锁。
+   - 先锁后修改
+   - 数据库中的行锁，表锁，读锁，写锁，以及 syncronized 实现的锁均为悲观锁
+2. 乐观锁
+   - 对于数据冲突保持一种乐观态度，操作数据时不会对操作的数据进行加锁，只有到数据提交的时候才通过**版本机制**来验证数据是否存在冲突。（类似于git提交的时候的机制）
+   - 先修改，依据版本号，校验是否冲突，如冲突，先同步，再提交。
+3. 乐观锁适用于多读的场景，也就是冲突很少发生的场景，此时使用乐观锁就可以大大降低了锁的开销，也就使得系统的吞吐量得到提升；但是如果在多写的场景下，写入的过程可能会经常产生冲突，这时候如果使用乐观锁就会导致上层应用会不断的进行重试（写入一次不成就写入两次，两次不成就写入三次…），这样反倒是降低了性能，所以在多写的场景下使用悲观锁就比较合适了。
+
+##### 间隙锁
+
+间隙锁（gap lock）属于行锁中的一种，间隙锁是在事务加锁后其锁住的是表记录的某一个区间，**当表的相邻记录ID**之间出现空隙则会形成一个区间，遵循左开右闭原则。
+
+**触发条件：**范围查询并且查询未命中记录，查询条件必须命中索引、间隙锁只会出现在REPEATABLE_READ（重复读)的事务级别中。
+
+**间隙锁作用**：防止幻读问题，事务并发的时候，如果没有间隙锁，就会发生如下图的问题，在同一个事务里，A事务的两次查询出的结果会不一样。B事务在A事务的两次查询之间，插入数据，这样就导致幻读
+
+![](./legend/间隙锁.png)
+
+##### 记录锁
+
+记录锁（record lock）也属于行锁中的一种，只不过记录锁的范围只是表中的某一条记录，记录锁是说事务在加锁后锁住的只是表的某一条记录。
+
+**触发条件：**精准条件命中，并且命中的条件字段是唯一索引；
+
+解决脏读，和重复读的问题。
+
+##### 临键锁
+
+临键锁（next-key lock）也属于行锁的一种，记录锁和间隙锁的组合（它是INNODB的行锁默认算法）。临键锁会把查询出来的记录锁住，同时也会把该范围查询内的所有间隙空间也会锁住，再之它会把相邻的下一个区间也会锁住。
 
 ## 7.3 视图
 
@@ -1060,9 +1167,27 @@ explain命令是查看MySQL查询优化器如何执行查询的主要方法，�
 12. extra：额外信息
 
     - 常见的最重要的值：Using index，Using where，Using index condition，Using temporary，Using filesort
-    - Using index：使用覆盖索引（如果select后面查询的字段都可以从这个索引的树中获取，不需要通过辅助索引树找到主键，再通过主键去主键索引树里获取其它字段值，这种情况一般可以说是用到了覆盖索引）。
+
+      | 关键字          | 备注                                                         |
+      | --------------- | ------------------------------------------------------------ |
+      | Using index     | 使用覆盖索引（如果select后面查询的字段都可以从这个索引的树中获取，不需要通过辅助索引树找到主键，再通过主键去主键索引树里获取其它字段值，这种情况一般可以说是用到了覆盖索引）。 |
+      | Using temporary | 需要创建一个临时表来存储结果，这通常发生在对没有索引的列进行GROUP BY时，或者ORDER BY里的列不都在索引里，需要添加合适的索引。 |
+      | Using filesort  | 将用外部排序而不是按照索引顺序排列结果，数据较少时从内存排序，否则需要在磁盘完成排序，代价非常高，需要添加合适的索引。 |
+      | Using where     | 通常是进行了全表/全索引扫描后再用WHERE子句完成结果过滤，需要添加合适的索引。 |
 
     
+
+#### explain重点关注
+
+| 列名    | 备注                                                         |
+| ------- | ------------------------------------------------------------ |
+| type    | 本次查询表联接/访问类型，从这里可以看到本次查询大概的效率。<br/> |
+| key     | 最终选择的索引，如果没有索引的话，本次查询效率通常很差。     |
+| key_len | 本次查询用于结果过滤的索引实际长度。                         |
+| rows    | 预计需要扫描的记录数，预计需要扫描的记录数越小越好。         |
+| Extra   | 额外附加信息，主要确认是否出现 Using filesort、Using temporary 这两种情况 |
+
+
 
 ### 7.5.3 使用索引的条件
 
@@ -1109,6 +1234,95 @@ explain命令是查看MySQL查询优化器如何执行查询的主要方法，�
 
 
 
+## 7.7 [分区](https://blog.csdn.net/frostlulu/article/details/122304238)
+
+随着业务增长，当同一张表的数据量过大时，会带来管理上的不便。
+
+而分区特性可以将一张表从物理层面根据一定的规则将数据划分为多个分区，多个分区可以单独管理，甚至存放在不同的磁盘/文件系统上，提升效率。
+
+分区的优点：
+
+- 数据可以跨磁盘/文件系统存储，适合存储大量数据。
+- 数据的管理非常方便，以分区为单位操作数据，不会影响其他分区的正常运行。
+- 数据查询上在某些条件可以利用分区裁剪(partition pruning)特性，将搜索范围快速定位到特性分区，提升查询性能。
+
+### 7.7.1 分区的类型
+
+- 范围分区（range partition）
+- 列表分区（list partition）
+- 哈希分区（hash partition）
+- 键值分区（key partition）
+
+### 7.7.2 范围分区
+
+```mysql
+create table employees (
+    id int not null primary key,
+    first_name varchar(30),
+    last_name varchar(30))
+    partition by range(id)(
+    partition p0 values less than (11),
+    partition p1 values less than (21),
+    partition p2 values less than (31),
+    partition p3 values less than (41)
+);
+
+# 分区查询
+select * from employees partition(p0);  -- 查询p0分区
+# 分区删除
+alter table employees drop partition p1;
+# 分区重组，将p2划分为2个分区，分别是11~20,21~30:
+alter table employees reorganize partition p2 into (
+partition p1 values less than(21),
+partition p2 values less than(31));
+```
+
+### 7.7.3 列表分区
+
+```mysql
+CREATE TABLE employees (
+    id INT NOT NULL,
+    fname VARCHAR(30),
+    lname VARCHAR(30)
+)
+PARTITION BY LIST(id) (
+    PARTITION p0 VALUES IN (1,3,5,7,9),
+    PARTITION p1 VALUES IN (2,4,6,8,10)
+);
+```
+
+### 7.7.4 哈希分区
+
+Hash partition主要的应用场景是将数据平均的分布在指定数量的hash分区中。
+
+在range和list分区类型中，根据分区条件的计算结果，数据可以确定存储在哪个分区，
+
+而在hash分区中，数据存储在某个分区是由数据库自己决定的，你只需要指定分区的数量。
+
+```mysql
+CREATE TABLE employees (
+    id INT NOT NULL,
+    first_name VARCHAR(30),
+    last_name VARCHAR(30)
+)
+PARTITION BY HASH(id) # HASH(EXPR)，EXPR是整数类型的列或返还整数的表达式
+PARTITIONS 4;
+```
+
+### 7.7.5 键值分区
+
+
+
+```mysql
+CREATE TABLE tm1 (
+    s1 CHAR(32) PRIMARY KEY   -- 字符型主键，同时作为partition key
+)
+PARTITION BY KEY(s1) # KEY(EXPR)，EXPR可以为字符串
+PARTITIONS 10;
+```
+
+
+
 ## 7.7 其他关键字
 
 ### 7.7.1 [exists](<https://www.cnblogs.com/jinghan/p/7150183.html>)
@@ -1131,54 +1345,7 @@ where instance_id = '1234' );
 
 ```
 
-# 8. 查询优化
-
-## 8.1 基本优化方法
-
-### 8.1.1 慢查询日志
-
-```mysql
-SHOW VARIABLES LIKE '%slow%';
-SET GLOBAL log_slow_ queries = ON ;#开启慢查询日志
-SHOW VARIABLES LIKE '%long%';
-SET long_query_time = 0.5;#设置快慢的时间标准
-#在日志中找到查询慢的语句后，用explain分析语句sql语句
-EXPLAIN sql语句;
-```
-
-### 8.1.2 分析慢查询profiling
-
-profiling 是一项非常重要的，但又对很多程序员陌生的技术，它尤其对性能调优有显著帮助。
-
-```mysql
-SHOW VARIABLES LIKE '%profiling%';
-SET profiling = ON;
-
-SHOW profiles;
-SHOW profile FOR query QUERY_ID;#这里写id
-#最后看到的就是这个语句的时间节点。
-```
-
-### 8.1.3 数据库缓存
-
-```mysql
-SHOW VARIABLES LIKE '%cache%';
-#query_cache_size(缓存的容量）,query_cache_type（缓存的开启状态）
-SHOW VARIABLES LIKE '%qcache%';
-#Qcache_hits(缓存命中率)
-#关缓存，缓存开启会对测试有影响
-SET GLOBAL query_cache_size = 0;
-SET GLOBAL query_cache_type = OFF;
-
-```
-
-### 8.1.4 其他优化
-
-1. WHERE 后面的查询字段尽量添加索引
-2. 需要什么字段就查什么字段，不要select * 。。
-3. limit也可以提高性能
-4. 不要在sql语句中做运算
-5. LIKE做左模糊和全模糊的时候不做索引
+5. 
 
 # 9.数据库配置
 
