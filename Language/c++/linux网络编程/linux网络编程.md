@@ -28,5 +28,64 @@ TCP/IP（4层）：链路层，网络层，传输层，应用层
 
 传输层：进程之间
 
+# 2 UDP 编程
+
+## 2.1 字节序
+
+字节序是指**多字节数据**的存储顺序。
+
+小端：高位字节数据存储在内存的高地址中，低位字节数据存储在内存的低地址中。
+
+大端：高位字节数据存储在内存的低地址中，低位字节数据存储在内存的高地址中。**和我们的阅读习惯一致**
+
+主机字节序和网络字节序：数据在网络中传输用的是大端（**网络字节序是大端**），而每个主机它的字节序因机器而异（主机字节序因机而异）。
+
+```c
+// 判断主机的字节序
+bool isLittleEndian(){
+    unsigned short a = 0x1218;//0x表示这个数按照16进制数识别，一个数字占4bit，所以1218占用2byte
+
+    if( (*(char*)&a)  == 0x18){
+        return true;
+    }else{
+        return false;
+    }
+}
+
+#include<stdio.h>
+
+typedef union Data {
+	unsigned short a;
+	char b[2];//b[0]和b[1]分别代表了a的两个字节
+} data;
+int main() {
+	data tmp;
+	tmp.a = 0x6141;// 16进制数的61等于十进制的97（a)，而16进制41是十进制的65（A）
+	if (tmp.b[0] == 0x61) {
+		printf("%c", tmp.b[0]);//打印出a，说明是0x61，就是大端，和我们的阅读习惯一致
+	}
+	else {
+		printf("%c", tmp.b[0]);//打印出A，说明是0x41，就是小端，和我们的阅读习惯不一致
+	}
+	return 0;
+}
+```
+
+### 2.1.1 字节序转换函数
+
+头文件：`#include<arpa/inet.h>`
+
+1. `uint32_t htonl(uint_t hostint32)`：host to net long（这个long，仅代表是4个byte（32位）的长度）
+   - 功能：将32位主机字节序数据转换成网络字节序数据
+   - 四个字节，一般用来转ip
+2. `uint16_t htons(uint16_t hostint16)`：host to net short（这个short，仅代表是2个byte（16位）的长度）
+   - 功能：将16位主机字节序数据转换成网络字节序数据
+   - 一般用来转端口
+3. `uint32_t ntohl(uint32_t netint32)`：net to host long
+   - 功能：将32位网络字节序数据转换成主机字节序数据
+4. `uint16_t ntohs(uint16_t netint16)`：net to host short
+
+
+
 
 

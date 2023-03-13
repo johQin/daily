@@ -3354,3 +3354,4 @@ p = (int *)malloc(sizeof(int)*5); //申请5个int内存空间
 assert(p != NULL); //判空，防错设计
 ```
 
+![](./legend/字符和数字的转换表.jpeg)
