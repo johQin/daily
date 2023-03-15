@@ -1687,7 +1687,7 @@ free(p);
 p = NULL;  // 置空
 ```
 
-### 6.9.4 [野指针（wild pointer](https://blog.csdn.net/qq_40927789/article/details/80686723)
+### 6.9.4 [野指针（wild pointer）](https://blog.csdn.net/qq_40927789/article/details/80686723)
 
 野指针：没有初始化的指针，指向地址未知。
 

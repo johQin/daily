@@ -4,7 +4,7 @@ typedef union Data {
 	unsigned short a;
 	char b[2];//b[0]和b[1]分别代表了a的两个字节
 } data;
-int main() {
+int main1() {
 	data tmp;
 	tmp.a = 0x6141;// 16进制数的61等于十进制的97（a)，而16进制41是十进制的65（A）
 	if (tmp.b[0] == 0x61) {
