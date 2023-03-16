@@ -2721,6 +2721,8 @@ linux是多用户、多任务的环境，系统同时间有非常多的进程在
 
    - l—列出正在网络监听的服务
 
+   - p—显示正在使用Socket的程序识别码和程序名称
+
    - ```bash
      netstat -a
      Active Internet connections (servers and established)	#正在活跃的internet连接，用于网络中进程通信

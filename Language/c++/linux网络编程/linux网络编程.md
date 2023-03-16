@@ -555,3 +555,761 @@ int main(int argc,char *argv[]){
 }
 ```
 
+## 2.6 UDP多播
+
+数据的收发仅仅在同一分组中进行。
+
+多播的特点：
+
+- 一个多播地址（D类地址）标识一个多播分组，一个分组内的所有主机，都有一个相同的多播ip地址
+
+- 多播可以用于广域网使用
+
+  | 类型 | ipv4 | ipv6   |
+  | ---- | ---- | ------ |
+  | 单播 | 支持 | 支持   |
+  | 多播 | 可选 | 支持   |
+  | 广播 | 支持 | 不支持 |
+  | 任播 | 支持 | 支持   |
+
+多播ip地址：D类IP，规定是224.0.0.0-239.255.255.255。
+
+- 224.0.0.0：基准地址，保留
+- 224.0.0.1：表示组内所有主机
+- 其他的多播地址有的有特殊的含义。
+
+多播mac地址：
+
+- 多播mac地址是第一个字节的最低位为1的所有地址，例如01-12-0f-00-00-02。
+- 后三个字节一般是多播ip地址的映射，01-12-0f-**00-00-01**，加粗部分是ip后三个点分十进制的映射。
+
+所有加入多播组的主机都会得到一个同样的多播ip地址，同时根据多播ip地址生成一个临时的多播mac地址。
+
+### 多播编程
+
+在IPv4因特网域(AF_INET)中，多播地址结构体用如下结构体ip_mreq表示
+
+```c
+struct in_addr{
+    in_addr_t s_addr;
+}
+struct ip_mreq{
+    struct in_addr imr_multiaddr;//多播组ip地址
+    struct in_addr imr_interface;//将要添加到多播组的主机ip
+}
+```
+
+多播套接字选项
+
+`int setsockopt(int sockfd, int level, int optname, const void *optval, socklen_t optlen);`
+
+- | level      | optname            | 说明       | optval类型 |
+  | ---------- | ------------------ | ---------- | ---------- |
+  | IPPROTO_IP | IP_ADD_MEMBERSHIP  | 加入多播组 | ip_mreq{}  |
+  | IPPROTO_IP | IP_DROP_MEMBERSHIP | 离开多播组 | ip_mreq{}  |
+
+```c
+char group[INET_ADDRSTRLEN]= "224.0.0.1";
+
+struct ip_mreq mreq;
+mreq.imr_multiaddr.s_addr = inet_addr(group);
+mreq.imr_interface.s_addr = honl(INADDR_ANY);//INADDR_ANY,全0，表示网络本身，
+
+setsockopt(sockfd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq));
+```
+
+# 3 TCP 编程
+
+
+
+![](./legend/TCP_C_S架构.png)
+
+## 3.1 创建套接字
+
+### 3.1.1 客户端
+
+`int socket(int domain, int type, int protocol);`
+
+- 功能：创建一个socket套接字
+- domain：选择协议，一般AF_INET
+- type：通信的语义
+  - SOCKET_STREAM：流式套接字，用于TCP通信
+  - SOCKET_DGRAM：报式套接字，用于UDP通信
+- protocol：0，自动指定
+- 返回值：返回一个套接字（文件描述符）
+
+
+
+`int connect(int sockfd, const struct sockaddr *addr,socklen_t addrlen);`
+
+- 功能：连接服务器
+- 参数：
+  - sockfd：套接字
+  - addr：服务器地址信息
+  - addrlen：addr结构体大小
+- 返回值：0——成功，-1——失败，
+
+```c
+#include <stdio.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <string.h>
+
+int main(int argc, char *argv[])
+{
+	//创建流式套接字
+	int s_fd = socket(AF_INET,SOCK_STREAM,0);
+	if(s_fd < 0) perror("");
+    
+	//连接服务器
+	struct sockaddr_in ser_addr;
+	ser_addr.sin_family = AF_INET;
+	ser_addr.sin_port = htons(8080);//服务器的端口
+	ser_addr.sin_addr.s_addr = inet_addr("192.168.127.1");//服务器的ip
+	int ret = connect(s_fd, (struct sockaddr*)&ser_addr,sizeof(ser_addr));
+	if(ret<0) perror("");
+    
+	//收发数据
+	while(1)
+	{
+		char buf[128]="";
+		char r_buf[128]="";
+		fgets(buf,sizeof(buf),stdin);
+		buf[strlen(buf)-1]=0;
+        //发
+		write(s_fd,buf,strlen(buf));
+		//收
+        int cont = read(s_fd,r_buf,sizeof(r_buf));
+        
+        ////如果对方挂断，会发送一个0长度的数据报，此时cont为0
+		if(cont == 0)
+		{
+			printf("server close\n");
+			break;//对方关闭
+		}
+		printf("recv server = %s\n",r_buf);
+	
+	}
+	//关闭套接字'
+	close(s_fd);
+	return 0;
+}
+```
+
+### 3.1.2 服务器
+
+1. socket()：创建套接字
+2. bind()：绑定ip和端口
+3. listen()：监听
+   - `int listen(int sockfd, int backlog);`
+   - 功能：
+     - 套接字由主动变为被动（**监听套接字，lfd**）
+     - 创建两个连接队列，一个已完成连接队列（完成三次握手），一个未完成连接队列
+   - 参数：
+     - backlog：两个连接对列的连接数目之和最大值
+4. accept()：提取
+   - `int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen);`
+   - 功能：
+     - 从已完成连接队列里提取一个新的连接，
+     - 然后**创建一个新的已连接套接字（通信套接字，cfd）**，
+     - 使用这个已连接套接字和当前连接的客户端通信
+   - 参数：
+     - addr保存客户端地址的信息结构体
+   - 返回值：成功返回已连接套接字
+5. read()/write()
+6. close()
+
+**accept和read是带阻塞的。无法在一个服务器上，同时和多个客户端通信**
+
+**当accept和read被信号（CTRL + C）中断后，他们将不会再阻塞**
+
+![](./legend/TCP服务器工作示意图.png)
+
+```c
+// 处理单个客户端
+#include <stdio.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+int main(int argc, char *argv[])
+{
+	//创建套接字，监听套接字
+	int lfd = socket(AF_INET,SOCK_STREAM,0);
+	if(lfd < 0)
+		perror("");
+	//绑定
+	struct sockaddr_in myaddr;
+	myaddr.sin_family = AF_INET;
+	myaddr.sin_port = htons(9999);
+	myaddr.sin_addr.s_addr = 0;//本机的ip都绑定
+	bind(lfd,(struct sockaddr*)&myaddr,sizeof(myaddr));//绑定
+	//监听
+	listen(lfd,128);
+	//提取
+	struct sockaddr_in cliaddr;
+	socklen_t len = sizeof(cliaddr);
+	
+	// 通信套接字
+	int cfd = accept(lfd,(struct sockaddr *)&cliaddr,&len);//提取
+	if(cfd < 0 )
+		perror("");
+	char ip[16]="";
+	printf("client ip=%s port=%d\n",
+			inet_ntop(AF_INET,&cliaddr.sin_addr.s_addr,ip,16),ntohs(cliaddr.sin_port));
+	//读写
+	while(1)
+	{
+		char buf[256]="";
+		//回射服务器
+		int ret = read(cfd,buf,sizeof(buf));
+		if(ret == 0)
+		{
+			printf("client close\n");
+			break;
+		}
+		printf("recv = [%s]\n",buf);
+		write(cfd,buf,ret);
+	
+	}
+	//关闭
+	close(lfd);
+	close(cfd);
+	return 0;
+}
+```
+
+## 3.2 并发服务器
+
+### 3.2.1 多进程实现
+
+![](./legend/多进程tcp并发通信.png)
+
+```c
+#include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <signal.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+
+//回收子进程资源
+void cath_child(int num)
+{
+	pid_t pid;
+	while(1)
+	{
+		pid = waitpid(-1,NULL,WNOHANG);
+		if(pid <= 0)
+		{
+            //pid = -1，所有子进程都回收了
+            //pid = 0，还有子进程活着
+			break;
+		}
+		else if(pid > 0)
+		{
+            //继续回收，某个子进程被回收了
+			printf("child process %d\n",pid);
+			continue;
+		}
+	}
+
+}
+int main(int argc, char *argv[])
+{
+	//将SIGCHLD 加入到阻塞集中
+	sigset_t set;
+	sigemptyset(&set);
+	sigaddset(&set,SIGCHLD);
+	sigprocmask(SIG_BLOCK,&set,NULL);
+    
+    
+	// 创建套接字
+	int lfd = socket(AF_INET,SOCK_STREAM,0);
+	if(lfd <0) perror("");
+	// 绑定
+	struct sockaddr_in myaddr;
+	myaddr.sin_family = AF_INET;
+	myaddr.sin_port = htons(6666);
+	myaddr.sin_addr.s_addr = 0;
+	bind(lfd,(struct sockaddr *)&myaddr,sizeof(myaddr));
+	// 监听
+	listen(lfd,128);
+	// 提取
+	struct sockaddr_in cliaddr;
+	socklen_t len = sizeof(cliaddr);
+	while(1)
+	{
+        //当accept和read被信号（CTRL + C）中断后，他们将不会再阻塞,所以这里有点问题
+        // 当父进程被Ctrl +c后，accept不会阻塞，程序向下进行，将会出问题。
+		int cfd = accept(lfd,(struct sockaddr*)&cliaddr,&len);
+		if(cfd < 0)perror("");
+        
+		char ip[16]="";
+        
+        //打印客户端相关信息
+		printf("client ip=%s port=%d\n",
+				inet_ntop(AF_INET,&cliaddr.sin_addr.s_addr,ip,16),
+				ntohs(cliaddr.sin_port));
+        
+     	// 创建子进程
+		pid_t pid;
+		pid = fork();
+		if(pid ==0 )//子进程
+		{
+			close(lfd);
+			while(1){
+				sleep(1);
+				char buf[256]="";
+				int n = read(cfd,buf,sizeof(buf));
+				// 通信结束子进程退出
+                if(0==n){
+					printf("client close\n");
+					break;
+				}
+				printf("[***%s***]\n",buf);
+				write(cfd,buf,n);
+			}
+			close(cfd);
+			exit(0);
+		}
+        
+        // 父进程
+		else if(pid > 0)
+		{
+			close(cfd);
+			struct sigaction act;
+			act.sa_handler = cath_child;
+			act.sa_flags = 0;
+			sigemptyset(&act.sa_mask);
+			sigaction(SIGCHLD,&act,NULL);
+
+			sigprocmask(SIG_UNBLOCK,&set,NULL);
+		}
+	 }
+	
+
+	return 0;
+}
+```
+
+
+
+### 3.2.2 多线程实现
+
+```c
+#include <stdio.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <pthread.h>
+#include <string.h>
+
+#include <stdlib.h>
+typedef struct _info
+{
+	int cfd;
+	struct sockaddr_in client;
+
+}INFO;
+
+// 与客户端通信
+void* resq_client(void *arg)
+{
+	INFO *info = (INFO*)arg;
+	char ip[16]="";
+	printf("client ip=%s port=%d\n",
+			inet_ntop(AF_INET,&(info->client.sin_addr.s_addr),ip,16),
+			ntohs(info->client.sin_port));
+	while(1)
+	{
+		char buf[1024]="";
+		int n = read(info->cfd,buf,sizeof(buf));
+		if(n == 0)
+		{
+			printf("cleint close\n");
+			break;
+		}
+		printf("%s\n",buf);
+		write(info->cfd,buf,n);
+	}
+	close(info->cfd);
+	free(info);
+}
+int main(int argc, char *argv[])
+{
+	int lfd = socket(AF_INET,SOCK_STREAM,0);
+	if(lfd <0)
+		perror("");
+
+	int opt=1;
+	setsockopt(lfd,SOL_SOCKET,SO_REUSEADDR,&opt,sizeof(opt));
+
+	struct sockaddr_in myaddr;
+	myaddr.sin_family = AF_INET	;
+	myaddr.sin_port= htons(8888);
+	myaddr.sin_addr.s_addr = 0;
+	if( bind(lfd,(struct sockaddr*)&myaddr,sizeof(myaddr))< 0)
+		perror("bind:");
+
+
+	listen(lfd,128);
+	while(1)
+	{
+		struct sockaddr_in client;
+		socklen_t len = sizeof(client);
+		int cfd = accept(lfd,(struct sockaddr*)&client,&len);
+		INFO *info = malloc(sizeof(INFO));
+		info->cfd =cfd;
+		info->client = client;
+		pthread_t pthid;
+		pthread_create(&pthid,NULL,resq_client,info);
+		pthread_detach(pthid);
+	}
+
+	close(lfd);
+	return 0;
+}
+```
+
+
+
+### 3.2.3 非阻塞忙轮询
+
+多线程和多进程的方式，对资源的消耗是巨大的。来一个客户端请求，服务器就创建一个进程或线程处理，这种方式实现并发，大多数时间，我们的进程和线程都处于休眠状态（阻塞，阻塞等待（accept和read默认都是带阻塞的）），这样非常浪费资源。
+
+由服务器进程不停的访问每个套接字，查看是否有连接或数据到达。
+
+这样的方式非常浪费cpu。
+
+### 3.2.4 IO多路复用
+
+服务器单进程 + 内核监听请求（多个fd）的方式
+
+IO多路复用：由内核监听多个文件描述符的读写缓冲区的变化（不仅仅能监听网络的fd，管道的，stdin/stdout/stderr，任何设备的都可以进行监听），一旦有变化，就会让服务器进程来处理。
+
+在这里，监听的文件描述符分两类，一个是lfd，一个是cfd
+
+进程A执行到创建socket语句的时候，创建socket对象，进程A进入阻塞态，等待接收socket传来的网络数据，当socket已接收到数据之后，进程A进入执行态
+
+![](./legend/进程与单个socket.png)
+
+IO多路复用有两种方式：[select和epoll](https://www.jianshu.com/p/c9190109c7d8)
+
+
+
+### 3.2.5 select
+
+select准备一个数组fds（文件描述符），存放需要监视的所有socket，然后调用select，如果fds中所有的socket都没有数据，select会阻塞，直到有一个socket收到数据，select返回，唤醒进程，用户可以遍历fds，通过FD_ISSET判断哪个socket收到了数据，然后做出处理。windows下面用的最多的就是select
+
+![](./legend/select.png)
+
+ 
+
+       #include <sys/select.h>
+       #include <sys/time.h>
+       #include <sys/types.h>
+       #include <unistd.h>
+
+`int select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout);`
+
+- 函数功能：监听多个文件描述符的属性变化（读写缓冲区的变化）
+
+- 参数：
+
+  - nfds：需要监听的文件描述符的个数 +1（n个cfd + lfd），最大支持FD_SETSIZE=1024
+
+  - readfds：需要监听读属性变化的文件描述符集合
+
+  - writefds：需要监听写属性变化的文件描述符集合
+
+  - exceptfds：需要监听异常属性变化的文件描述符集合
+
+  - timeout：超时时间，表示等待多长时间之后就放弃等待，
+
+    - 传 NULL 表示等待无限长的时间，持续阻塞直到有事件就绪才返回。
+    - 大于0，超时时间
+    - =0，不等待立即返回
+
+    ```c
+    struct timeval{
+        long tv_sec;//秒
+        long tv_usec;//微秒
+    }
+    ```
+
+- 返回值：变化的文件描述符个数
+
+内核在监听到readfds有fd读属性变化的时候，就会将readfds集合重置为变化的fd的集合（而不是一开始的需要监听的fd集合），所以我们需要对初始需要监听的fd集合做一个备份，以便下一次继续监听。
+
+文件描述符集合操作函数：
+
+- `void FD_CLR(int fd, fd_set *set);`：将fd从集合set中剔除
+- ``int  FD_ISSET(int fd, fd_set *set);`：判断fd是否在set里面
+- `void FD_SET(int fd, fd_set *set);`：添加fd到set里面
+- `void FD_ZERO(fd_set *set);`：清空set集合
+
+优点：
+
+- 可跨平台，windows，linux都可以
+- 并发量高，效率高，消耗资源少
+
+缺点：
+
+- 最大监听fd数目为1024
+- 每一次监听都需要再次设置需要监听的集合，集合从用户态拷贝至内核态消耗资源
+- 监听到fd变化后，需要用户自己遍历集合，才知道具体哪个fd发生了变化
+- 大量并发，少数活跃，select效率低
+
+#### 代码实现
+
+```c
+#include <stdio.h>
+#include "wrap.h"
+#include <sys/time.h>
+#include <sys/select.h>
+#include <sys/types.h>
+int main(int argc, char *argv[])
+{
+	//创建套接字
+	//绑定
+	int lfd = tcp4bind(9999,NULL);//在wrap.h中
+	//监听
+	listen(lfd,128);
+	int max_fd = lfd;
+	fd_set r_set;
+	fd_set old_set;
+	FD_ZERO(&old_set);
+	FD_ZERO(&r_set);
+
+	FD_SET(lfd,&old_set);
+	int nready=0;
+	while(1)
+	{
+		r_set = old_set;
+		nready = select(max_fd+1,&r_set,NULL,NULL,NULL);
+		if(nready < 0)
+		{		
+			perror("");
+			break;
+		}
+		else if(nready >= 0)
+		{
+			//判断lfd是否变化了，如果变化生成一个新的cfd
+			if(FD_ISSET(lfd,&r_set))
+			{
+				// 提取新的连接
+				struct sockaddr_in cliaddr;
+				socklen_t len=sizeof(cliaddr);
+				char ip[16]="";
+				int cfd = Accept(lfd,(struct sockaddr*)&cliaddr,&len);
+				printf("client ip=%s port=%d\n",
+						inet_ntop(AF_INET,&cliaddr.sin_addr.s_addr,ip,16),
+						ntohs(cliaddr.sin_port));
+				//将cfd加入到old_set
+				FD_SET(cfd,&old_set);
+				//更新最大值
+				if(max_fd < cfd)
+				max_fd = cfd;
+				//如果只有lfd变化,执行下一次监听
+				if( --nready == 0)
+					continue;
+			
+			}
+			for(int i=lfd+1;i<=max_fd;i++)
+			{
+				//cfd变化
+				if(FD_ISSET(i,&r_set))
+				{
+					char buf[1024]="";
+					int n = Read(i,buf,sizeof(buf));
+					if(n == 0)
+					{
+						printf("client close\n");
+						close(i);
+						//将i从old_set删除
+						FD_CLR(i,&old_set);
+					}
+					else if(n < 0)
+					{
+						perror("");
+					
+					}
+					else
+					{
+						printf("%s\n",buf);
+						Write(i,buf,n);
+					}
+				}
+				
+			
+			
+			}
+		}
+	
+	}
+	return 0;
+}
+
+```
+
+#### select优化
+
+主要是在查找哪个fd变化上（遍历fds）上做优化
+
+### 3.2.6 epoll
+
+epoll创建epoll对象，维护一个就绪列表和等待队列。当socket接收到数据，中断程序一方面修改rdlist，另一方面唤醒eventpoll等待队列中的进程，由于rdlist的存在，进程A可以知道哪些socket发生了变化。
+
+![](./legend/epoll.png)
+
+
+
+`#include <sys/epoll.h>`
+
+`int epoll_create(int size);`
+
+- 功能：创建一个红黑树，用于管理需要监听的fds
+- 参数：size大于0即可，容量不够时，函数会自动扩容
+- 返回值：树的句柄
+
+`int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event);`
+
+- 功能：对树节点做操作
+
+- 参数：
+
+  - epfd：树的根节点（句柄）
+
+  - op：
+
+    - EPOLL_CTL_ADD：添加fd
+    - EPOLL_CTL_MOD：修改fd
+    - EPOLL_CTL_DEL：删除fd
+
+  - fd：需要操作的fd
+
+  - event：树上的节点
+
+    ```c
+    typedef union epoll_data{
+        void *ptr;
+        int fd;//需要监听的fd
+        unint32_t u32;
+        unint64_t u64;
+    } epoll_data_t;
+    struct epoll_event{
+        unint32_t events;//监听fd的什么事件，EPOLLIN读事件，EPOLLOUT写事件，EPOLLET,EPOLLLT,EPOLLRDHUP，EPOLLPRI，等等
+        epoll_data_t data;
+    }
+    ```
+
+- 返回值：操作成功0，失败-1
+
+`int epoll_wait(int epfd, struct epoll_event *events,int maxevents, int timeout);`
+
+- 功能：开启监听树上所有节点的属性变化
+- 参数：
+  - epfd：树的句柄
+  - epoll_events：存放变化的fd的数组
+  - maxevents：epoll_events的容量
+  - timeout：永久监听（-1），限时等待（>0）
+- 返回值：变化的fd个数
+
+select与epoll的区别
+
+- 每次调用select，都需要把fd集合从用户态拷贝到内核态，这个开销在fd很多时会很大；而epoll保证了每个fd在整个过程中只会拷贝一次。
+- 每调用一次select都会遍历一次fd集合，知晓哪个有数据，而epoll只会轮询一次fd集合，查看rdlist
+- select最大支持1024个fd，而epoll没有这个限制
+
+## 3.3 其他概念
+
+### 3.3.1 netstat
+
+- **跟踪网络，查看进程对外和对内通信情况。**输出分两部分，分别是网络与系统进程相关性部分
+
+- **netstat -[ atunlp ]**
+
+- a—列出系统当前所有的连接、监听、sockete数据。（包括监听与未监听）
+
+- t—列出tcp连接，u—列出udp连接
+
+- n—不列进程的服务名称，以端口号显示，会影响Local Adress分号后面是端口号还是服务名
+
+- l—列出正在网络监听的服务
+
+```bash
+# 列出系统当前所有的连接、监听、sockete数据。（包括监听与未监听）
+netstat -a # a——all
+# 列出所有TCP端口
+netstat -at
+# 列出所有UDP端口
+netstat -au
+
+# 列出所有处于监听状态的Sockets
+netstat -l
+netstat -lt
+netstat -lu
+netstat -lx
+
+# 列出每个协议的统计信息
+netstat -s
+netstat -st
+netstat -su
+
+# 显示pid和进程名称
+netstat -p 
+
+```
+
+### 3.3.2 地址复用
+
+服务器启动后，谁主动关闭，谁就需要等待2MSL，服务占据的端口在2MSL之后，端口才会被释放。
+
+如果在2MSL时间内，再次启动服务器，将会绑定失败，因为端口还未被释放。
+
+`bind: address  already in use`
+
+地址重用：SO_REUSEADDR
+
+```c
+int opt = 1;
+setsocket(listenfd, SOL_SOCKET, SO_REUSEADDR, &opt,sizeof(opt));
+//要在bind之前
+```
+
+注意：重新使用这个端口之后，原来的那个程序就不能用了
+
+### 3.3.3 半关闭
+
+半关闭：一边关闭（第一次挥手客户端发FIN，第二次挥手服务器发ACK，两次挥手之间），这时候处于FIN_WAIT_2状态，这个时候客户端只能收不能发。
+
+如果客户端调用close只会关闭写（发），这时候读端还可以读数据，如果在收到服务器的FIN和ACK（第三次挥手服务器向客户端发送FIN，第四次挥手客户端回ACK时），这个时候才全部关闭。这里的半关闭状态是底层帮我们实现的，我们能不能在应用层写一个只能收或只能发的通信？
+
+应用层实现半关闭状态：
+`int shutdown(int sockfd,int how);`
+
+- how:
+  - SHUT_RD，关闭读操作，不能接收数据
+  - SHUT_WR，关闭写操作，不能发数据
+  - SHUT_RDWR，关闭读写操作，相当于调用了两次shutdown，首先是以SHUT_RD，然后SHUT_WR
+
+### 3.3.4 心跳包
+
+```c
+int keepalive = 1;
+setsocketopt(listenfd, SOL_SOCKET, SO_KEEPALIVE, (void *) &keepAlive,sizeof(keepAlive));
+```
+
+SO_KEEPALIVE保持连接，检测对方主机是否崩溃，避免服务器永远阻塞于TCP连接的输入，设置此选项后，如果两小时内此套接口的任一一方都没有数据交换，就会发出探测包，检测对方是否还正常。
+
+**由于两小时时间太长，基本没什么应用场景。**
+
+一般心跳包，由程序自行实现。
+
+乒乓包：也是心跳包，携带的信息比较多
+
+
+
