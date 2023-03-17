@@ -938,6 +938,7 @@ void* resq_client(void *arg)
 	close(info->cfd);
 	free(info);
 }
+
 int main(int argc, char *argv[])
 {
 	int lfd = socket(AF_INET,SOCK_STREAM,0);
@@ -984,7 +985,9 @@ int main(int argc, char *argv[])
 
 这样的方式非常浪费cpu。
 
-### 3.2.4 IO多路复用
+这时需要使用IO多路复用
+
+## 3.3 IO多路复用
 
 服务器单进程 + 内核监听请求（多个fd）的方式
 
@@ -1000,7 +1003,7 @@ IO多路复用有两种方式：[select和epoll](https://www.jianshu.com/p/c9190
 
 
 
-### 3.2.5 select
+### 3.3.1 select
 
 select准备一个数组fds（文件描述符），存放需要监视的所有socket，然后调用select，如果fds中所有的socket都没有数据，select会阻塞，直到有一个socket收到数据，select返回，唤醒进程，用户可以遍历fds，通过FD_ISSET判断哪个socket收到了数据，然后做出处理。windows下面用的最多的就是select
 
@@ -1159,7 +1162,7 @@ int main(int argc, char *argv[])
 
 主要是在查找哪个fd变化上（遍历fds）上做优化
 
-### 3.2.6 epoll
+### 3.3.2 epoll
 
 epoll创建epoll对象，维护一个就绪列表和等待队列。当socket接收到数据，中断程序一方面修改rdlist，另一方面唤醒eventpoll等待队列中的进程，由于rdlist的存在，进程A可以知道哪些socket发生了变化。
 
@@ -1195,13 +1198,13 @@ epoll创建epoll对象，维护一个就绪列表和等待队列。当socket接�
 
     ```c
     typedef union epoll_data{
-        void *ptr;
+        void *ptr;//epoll反应堆里使用
         int fd;//需要监听的fd
         unint32_t u32;
         unint64_t u64;
     } epoll_data_t;
     struct epoll_event{
-        unint32_t events;//监听fd的什么事件，EPOLLIN读事件，EPOLLOUT写事件，EPOLLET,EPOLLLT,EPOLLRDHUP，EPOLLPRI，等等
+        unint32_t events;//监听fd的什么事件，EPOLLIN读事件，EPOLLOUT写事件，EPOLLET边沿触发,EPOLLLT水平触发,EPOLLRDHUP，EPOLLPRI，等等
         epoll_data_t data;
     }
     ```
@@ -1215,7 +1218,7 @@ epoll创建epoll对象，维护一个就绪列表和等待队列。当socket接�
   - epfd：树的句柄
   - epoll_events：存放变化的fd的数组
   - maxevents：epoll_events的容量
-  - timeout：永久监听（-1），限时等待（>0）
+  - timeout：永久监听（-1），限时等待（>0），**函数在程序段的阻塞时间**。超时则执行epoll_wait下面的代码
 - 返回值：变化的fd个数
 
 select与epoll的区别
@@ -1223,6 +1226,507 @@ select与epoll的区别
 - 每次调用select，都需要把fd集合从用户态拷贝到内核态，这个开销在fd很多时会很大；而epoll保证了每个fd在整个过程中只会拷贝一次。
 - 每调用一次select都会遍历一次fd集合，知晓哪个有数据，而epoll只会轮询一次fd集合，查看rdlist
 - select最大支持1024个fd，而epoll没有这个限制
+
+#### 代码实现
+
+```c
+#include<wrap.h>
+#include<sys/epoll.h>
+// 本文件中，首字母大写的函数都在wrap.c中
+int main(int argc, char *argv[]){
+    //创建套接字，并绑定
+    int lfd = tcp4bind(7777, NULL);// 在wrap.c中实现
+    //监听
+    listen(lfd, 128);
+    // 创建树
+    int epfd = epoll_create(1);
+    // 将lfd上树
+    struct epoll_event ev;
+    ev.events = EPOLL_IN;//读事件
+    ev.data.fd = lfd;
+    epoll_ctl(epfd,EPOLL_CTL_ADD, lfd, &ev);
+    //循环监听树
+    struct epoll_event evs[1024];//存放变化的fds
+    while(1){
+        int n = epoll_wait(epfd, evs, 1024, -1);// -1将无限期的阻塞在这里
+        if(n<0){
+            perror("");
+            exit(-1);
+        }else if(>=0){
+            for(int i; i<n; i++){
+                int fd = evs[i].data.fd;
+                //如果是lfd变化，并且是读事件变化
+                if(fd == lfd && evs[i].events&EPOLLIN){//位与运算
+
+                    struct  sockaddr_in cliaddr;
+                    socklen_t len = sizeof(cliaddr);
+                    char ip[16] = ""
+                    int cfd = Accept(lfd,(struct sockaddr*) &cliaddr,&len);
+                    printf("client ip = %s port =%n\n",
+                        inet_ntop(AF_INET, &cliaddr.sin_addr, ip, 16),
+                        ntohs(cliaddr.sin_port);
+                    )
+                    //将cfd上树
+                    ev.data.fd = cfd;
+                    ev.events = EPOLLIN;
+                    epoll_ctl(epfd, EPOLL_CTL_ADD, cfd, &ev);
+
+                }else if(evs[i].events&EPOLLIN){//cfd变化，并且是读事件
+                
+                    char buf[1500] = "";
+                    int count = Read(fd, buf, sizeof(buf));
+                    if(count<0){
+                        printf("error or client close\n");
+                        close(fd);
+                        epoll_ctl(epfd, EPOLL_CTL_DEL, fd, &evs[i]);
+                    }else {
+                        printf("%s\n",buf);
+                        Write(fd,buf,count);
+                    }
+
+                }
+            }
+        }
+    }
+    
+}
+```
+
+#### 水平触发和边沿触发
+
+这个概念最早是一个电学概念，
+
+水平触发：电平一致为1或0的时候触发
+
+边沿触发：电平由高到低，或由低到高，跳变的时候触发。
+
+使用epoll多路复用编程时，会用epoll_wait阻塞等待事件的发生，对应有边沿触发和水平触发两种工作模式。
+
+假设一个客户端发送100字节的数据，而服务器设定read每次读取20字节
+
+**水平触发（EPOLLLT）：只要缓冲区有数据，epoll_wait就会一直被触发，直到缓冲区为空；**
+
+- 优点：保证了数据的完整输出（首次，epoll_wait触发一次，read读20字节，因为缓冲区还有80字节，epoll第二次触发，read又读20字节，epoll_wait触发第三次，第四次，直到read读完）；
+- 缺点：当数据较大时，需要不断从用户态和内核态（epoll_wait和read之间）切换，消耗了大量的系统资源，影响服务器性能；
+- 应用场景：应用较少，一般用于连接请求较少及客户端发送的数据量较少的服务器，可一次性接收所有数据。此时，若使用边沿触发，会多调用一次accept/read等来判断数据是否为空。
+
+**边沿触发（EPOLLET）：只有所监听的事件状态改变或者有事件发生时，epoll_wait才会被触发；**
+
+- epoll边沿触发时，假设一个客户端发送100字节的数据，而服务器设定read每次读取20字节，那么一次触发只能读取20个字节，然后内核调用epoll_wait直到下一次事件发生，才会继续从剩下的80字节读取20个字节（首次，epoll_wait触发成功，首先读取了20字节，还剩80字节，这之后epoll_wait不再触发，所以还留有80字节未读），由此可见，这种模式其工作效率非常低且无法保证数据的完整性，因此边沿触发不会单独使用。
+
+- 边沿触发通常与非阻塞IO一起使用，其工作模式为：epoll_wait触发一次，在while（1）循环内非阻塞IO读取数据，直到缓冲区数据为空（保证了数据的完整性），内核才会继续调用epoll_wait等待事件发生。
+
+```c
+
+...
+#include<fcntl.h>
+...
+// 截取部分优化
+if(fd == lfd && evs[i].events&EPOLLIN){//位与运算
+
+    struct  sockaddr_in cliaddr;
+    socklen_t len = sizeof(cliaddr);
+    char ip[16] = ""
+        int cfd = Accept(lfd,(struct sockaddr*) &cliaddr,&len);
+    printf("client ip = %s port =%n\n",
+           inet_ntop(AF_INET, &cliaddr.sin_addr, ip, 16),
+           ntohs(cliaddr.sin_port);
+          )
+    //将cfd上树
+    ev.data.fd = cfd;
+
+    // 分析第2步
+	//将Cfd设置为非阻塞,那么在 read的时候，
+    int flag = fcntl(cfd, F_GETFL);
+    flag |= O_NONBLOCK;
+    fcntl(cfd, F_SETFL,flag);
+    
+    
+    // 分析第3步
+    // 将树节点设置为边沿触发
+    // 边沿触发+ 非阻塞式io
+    ev.events = EPOLLIN | EPOLLET;
+    
+    
+    epoll_ctl(epfd, EPOLL_CTL_ADD, cfd, &ev);
+
+}else if(evs[i].events&EPOLLIN){//cfd变化，并且是读事件
+
+    
+    //循环读
+    while(1){
+        char buf[5] = "";
+  
+        // 分析第1步
+        // 为了循环读数据，所以这里要让他非阻塞（要在fd里设置非阻塞）
+        // 否则没数据给他读的时候，它不会向下执行并且跳出循环读
+        int count = Read(fd, buf, sizeof(buf));
+        
+        // 读完或关闭，或出错，跳出循环读
+        if(count<0 && errno == EAGAIN){
+            
+            if(){
+                break;//缓冲区已无数据，数据被读完了
+            }else {//出错了
+               	printf("error or client close\n");
+                close(fd);
+                epoll_ctl(epfd, EPOLL_CTL_DEL, fd, &evs[i]);
+                break;
+            }
+            
+        }else if(count == 0){
+            printf("error or client close\n");
+            close(fd);
+            epoll_ctl(epfd, EPOLL_CTL_DEL, fd, &evs[i]);
+            break;
+        }
+        else {
+            printf("%s\n",buf);
+            Write(fd,buf,count);
+        }
+    }
+    
+
+}
+```
+
+
+
+针对于fd读缓冲区来说：
+
+- 水平触发（默认）：
+  - 读缓冲区只要有数据就会被触发。
+  - 读缓冲区大小设置为buf[5]，那么写10个字母，将会触发两次fd读变化
+- 边沿触发：缓冲区有数据到达就会被触发。
+
+针对于fd的写缓存区来说：
+
+- 水平触发：写缓冲区没有满（可写）就会被触发，所以**监听写事件的时候，只能采用边沿触发**
+- 边沿触发：数据被发送后，就触发
+
+**在开发中，应尽量使用边沿触发 + 非阻塞io的方式**
+
+### 3.3.3 epoll + 线程池
+
+前面的代码，我们都可以看到我们在read之后，是做一个很简单的事，不需要耗费很长的时间。
+
+如果，我们在read之后，读到client的消息是帮它做一个很耗时的任务，此时就会在读那里跳不出来，无法继续epoll_wait，如果并发量越高这里就越有问题。
+
+现在有很多商用的服务器都是采用这样的epoll + 线程池的方式。
+
+主线程监听，**在read之后，write之前的工作任务都交给线程去做**，这里没有代码，后面实践之后继续补充。
+
+
+
+```c
+else if(evs[i].events & EPOLLIN){//普通的读事件
+    struct epoll_event *e = (struct epoll_event *)
+}
+```
+
+### 3.3.4 epoll 反应堆
+
+epoll反应堆模型 （重点，Libevent库的核心思想）
+
+epoll模型原来的流程
+
+```c
+epoll_create(); // 创建监听红黑树
+epoll_ctl(); // 向书上添加监听fd
+epoll_wait(); // 监听
+有监听fd事件发送--->返回监听满足数组--->判断返回数组元素--->
+lfd满足accept--->返回cfd---->read()读数据--->write()给客户端回应。
+
+```
+
+epoll反应堆模型的流程
+
+```c
+epoll_create(); // 创建监听红黑树
+epoll_ctl(); // 向书上添加监听fd
+epoll_wait(); // 监听
+有客户端连接上来--->lfd调用acceptconn()--->将cfd挂载到红黑树上监听其读事件--->
+epoll_wait()返回cfd--->cfd回调recvdata()--->将cfd摘下来监听写事件--->
+epoll_wait()返回cfd--->cfd回调senddata()--->将cfd摘下来监听读事件--->...--->
+
+```
+
+```c
+#include <stdio.h>
+#include <sys/socket.h>
+#include <sys/epoll.h>
+#include <arpa/inet.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <errno.h>
+#include <string.h>
+#include <stdlib.h>
+#include <time.h>
+
+#define MAX_EVENTS 1024 /*监听上限*/
+#define BUFLEN  4096    /*缓存区大小*/
+#define SERV_PORT 6666  /*端口号*/
+
+void recvdata(int fd,int events,void *arg);
+void senddata(int fd,int events,void *arg);
+
+/*描述就绪文件描述符的相关信息*/
+struct myevent_s
+{
+    int fd;             //要监听的文件描述符
+    int events;         //对应的监听事件，EPOLLIN和EPLLOUT
+    void *arg;          //指向自己结构体指针
+    void (*call_back)(int fd,int events,void *arg); //回调函数
+    int status;         //是否在监听:1->在红黑树上(监听), 0->不在(不监听)
+    char buf[BUFLEN];   
+    int len;
+    long last_active;   //记录每次加入红黑树 g_efd 的时间值
+};
+
+int g_efd;      //全局变量，作为红黑树根
+struct myevent_s g_events[MAX_EVENTS+1];    //自定义结构体类型数组. +1-->listen fd
+
+
+/*
+ * 封装一个自定义事件，包括fd，这个fd的回调函数，还有一个额外的参数项
+ * 注意：在封装这个事件的时候，为这个事件指明了回调函数，一般来说，一个fd只对一个特定的事件
+ * 感兴趣，当这个事件发生的时候，就调用这个回调函数
+ */
+void eventset(struct myevent_s *ev, int fd, void (*call_back)(int fd,int events,void *arg), void *arg)
+{
+    ev->fd = fd;
+    ev->call_back = call_back;
+    ev->events = 0;
+    ev->arg = arg;
+    ev->status = 0;
+    if(ev->len <= 0)
+    {
+        memset(ev->buf, 0, sizeof(ev->buf));
+        ev->len = 0;
+    }
+    ev->last_active = time(NULL); //调用eventset函数的时间
+    return;
+}
+
+/* 向 epoll监听的红黑树 添加一个文件描述符 */
+void eventadd(int efd, int events, struct myevent_s *ev)
+{
+    struct epoll_event epv={0, {0}};
+    int op = 0;
+    epv.data.ptr = ev; // ptr指向一个结构体（之前的epoll模型红黑树上挂载的是文件描述符cfd和lfd，现在是ptr指针）
+    epv.events = ev->events = events; //EPOLLIN 或 EPOLLOUT
+    if(ev->status == 0)       //status 说明文件描述符是否在红黑树上 0不在，1 在
+    {
+        op = EPOLL_CTL_ADD; //将其加入红黑树 g_efd, 并将status置1
+        ev->status = 1;
+    }
+    if(epoll_ctl(efd, op, ev->fd, &epv) < 0) // 添加一个节点
+        printf("event add failed [fd=%d],events[%d]\n", ev->fd, events);
+    else
+        printf("event add OK [fd=%d],events[%0X]\n", ev->fd, events);
+    return;
+}
+
+/* 从epoll 监听的 红黑树中删除一个文件描述符*/
+void eventdel(int efd,struct myevent_s *ev)
+{
+    struct epoll_event epv = {0, {0}};
+    if(ev->status != 1) //如果fd没有添加到监听树上，就不用删除，直接返回
+        return;
+    epv.data.ptr = NULL;
+    ev->status = 0;
+    epoll_ctl(efd, EPOLL_CTL_DEL, ev->fd, &epv);
+    return;
+}
+
+/*  当有文件描述符就绪, epoll返回, 调用该函数与客户端建立链接 */
+void acceptconn(int lfd,int events,void *arg)
+{
+    struct sockaddr_in cin;
+    socklen_t len = sizeof(cin);
+    int cfd, i;
+    if((cfd = accept(lfd, (struct sockaddr *)&cin, &len)) == -1)
+    {
+        if(errno != EAGAIN && errno != EINTR)
+        {
+            sleep(1);
+        }
+        printf("%s:accept,%s\n",__func__, strerror(errno));
+        return;
+    }
+    do
+    {
+        for(i = 0; i < MAX_EVENTS; i++) //从全局数组g_events中找一个空闲元素，类似于select中找值为-1的元素
+        {
+            if(g_events[i].status ==0)
+                break;
+        }
+        if(i == MAX_EVENTS) // 超出连接数上限
+        {
+            printf("%s: max connect limit[%d]\n", __func__, MAX_EVENTS);
+            break;
+        }
+        int flag = 0;
+        if((flag = fcntl(cfd, F_SETFL, O_NONBLOCK)) < 0) //将cfd也设置为非阻塞
+        {
+            printf("%s: fcntl nonblocking failed, %s\n", __func__, strerror(errno));
+            break;
+        }
+        eventset(&g_events[i], cfd, recvdata, &g_events[i]); //找到合适的节点之后，将其添加到监听树中，并监听读事件
+        eventadd(g_efd, EPOLLIN, &g_events[i]);
+    }while(0);
+
+    printf("new connect[%s:%d],[time:%ld],pos[%d]",inet_ntoa(cin.sin_addr), ntohs(cin.sin_port), g_events[i].last_active, i);
+    return;
+}
+
+/*读取客户端发过来的数据的函数*/
+void recvdata(int fd, int events, void *arg)
+{
+    struct myevent_s *ev = (struct myevent_s *)arg;
+    int len;
+
+    len = recv(fd, ev->buf, sizeof(ev->buf), 0);    //读取客户端发过来的数据
+
+    eventdel(g_efd, ev);                            //将该节点从红黑树上摘除
+
+    if (len > 0) 
+    {
+        ev->len = len;
+        ev->buf[len] = '\0';                        //手动添加字符串结束标记
+        printf("C[%d]:%s\n", fd, ev->buf);                  
+
+        eventset(ev, fd, senddata, ev);             //设置该fd对应的回调函数为senddata    
+        eventadd(g_efd, EPOLLOUT, ev);              //将fd加入红黑树g_efd中,监听其写事件    
+
+    } 
+    else if (len == 0) 
+    {
+        close(ev->fd);
+        /* ev-g_events 地址相减得到偏移元素位置 */
+        printf("[fd=%d] pos[%ld], closed\n", fd, ev-g_events);
+    } 
+    else 
+    {
+        close(ev->fd);
+        printf("recv[fd=%d] error[%d]:%s\n", fd, errno, strerror(errno));
+    }   
+    return;
+}
+
+/*发送给客户端数据*/
+void senddata(int fd, int events, void *arg)
+{
+    struct myevent_s *ev = (struct myevent_s *)arg;
+    int len;
+
+    len = send(fd, ev->buf, ev->len, 0);    //直接将数据回射给客户端
+
+    eventdel(g_efd, ev);                    //从红黑树g_efd中移除
+
+    if (len > 0) 
+    {
+        printf("send[fd=%d], [%d]%s\n", fd, len, ev->buf);
+        eventset(ev, fd, recvdata, ev);     //将该fd的回调函数改为recvdata
+        eventadd(g_efd, EPOLLIN, ev);       //重新添加到红黑树上，设为监听读事件
+    }
+    else 
+    {
+        close(ev->fd);                      //关闭链接
+        printf("send[fd=%d] error %s\n", fd, strerror(errno));
+    }
+    return ;
+}
+
+/*创建 socket, 初始化lfd */
+
+void initlistensocket(int efd, short port)
+{
+    struct sockaddr_in sin;
+
+    int lfd = socket(AF_INET, SOCK_STREAM, 0);
+    fcntl(lfd, F_SETFL, O_NONBLOCK);                //将socket设为非阻塞
+
+    memset(&sin, 0, sizeof(sin));               //bzero(&sin, sizeof(sin))
+    sin.sin_family = AF_INET;
+    sin.sin_addr.s_addr = INADDR_ANY;
+    sin.sin_port = htons(port);
+
+    bind(lfd, (struct sockaddr *)&sin, sizeof(sin));
+
+    listen(lfd, 20);
+
+    /* void eventset(struct myevent_s *ev, int fd, void (*call_back)(int, int, void *), void *arg);  */
+    eventset(&g_events[MAX_EVENTS], lfd, acceptconn, &g_events[MAX_EVENTS]);    
+
+    /* void eventadd(int efd, int events, struct myevent_s *ev) */
+    eventadd(efd, EPOLLIN, &g_events[MAX_EVENTS]);  //将lfd添加到监听树上，监听读事件
+
+    return;
+}
+
+int main()
+{
+    int port=SERV_PORT;
+
+    g_efd = epoll_create(MAX_EVENTS + 1); //创建红黑树,返回给全局 g_efd
+    if(g_efd <= 0)
+            printf("create efd in %s err %s\n", __func__, strerror(errno));
+    
+    initlistensocket(g_efd, port); //初始化监听socket
+    
+    struct epoll_event events[MAX_EVENTS + 1];  //定义这个结构体数组，用来接收epoll_wait传出的满足监听事件的fd结构体
+    printf("server running:port[%d]\n", port);
+
+    int checkpos = 0;
+    int i;
+    while(1)
+    {
+    /*    long now = time(NULL);
+        for(i=0; i < 100; i++, checkpos++)
+        {
+            if(checkpos == MAX_EVENTS);
+                checkpos = 0;
+            if(g_events[checkpos].status != 1)
+                continue;
+            long duration = now -g_events[checkpos].last_active;
+            if(duration >= 60)
+            {
+                close(g_events[checkpos].fd);
+                printf("[fd=%d] timeout\n", g_events[checkpos].fd);
+                eventdel(g_efd, &g_events[checkpos]);
+            }
+        } */
+        //调用eppoll_wait等待接入的客户端事件,epoll_wait传出的是满足监听条件的那些fd的struct epoll_event类型
+        int nfd = epoll_wait(g_efd, events, MAX_EVENTS+1, 1000);
+        if (nfd < 0)
+        {
+            printf("epoll_wait error, exit\n");
+            exit(-1);
+        }
+        for(i = 0; i < nfd; i++)
+        {
+		    //evtAdd()函数中，添加到监听树中监听事件的时候将myevents_t结构体类型给了ptr指针
+            //这里epoll_wait返回的时候，同样会返回对应fd的myevents_t类型的指针
+            struct myevent_s *ev = (struct myevent_s *)events[i].data.ptr;
+            //如果监听的是读事件，并返回的是读事件
+            if((events[i].events & EPOLLIN) &&(ev->events & EPOLLIN))
+            {
+                ev->call_back(ev->fd, events[i].events, ev->arg);
+            }
+            //如果监听的是写事件，并返回的是写事件
+            if((events[i].events & EPOLLOUT) && (ev->events & EPOLLOUT))
+            {
+                ev->call_back(ev->fd, events[i].events, ev->arg);
+            }
+        }
+    }
+    return 0;
+}
+
+```
+
+
 
 ## 3.3 其他概念
 
