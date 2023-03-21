@@ -649,6 +649,8 @@ setsockopt(sockfd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq));
   - addrlen：addr结构体大小
 - 返回值：0——成功，-1——失败，
 
+客户端不能发送0长度的数据包。
+
 ```c
 #include <stdio.h>
 #include <sys/socket.h>
@@ -1839,3 +1841,417 @@ router1(192.168.3.254/24,192.168.2.2/24，路由表192.168.1.0/24 via 192.168.2.
 通常情况下，都会把路由器设为默认网关
 
 当路由器收到一个其它网段的数据包时，会根据“路由表”来决定把此数据包发送到哪个端口；路由表的设定有静态和动态方法，在这里我们需要去设置一个静态的路由表，否则传输数据会失败。
+
+# 5 原始套接字
+
+收发数据的函数：
+
+发：
+
+- sendto，一般用于UDP和原始套接字
+- write(sock_fd, buf, len)
+- write(sock_fd, buf, len, 0)
+
+收：
+
+- recvfrom，一般用于UDP和原始套接字
+- read(sock_fd, buf, sizeof(buf))
+- recv(sock_fd, buf, sizeof(buf), 0)
+
+**想一想？**
+
+1. 能否截获网络中的数据？
+2. 怎样发送一个自定义的IP包？
+3. 怎样伪装本地的IP、MAC？
+4. 网络攻击是怎么回事？
+5. 路由器、交换机怎样实现
+
+## 5.1 原始套接字概述
+
+原始套接字（SOCK_RAW）：**指在传输层下面使用的套接字**（网络层和链路层）
+
+1、一种不同于SOCK_STREAM（TCP协议数据）、SOCK_DGRAM（UDP协议数据）的套接字（二者仅在应用层，配合libevent工具包使用），它实现于系统核心
+
+2、可以接收本机网卡上所有的数据帧（数据包），配合使用**libpcap（组包）和libnet（拆包）**，对于监听网络流量和分析网络数据很有作用
+
+3、开发人员可发送自己组装的数据包到网络上
+
+4、广泛应用于高级网络编程
+
+5、网络专家、黑客通常会用此来编写奇特的网络程序
+
+![](./legend/原始套接字.png)
+
+原始套接字可以自动组装数据包（伪装本地IP和本地MAC），可以接收本机网卡上所有的数据帧（数据包）。另外，**必须在管理员权限下才能使用原始套接字。**（**sudo ./a.out**）
+
+原始套接字直接置“根”于操作系统网络核心（Network Core），而SOCK_STREAM、SOCK_DGRAM则“悬浮”于TCP和UDP协议的外围
+
+### 5.1.1 创建原始套接字
+
+`int socket(AF_INET, SOCK_RAW, protocol)`
+
+- protocol：指定可以接收或发送的数据报类型，\#include <netinet/ether.h>
+  - ETH_P_IP：ipv4数据包
+  - ETH_P_ARP：ARP数据包
+  - ETH_P_ALL：任何协议数据包
+  - **这些值不是一个字节的，可能是一个字节或多个字节的，htons(protocol)**
+- 返回值：>0，套接字。
+
+## 5.2 数据包格式
+
+使用原始套接字进行编程开发时,首先要对不同协议的数据包进行学习,需要手动对IP、TCP、UDP、ICMP等包头进行组装或者拆解
+
+ubuntu12.04中描述网络协议结构的头文件如下：
+
+![](./legend/协议描述头文件.png)
+
+在TCP/IP协议栈中的每一层为了能够正确解析出上层的数据包，从而使用一些“协议类型”来标记，详细如下图：
+
+![](./legend/协议类型.png)
+
+### 5.2.1 以太网帧格式
+
+WLAN一般指无线局域网（Wireless Local Area Network）。
+
+我们只需要组LAN的数据包就行，无线网卡会自动帮我们加上数据部分的前缀。
+
+![](./legend/Ethernet 帧格式.png)
+
+### 5.2.2 ip报格式
+
+![](./legend/ip数据报格式.png)
+
+### 5.2.3 UDP数据包格式
+
+UDP的数据一定是偶数个字节，不足补零
+
+![](./legend/udp封包格式.png)
+
+### 5.2.4 TCP数据包格式
+
+![](./legend/tcp报文段.jpeg)
+
+### 5.2.5 ICMP数据包格式
+
+类型和代码（<type / code>）共同决定了报文的功能。<0 / 0>——回显应答，<8 / 0>——回显请求，
+
+![](./legend/ICMP.png)
+
+### 5.2.6 ARP数据包格式
+
+**OP： 1（ ARP请求） ， 2（ ARP应答） ， 3（ RARP请求） ， 4（ RARP应答）**
+
+![](./legend/arp头部报文.png)
+
+## 5.3 分析MAC包
+
+![](./legend/ip数据分析.png)
+
+```c
+#include<stdio.h>
+#include<unistd.h>
+#include<stdlib.h>
+#include<sys/socket.h>
+#include<netinet/in.h>
+#include<netinet/ether.h>
+#include<string.h>
+
+int main(){
+
+    int fd = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
+    if(fd<0) perror("");
+    unsigned char buf[1500] = "";
+    unsigned char src_mac[18] = "";
+    unsigned char dst_mac[18] = "";
+    unsigned char src_ip[18] = "";
+    unsigned char dst_ip[18] = "";
+    while(1){
+        bzero(buf,sizeof(buf));
+        bzero(src_mac,sizeof(src_mac));
+        bzero(dst_mac,sizeof(dst_mac));
+        recvfrom(fd, buf, sizeof(buf), 0, NULL, NULL);
+
+        sprintf(dst_mac, "%x:%x:%x:%x:%x:%x", buf[0], buf[1], buf[2], buf[3], buf[4], buf[5]);
+        sprintf(src_mac, "%x:%x:%x:%x:%x:%x", buf[6], buf[7], buf[8], buf[9], buf[10], buf[11]);
+        printf("src_mac=%s --> dst_mac=%s\n", src_mac, dst_mac);
+
+        // 网络中是大端
+        if(buf[12] == 0x08 && buf[13] == 0x00){
+            printf("IP报文\n");
+            sprintf(src_ip,"%d.%d.%d.%d", buf[26], buf[27], buf[28], buf[29]);
+            sprintf(dst_ip,"%d.%d.%d.%d", buf[30], buf[31], buf[32], buf[33]);
+            printf("src_ip=%s --> dst_ip=%s\n", src_ip, dst_ip);
+            if(buf[23] == 6){
+                printf("TCP\n");
+                printf("src_port=%d\n",ntohs(* (unsigned short *)(buf +34)));
+                printf("dst_port=%d\n",ntohs(* (unsigned short *)(buf +36)));
+            }else if(buf[23] == 17){
+                printf("TCP\n");
+            }
+        }else if([12] == 0x08 && buf[13] == 0x06){
+            printf("ARP\n");
+        }else if([12] == 0x80 && buf[13] == 0x06){
+            printf("RARP\n");
+        }
+
+    }
+
+}
+```
+
+### 5.3.1 混杂模式
+
+**混杂模式**
+
+1. 指一台机器的网卡能够接收所有经过它的数据包，而不论其目的地址是否是它。
+2. 一般计算机网卡都工作在非混杂模式下，如果设置网卡为混杂模式需要root权限
+
+**linux下设置**
+
+1. 设置混杂模式：`ifconfig eth0 promisc`
+2. 取消混杂模式：`ifconfig eth0 -promisc`
+
+linux下通过程序设置网卡混杂模式：
+
+
+
+```c
+#include<net/if.h>
+// /usr/include/net/if.h
+// if——interface
+// 用来保存某个接口(网卡等)的信息
+struct ifreq
+  {
+# define IFHWADDRLEN    6
+# define IFNAMSIZ       IF_NAMESIZE
+    union
+      {
+        char ifrn_name[IFNAMSIZ];       /* Interface name, e.g. "en0".  */
+      } ifr_ifrn;
+
+    union
+      {
+        struct sockaddr ifru_addr;
+        struct sockaddr ifru_dstaddr;
+        struct sockaddr ifru_broadaddr;
+        struct sockaddr ifru_netmask;
+        struct sockaddr ifru_hwaddr;
+        short int ifru_flags;
+        int ifru_ivalue;
+        int ifru_mtu;
+        struct ifmap ifru_map;
+        char ifru_slave[IFNAMSIZ];      /* Just fits the size */
+        char ifru_newname[IFNAMSIZ];
+        __caddr_t ifru_data;
+      } ifr_ifru;
+  };
+```
+
+
+
+## 5.4 sendto发送数据
+
+`sendto(sock_raw_fd, msg, msg_len, 0,(struct sockaddr*)&sll, sizeof(sll));`
+
+- sll：**本机网络接口**，指发送的数据应该从本机的哪个网卡出去，而不是以前的目的地址。因为我们数据包里已经组好了。
+  - `#include <netpacket/packet.h>`
+  - `struct sockaddr_ll`
+  - `struct sockaddr_ll sll`
+
+```c
+struct sockaddr_ll{
+    unsigned short int sll_family;		//一般为PF_PACKET
+    unsigned short int sll_protocol;	//上层协议
+    int sll_ifindex;					//接口类型
+    unsigned short int sll_hatype;		//报头类型
+    unsigned char sll_pktype;			//包类型
+    unsigned char sll_halen;			//地址长度
+    unsigned char sll_addr[8];			//mac地址
+}
+// 只需要对sll.sll_ifindex赋值，就可使用
+```
+
+```c
+int sock_raw_fd = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
+struct sockaddr_ll sll;
+bzero(&sll, sizeof(sll));
+sll.sll_ifindex = ;/*获取本机出去的接口地址，如何获取，需要通过ioctl，下一小节会知晓*/
+int len = sendto (sock_raw_fd, msg, sizeof(msg), 0, (struct sockaddr*) &sll, sizeof(sll));
+```
+
+### 5.4.1 通过ioctl来获取网络接口地址
+
+```c
+#include <sys/ioctl.h>
+
+// 获取网卡信息
+struct ifreq ethreq;							//网络接口地址
+strncpy(ethreq.ifr_name, "eth0", IFNAMSIZ);		//指定网卡的名称
+if(-1 == ioctl(sock_raw_fd, SIOCGIFINDEX, &ethreq)){
+    perror("ioctl");
+    close(sock_raw_fd);
+    exit(-1);
+}
+
+// 给网络接口赋值
+struct sockaddr_ll sll;
+bzero(&sll, sizeof(sll));
+sll.sll_ifindex = ethreq.ifr_ifindex;
+
+// 发送消息
+int len = sendto (sock_raw_fd, msg, sizeof(msg), 0, (struct sockaddr*) &sll, sizeof(sll));
+```
+
+## 5.5 练习
+
+### 5.5.1 MAC地址扫描器
+
+将本网段的所有主机的mac地址都获取到。
+
+广播mac地址全f，地址：ff:ff:ff:ff:ff:ff
+
+![](./legend/arp协议数据包——mac地址扫描器.png)
+
+### 5.5.2 飞秋欺骗（UDP)
+
+飞鸽格式
+
+版本:包编号:用户名:主机名:命令字:附加消息
+
+### 5.5.3 三次握手连接器（TCP)
+
+# 6 网络开发工具包
+
+## 6.1 libpcap
+
+1. 是一个网络数据捕获开发包
+2. 是一套高层的编程接口的集合；其隐藏了操作系统的细节，可以捕获网上的所有,包括到达其他主机的数据包
+3. 使用非常广泛，几乎只要涉及到网络数据包的捕获的功能，都可以用它开发,如wireshark
+4. 开发语言为C语言,但是也有基于其它语言的开发包,如Python语言的开发包pycap
+
+### 6.1.1 功能
+
+Libpcap主要的作用如下：
+
+1. 捕获各种数据包，列如：网络流量统计
+2. 过滤网络数据包，列如：过滤掉本地上的一些数据，类似防火墙
+3. 分析网络数据包，列如：分析网络协议，数据的采集
+4. 存储网络数据包，列如：保存捕获的数据以为将来进行分析
+
+安装：`sudo apt-get install libpcap-dev`
+
+### 6.1.2 开发实例
+
+**利用libpcap函数库开发应用程序的基本步骤：**
+
+1. 打开网络设备
+2. 设置过滤规则
+3. 捕获数据
+4. 关闭网络设备
+
+**捕获网络数据包常用函数：**
+
+1. pcap_lookupdev( )
+2. pcap_open_live( )
+3. pcap_lookupnet( )
+4. pcap_compile( )、 pcap_setfilter( )
+5. pcap_next( )、pcap_loop( )
+6. pcap_close( )
+
+
+
+## 6.2 libnet
+
+专业的构造和发送网络数据包的开发工具包
+
+是个高层次的API函数库，允许开发者自己构造和发送网络数据包
+
+- 隐藏了很多底层细节，省去了很多麻烦；如缓冲区管理、字节流顺序、校验和计算等问题，使开发者把重心放到程序的开发中
+
+- 可以轻松、快捷的构造任何形式的网络数据包，从而开发各种各样的网络程序
+- 使用非常广泛，例如著名的软件Ettercap、Firewalk、Snort、Tcpreplay等
+- 在1998年就出现了，但那时还有很多缺陷，比如计算校验和非常繁琐等；从2001年开始Libnet的作者Mike Schiffman对其进行了完善，而且功能更加强大。至此，可以说Libnet开发包已经非常完美了，使用Libnet开发包的人越来越多
+
+### 6.2.1 开发实例
+
+利用libnet函数库开发应用程序的基本步骤：
+
+1. 数据包内存初始化
+2. 构造数据包
+3. 发送数据
+4. 释放资源
+
+
+
+libnet库主要功能：
+
+1. 内存管理
+2. 地址解析
+3. 包处理
+
+## 6.3 libevent
+
+Libevent 是一个用C语言编写的、轻量级的开源**高性能事件通知库**。
+
+主要有以下几个亮点：
+
+- 事件驱动（ event-driven），高性能;
+  - Reactor（反应堆）模式是libevent的核心框架，libevent以事件驱动，自动触发回调功能，之前epoll反应堆源码，就是从libevent中抽取出来的
+- 轻量级，专注于网络，不如 ACE 那么臃肿庞大；
+- 源代码相当精炼、易读；
+- 跨平台，支持 Windows、 Linux、 BSD和 Mac Os；
+- 支持多种 I/O 多路复用技术， epoll、 poll、 dev/poll、 select 和 kqueue 等；
+- 支持 I/O，定时器和信号等事件；
+- 注册事件优先级。
+
+应用实例：Chromium（chrome 背后的引擎）、Memcached（分布式的高速缓存系统）、NTP、HTTPSQS等著名的开源程序都使用libevent库，足见libevent的稳定。
+
+libevent包括事件管理，缓存管理，DNS，HTTP，缓存事件几大部分。
+
+- 事件管理包括各种IO、定时器、信号等事件
+- 缓存管理是指evbuffer功能，
+- DNS是libevent提供的一个异步DNS查询功能。
+- HTTP是libevent的一个轻量级http实现，包括服务器，客户端
+- 部分支持SSL（Secure Sockets Layer 安全套接字协议），
+
+### 6.3.1 安装
+
+```bash
+# 1.解压源码压缩包
+tar -zxvf libevent-2.0.22-stable.tar.gz
+# 2.执行configure脚本，检查系统环境，生成对应的makefile
+sudo ./configure
+# 3.编译源码，生成libevent.so
+sudo make
+# 4.安装库，到库路径：/usr/local/lib
+sudo make install
+# 头文件路径，/usr/local/include/event.h, /usr/include
+```
+
+
+
+# 7 web服务器
+
+## 7.1 搭建BOA服务器
+
+**BOA 服务器**是一个小巧高效的web服务器，是一个运行于unix或linux下的，支持CGI的、适合于嵌入式系统的单任务的http服务器，源代码开放、性能高。
+
+在浏览器中输入“www.baidu.com”，实际上会转为对应的ip，如果没有写端口，那么默认80端口，如果没有写你要请求的文件，默认位index.html。
+
+```bash
+tar -zxvf boa-0.94.13.tar.gz -c ./
+cd  boa-0.94.13/src
+
+# 生成makefile
+sudo ./configure
+# 编译源码，生成boa可执行文件
+sudo make
+cd ..
+ls
+# 可以看到boa.conf是boa的配置文档
+# 其余百度吧，
+```
+
+## 7.2 编写自己的web服务器
+
+还是做socket通信。
