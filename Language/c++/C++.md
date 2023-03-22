@@ -2340,7 +2340,6 @@ class B : extend_type A{};
 3. 私有继承private，父类成员的修饰方式变私有
 
 **所有父类的私有成员在子类中不可访问，私有依旧私有。**
-
 <img src="./legend/继承方式.png" style="zoom:67%;" />
 
 ```c++
