@@ -2828,7 +2828,7 @@ Vuex 是一个专为 Vue.js 应用程序开发的**状态管理模式**。它采
 
 [迭代与递归](<https://www.jianshu.com/p/32bcc45efd32>)
 
-## 8.3 排序
+## 8.3 [排序](https://www.cxyxiaowu.com/725.html)
 
 不稳定：选择，希尔，快速，堆
 
