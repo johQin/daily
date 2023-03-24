@@ -3125,6 +3125,511 @@ bar.o : bar.c
 
 
 
+# 15 多线程
+
+多线程模型，某个线程异常，能够导致所在进程直接挂掉。
+
+多进程模型，某个进程异常，不会影响其他进程。
+
+进程是资源管理的最小单元，线程是程序执行（调度和分配）的最小单元。
+
+
+
+[线程共享的资源](http://www.taodudu.cc/news/show-1845985.html)包括：
+
+1. 进程代码段，
+2. 进程的公有数据（利用这些公有的数据，线程很容易实现相互之间的通信，**全局变量，堆上的数据，局部静态变量**）
+3. 进程打开的**文件描述符**，A线程打开的文件也可以由B线程读写
+4. 信号处理器
+5. 进程当前目录、进程用户id与进程组id
+
+线程私有资源：
+
+1. 线程ID
+2. **寄存器组的值**
+3. **线程栈**（线程运行的本质就是函数运行，函数运行时信息是保存在栈）
+4. 错误返回码errno值
+5. 线程信号屏蔽码
+6. 线程优先级
+
+## 15.1 多线程的相关函数
+
+[参考连接1，说了点进程与线程的理论总结，主要讲述线程相关的函数](https://blog.csdn.net/m0_66491772/article/details/122583614)
+
+[参考连接2，包含锁的概念，eg：互斥量，读写锁，条件变量](https://blog.csdn.net/m0_66491772/article/details/122583614)
+
+ pthread 库不是 Linux 系统默认的库，连接时需要使用静态库 libpthread.a，所以在使用 pthread_create()创建线程，以及调用 pthread_atfork()函数建立fork处理程序时，需要链接该库。
+
+`gcc thread.c  -lpthread`
+
+```c
+// 包
+#include<pthread.h>
+
+//1. 声明线程ID
+pthread_t thread_id;	//声明线程ID
+
+//2. 创建线程
+int pthread_create(
+    pthread_t *thread, // 线程ID
+    const pthread_attr_t *attr, //线程自身的属性，可设置线程的状态等属性
+    void *(*start_routine) (void *), //交付线程执行的任务函数
+    void *arg// 传递给任务函数的参数，如果有多个参数，封装为一个结构体即可
+);
+// 若线程创建成功，则返回0。
+
+//3. 退出线程，用在任务函数之内，用于退出时，返回一个任务函数的 非局部变量（任务执行结果），我们可以在pthread_join的参数**retval中拿到
+// http://c.biancheng.net/view/8608.html
+void pthread_exit(void *retval);
+// 除了用 pthread_exit() 函数外，还可以使用 return 语句。也可以在pthread_join中拿到返回值
+// pthread_exit() 可以自动调用线程清理程序（本质是一个由 pthread_cleanup_push() 指定的自定义函数），return 则不具备这个能力。总之在实际场景中，如果想终止某个子线程执行，强烈建议大家使用 pthread_exit() 函数。
+
+
+//那么线程什么时候退出？
+//a. 在线程函数运行完后，该线程也就退出了
+//b. 线程内调用函数pthread_exit()主动退出
+//c. 当线程可以被取消时，通过其他线程调用pthread_cancel的时候退出
+//d. 创建线程的进程退出
+//e. 主线程执行了exec类函数，该进程的所有的地址空间完全被新程序替换，子线程退出
+
+
+//4. 在主线程等待线程结束的函数
+int pthread_join(pthread_t thread_id, void **retval);
+
+//5. 线程的状态
+// 线程pthread有两种状态：joinable状态和unjoinable状态；
+//a. 如果线程是joinable状态，当线程函数自己返回退出时或pthread_exit时都不会释放线程所占用堆栈和线程描述符（总计8K多）。只有当你调用了pthread_join之后这些资源才会被释放。
+//b. 若是unjoinable状态的线程，这些资源在线程函数退出时或pthread_exit时自动会被释放。pthread的状态在创建线程的时候指定，创建一个线程默认的状态是joinable。
+
+// 分离joinable线程，状态不可逆，pthread_detach这个函数就是用来分离主线程和子线程，这样做的好处就是当子线程退出时系统会自动释放线程资源。
+int pthread_detach(pthread_t thread);
+
+//6. 获取线程自身的id
+pthread_t pthread_self(void);
+// pthread_t的类型为unsigned long int，所以在打印的时候要使用%lu方式，否则显示结果出问题。
+
+//7. 在指定任务代码段内退出时，调用清理函数
+// 注册清理函数，在指定代码段的开始位置调用，可以标记指定代码的开始位置
+void pthread_cleanup_push(
+    void (*routine)(void *),	//清理函数的入口
+    void *arg 					//清理函数的参数
+); 
+// 指定代码段的结束位置，在指定代码段的结束位置调用，可以标记指定代码的结束位置
+void pthread_cleanup_pop(int execute); 
+// 导致清理函数调用的充要条件：
+// a. 在指定任务代码段内调用pthread_exit()和和异常终止
+// b.pthread_cleanup_pop的形参为1，
+
+
+// 8.取消其他线程
+int pthread_cancel(pthread_t tid);
+// 返回值0, 取消成功
+// 取消线程，可以终止某个线程的运行，但是并不是立马终止，而是当子线程执行到一个取消点，线程才会终止。
+// 取消点：系统规定好的一些系统调用，可以粗略的理解为从用户区到内核区的切换。这个位置称之为取消点。
+// 普通的printf就是一个取消点
+```
+
+
+
+### 代码示例
+
+```c
+#include <stdio.h>
+#include <pthread.h>
+#include <stdlib.h>
+ 
+//线程清理函数
+void routine_func(void *arg)
+{
+	 printf("线程资源清理成功\n");
+}
+	
+// 3. 线程工作函数
+void *task_run(void *dev)
+{
+    // 标记指定代码段的开始位置
+	pthread_cleanup_push(routine_func,NULL);
+ 
+	//终止线程
+	pthread_exit("你好0");
+	
+    // 标记指定代码段的结束位置
+   	pthread_cleanup_pop(1); //1会导致清理函数被调用。0不会调用。
+ 
+}
+ 
+int main(int argc,char *argv[])
+{
+	pthread_t thread_id;  //存放线程的标识符
+    //1. 创建线程
+	int pflag = pthread_create(&thread_id,NULL,task_run,NULL);
+	if(pflag !=0)
+	{
+	   printf("线程创建失败!\n");		
+	}
+    
+    //2. 等待线程运行结束
+    void * thread_result;//用于存放线程返回值
+	pthread_join(thread_id, &thread_result);
+    
+    printf("%s", (char*)thread_result); // 你好0
+	return 0;	
+}
+```
+
+## 15.2 线程锁
+
+**线程间的同步方式:** A.互斥量 B.自旋锁 C.条件变量 D.读写锁 E.线程信号 F.全局变量
+
+### 15.2.1 互斥锁
+
+在多线程的程序中，多个线程**共享临界区资源**（临界区：访问公共资源的代码片段），那么就会有竞争问题。
+
+互斥锁mutex是用来**保护线程间共享的全局变量安全**的一种机制， 保证多线程中在**某一时刻只允许某一个线程对临界区**的访问。
+
+```c
+#include <pthread.h>
+int pthread_mutex_init(pthread_mutex_t * mutex ,pthread_mutexattr_t * attr);
+int pthread_mutex_destroy(pthread_mutex_t * mutex);
+int pthread_mutex_lock(pthread_mutex_t * mutex ); 
+// 作用：使线程获取互斥锁，锁住mutex
+// 如果mutex 已经被其他线程获取锁住，调用这个函数的线程阻塞直到mutex 可用为止。
+// 当前线程函数返回的时候，mutex被当前线程获取并锁住，然后就可执行接下来的任务
+
+//阻塞式
+int pthread_mutex_unlock(pthread_mutex_t * mutex );
+int pthread_mutex_trylock(pthread_mutex_t * mutex );
+
+//非阻塞式
+int pthread_mutex_timedlock(pthread_mutex_t mutex, const struct timespec *tsptr);
+//返回值: 成功则返回 0, 出错则返回错误编号.
+
+```
+
+```c
+//使用互斥量解决多线程抢占资源的问题
+#include<stdio.h>
+#include<stdlib.h>
+#include<unistd.h>
+#include<pthread.h>
+#include<string.h>
+
+//全部变量，公共资源
+char* buf[5]; //字符指针数组 全局变量
+int pos; //用于指定上面数组的下标
+
+//1.定义互斥量
+pthread_mutex_t mutex;
+void *task(void *p){
+	//3.使用互斥量进行加锁
+	pthread_mutex_lock(&mutex); 
+    
+	buf[pos] = (char *)p; 
+	usleep(200); 
+    //耗时操作 
+    pos++;
+    
+    //4.使用互斥量进行解锁
+    pthread_mutex_unlock(&mutex);
+}
+int main(void){
+	//2.初始化互斥量, 默认属性
+ 	pthread_mutex_init(&mutex, NULL);//1.启动一个线程 向数组中存储内容
+ 	
+    pthread_t tid, tid2;
+	pthread_create(&tid, NULL, task, (void *)"str1"); 
+ 	pthread_create(&tid2, NULL, task, (void *)"str2");
+    
+ 	//主线程进程等待,并且打印最终的结果 
+ 	pthread_join(tid, NULL); 
+ 	pthread_join(tid2, NULL);
+ 	
+    //5.销毁互斥量 
+ 	pthread_mutex_destroy(&mutex);
+ 	
+    int i = 0;
+	 printf("字符指针数组中的内容是：");
+	 for(i = 0; i < pos; ++i) {
+		 printf("%s ", buf[i]); //str1 str2
+	 }
+ 	 printf("\n");
+ 	 return 0;
+ }
+
+
+```
+
+### 15.2.2 读写锁
+
+如果当前线程读数据 则允许其他线程进行读操作 但不允许写操作
+
+如果当前线程写数据 则其他线程的读写都不允许操作
+
+线程 A 获取了读锁，线程 B 想获取写锁，此时线程B会被阻塞，线程 C 可以继续获取读锁，直到 A 和 C 释放锁，线程 B 才可以获取写锁。
+
+线程B获取写锁后，线程A，C想获取读锁，此时线程A，C会被阻塞，知道B释放写锁，线程A，C才能获取读锁。
+
+读写锁更适用于读操作多的场景，通过其并行的特性，可以提高效率。
+
+**也是用来保护临界资源的。**
+
+```c
+#include<pthread.h>
+int pthread_rwlock_init(pthread_rwlock_t *rwlock,constpthread_rwlockattr_t *attr);
+
+// 阻塞式
+int pthread_rwlock_rdlock(pthread_rwlock_t *rwlock ); 
+//之前有读锁，可以加锁成功；之前有写锁，此时加读锁失败，不返回，会读阻塞。
+int pthread_rwlock_wrlock(pthread_rwlock_t *rwlock ); 
+//之前只要加锁，就阻塞（之前加读锁，读锁和写锁不能同时存在； 之前加写锁，写独享）。
+
+// 非阻塞式
+int pthread_rwlock_tryrdlock(pthread_rwlock_t *rwlock);
+// 之前有读锁，可以加成功，返回 0；之前有写锁，加读锁失败，直接返回错误号，不阻塞
+int pthread_rwlock_trywrlock(pthread_rwlock_t *rwlock); 
+// 之前没锁，可以加锁成功，返回 0；之前有锁，无论读写，直接返回错误号，不阻塞。
+
+int pthread_rwlock_unlock(pthread_rwlock_t *rwlock); 
+int pthread_rwlock_destroy(pthread_rwlock_t *rwlock);
+```
+
+```c
+#include<errno.h>
+#include<pthread.h>
+#include<stdio.h>
+#include<stdlib.h>
+#include<unistd.h>
+#include<string.h>
+
+static pthread_rwlock_t rwlock;
+#define WORK_SIZE 1024
+char work_area[WORK_SIZE];
+int time_to_exit;
+
+void *thread_function_read_A(void *arg);
+void *thread_function_read_B(void *arg);
+void *thread_function_write_C(void *arg);
+void *thread_function_write_D(void *arg);
+
+int main(int argc,char *argv[]){
+    
+    int res;
+    res=pthread_rwlock_init(&rwlock,NULL);
+    
+	
+	pthread_t a_thread,b_thread,c_thread,d_thread;
+	void *thread_result;
+    
+    print("time_to_exit：%d\n", time_to_exit)
+    
+    res = pthread_create(&a_thread, NULL, thread_function_read_A, NULL);
+    res = pthread_create(&b_thread, NULL, thread_function_read_B, NULL);
+    res = pthread_create(&c_thread, NULL, thread_function_write_C, NULL);
+    res = pthread_create(&d_thread, NULL, thread_function_write_D, NULL);
+
+    res = pthread_join(a_thread, &thread_result); 
+    res = pthread_join(b_thread, &thread_result); 
+    res = pthread_join(c_thread, &thread_result); 
+    res = pthread_join(d_thread, &thread_result); 
+
+    pthread_rwlock_destroy(&rwlock);
+	exit(EXIT_SUCCESS);
+}
+
+
+// 读线程A
+void *thread_function_read_A(void *arg){ 
+	while(strncmp("end", work_area, 3) != 0) 
+	{ 
+        pthread_rwlock_rdlock(&rwlock);
+        printf("this is thread read one.\n");
+        printf("read characters is %s\n",work_area); 
+        pthread_rwlock_unlock(&rwlock); 
+        sleep(1); 
+	} 
+	pthread_rwlock_unlock(&rwlock); 
+	time_to_exit=1; 
+	pthread_exit(0);
+}
+
+// 读线程B
+void *thread_function_read_B(void *arg){
+	while(strncmp("end", work_area, 3) != 0) 
+	{ 
+		pthread_rwlock_rdlock(&rwlock);
+		printf("this is thread read two.\n");
+		printf("read characters is %s\n",work_area); 
+		pthread_rwlock_unlock(&rwlock); 
+		sleep(2); 
+	} 
+	time_to_exit=1; 
+	pthread_exit(0);
+}
+
+// 写线程C
+void *thread_function_write_C(void *arg){
+    
+	while(!time_to_exit) 
+	{ 
+        pthread_rwlock_wrlock(&rwlock);
+        printf("this is write thread one.\nInput some text.\n"); 
+        fgets(work_area, WORK_SIZE, stdin); 
+        pthread_rwlock_unlock(&rwlock); 
+        sleep(1); 
+	} 
+	pthread_rwlock_unlock(&rwlock); 
+	pthread_exit(0);
+}
+
+//写线程D
+void *thread_function_write_D(void *arg){
+    while(!time_to_exit) { 
+        pthread_rwlock_wrlock(&rwlock);
+        printf("this is write thread two.\nInput some text.\n"); 
+        fgets(work_area, WORK_SIZE, stdin); 
+        pthread_rwlock_unlock(&rwlock); 
+        sleep(2); 
+    } 
+    pthread_rwlock_unlock(&rwlock); 
+    pthread_exit(0);
+}
+```
+
+两个线程操作同一临界区时，通过互斥锁保护，若A线程已经加锁，B线程再加锁时候会被阻塞。直到A释放锁，B再获得锁运行，进程B必须不停的主动获得锁、检查条件、释放锁、再获得锁、再检查、再释放，一直到满足运行的条件的时候才可以（而此过程中其他线程一直在等待该线程的结束），这种方式是比较消耗系统的资源的。
+
+### 15.2.3 [条件变量](https://blog.csdn.net/qq_39852676/article/details/121368186)
+
+mutex体现的是一种竞争，我离开了，通知你进来。
+
+cond体现的是一种协作，我准备好了，通知你开始吧。
+
+条件变量的作用是用于多线程之间的线程同步。
+
+线程同步是指线程间需要**按照预定的先后顺序**进行的行为，
+
+比如我想要线程1完成了某个步骤之后（使条件成立），才允许线程2开始工作，这个时候就可以使用条件变量来达到目的。
+
+条件变量通常结合互斥锁一起使用。
+
+```c
+#include<pthread.h>
+int pthread_cond_init(pthread_cond_t *restrict cond, constpthread_condattr_t *restrict attr);
+int pthread_cond_destroy(pthread_cond_t *cond);
+
+//阻塞等待条件变量
+int pthread_cond_wait(pthread_cond_t *restrict cond, pthread_mutex_t *restrict mutex);
+// cond:条件变量
+// mutex：互斥锁
+// 作用：用于阻塞当前线程,等待别的线程唤醒，
+// 阻塞当前线程后，等待别的线程使用pthread_cond_signal()或pthread_cond_broadcast来唤醒它。
+// pthread_cond_wait() 必须与pthread_mutex配套使用。
+// pthread_cond_wait()函数一进入wait状态就会自动释放互斥锁 mutex。
+// 当其他线程通过pthread_cond_signal()或pthread_cond_broadcast，把该线程唤醒，使pthread_cond_wait()通过（返回）时，该线程又自动获得该mutex。
+
+//超时等待
+int pthread_cond_timedwait(pthread_cond_t *restrict cond, pthread_mutex_t *restrict mutex, const struct timespec *restrict abstime);
+//如果不想一直等待某一条件变量，当时间越过abstime，阻塞解开。
+//abstime是一个时间点（其值为系统时间 + 等待时间），而不是一个时间长度。
+
+
+//唤醒一个或者多个等待的线程
+int pthread_cond_signal(pthread_cond_t *cond);
+//作用：发送一个信号给另外一个正在处于阻塞等待状态的线程,使其脱离阻塞状态,继续执行
+
+//唤醒所有的等待的线程条件变量通过允许线程阻塞和等待另一个线程发送信号，可以解决消费者和生产者的关系
+int pthread_cond_broadcast(pthread_cond_t *cond);
+
+
+```
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <pthread.h>
+
+//链表的结点
+struct msg
+{
+    int num; 
+    struct msg *next; 
+};
+ 
+struct msg *head = NULL;    //头指针
+struct msg *temp = NULL;    //节点指针
+
+//静态方式初始化互斥锁和条件变量
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t has_producer = PTHREAD_COND_INITIALIZER;
+ 
+void *producer(void *arg)
+{
+    while (1)   //线程正常不会解锁，除非收到终止信号
+	{
+        pthread_mutex_lock(&mutex);         //加锁
+
+        temp = malloc(sizeof(struct msg));
+        temp->num = rand() % 100 + 1;
+        temp->next = head;
+        head = temp;                        //头插法
+        printf("---producered---%d\n", temp->num);
+
+        pthread_mutex_unlock(&mutex);       //解锁
+        pthread_cond_signal(&has_producer); //唤醒消费者线程
+        usleep(rand() % 3000);              //为了使该线程放弃cpu,让结果看起来更加明显。
+    }
+ 
+    return NULL;
+}
+ 
+void *consumer(void *arg)
+{
+    while (1)       //线程正常不会解锁，除非收到终止信号
+	{
+        pthread_mutex_lock(&mutex);     //加锁
+        
+        // 
+        while (head == NULL)            //条件，如果共享区域没有数据，则解锁并等待条件变量
+	    {
+            pthread_cond_wait(&has_producer, &mutex);   //我们通常在一个循环内使用该函数
+            // 条件变量同样是阻塞，还需要通知才能唤醒（而互斥锁，无需通知即可唤醒）
+            // 线程被唤醒后，它将重新检查判断条件（在这里就是head == null）是否满足，
+            // 如果还不满足，该线程就休眠了，应该仍阻塞在这里，等待条件满足后被唤醒，节省了线程不断运行浪费的资源。
+            // 这个过程一般用while语句实现。while(head == NULL)
+        }
+        temp = head;
+        head = temp->next;
+        printf("------------------consumer--%d\n", temp->num);
+        free(temp);                     //删除节点，头删法
+        temp = NULL;                    //防止野指针
+        pthread_mutex_unlock(&mutex);   //解锁
+
+        usleep(rand() % 3000);          //为了使该线程放弃cpu,让结果看起来更加明显。
+    }
+ 
+    return NULL;
+}
+ 
+int main(void)
+{
+    pthread_t ptid, ctid;
+    srand(time(NULL));      //根据时间摇一个随机数种子
+
+    //创建生产者和消费者线程
+    pthread_create(&ptid, NULL, producer, NULL);
+    pthread_create(&ctid, NULL, consumer, NULL);
+
+    //主线程回收两个子线程
+    pthread_join(ptid, NULL);
+    pthread_join(ctid, NULL);
+ 
+    return 0;
+}
+
+```
+
+
+
 # 14 [makefile](https://subingwen.cn/linux/makefile/)
 
 
