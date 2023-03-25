@@ -284,8 +284,8 @@ printf("%d %d\n",a, b);
 | 格式字符 | 说明                                                         |
 | -------- | ------------------------------------------------------------ |
 | **d，i** | 以十进制形式输出整数（正数无符号）                           |
-| **o**    | 八进制（不输出前导符0）                                      |
-| **x，X** | 十六进制（不输出前导符0x），x小写字母，X大写字母形式，输出a-f |
+| **o**    | 八进制（不输出**前导符0**）                                  |
+| **x，X** | 十六进制（不输出**前导符0x**），x小写字母，X大写字母形式，输出a-f |
 | **u**    | 以无符号输出整数                                             |
 | **c**    | 以符号形式输出，只输出一个字符                               |
 | **s**    | 输出字符串                                                   |
@@ -3628,7 +3628,779 @@ int main(void)
 
 ```
 
+# 16 多进程
 
+进程是一个动态过程，而非静态文件，它是程序的一次运行过程，当应用程序被加载到内存中运行之后，它就称为了一个进程，当程序运行结束后也就意味着进程终止，这就是进程的一个生命周期。
+
+一个程序需要完成很多逻辑功能，有的功能（如数据处理）特别耗时，为了不影响主进程的处理速度，一般在启动一个主进程后，可以同时启动一个或多个进程，或者在需要的时候启动额外的进程去完成一些耗时的或独立的功能.
+
+每个进程都拥有独立的地址空间，子进程崩溃不影响主进程
+
+## 16.1 进程的环境变量
+
+每一个进程都有一组与其相关的环境变量（子进程会继承父进程）
+
+这些环境变量以字符串形式存储在一个字符串数组列表中，把这个数组称为环境列表。
+
+其中每个字符串都是以“名称=值（name=value）”形式定义。
+
+`#include <stdlib.h>`
+
+1. [environ](https://www.likecs.com/show-306080431.html)
+
+   - environ是一个全局的外部变量，所以切记使用前要用extern关键字进行声明，然后在使用。
+   - unistd.h头文件中声明了这个变量，所以也可以将unistd.h进行include，这个时候就不用再对environ进行extern声明了（应为unistd.h中已经声明了）
+   - 其实，main函数还带有第三个参数，就是env环境变量列表
+
+   ```c
+   #include <stdio.h>
+   #define __USE_GNU
+   #include <unistd.h>
+   //extern char ** environ;
+   int main()
+   {
+       char ** envir = environ;
+       
+       while(*envir)
+       {
+           fprintf(stdout,"%s\n",*envir);
+           envir++;
+       }
+       return 0;
+   }
+   
+   int main(int argc, char *argv[], char *env[])
+   {
+       int index = 0;
+       while(env[index] != NULL)
+       {
+           printf("env[%d]: %s\n", index, env[index]);
+           ++index;
+       } 
+       return 0;
+   }
+   ```
+
+   
+
+2. getenv
+
+   - 获取环境变量名name对应的value
+
+   ```c
+   char *getenv(const char *name)
+   
+   #include <stdio.h>
+   #include <stdlib.h>
+   int main()
+   {
+   	printf("PATH: %s\n",getenv("PATH"));
+   	return 0;
+   }
+   
+   ```
+
+3. putenv
+
+   - 增加环境变量
+   - **该函数将设定的environ变量（字符串数组）中的某个元素（字符串指针）指向该string字符串，没有重新分配空间，不能随意修改参数 string 所指向的内容，这将影响进程的环境变量**
+
+   ```c
+   int putenv(char *string);
+   ```
+
+4. setenv
+
+   - 向环境变量列表中添加一个新的环境变量或修改现有的环境变量(**该函数会分配空间的**)
+   - setenv()函数会为环境变量分配一块内存缓冲区，随之称为进程的一部分；
+   - overwrite：
+     - 在参数 overwrite 为 0 的情况下，若参数 name 标识的环境变量已经存在，setenv()函数将不改变现有环境变量的值，也就是说本次调用没有产生任何影响；
+     - 如果参数 overwrite 的值为非 0，若参数 name标识的环境变量已经存在，则覆盖，不存在则表示添加新的环境变量。
+
+   ```c
+   int setenv(const char *name, const char *value, int overwrite);
+   ```
+
+5. unsetenv
+
+   - 移除环境变量
+
+   ```c
+   int unsetenv(const char *name);
+   ```
+
+6. clearenv
+
+   - 清空环境变量
+   - setenv()函数会为环境变量分配一块内存缓冲区，随之称为进程的一部分；而调用 clearenv()函数时没有释放该缓冲区。
+   - clearenv()调用并不知晓该缓冲区的存在，故而也无法将其释放），反复调用者两个函数的程序，会不断产生内存泄漏。
+
+   ```c
+   int clearenv(void);
+   ```
+
+
+
+## 16.2 多进程创建
+
+### 16.2.1 常用API
+
+1. fork
+
+   - 作用：创建一个子进程。
+   - 通过复制  调用进程(主进程)  的方式创建一个新进程，新进程称为子进程，调用进程称为父进程。子进程几乎复制了父进程全部的内容，除：子进程不继承父进程的内存锁，进程资源占用及CPU时间计数重置为0
+   - 最大的特点就是：一次调用，两次返回，父子进程共享代码段。这就是为什么后面if else都会进入的原因
+     - fork()成功时，在父进程中返回子进程的ID，在子进程中返回0
+     - 失败时，返回-1
+
+   ```c
+   #include <unistd.h>
+   pid_t fork(void);
+   ```
+
+2. getpid，getppid
+
+   - 作用：获取当前进程ID，获取当前进程父进程的ID
+
+   ```c
+   pid_t getpid(void);
+   pid_t getppid(void);
+   ```
+
+3. wait
+
+   - 作用：阻塞，直到有信号来到或子进程结束，回收子进程结束后的资源
+
+   - ```c
+     #include <sys/types.h>  
+     #include <sys/wait.h>
+     
+     pid_t wait (int * status);
+     ```
+
+4. waitpid
+
+   - 作用：等待子进程的状态，回收子进程结束后的资源
+   - waitpid()会暂时停止目前进程的执行（阻塞，options为WNOHANG时 ，不阻塞）, 直到有信号来到或子进程结束。
+   - **一次wait或waitpid调用只能回收一个子进程**，如果回收的是多个子进程，则哪一个子进程先结束，则回收哪一个。如果都回收，则可以采用循环（for、while、do while等）。
+
+   ```c
+   #include <sys/wait.h>
+   pid_t waitpid(pid_t pid, int *status, int options);
+   ```
+
+   - 参数：
+     - pid
+       - 小于-1：等待**进程组号为pid**绝对值的任何子进程
+       - -1：等待任何子进程
+       - 0： 等待任何进程组ID与目前进程相同的任何子进程
+       - `>0`，回收指定参数（pid）的PID进程
+     - status：子进程的结束状态值会由参数status 返回，如果不是NULL的话，返回状态信息，可以通过WIFEXITED(status)、WEXITSTATUS(status)等宏定义获取具体的信息。
+     - option:
+       - WNOHANG 没有子进程退出时立即返回
+       - WUNTRACED 子进程停止时返回
+       - WCONTINUED 处于停止状态的子进程恢复时返回
+   - 返回值：如果执行成功则返回子进程识别码(PID), 如果有错误发生则返回-1. 失败原因存于errno 
+
+   ```c
+   #include <unistd.h>
+   #include <stdlib.h>
+   #include <stdio.h>
+   #include <sys/wait.h>
+    
+   int main(void)
+   {
+           pid_t pid, pid2, wpid;
+           int flg = 0;
+    
+           pid = fork();
+           pid2 = fork();  //此时总共有4个进程（不包括shell）
+    
+           if(pid == -1){
+                   perror("fork error");
+                   exit(1);
+           } else if(pid == 0){  //注意：pid=0的进程有两个，子进程和子进程的子进程
+                   printf("I'm process child, pid = %d\n", getpid());
+                   sleep(5);
+                   exit(4);
+           } else {        //注意：pid>0的进程有两个，父进程和子进程
+               
+               	// 循环回收所有子进程的资源
+                   do {
+                           wpid = waitpid(pid, NULL, WNOHANG);
+                       	//WNOHANG,如果子进程还在运行，则立即返回，不阻塞，并执行下一次循环
+                       
+                           printf("---wpid = %d--------%d\n", wpid, flg++);
+                           if(wpid == 0){
+                                   printf("NO child exited\n");
+                                   sleep(1);
+                           }
+                   } while (wpid == 0);            //子进程不可回收
+    
+                   if(wpid == pid){                //回收了指定子进程
+                           printf("I'm parent, I catched child process,"
+                                           "pid = %d\n", wpid);
+                   } else {
+                           printf("other...\n");
+                   }
+           }
+    
+           return 0;
+   }
+   ```
+
+fork()代码中为什么if(){} else{}都能执行？
+
+- [参考1](https://blog.csdn.net/feliciafay/article/details/41241173)，[重要参考](http://bbs.chinaunix.net/thread-311067-1-1.html)
+
+- fork()函数创建一个新进程后，会为这个新进程分配进程空间，将父进程的进程空间中的内容复制到子进程的进程空间中，包括父进程的数据段和堆栈段，并且和父进程共享代码段。这时候，子进程和父进程一模一样，都接受系统的调度。
+
+- fork()最大的特点就是一次调用，两次返回，两次返回主要是区分父子进程，因为fork()之后将出现两个进程，所以有两个返回值，父进程返回子进程ID，子进程返回0。如果创建失败返回-1
+
+- 其实在fork后，运行着两个进程一个父进程和一个子进程，两个进程共享代码段，所以if else是被共享的，然后两个进程中，fork的返回值不同，所以进入的if else的分支就会不同。
+
+  
+
+```c
+// 最简单的多进程
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/wait.h>
+
+int main(int argc, char *argv[])
+{
+            
+    pid_t ret_pid = -1;
+
+    ret_pid = fork();
+    if (ret_pid < 0) {
+            
+        printf("fork() failed, ret_pid:%d\n", ret_pid);
+    } else if (0 == ret_pid) {
+            
+        printf("I am child process, ret_pid:%d\n", ret_pid);
+        sleep(2);
+        printf("child exit\n");
+    } else {
+            
+        printf("I am parent process, ret_pid:%d\n", ret_pid);
+        printf("wait child exit\n");
+        waitpid(ret_pid, NULL, 0);
+        printf("wait child exit end\n");
+    }
+
+    return 0;
+}
+
+// 运行结果
+$ ./a.out 
+I am parent process, ret_pid:76977
+wait child exit
+I am child process, ret_pid:0
+child exit
+wait child exit end
+
+
+
+// 多进程，获取进程id
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/wait.h>
+
+void child_process()
+{
+            
+    pid_t pid = -1;
+    pid_t ppid = -1;
+
+    pid = getpid();
+    ppid = getppid();
+
+    printf("%s: pid[%d], parent pid[%d]\n", __FUNCTION__, pid, ppid);
+    sleep(2);
+}
+
+void parent_process()
+{
+            
+    pid_t pid = -1;
+    pid_t ppid = -1;
+
+    pid = getpid();
+    ppid = getppid();
+
+    printf("%s: pid[%d], parent pid[%d]\n", __FUNCTION__, pid, ppid);
+}
+
+int main(int argc, char *argv[])
+{
+            
+    pid_t ret_pid = -1;
+
+    ret_pid = fork();
+    if (ret_pid < 0) {
+            
+        printf("fork() failed, ret_pid:%d\n", ret_pid);
+    } else if (0 == ret_pid) {
+            
+        child_process();
+    } else {
+            
+        parent_process();
+    }
+
+    waitpid(ret_pid, NULL, 0);
+
+    return 0;
+}
+
+$ ./a.out 
+parent_process: pid[77080], parent pid[76350]
+child_process: pid[77081], parent pid[77080]
+```
+
+### 16.2.2 僵尸进程
+
+一个进程使用fork函数创建子进程，如果子进程退出，而父进程并没有调用wait()或者waitpid()系统调用取得子进程的终止状态，那么子进程的进程描述符仍然保存在系统中，占用系统资源，这种进程称为僵尸进程。
+
+父进程没有回收子进程资源，也就是没有执行waitpid(ret_pid, NULL, 0);
+
+
+
+## 16.3 进程间通信
+
+- 进程间通信主要包括管道、系统IPC（包括消息队列、信号量、信号、共享内存）、套接字socket。
+- 管道：管道本质是一种文件，
+  - 无名管道（半双工）：只能用于具有亲缘关系的进程直接通信
+  - 命名管道：可以允许无亲缘关系进程间的通信。
+- 系统IPC(inter-process communication)
+  - 消息队列
+  - 信号量semaphore：是一个计数器，可以用来控制多个进程对共享资源的访问。信号量用于实现进程间的互斥与同步。
+  - 信号：用于通知接收进程某个事件的发生。
+  - 内存共享：使多个进程访问同一块内存空间。
+- 套接字socket：用于不同主机直接的通信。
+
+
+
+## 16.4 管道
+
+管道：管道本质是一种文件，
+
+- 无名管道（半双工）：只能用于具有亲缘关系的进程直接通信
+- 命名管道：可以允许无亲缘关系进程间的通信。
+
+### 16.4.1 无名管道
+
+**仅用于具有亲缘关系的进程间通信。**
+
+`int pipe(int fd[2])`
+
+- int fd[2]：管道的两个文件描述符，之后就是可以直接操作这两个文件描述符
+- 该函数创建的管道的两端处于一个进程中间，在实际应用中没有太大意义，因此，一个进程在由pipe()创建管道后，一般再fork一个子进程，然后通过管道实现父子进程间的通信
+- 管道是半双工的，数据只能向一个方向流动；需要双方通信时，需要建立起两个管道；
+- 读写规则：
+  - 管道两端可 分别用描述字fd[0]以及fd[1]来描述，
+  - 需要注意的是，管道的两端是固定了任务的。即**一端只能用于读，由描述字fd[0]表示，称其为管道读端；另 一端则只能用于写，由描述字fd[1]来表示，称其为管道写端。**
+  - 如果试图从管道写端读取数据，或者向管道读端写入数据都将导致错误发生。一般文件的I/O 函数都可以用于管道，如close、read、write等等。
+
+```c
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <sys/wait.h>
+
+int g_pipefd[2];
+
+void child_process()
+{
+            
+    char buf[64] = {
+            0};
+    pid_t pid = -1;
+    pid_t ppid = -1;
+
+    pid = getpid();
+    ppid = getppid();
+	
+    
+    //fd[0]：读端，fd[1]：写端
+   	//由于无名管道是半双工，读的时候，关闭写端
+    close(g_pipefd[1]);
+
+    while (1) {
+        read(g_pipefd[0], buf, sizeof(buf));
+        printf("%s: read data:%s\n", __FUNCTION__, buf);
+        sleep(1);
+    }
+}
+
+void parent_process()
+{
+            
+    pid_t pid = -1;
+    pid_t ppid = -1;
+    char buf[64] = {
+            0};
+    int number = 0;
+
+    pid = getpid();
+    ppid = getppid();
+	
+    //写的时候，关闭读端
+    close(g_pipefd[0]);
+    while (1) {
+            
+        number++;
+        snprintf(buf, sizeof(buf), "NO. %02d: hello world", number);
+        write(g_pipefd[1], buf, strlen(buf));
+        printf("%s: write data:%s\n", __FUNCTION__, buf);
+        sleep(1);
+    }
+}
+
+int main(int argc, char *argv[])
+{
+            
+    
+    pid_t ret_pid = -1;
+    
+    int ret = 0;
+    // 1.创建无名管道
+    ret = pipe(g_pipefd);//返回值 成功0 失败-1
+    
+    if (ret < 0) {   
+        printf("pipe failed\n");
+        return -1;
+    }
+    
+    // 2.创建父子进程
+    ret_pid = fork();
+    if (ret_pid < 0) {
+            
+        printf("fork() failed, ret_pid:%d\n", ret_pid);
+    } else if (0 == ret_pid) {
+        // 子进程作为读端
+        child_process();
+    } else {
+       // 父进程作为写端
+        parent_process();
+    }
+
+    waitpid(ret_pid, NULL, 0);
+
+    while (1) {
+            
+        sleep(1);
+    }
+
+    return 0;
+}
+```
+
+```bash
+$>./a.out
+parent_process: write data:NO. 01: hello world
+child_process: read data:NO. 01: hello world
+parent_process: write data:NO. 02: hello world
+child_process: read data:NO. 02: hello world
+parent_process: write data:NO. 03: hello world
+child_process: read data:NO. 03: hello world
+parent_process: write data:NO. 04: hello world
+child_process: read data:NO. 04: hello world
+parent_process: write data:NO. 05: hello world
+child_process: read data:NO. 05: hello world
+```
+
+### 16.4.2 具名管道
+
+FIFO类似于管道，它是一个单向（半双工）数据流，每个FIFO有一个路径名与之关联，从而允许无亲缘关系的进程访问同一个FIFO，也称为有名管道（named pipe）。
+
+`int mkfifo( const char *pathname, mode_t mode );`
+
+- 参数：
+  - pahtname是一个普通的UNIX路径名，它是该FIFO的名字
+  - mode 文件的访问权限，eg：0777，就像chmod +777
+- 一个FIFO创建完毕后，它必须或者打开来读，或者打开来写，它不能打开来既读又写，因为它是半双工的。
+
+利用fifo文件，进行通信。
+
+```c
+// 读进程 read_process.c
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <fcntl.h>
+
+#define FIFO_NAME "/tmp/myfifo"
+
+int main(int argc, char *argv[])
+{
+            
+    int ret = 0;
+    int fd = -1;
+    char buf[64] = {
+            0};
+    pid_t ret_pid = -1;
+
+    unlink(FIFO_NAME);
+
+    // 1. 创建fifo文件，符合先进先出，数据读了就没有了
+    ret = mkfifo(FIFO_NAME, 0666);
+    if (ret < 0) {
+            
+        printf("mkfifo failed\n");
+        return -1;
+    }
+	
+   	// 2. 打开fifo文件，以只读的方式
+    fd = open(FIFO_NAME,O_RDONLY);
+    if (fd < 0) {
+            
+        printf("open failed\n");
+        return -1;
+    }
+
+    while (1) {
+        //3. 循环读
+        read(fd, buf, sizeof(buf));
+        printf("%s: read data:%s\n", __FUNCTION__, buf);
+        sleep(1);
+    }
+
+    return 0;
+}
+```
+
+```c
+//写进程， write_process.c
+
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <fcntl.h>
+
+#define FIFO_NAME "/tmp/myfifo"
+
+int main(int argc, char *argv[])
+{
+            
+    int ret = 0;
+    int fd = -1;
+    int number = 0;
+    char buf[64] = {
+            0};
+    pid_t ret_pid = -1;
+
+    //1.打开fifo文件，以只写的方式打开。
+    fd = open(FIFO_NAME, O_WRONLY);
+    if (fd < 0) {
+            
+        printf("open failed\n");
+        return -1;
+    }
+
+    while (1) {
+            
+        number++;
+        snprintf(buf, sizeof(buf), "NO. %02d: hello world", number);
+        
+        //2. 循环写
+        write(fd, buf, strlen(buf));
+        printf("%s: write data:%s\n", __FUNCTION__, buf);
+        sleep(1);
+    }   
+
+    return 0;
+}
+```
+
+## 16.5 系统IPC
+
+Posix 是“可移植操作系统接口”（Portable Operating System Interface）的首字母缩写。 它并不是一个单一标准，而是一个由电气与电子工程师学会即IEEE开发的一系列标准。 Posix 标准还是由 ISO（国际标准化组织）和 IEC（国际电工委员会）采纳的国际标准.
+
+目前 POSIX 已经成为类 UNIX（Unix-like）操作系统编程的通用接口，极大方便了类 UNIX 环境下应用程序源码级的可移植性。
+
+System V（System Five），是 Unix 操作系统众多版本中的一支，就是当年UNIX 厂家混战中，比较强大的一个诸侯王.
+
+在 Linux/Unix 系统编程中支持 System V 和 POXIS。我们常见的一个名词就是POSIX IPC 和 System V IPC。
+
+系统IPC(inter-process communication)
+
+- 消息队列
+- 信号量semaphore：是一个计数器，可以用来控制多个进程对共享资源的访问。信号量用于实现进程间的互斥与同步。
+- 信号：用于通知接收进程某个事件的发生。
+- 内存共享：使多个进程访问同一块内存空间。
+
+### 16.5.1 [IPC共性描述](https://blog.csdn.net/chary8088/article/details/2322611)
+
+System V IPC指以下三种类型的IPC：
+
+- System V消息队列
+- System V信号灯
+- System V共享内存区
+
+<div class="table-box"><table border="1"><tbody><tr><td>&nbsp;</td><td>消息队列</td><td>信号灯</td><td>共享内存区</td></tr><tr><td>头文件</td><td>sys/msg.h</td><td>sys/sem.h</td><td>sys/shm.h</td></tr><tr><td>创建或打开函数</td><td>msgget</td><td>semget</td><td>shmget</td></tr><tr><td>控制操作函数</td><td>msgctl</td><td>semctl</td><td>shmctl</td></tr><tr><td>操作函数</td><td>msgsnd<br>msgrcv</td><td>semop</td><td>shmat<br>shmdt</td></tr></tbody></table></div>
+
+#### key_t键和ftok函数
+
+System V IPC使用key_t值作为它们的名字。
+
+头文件<sys/types.h>把key_t定义为一个整数，它通常是一个至少32位的整数。这些整数通常是由ftok函数赋予的。
+
+\#include <sys/ipc.h>
+
+`key_t ftok( const char *pahtname, int id );`
+
+- 作用：ftok函数把一个已存在的路径名和一个整数标识符转换成一个key_t值，称为IPC键（IPC key）
+- 注意：
+  - 不能保证两个不同的路径名与同一个id值的组合产生不同的键。
+  - 用于产生键的pahtname不能是服务器存活期间由它反复创建并删除的文件，否则会导致ftok多次调用返回不同的值。
+
+#### ipc对象的结构icp_perm
+
+内核为每个IPC对象维护一个信息结构：
+
+```c
+struct ipc_perm {
+    // 属主ID
+    uid_t uid; // owner's user id
+    gid_t gid; // owner's group id 		//分别设置为调用进程的有效用户ID和有效组ID
+    // 创建者ID
+    uid_t cuid; // creator's user id
+    gid_t cgid; // creator's group id 	// 也分别设置为调用进程的有效用户ID和有效组ID
+    
+    // IPC对象的读写权限位
+    mode_t mode; // access modes，
+	// 八进制（由九个权限标志构成，每个8进制占3bit，共三个）
+    // 0400：由用户（属主）读；
+    // 0200：由用户（属主）写；
+    // 0040：由（属）组成员读；
+    // 0020：由（属）组成员写；
+    // 0004：由其他用户读；
+    // 0002：由其他用户写；
+    
+    
+    // 槽位使用情况序列号
+    ulong_t seq;
+    // 该变量是一个由内核为在系统中的每个潜在的IPC对象维护的计数器。
+    // 每当删除一个IPC对象时，内核就递增相应的槽位号，若溢出则循环回0。这避免在短时间内重用IPC标识符。
+    
+    // ipc的标识符，唯一ID，IPC键
+    key_t key; /* key */
+};
+```
+
+#### 创建和打开IPC对象
+
+三种IPC对象创建的函数：msgget，semget，shmget
+
+这三个函数都至少有两个参数代表相同的含义：
+
+- key_t key
+  - IPC的唯一标识ID
+  - 它的值可以通过两种方式获取：
+    - ftok函数生成
+    - IPC_PRIVATE，它保证创建一个新的、唯一的IPC对象。
+- int oflag：它指定IPC对象的读写权限位（ipc_perm结构中的mode成员），由九个权限标志构成
+  - IPC_CREAT，如果key标识的对象不存在，则创建。如果对象存在，就直接引用.
+  - IPC_CREAT | IPC_EXCL，如果key标识的对象不存在，则创建。如果对象存在，报错（errno=EEXIST）.
+  - 无特殊标志，不存在，报错（errno=ENOENT）。存在，直接引用
+- 
+
+### 16.5.2 [消息队列](https://blog.csdn.net/xxxx123041/article/details/127803054)
+
+对于系统中的每个System V消息队列，内核维护一个如下的结构：
+
+```c
+struct msqid_ds {
+    struct ipc_perm msg_perm; /* operation permission struct */
+    
+    struct msg *msg_first; /* ptr to first message on q */
+    struct msg *msg_last; /* ptr to last message on q */
+    
+    unsigned short msg_cbytes; /* current # bytes on q */
+    
+    msgqnum_t msg_qnum; /* # of messages on q */
+    
+    msglen_t msg_qbytes; /* max # of bytes on q */
+    
+    pid_t msg_lspid; /* pid of last msgsnd */
+    pid_t msg_lrpid; /* pid of last msgrcv */
+    
+    time_t msg_stime; /* last msgsnd time */
+    time_t msg_rtime; /* last msgrcv time */
+    time_t msg_ctime; /* last change time */
+};
+```
+
+`int msgget( key_t key, int oflag );`
+
+- 作用：用于创建一个新的System V消息队列或访问一个已经存在的消息队列。
+- 参数解释，查看前面的共性描述
+- 返回值：成功执行时，返回消息队列标识值。其他三个msg函数用它来指代该队列。
+- 当创建一个消息队列时，msqid_ds结构的如下成员被初始化：
+  - msg_perm结构的uid和cuid被设置为当前进程的有效用户ID，gid和cgid被设置为当前用户的有效组ID；
+  - oflag中的读写权限位存放在msg_perm.mode中；
+  - msg_qnum、msg_lspid、msg_lrpid、msg_stime和msg_rtime被置为0；
+  - msg_ctime被设置成当前时间；
+  - msg_qbytes被设置为系统限制值。
+
+
+
+`int msgsend(int msgid, const void *msg_ptr, size_t msg_sz, int msgflg);`
+
+- 作用：用于往消息队列上放置一个消息。
+
+- 参数：
+
+  - msgid：msgget的返回值，
+
+  - **msg_ptr**：是一个指向准备发送消息的指针，但是消息的数据结构却有一定的要求，指针msg_ptr所指向的消息结构一定要是以一个长整型成员变量开始的结构体，接收函数将用这个成员来确定消息的类型。
+
+    ```c
+    struct my_message{
+        long int message_type;
+        //其他字段可以是我们想要发送的消息
+        /* The data you wish to transfer*/
+    };
+    
+    ```
+
+  - **msg_sz**：是msg_ptr指向的消息的长度，注意是消息的长度（除开long int message_type），而不是my_message结构体的大小，
+
+  - **msgflg**：用于控制当前消息队列满或队列消息到达系统范围的限制时将要发生的事情。
+
+- **返回值**：如果调用成功，消息数据的一分副本将被放到消息队列中，并返回0，失败时返回-1.
+
+
+
+`int msgrcv(int msgid, void *msg_ptr, size_t msg_st, long int msgtype, int msgflg);`
+
+- 作用：函数用来从一个消息队列获取消息
+- 参数：
+  - **msgtype**：可以实现一种简单的接收优先级。如果msgtype为0，就获取队列中的第一个消息。如果它的值大于零，将获取具有相同消息类型的第一个信息。如果它小于零，就获取类型等于或小于msgtype的绝对值的第一个消息。
+  - **msgflg**：用于控制当队列中没有相应类型的消息可以接收时将发生的事情。取址可以是：
+    - 0，表示忽略；
+    - **IPC_NOWAIT**，如果消息队列为空，则返回一个ENOMSG
+    - **MSG_NOERROR**，如果函数取得的消息长度大于msgsz，将只返回msgsz 长度的信息，剩下的部分被丢弃了。
+- **返回值**：调用成功时，该函数返回放到接收缓存区中的字节数，消息被复制到由msg_ptr指向的用户分配的缓存区中，然后删除消息队列中的对应消息。失败时返回-1。当消息从队列内取出后，相应的消息就从队列中删除了。
+
+
+
+`int msgctl(int msgid, int command, struct msgid_ds *buf);`
+
+- 作用：该函数用来控制消息队列，它与共享内存的shmctl函数和信号量semctl相似
+- 参数：
+  - **ommand**：是将要采取的动作，它可以取3个值
+    - **IPC_RMID**：删除消息队列，
+    - **IPC_SET**：如果进程有足够的权限，就把消息列队的当前关联值设置为msgid_ds结构中给出的值
+    - **IPC_STAT**：把msgid_ds结构中的数据设置为消息队列的当前关联值，即用消息队列的当前关联值覆盖msgid_ds的值。
+- **返回值**：成功时返回0，失败时返回-1.
 
 # 14 [makefile](https://subingwen.cn/linux/makefile/)
 
