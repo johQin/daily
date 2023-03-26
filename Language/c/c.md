@@ -3978,7 +3978,7 @@ child_process: pid[77081], parent pid[77080]
 - 系统IPC(inter-process communication)
   - 消息队列
   - 信号量semaphore：是一个计数器，可以用来控制多个进程对共享资源的访问。信号量用于实现进程间的互斥与同步。
-  - 信号：用于通知接收进程某个事件的发生。
+  - 信号：用于通知接收进程某个事件的发生。（软中断）
   - 内存共享：使多个进程访问同一块内存空间。
 - 套接字socket：用于不同主机直接的通信。
 
@@ -4219,7 +4219,7 @@ int main(int argc, char *argv[])
 }
 ```
 
-## 16.5 系统IPC
+## 16.5 [系统IPC](https://blog.csdn.net/xxxx123041/category_12098719.html)
 
 Posix 是“可移植操作系统接口”（Portable Operating System Interface）的首字母缩写。 它并不是一个单一标准，而是一个由电气与电子工程师学会即IEEE开发的一系列标准。 Posix 标准还是由 ISO（国际标准化组织）和 IEC（国际电工委员会）采纳的国际标准.
 
@@ -4244,9 +4244,13 @@ System V IPC指以下三种类型的IPC：
 - System V信号灯
 - System V共享内存区
 
+
+
 <div class="table-box"><table border="1"><tbody><tr><td>&nbsp;</td><td>消息队列</td><td>信号灯</td><td>共享内存区</td></tr><tr><td>头文件</td><td>sys/msg.h</td><td>sys/sem.h</td><td>sys/shm.h</td></tr><tr><td>创建或打开函数</td><td>msgget</td><td>semget</td><td>shmget</td></tr><tr><td>控制操作函数</td><td>msgctl</td><td>semctl</td><td>shmctl</td></tr><tr><td>操作函数</td><td>msgsnd<br>msgrcv</td><td>semop</td><td>shmat<br>shmdt</td></tr></tbody></table></div>
 
 #### key_t键和ftok函数
+
+无论是消息队列，信号量，还是共享内存区，都需要一个IPC对象，借由这个IPC对象才能创建各自对应类型的对象，这个IPC对象有一个唯一标识ID（key_t），他们在操作系统中是唯一的，这样进程间才可以实现通信。
 
 System V IPC使用key_t值作为它们的名字。
 
@@ -4313,6 +4317,8 @@ struct ipc_perm {
 - 
 
 ### 16.5.2 [消息队列](https://blog.csdn.net/xxxx123041/article/details/127803054)
+
+**消息队列是全双工，可读可写的通信方式**
 
 对于系统中的每个System V消息队列，内核维护一个如下的结构：
 
@@ -4383,7 +4389,7 @@ struct msqid_ds {
 
 - 作用：函数用来从一个消息队列获取消息
 - 参数：
-  - **msgtype**：可以实现一种简单的接收优先级。如果msgtype为0，就获取队列中的第一个消息。如果它的值大于零，将获取具有相同消息类型的第一个信息。如果它小于零，就获取类型等于或小于msgtype的绝对值的第一个消息。
+  - **msgtype**：可以实现一种简单的接收优先级。如果msgtype为0，就获取队列中的第一个消息。**如果它的值大于零，将获取具有相同消息类型的第一个信息（可以用于标记数据的类型，协议消息的作用）**。如果它小于零，就获取类型等于或小于msgtype的绝对值的第一个消息。
   - **msgflg**：用于控制当队列中没有相应类型的消息可以接收时将发生的事情。取址可以是：
     - 0，表示忽略；
     - **IPC_NOWAIT**，如果消息队列为空，则返回一个ENOMSG
@@ -4401,6 +4407,8 @@ struct msqid_ds {
     - **IPC_SET**：如果进程有足够的权限，就把消息列队的当前关联值设置为msgid_ds结构中给出的值
     - **IPC_STAT**：把msgid_ds结构中的数据设置为消息队列的当前关联值，即用消息队列的当前关联值覆盖msgid_ds的值。
 - **返回值**：成功时返回0，失败时返回-1.
+
+#### 进程单收，进程单发
 
 ```c
 //接收消息
@@ -4508,6 +4516,491 @@ int main()
 	exit(EXIT_SUCCESS);
 }
 
+```
+
+#### [进程聊天（可收可发）](https://blog.csdn.net/weixin_40921797/article/details/82729410)
+
+```c
+//segqueue_r.c 先接收数据再发送数据
+ #include<stdio.h>
+ #include<unistd.h>
+ #include<stdlib.h>
+ #include<string.h>
+ #include<errno.h>
+ #include<sys/msg.h>
+ #include<sys/ipc.h>
+
+ #define IPC_KEY 0x123123
+  //定义消息队列的key，好知道写道那个队列中，取哪个队列中拿
+  #define TYPE_R 1
+  #define TYPE_W 2
+  //我们赋值传输的数据库类型
+
+  struct msgbuf
+  {
+      long mtype;
+      char mtext[1024];
+  };
+  int main()
+  {
+      int msqid = -1;
+ //创建消息队列，若存在则打开，不存在则创建
+      msqid = msgget(IPC_KEY,IPC_CREAT|0664);
+      if(msqid < 0)
+      {
+          perror("msgget error");
+          return -1;
+      }
+      while(1)
+      {
+          struct msgbuf buf;
+          //接收数据
+          memset(&buf,0,sizeof(struct msgbuf));
+          msgrcv(msqid,&buf,1024,TYPE_W,0);
+          printf("w say:[%s]\n",buf.mtext);
+          //发送数据
+          memset(&buf,0,sizeof(struct msgbuf));
+          buf.mtype = TYPE_R;
+          printf(">>>");
+          scanf("%s",buf.mtext);
+          msgsnd(msqid,&buf,1024,0);
+      }
+      msgctl(msqid,IPC_RMID,NULL);
+      return 0;
+  }
+```
+
+```c
+//segqueue_w.c 先发送数据再接收数据
+ #include<stdio.h>
+ #include<unistd.h>
+ #include<stdlib.h>
+ #include<string.h>
+ #include<errno.h>
+ #include<sys/msg.h>
+ #include<sys/ipc.h>
+
+ #define IPC_KEY 0x123123
+  //定义消息队列的key，好知道写道那个队列中，取哪个队列中拿
+  #define TYPE_R 1
+  #define TYPE_W 2
+  //我们赋值传输的数据库类型
+
+  struct msgbuf
+  {
+      long mtype;
+      char mtext[1024];
+  };
+  int main()
+  {
+      int msqid = -1;
+ //创建消息队列，若存在则打开，不存在则创建
+      msqid = msgget(IPC_KEY,IPC_CREAT|0664);
+      if(msqid < 0)
+      {
+          perror("msgget error");
+          return -1;
+      }
+      while(1)
+      {
+          struct msgbuf buf;
+          //发送数据
+          memset(&buf,0,sizeof(struct msgbuf));
+          buf.mtype = TYPE_W;
+          printf(">>>");
+          scanf("%s",buf.mtext);
+          msgsnd(msqid,&buf,1024,0);
+          //接收数据
+          memset(&buf,0,sizeof(struct msgbuf));
+          msgrcv(msqid,&buf,1024,TYPE_R,0);
+          printf("r say:[%s]\n",buf.mtext);
+      }
+      msgctl(msqid,IPC_RMID,NULL);
+      return 0;
+  }
+```
+
+### 16.5.3 [信号量](https://blog.csdn.net/xxxx123041/article/details/127812218)
+
+信号量（semaphore）是一个计数器，与其它进程间通信方式不大相同，它主要用于控制**多个进程间或一个进程内的多个线程间**对共享资源的访问。
+
+它常作为一种锁机制，防止某进程在访问资源时其它进程也访问该资源。Linux 提供了一组精心设计的信号量接口来对信号量进行操作，它们声明在头文件 sys/sem.h 中。
+
+信号量sv是一个特殊的变量，对它只有两个操作：
+
+- **P(sv)**：如果sv的值大于零，就给它减1；如果它的值为零，就挂起该进程的执行。
+- **V(sv)**：如果有其他进程因等待sv而被挂起，就让它恢复运行，如果没有进程因等待sv而挂起，就给它加1。
+
+例如：两个进程共享信号量sv，一旦其中一个进程执行了P(sv)操作，它将得到信号量，并可以进入临界区（指访问公共资源的程序代码段），使sv减1。而第二个进程将被阻止进入临界区，因为当它试图执行P(sv)时，sv为0，它会被挂起以等待第一个进程离开临界区域并执行V(sv)释放信号量，这时第二个进程就可以恢复执行。
+
+最简单的信号量是只能取0和1的变量，这也是信号量最常见的一种形式，叫做**二进制信号量（互斥信号量）**。而可以取多个正整数的信号量被称为通用信号量。
+
+```c
+// 获取ipc对象的唯一标识
+key_t ftok( const char * fname, int id );
+
+// 通过IPC唯一标识，创建一个新信号量或取得一个已有信号量
+int semget(key_t key, int num_sems, int sem_flags);
+//num_sems：指定需要的信号量数目，它的值几乎总是1（二进制信号量）
+//返回值：相应信号量标识符sem_id（非零），失败返回-1.
+
+// 操作（P操作和V操作）信号量
+int semop(int sem_id, struct sembuf *sem_opa, size_t num_sem_ops);
+struct sembuf{
+    short sem_num;//除非使用一组信号量，否则它为0
+    short sem_op;//信号量在一次操作中需要改变的数据，通常是两个数，一个是-1，即P（等待）操作，
+                    //一个是+1，即V（发送信号）操作。
+    short sem_flg;//通常为SEM_UNDO,使操作系统跟踪信号，
+                    //并在进程没有释放该信号量而终止时，操作系统释放信号量
+};
+
+int semctl(int sem_id, int sem_num, int command, ...);
+//sem_id、sem_num两个参数与semget函数中的一样。
+// command：通常是下面两个值中的其中一个
+//    SETVAL：用来把信号量初始化为一个已知的值。p 这个值通过union semun中的val成员设置，其作用是在信号量第一次使用前对它进行设置。
+//    IPC_RMID：用于删除一个已经无需继续使用的信号量标识符。
+//如果有第四个参数，它通常是一个union semum结构，定义如下：
+union semun{
+    int val;
+    struct semid_ds *buf;
+    unsigned short *arry;
+};
+
+```
+
+```c
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/sem.h>
+ 
+union semun
+{
+	int val;
+	struct semid_ds *buf;
+	unsigned short *arry;
+};
+ 
+static int sem_id = 0;
+
+//用于初始化信号量，在使用信号量前必须这样做
+static int set_semvalue()
+{
+	union semun sem_union;
+	sem_union.val = 1;
+	if(semctl(sem_id, 0, SETVAL, sem_union) == -1)
+		return 0;
+	return 1;
+}
+ 
+//删除信号量
+static void del_semvalue()
+{
+	
+	union semun sem_union;
+ 
+	if(semctl(sem_id, 0, IPC_RMID, sem_union) == -1)
+		fprintf(stderr, "Failed to delete semaphore\n");
+}
+ 
+//对信号量做减1操作，即等待P（sv）
+static int semaphore_p()
+{
+	
+	struct sembuf sem_b;
+	sem_b.sem_num = 0;
+	sem_b.sem_op = -1;//P()
+	sem_b.sem_flg = SEM_UNDO;
+	if(semop(sem_id, &sem_b, 1) == -1)
+	{
+		fprintf(stderr, "semaphore_p failed\n");
+		return 0;
+	}
+	return 1;
+}
+ 
+//这是一个释放操作，它使信号量变为可用，即发送信号V（sv）
+static int semaphore_v()
+{
+	struct sembuf sem_b;
+	sem_b.sem_num = 0;
+	sem_b.sem_op = 1;//V()
+	sem_b.sem_flg = SEM_UNDO;
+	if(semop(sem_id, &sem_b, 1) == -1)
+	{
+		fprintf(stderr, "semaphore_v failed\n");
+		return 0;
+	}
+	return 1;
+}
+
+
+int main(int argc, char *argv[])
+{
+	char message = 'X';
+	int i = 0;
+ 	key_t sem_key = Ftok(FILE_PATH, 'a'));//获取系统IPC键值
+	//创建信号量
+	sem_id = semget(sem_key, 1, 0666 | IPC_CREAT);
+ 
+	if(argc > 1)
+	{
+		//程序第一次被调用，初始化信号量
+		if(!set_semvalue())
+		{
+			fprintf(stderr, "Failed to initialize semaphore\n");
+			exit(EXIT_FAILURE);
+		}
+		//设置要输出到屏幕中的信息，即其参数的第一个字符
+		message = argv[1][0];
+		sleep(2);
+	}
+	for(i = 0; i < 10; ++i)
+	{
+		//进入临界区
+		if(!semaphore_p())
+			exit(EXIT_FAILURE);
+		//向屏幕中输出数据
+		printf("%c", message);
+		//清理缓冲区，然后休眠随机时间
+		fflush(stdout);
+		sleep(rand() % 3);
+		//离开临界区前再一次向屏幕输出数据
+		printf("%c", message);
+		fflush(stdout);
+		//离开临界区，休眠随机时间后继续循环
+		if(!semaphore_v())
+			exit(EXIT_FAILURE);
+		sleep(rand() % 2);
+	}
+ 
+	sleep(10);
+	printf("\n%d - finished\n", getpid());
+ 
+	if(argc > 1)
+	{
+		//如果程序是第一次被调用，则在退出前删除信号量
+		sleep(3);
+		del_semvalue();
+	}
+	exit(EXIT_SUCCESS);
+}
+
+```
+
+### 16.5.4 共享内存
+
+共享内存就是映射一段能被其它进程所访问的内存，这段共享内存由一个进程创建，但其它的多个进程都可以访问，使得多个进程可以访问同一块内存空间。共享内存是最快的 IPC 方式，它是针对其它进程间通信方式运行效率低而专门设计的，它往往与其它通信机制，譬如结合信号量来使用，以实现进程间的同步和通信。
+
+共享内存就是允许两个不相关的进程访问同一个逻辑内存。不同进程之间共享的内存通常安排为同一段物理内存。进程可以将同一段共享内存连接到它们自己的地址空间中，所有进程都可以访问共享内存中的地址。
+
+共享内存并未提供同步机制，也就是说，在第一个进程结束对共享内存的写操作之前，并无自动机制可以阻止第二个进程开始对它进行读取。所以我们通常需要用其他的机制来同步对共享内存的访问，例如信号量。
+```c
+// 获取IPC标识符
+key_t ftok( const char * fname, int id )
+// 通过IPC标识符，创建共享内存
+int shmget(key_t key, size_t size, int shmflg);
+//size：以字节为单位指定需要共享的内存容量
+
+
+//用来启动对该共享内存的访问，并把共享内存连接到当前进程的地址空间
+void *shmat(int shm_id, const void *shm_addr, int shmflg);
+//shm_addr：指定共享内存连接到当前进程中的地址位置，通常为空，表示让系统来选择共享内存的地址。
+//shm_flg：是一组标志位，通常为0。
+//返回值：调用成功时返回一个指向共享内存第一个字节的指针，如果调用失败返回-1.
+
+//用于将共享内存从当前进程中分离。注意，将共享内存分离并不是删除它，只是使该共享内存对当前进程不再可用
+int shmdt(const void *shmaddr);
+//参数shmaddr是shmat函数返回的地址指针，调用成功时返回0，失败时返回-1.
+
+
+//用来控制共享内存
+int shmctl(int shm_id, int command, struct shmid_ds *buf);
+//command是要采取的操作，它可以取下面的三个值 ：
+//    IPC_STAT：把shmid_ds结构中的数据设置为共享内存的当前关联值，即用共享内存的当前关联值覆盖shmid_ds的值。
+//    IPC_SET：如果进程有足够的权限，就把共享内存的当前关联值设置为shmid_ds结构中给出的值
+//    IPC_RMID：删除共享内存段
+//buf是一个结构指针，它指向共享内存模式和访问权限的结构。shmid_ds结构至少包括以下成员：
+struct shmid_ds
+{
+    uid_t shm_perm.uid;
+    uid_t shm_perm.gid;
+    mode_t shm_perm.mode;
+};
+
+```
+
+```c
+// shmdata.h
+#ifndef _SHMDATA_H_HEADER
+#define _SHMDATA_H_HEADER
+ 
+#define TEXT_SZ 2048
+ 
+struct shared_use_st
+{
+	int written;//作为一个标志，非0：表示可读，0表示可写
+	char text[TEXT_SZ];//记录写入和读取的文本
+};
+ 
+#endif
+
+```
+
+```c
+// shmread.c
+#include <unistd.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <sys/shm.h>
+#include "shmdata.h"
+ 
+int main()
+{
+	int running = 1;//程序是否继续运行的标志
+	void *shm = NULL;//分配的共享内存的原始首地址
+	struct shared_use_st *shared;//指向shm
+	int shmid;//共享内存标识符
+	key_t shm_key = ftok(FILE_PATH, 'a'));//获取系统IPC键值
+	//创建共享内存
+	shmid = shmget(shm_key, sizeof(struct shared_use_st), 0666|IPC_CREAT);
+	if(shmid == -1)
+	{
+		fprintf(stderr, "shmget failed\n");
+		exit(EXIT_FAILURE);
+	}
+	//将共享内存连接到当前进程的地址空间
+	shm = shmat(shmid, 0, 0);
+	if(shm == (void*)-1)
+	{
+		fprintf(stderr, "shmat failed\n");
+		exit(EXIT_FAILURE);
+	}
+	printf("\nMemory attached at %X\n", (int)shm);
+	//设置共享内存
+	shared = (struct shared_use_st*)shm;
+	shared->written = 0;
+	while(running)//读取共享内存中的数据
+	{
+		//没有进程向共享内存定数据有数据可读取
+		if(shared->written != 0)
+		{
+			printf("You wrote: %s", shared->text);
+			sleep(rand() % 3);
+			//读取完数据，设置written使共享内存段可写
+			shared->written = 0;
+			//输入了end，退出循环（程序）
+			if(strncmp(shared->text, "end", 3) == 0)
+				running = 0;
+		}
+		else//有其他进程在写数据，不能读取数据
+			sleep(1);
+	}
+	//把共享内存从当前进程中分离
+	if(shmdt(shm) == -1)
+	{
+		fprintf(stderr, "shmdt failed\n");
+		exit(EXIT_FAILURE);
+	}
+	//删除共享内存
+	if(shmctl(shmid, IPC_RMID, 0) == -1)
+	{
+		fprintf(stderr, "shmctl(IPC_RMID) failed\n");
+		exit(EXIT_FAILURE);
+	}
+	exit(EXIT_SUCCESS);
+}
+
+```
+
+```c
+//shmwrite.c
+#include <unistd.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/shm.h>
+#include "shmdata.h"
+ 
+int main()
+{
+	int running = 1;
+	void *shm = NULL;
+	struct shared_use_st *shared = NULL;
+	char buffer[BUFSIZ + 1];//用于保存输入的文本
+	int shmid;
+	key_t shm_key = ftok(FILE_PATH, 'a'));//获取系统IPC键值
+	//创建共享内存
+	shmid = shmget(shm_key , sizeof(struct shared_use_st), 0666|IPC_CREAT);
+	if(shmid == -1)
+	{
+		fprintf(stderr, "shmget failed\n");
+		exit(EXIT_FAILURE);
+	}
+	//将共享内存连接到当前进程的地址空间
+	shm = shmat(shmid, (void*)0, 0);
+	if(shm == (void*)-1)
+	{
+		fprintf(stderr, "shmat failed\n");
+		exit(EXIT_FAILURE);
+	}
+	printf("Memory attached at %X\n", (int)shm);
+	//设置共享内存
+	shared = (struct shared_use_st*)shm;
+	while(running)//向共享内存中写数据
+	{
+		//数据还没有被读取，则等待数据被读取,不能向共享内存中写入文本
+		while(shared->written == 1)
+		{
+			sleep(1);
+			printf("Waiting...\n");
+		}
+		//向共享内存中写入数据
+		printf("Enter some text: ");
+		fgets(buffer, BUFSIZ, stdin);
+		strncpy(shared->text, buffer, TEXT_SZ);
+		//写完数据，设置written使共享内存段可读
+		shared->written = 1;
+		//输入了end，退出循环（程序）
+		if(strncmp(buffer, "end", 3) == 0)
+			running = 0;
+	}
+	//把共享内存从当前进程中分离
+	if(shmdt(shm) == -1)
+	{
+		fprintf(stderr, "shmdt failed\n");
+		exit(EXIT_FAILURE);
+	}
+	sleep(2);
+	exit(EXIT_SUCCESS);
+}
+
+```
+
+### 16.5.5 [信号](https://blog.csdn.net/weixin_44421186/article/details/125696042)
+
+**信号的本质是软件层次上对中断的一种模拟（软中断）**。
+
+中断： 硬件/进程发，内核收
+
+信号（软中断）：
+
+1. 内核发，进程收；
+2.  进程发，（其他或自己）进程收
+
+
+
+```c
+#include <sys/types.h> 
+#include <signal.h>
+// 信号发送函数
+int kill(pid_t pid,int sig)
+//进程可以通过kill函数向包括它本身在内的其他进程发送一个信号
+//Kill不是杀死(软中断)而是发送 信号给XXX进程。
 ```
 
 
