@@ -5006,7 +5006,100 @@ int kill(pid_t pid,int sig)
 //Kill不是杀死(软中断)而是发送 信号给XXX进程。
 ```
 
+## 16.6 mmap内存映射文件
+
+![](./legend/mmap.jpg)
+
+- mmap是一种**内存映射文件**的方法，即将一个文件或者其它对象映射到进程的地址空间（文件被映射到多个页上），实现文件磁盘地址和进程虚拟地址空间中一段虚拟地址的一一对映关系。
+- 进程就可以采用指针的方式读写操作这一段内存，而系统会自动回写脏页面（以文件格式当然看不懂指针到底写了什么进去）到对应的文件磁盘上，即完成了对文件的操作而不必再调用read, write等系统调用函数。
+- 相反，内核空间对这段区域的修改也直接反映用户空间，从而可以实现不同进程间的文件共享。
+- 使用场景：
+  - 对同一块区域频繁读写操作；
+  - 可用于实现用户空间和内核空间的高效交互
+  - 可提供进程间共享内存及相互通信
+  - 可实现高效的大规模数据传输。
+
+```c
+#include<sys/mman.h>
+
+void* mmap(void* start,size_t length,int prot,int flags,int fd,off_t offset);
+// 参数：
+// addr:指定映射的起始位置，通常设置成NULL,由系统指定
+// length:映射到内存的文件长度
+// prot:映射区的保护方式，最常用：读：PROT_READ,写：PROT_WRITE,读写：PROT_READ | PROT_WRITE
+// flags:映射区的特性，可以是
+// 		MAP_SHARED:写入映射区的数据会写回文件，且允许其他映射该文件的进程共享
+// 		MAP_PRIVATE:对映射区的会产生一个映射区的复制(copy-on-write),对此区域所做的修改不会写回原文件。
+// fd:由open()返回的文件描述符，代表要映射的文件
+// offset:以文件开始处的偏移量，必须是4k的整数倍，通常为0，表示从文件头开始映射。
+// 返回值：mmap()返回被映射区的指针void* addr
+
+// 在进程地址空间中解除一个映射关系
+int munmap(void* start,size_t length);
+
+// 进程空间的操作同步回文件
+int msync( void *addr, size_t len, int flags )
+// 一般说来，进程在映射空间的对共享内容的改变并不直接写回到磁盘文件中，往往在调用munmap（）后才执行该操作。
+// 可以通过调用msync()实现磁盘上文件内容与共享内存区的内容一致。
+```
+
+[mmap可以实现进程间通信，父子进程和进程间都可以](https://blog.csdn.net/challenglistic/article/details/128173381)
+
+```c
+// 父子进程间通信
+#include <sys/mman.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <string.h>
+#include <unistd.h>
+#include <stdio.h>
+ 
+int main(){
+	int fd = open("./log.txt", O_RDWR);
+	if(fd < 0)
+	{
+		perror("open");
+		return -1;
+	}
+ 
+	int len = lseek(fd, 0, SEEK_END);
+	void* addr = mmap(NULL, len, PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, fd, 0);
+	if(addr == MAP_FAILED)
+	{
+		perror("mmap");
+		return -1;
+	}
+	close(fd);
+ 
+	pid_t pid = fork();
+	if(pid < 0)
+	{
+		perror("fork");
+		return -1;
+	}
+	else if(pid > 0) 
+	{
+		// 父进程
+		const char* str = "hello, world";
+		memcpy(addr, str, strlen(str));
+ 
+		wait(NULL);
+	}
+	else
+	{
+		// 子进程
+		sleep(1);  // 因为不知道谁先执行完，这么做可以保证父进程先写，子进程后读
+		printf("%s\n",(char*)addr);
+	}
+}
+```
+
+
+
 # 17 GDB
+
+GDB（GNU symbolic debugger）是 GNU Project 调试器
 
 ## 17.1 [常用命令](https://blog.csdn.net/weixin_61857742/article/details/126067930)
 
