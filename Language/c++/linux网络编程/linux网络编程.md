@@ -1084,6 +1084,7 @@ int main(int argc, char *argv[])
 	//监听
 	listen(lfd,128);
 	int max_fd = lfd;
+    // ready set
 	fd_set r_set;
 	fd_set old_set;
 	FD_ZERO(&old_set);
@@ -1254,7 +1255,7 @@ int main(int argc, char *argv[]){
         if(n<0){
             perror("");
             exit(-1);
-        }else if(>=0){
+        }else if(n>=0){
             for(int i; i<n; i++){
                 int fd = evs[i].data.fd;
                 //如果是lfd变化，并且是读事件变化
