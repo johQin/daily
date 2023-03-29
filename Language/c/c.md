@@ -330,7 +330,9 @@ printf("%-20.15f\n",1/3);
 printf("%e", 123.456);
 1.234560e+002 // 默认小数为6位数，指数占5列，e为1列1 +为1列 002为3列
 printf("%13.2e", 123.456);
-1.23e+002 //1前面还有4个空格
+1.23e+002; //1前面还有4个空格
+
+//%02X表示输出的16进制使用两个位置，如果只有一位的前面添0，比如15就输出0F。
 ```
 
 如果想原样输出%号，需要连续使用两个%表示
@@ -2008,6 +2010,30 @@ void main() {
 
 ### 7.1.4 用指针处理链表
 
+### 7.1.5 [位段](https://blog.csdn.net/weixin_45897952/article/details/121385409)
+
+C语言允许在一个结构体中以位为单位来指定其成员所占内存长度，这种以位为单位的成员称为位段。利用位段能够用较少的位数存储数据。
+
+ 位段涉及很多不确定因素，位段是不跨平台的，注重可移植的程序应该避免使用位段。
+
+位段不能跨字节存储.
+
+```c
+struct S {
+ char a:3;
+ char b:4;
+ char c:5;
+ char d:4;
+};
+struct S s = {0};
+s.a = 10; 
+s.b = 12; 
+s.c = 3; 
+s.d = 4;
+```
+
+![](./legend/结构体位段.png)
+
 ## 7.2 共用体
 
 同一段内存（同一地址开始的内存单元）存放不同类型的变量。
@@ -2218,13 +2244,60 @@ int fclose(FILE *stream);
 
 ## 8.2 顺序读写数据文件
 
+```c
+//读一个字符，指定的流 stream 获取下一个字符（一个无符号字符），并把位置标识符往前移动。
+int fgetc(FILE *stream);
+// 写一个字符，把参数 char 指定的字符（一个无符号字符）写入到指定的流 stream 中，并把位置标识符往前移动。
+int fputc(int char, FILE *stream);
+// 测试给定流 stream 的文件结束标识符。
+int feof(FILE *stream);
+
+// 读写一个字符串，
+char *fgets(char *str, int n, FILE *stream);
+int fputs(const char *str, FILE *stream);
+
+//发送格式化的数据输出到流 stream 中
+int fprintf(FILE *stream, const char *format, ...);
+int fscanf(FILE *stream, const char *format, ...);
+
+// 读写数据块（结构体）
+size_t fread(void *ptr, size_t size, size_t nmemb, FILE *stream);
+size_t fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream);
+```
+
+```c
+do
+   {
+      c = fgetc(fp);
+      if( feof(fp) )
+      {
+          break ;
+      }
+      printf("%c", c);
+}while(1);
+```
+
 
 
 ## 8.3 随机读写数据文件
 
+```c
+//强制文件位置标记指向文件开头
+void rewind(FILE *stream);
+// 设置流 stream 的文件位置为给定的偏移 offset，参数 offset 意味着从给定的 whence 位置查找的字节数。
+int fseek(FILE *stream, long int offset, int whence);
+```
+
 
 
 ## 8.4 文件读写的出错检测
+
+```c
+// 在调用各种输入输出函数时，如果出现错误，除了函数返回值有所反应，还可以使用ferror函数检查
+int ferror(FILE *stream);
+// 使文件错误标志和文件结束标志置为0
+void clearerr(FILE *stream);
+```
 
 
 
@@ -5548,3 +5621,5 @@ assert(p != NULL); //判空，防错设计
 ```
 
 ![](./legend/字符和数字的转换表.jpeg)
+
+[c语言练习](https://blog.csdn.net/m0_46606290/article/details/123646039)
