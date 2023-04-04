@@ -3359,7 +3359,7 @@ void pthread_cleanup_push(
 // 指定代码段的结束位置，在指定代码段的结束位置调用，可以标记指定代码的结束位置
 void pthread_cleanup_pop(int execute); 
 // 导致清理函数调用的充要条件：
-// a. 在指定任务代码段内调用pthread_exit()和和异常终止
+// a. 在指定任务代码段内调用pthread_exit()和异常终止
 // b.pthread_cleanup_pop的形参为1，
 
 
@@ -5390,6 +5390,12 @@ gdb book -p 21495
 调试者的调试行为干扰了程序的运行，导致看到的是一个干扰后的现象。既然断点和单步不一定好用，那么我们只能通过输出程序运行的log日志，它可以避免断点和单步所导致的副作用。
 
 有程序日志框架提供日志类或日志函数。
+
+# 18 池技术
+
+内存池、连接池、线程池、进程池、协程池。
+
+
 
 # 14 [makefile](https://subingwen.cn/linux/makefile/)
 

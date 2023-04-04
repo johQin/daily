@@ -855,12 +855,20 @@ COMMIT;
 
 #### 1 并发问题
 
-1. 脏读（读未提交）
+[这里讲不可重复读和和幻读讲的很好](https://blog.csdn.net/weixin_41814871/article/details/124996364)
+
+1. 脏读
    - 事务A读取到，事务B修改了但是没有提交的数据
-2. 不可重复读（读已提交）
-   - 对于事务A多次读取同一个数据时，由于其他的事务也在**访问这个数据**，进行修改且提交，对于事务A，读取同一个数据时，有可能导致前后读取的数据不一致，叫不可重复读
-3. 幻读（可重复读）
-   - 对于两个事务T1,T2，T1在A表中**读取了一个字段**，然后T2又在A表中**插入**了一些新的数据时，T1再读取该表时，就会发现神不知鬼不觉的多出几行了
+   - 读未提交的数据
+2. 不可重复读
+   - 对于事务A多次读取同一个数据时，由于事务B也在**访问这个数据**并进行修改且提交，对于事务A，读取同一个数据时，有可能导致前后读取的数据不一致，叫不可重复读
+   - 读已提交的数据造成前后读取不一致，导致不可重复读的问题
+3. 幻读
+   - 对于两个事务T1,T2，T1在A表中**读取了一个字段**，然后发现此数据没有，所以便想插入，但此时（T1读之后，T1写之前）T2又在A表中**插入**了一些新的数据时，此后，T1写发生冲突，无法插入，此时就发生了幻读。
+
+幻读，并不是说两次读取获取的结果集不同，幻读侧重的方面是某一次的 select 操作得到的结果所表征的数据状态无法支撑后续的业务操作。更为具体一些：select 某记录是否存在，不存在，准备插入此记录，但执行 insert 时发现此记录已存在，无法插入，此时就发生了幻读。
+
+不可重复读侧重表达 读-读，幻读则是说 读-写，用写来证实读的是鬼影。
 
 为了避免以上出现的各种并发问题，我们就必然要采取一些手段。mysql数据库系统提供了四种事务的隔离级别，用来隔离并发运行各个事务，
 
@@ -1432,7 +1440,23 @@ select
 
 ![多层表查询](./legend/query_multi_level_table.jpg)
 
-## 11.1 [从excel往数据库导入](<https://jingyan.baidu.com/article/6b1823090a3f1efa58e159dd.html>)
+## 11.1 数据迁移
+
+### 11.1.1 [从excel往数据库导入](<https://jingyan.baidu.com/article/6b1823090a3f1efa58e159dd.html>)
+
+### 11.1.2 [数据跨库转移](https://www.cnblogs.com/tijun/p/8671217.html)
+
+```mysql
+SELECT ... FROM TABLE_A
+INTO OUTFILE "/path/to/file"
+FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"'
+LINES TERMINATED BY '\n';
+
+LOAD DATA INFILE "/path/to/file" INTO TABLE table_name;
+#注意：如果导出时用到了FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"' LINES TERMINATED BY '\n'语句，那么LOAD时也要加上同样的分隔限制语句。还要注意编码问题。
+```
+
+
 
 # 12 牛客
 
