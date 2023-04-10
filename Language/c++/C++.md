@@ -6111,9 +6111,13 @@ bind可以替代适配器中的bind1st，bind2se
 
 **智能指针其实是一些模板类，它们负责自动管理一个指针的内存，免去了手动 new/delete 的麻烦**，这个类的构造函数中传入一个普通指针，析构函数中释放传入的指针。
 
+C++的智能指针其实就是对普通指针的封装（即封装成一个类），通过重载 * 和 ->两个运算符，使得智能指针表现的就像普通指针一样。
+
+**程序员必须保证 new 对象能在正确的时机 delete ，必须到处编写异常捕获代码以释放资源，而智能指针则可以在退出作用域时（无论是因正常流程离开还是因异常离开）总调用 delete 来析构在堆上动态分配的对象。**
+
 智能指针的类都是栈上的对象，所以当函数（或程序）结束时会自动被释放。
 
-C++11中所新增的智能指针包括**shared_ptr**, **unique_ptr**, **weak_ptr**,在C++11之前还存在**auto_ptr(C++17废弃)。**三种类型都定义在**头文件memory**中。
+C++11中所新增的智能指针包括**shared_ptr**, **unique_ptr**, **weak_ptr**,在C++11之前还存在**auto_ptr(C++17废弃)。**三种类型都定义在**头文件memory**中。（智能指针在C++11版本之后提供，包含在头文件`<memory>`中，废弃了auto_ptr，从Boost标准库中引入了shared_ptr、unique_ptr、weak_ptr三种指针。）
 
 **auto_ptr**可能导致对同一块堆空间进行多次delete，即当两个智能指针都指向同一个堆空间时，每个智能指针都会delete一下这个堆空间，这会导致未定义行为。
 
@@ -6158,11 +6162,18 @@ int main() {
 }
 ```
 
-### 10.5.2 shared_ptr
+### 10.5.2 [shared_ptr](https://blog.csdn.net/qq_40337086/article/details/126025232)
 
 - **shared_ptr**多个指针指向相同的对象，使用**引用计数**来完成自动析构的功能。
-- shared_ptr的引用计数是**线程安全**的，但是其对象的写操作在多线程环境下需要加锁实现。
+- shared_ptr的引用计数是**线程安全**的，但是其对象的写操作在多线程环境下需要加锁实现。**解决多线程使用同一个对象时析构问题**
 - 不要用同一个指针初始化多个shared_ptr，这样可能会造成**二次释放**。
+
+- s.get()：              功能：返回shared_ptr中保存的裸指针；
+- s.use_count() ：功能：返回shared_ptr 的强引用计数；
+- s.unique() ：      功能：若use_count() 为 1 ，返回 true ，否则返回 false 。
+- s.reset(…)：       功能：重置shared_ptr；
+  - reset( )不带参数时，若智能指针s是唯一指向该对象的指针，则释放，并置空。若智能指针P不是唯一指向该对象的指针，则引用计数减少1，同时将P置空。
+  - reset( )带参数时，若智能指针s是唯一指向对象的指针，则释放并指向新的对象。若P不是唯一的指针，则只减少引用计数，并指向新的对象。
 
 ```c++
 #include<iostream>
@@ -6195,7 +6206,9 @@ int main() {
 
 ### 10.5.3 weak_ptr
 
-其最大的作用是**协助shared_ptr工作，像旁观者那样检测资源的使用情况，解决shared_ptr相互引用时的死锁问题。**
+它不具备普通指针的行为，没有重载operator*和->。
+
+其最大的作用是**协助shared_ptr工作，像旁观者那样检测资源的使用情况，解决shared_ptr相互（循环）引用时的死锁问题。**
 
 **weak_ptr没有共享资源，它的构造不会引起指针引用计数的增加。**
 
@@ -6338,6 +6351,90 @@ int main(){
 	fish *pFish = nullptr;
 	pFish->breathe(); // 输出：fish bubble
 }
+```
+
+## 10.7 [原子操作](https://blog.csdn.net/weixin_41567783/article/details/116919856)
+
+在新标准C++11，引入了原子操作的概念，并通过这个新的头文件提供了多种原子操作数据类型，例如，atomic_bool,atomic_int等等，如果我们在多个线程中对这些类型的共享资源进行操作，编译器将保证这些操作都是原子性的，也就是说，确保任意时刻只有一个线程对这个资源进行访问，编译器将保证，多个线程访问这个共享资源的正确性。从而避免了锁的使用，提高了效率。
+
+我们还是来看一个实际的例子。假若我们要设计一个广告点击统计程序，在服务器程序中，使用多个线程模拟多个用户对广告的点击：
+
+```c++
+// 无锁访问
+
+#include <time.h>
+#include <atomic>
+#include <boost/thread/thread.hpp>
+#include <iostream>
+using namespace std;
+// 全局的结果数据
+long total = 0;
+// 点击函数
+void click() {
+  for (int i = 0; i < 1000000; ++i) {
+    // 对全局数据进行无锁访问
+    total += 1;
+  }
+}
+int main(int argc, char* argv[]) {
+  // 计时开始
+  clock_t start = clock();
+  // 创建100个线程模拟点击统计
+  boost::thread_group threads;
+  for (int i = 0; i < 100; ++i) {
+    threads.create_thread(click);
+  }
+ 
+  threads.join_all();
+  // 计时结束
+  clock_t finish = clock();
+  // 输出结果
+  cout << "result:" << total << endl;
+  cout << "duration:" << finish - start << "ms" << endl;
+  return 0;
+}
+
+
+// result:87228026 
+// duration:528ms 
+```
+
+```c++
+long total = 0;  // 对共享资源进行保护的互斥对象
+mutex m;
+void click() {
+  for (int i = 0; i < 1000000; ++i) {
+    // 访问之前，锁定互斥对象
+    m.lock();
+    total += 1;
+    // 访问完成后，释放互斥对象
+    m.unlock();
+  }
+}
+
+// result:100000000 
+// duration:8431ms，耗时
+```
+
+在C++11中，实现了原子操作的数据类型（atomic_bool,atomic_int,atomic_long等等），对于这些原子数据类型的共享资源的访问，无需借助mutex等锁机制，也能够实现。
+
+```c++
+// 原子操作访问，的无锁访问
+
+// 引入原子数据类型的头文件
+#include <atomic>
+// 用原子数据类型作为共享资源的数据类型
+atomic_long total(0);
+long total = 0;
+void click() {
+  for (int i = 0; i < 1000000; ++i) {
+    // 仅仅是数据类型的不同而以，对其的访问形式与普通数据类型的资源并无区别
+    total += 1;
+  }
+}
+
+// result:100000000 
+// duration:2105ms，相较于mutex，时间减少了
 ```
 
 

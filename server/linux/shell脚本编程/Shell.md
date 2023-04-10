@@ -1490,7 +1490,7 @@ echo "finished"
 
 ```bash
 # 2.读文件，然后循环
-# 不推荐用for来处理文件，因为for默认按照空格来分割序列，需要修改IFS
+# 不推荐用for来处理文件，因为for默认按照空格来分割序列，需要修改IFS（internal field separator）
 for ip in `cat ip.txt`
 do
     # echo $ip
