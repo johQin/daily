@@ -6165,15 +6165,25 @@ int main() {
 ### 10.5.2 [shared_ptr](https://blog.csdn.net/qq_40337086/article/details/126025232)
 
 - **shared_ptr**多个指针指向相同的对象，使用**引用计数**来完成自动析构的功能。
+
 - shared_ptr的引用计数是**线程安全**的，但是其对象的写操作在多线程环境下需要加锁实现。**解决多线程使用同一个对象时析构问题**
+
 - 不要用同一个指针初始化多个shared_ptr，这样可能会造成**二次释放**。
+
+  ```c++
+  int *p5 = new int;
+  std::shared_ptr<int> p6(p5);
+  std::shared_ptr<int> p7(p5);
+  ```
+
+  
 
 - s.get()：              功能：返回shared_ptr中保存的裸指针；
 - s.use_count() ：功能：返回shared_ptr 的强引用计数；
 - s.unique() ：      功能：若use_count() 为 1 ，返回 true ，否则返回 false 。
 - s.reset(…)：       功能：重置shared_ptr；
   - reset( )不带参数时，若智能指针s是唯一指向该对象的指针，则释放，并置空。若智能指针P不是唯一指向该对象的指针，则引用计数减少1，同时将P置空。
-  - reset( )带参数时，若智能指针s是唯一指向对象的指针，则释放并指向新的对象。若P不是唯一的指针，则只减少引用计数，并指向新的对象。
+  - reset( )带参数（新对象）时，若智能指针s是唯一指向对象的指针，则释放并指向新的对象。若P不是唯一的指针，则只减少引用计数，并指向新的对象。
 
 ```c++
 #include<iostream>

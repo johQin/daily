@@ -1709,7 +1709,7 @@ public class Client {
 
 ## 9.3 源码分析
 
-JDBC的Driver接口，如果从桥接模式来看，Driver就是一个借口，下面可以有Mysql的Driver，Oracle的Driver，这些就可以做实现接口类。
+JDBC的Driver接口，如果从桥接模式来看，Driver就是一个接口，下面可以有Mysql的Driver，Oracle的Driver，这些就可以做实现接口类。
 
 ![](./legend/bridge_jdbc.jpg)
 
@@ -2885,7 +2885,7 @@ public class Client {
 ## 17.1 访问者模式
 
 1. 访问者模式（Visitor Pattern），封装一些作用于某种数据结构的各元素的操作，它可以在不改变数据结构的前提下定义作用于这些元素的新的操作。
-2. 主要将数据结构与数据操作分离，解决数据结构和操作耦合性问题
+2. **主要将数据结构与数据操作分离，解决数据结构和操作耦合性问题**
 3. 访问者模式的基本工作原理是：在被访问的类里面加一个对外提供接待访问者的接口
 4. 访问者模式主要应用场景是：需要对一个对象结构中的对象进行很多不同操作(这些操作彼此没有关联)，同时需要避免让这些操作"污染"这些对象的类，可以选用访问者模式解决
 
@@ -2971,7 +2971,6 @@ public class ObjectStructure {
             p.accept(action);
         }
     }
-
 }
 public class Client {
     public static void main(String[] args) {
@@ -3644,7 +3643,7 @@ public class Client {
 2. AbstractExpression: 抽象表达式， 声明一个抽象的解释操作,这个方法为抽象语法树中所有的节点所共享
 3. TerminalExpression: 为终结符表达式, 实现与文法中的终结符相关的解释操作
 4. NonTermialExpression: 为非终结符表达式，为文法中的非终结符实现解释操作.
-5. 说明： 输入Context he TerminalExpression 信息通过Client 输入即可
+5. 说明： 输入Context 和 TerminalExpression 信息通过Client 输入即可
 
 ![](./legend/interpreter_example.jpg)
 
