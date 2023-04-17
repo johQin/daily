@@ -5395,6 +5395,505 @@ gdb book -p 21495
 
 内存池、连接池、线程池、进程池、协程池。
 
+## 18.1 [线程池](https://subingwen.cn/linux/threadpool/)
+
+**频繁创建线程和销毁线程需要时间，那么有没有一种办法使得线程可以复用，就是执行完一个任务，并不被销毁，而是可以继续执行其他的任务**
+
+线程池的组成主要分为 3 个部分，这三部分配合工作就可以得到一个完整的线程池：
+
+- 任务队列，存储需要处理的任务，由工作的线程来处理这些任务
+  - 通过线程池提供的 API 函数，将一个待处理的任务添加到任务队列，或者从任务队列中删除
+  - 已处理的任务会被从任务队列中删除
+  - 线程池的使用者，也就是调用线程池函数往任务队列中添加任务的线程就是生产者线程
+  - 任务队列可以是一个队列（环形与非环形），也可以是多个队列，也可以是一棵树
+- 工作的线程（任务队列任务的消费者） ，N个
+  - 线程池中维护了一定数量的工作线程，他们的作用是是不停的读任务队列，从里边取出任务并处理
+  - 工作的线程相当于是任务队列的消费者角色，
+  - 如果任务队列为空，工作的线程将会被阻塞 (使用条件变量 / 信号量阻塞)
+  - 如果阻塞之后有了新的任务，由生产者将阻塞解除，工作线程开始工作
+- 管理者线程（不处理任务队列中的任务），1个
+  - 它的任务是周期性的对任务队列中的任务数量以及处于忙状态的工作线程个数进行检测
+  - 当任务过多的时候，可以适当的创建一些新的工作线程
+  - 当任务过少的时候，可以适当的销毁一些工作的线程
+
+### 18.1.1 线程数目
+
+线程池的设计思路，线程池中线程的数量由什么确定？
+
+- 实现线程池设计思路：
+  - 设置一个生产者消费的任务队列，作为临界资源（任何时候只有一个进程访问的资源）。
+  - 初始化n个线程，并让其运行起来，对任务队列加锁，去队列里取任务运行
+  - 当任务队列为空时，所有空闲的线程阻塞。
+  - 当生产者队列来了一个任务后，先对队列加锁，把任务挂到队列上，然后使用条件变量去通知阻塞中的一个线程来处理。
+- 线程池中线程数量，[实际](https://juejin.cn/post/7067183465224994852),[理论](https://juejin.cn/post/7066675779966337031)
+  - 因素：CPU，IO、并行、并发
+  - 线程等待时间所占比例越高，需要越多线程。线程CPU时间所占比例越高，需要越少线程。
+  - 最佳线程数目：`（线程等待时间与线程CPU执行时间之比 + 1 ）* 2`
+  - 对于计算密集型应用，线程池中线程数目推荐：`CPU核数 + 1`
+  - 对于IO密集型应用：`2 * CPU核数 + 1`
+  - 计算密集型如果是完成一件事情，线程为越少越好。可以减少上下文切换的时间。
+  - I/O密集在线程池线程的数量在一定范围内越多越好，处理完成一件事情耗时也越少。但是增加到一定程度后会增加上下文的切换耗时反而导致时间增加。
+  - 对于完成一件事情，线程池数量的多少不影响。
+
+### 18.1.2 线程池简单实现
+
+**已有的库对线程池的支持**：
+
+- Qt提供了线程池类QThreadPool
+- boost提供在boost/threadpool.hpp
+
+#### 数据结构
+
+```c
+//任务结构
+typedef struct Task {
+	void(*function)(void* arg);
+	void* arg;
+} Task;
+
+// 线程池结构体
+struct ThreadPool {
+	Task* taskQ;			//任务队列
+	int queueCapacity;		//当前队列容量
+	int queueSize;			//当前任务个数
+	int queueFront;			//队头
+	int queueRear;			//队尾
+
+	pthread_t managerID;	//管理者线程ID
+	pthread_t *threadIDs;	//工作线程ID
+	int minNum;				//线程池中最少线程个数
+	int maxNum;				//线程池中最多线程个数
+	int busyNum;			//当前正在工作的线程个数
+	int liveNum;			//当前存活（池中）的线程个数
+	int exitNum;			//要销毁的线程个数
+
+	pthread_mutex_t mutexPool;		//任务队列锁
+	pthread_mutex_t mutexBusy;		//锁busyNum，因为此量容易被频繁操作
+	pthread_cond_t notFull;			//任务队列是不是满了
+	pthread_cond_t notEmpty;		//任务队列是不是空了
+
+	int shutdown;			//是不是要销毁线程池，要1，不要0
+
+};
+```
+
+#### 实现
+
+```c
+// threadpool.h
+
+
+#pragma once
+#ifndef _THREADPOOL_H
+#define _THREADPOOL_H
+
+// 在threapool.c中已定义
+typedef struct ThreadPool ThreadPool;
+
+// 创建线程池并初始化
+ThreadPool * threadPoolCreate(int min, int max, int queueCapacity);
+
+// 销毁线程池
+int threadPoolDestroy(ThreadPool * pool);
+
+// 给线程池添加任务
+void threadAddTask(ThreadPool * pool, void(*func)(void *), void *arg);
+
+// 获取忙碌的线程个数
+int getThreadPoolBusyNum(ThreadPool * pool);
+
+// 获取存活（池中）的线程个数
+int getThreadPoolLiveNum(ThreadPool *pool);
+
+// 工作线程函数
+void * worker(void * arg);
+
+// 管理线程函数
+void * manager(void * arg);
+
+// 线程退出函数
+void threadExit(ThreadPool* pool);
+
+#endif
+```
+
+
+
+```c
+//threadpool.c
+
+
+#include "threadpool.h"
+#include<stdio.h>
+#include<stdlib.h>
+#include <memory.h>
+#include<unistd.h>
+#include <pthread.h>
+
+// 每次最多能增加多少个线程
+const int MAX_NUMBER_PER_ADD_OR_EXIT = 2;
+
+// 任务结构体
+typedef struct Task {
+	void(*function)(void* arg);
+	void* arg;
+} Task;
+
+// 线程池结构体
+struct ThreadPool {
+	Task* taskQ;			//任务队列
+	int queueCapacity;		//当前队列容量
+	int queueSize;			//当前任务个数
+	int queueFront;			//队头
+	int queueRear;			//队尾
+
+	pthread_t managerID;	//管理者线程ID
+	pthread_t *threadIDs;	//工作线程ID
+	int minNum;				//线程池中最少线程个数
+	int maxNum;				//线程池中最多线程个数
+	int busyNum;			//当前正在工作的线程个数
+	int liveNum;			//当前存活（池中）的线程个数
+	int exitNum;			//要销毁的线程个数
+
+	pthread_mutex_t mutexPool;		//任务队列锁
+	pthread_mutex_t mutexBusy;		//锁busyNum，因为此量容易被频繁操作
+	pthread_cond_t notFull;			//任务队列是不是满了
+	pthread_cond_t notEmpty;		//任务队列是不是空了
+
+	int shutdown;			//是不是要销毁线程池，要1，不要0
+
+};
+
+ThreadPool * threadPoolCreate(int min, int max, int queueCapacity) {
+	// 创建结构体
+	ThreadPool* pool = (ThreadPool *)malloc(sizeof(ThreadPool));
+
+	// 这里的do while(0)用来做free，如果有异常，跳出并free掉空间，防止堆内存泄漏
+	do {
+			if (pool == NULL) {
+				printf("malloc threadPool fail...\n");
+				break;
+			}
+
+			pool->threadIDs = (pthread_t *)malloc(sizeof(pthread_t) * max);
+			if (pool->threadIDs == NULL) {
+				printf("malloc threadIDs fail...\n");
+				break;
+			}
+			memset(pool->threadIDs, 0, sizeof(pthread_t) * max);
+
+			pool->minNum = min;
+			pool->maxNum = max;
+			pool->busyNum = 0;
+			pool->liveNum = min;		//初始化存活的线程，按照最小线程数创建
+			pool->exitNum = 0;
+
+			if (pthread_mutex_init(&pool->mutexPool, NULL) != 0 ||
+				pthread_mutex_init(&pool->mutexBusy, NULL) != 0 ||
+				pthread_cond_init(&pool->notEmpty, NULL) != 0 ||
+				pthread_cond_init(&pool->notFull, NULL) != 0
+				){
+				printf("mutex or condition init fail...\n");
+				break;
+			}
+
+			//任务队列
+			pool->taskQ = (Task *)malloc(sizeof(Task) * queueCapacity);
+			pool->queueCapacity = queueCapacity;
+			pool->queueSize = 0;
+			pool->queueFront = 0;
+			pool->queueRear = 0;
+
+			pool->shutdown = 0;
+
+			pthread_create(&pool->managerID, NULL, manager, pool);
+			for (int i = 0; i < min; ++i) {
+				// worker在头文件中做了声明，worker后面的pool是传给worker的参数，worker在下面有实现
+				pthread_create(&pool->threadIDs[i],NULL,worker,pool);
+
+			}
+
+			return pool;
+	} while (0);
+	
+	if (pool && pool->threadIDs)free(pool->threadIDs);
+	if (pool && pool->taskQ) free(pool->taskQ);
+	if (pool) free(pool);
+}
+
+void * worker(void * arg) {
+	ThreadPool * pool = (ThreadPool *)arg;
+	while (1) {
+		
+		pthread_mutex_lock(&pool->mutexPool);
+		
+		//判断当前队列是否为空
+		while (pool->queueSize == 0 && !pool->shutdown) {
+			//当前任务队列没有任务，阻塞工作线程,直到被条件变量notEmpty唤醒。
+			pthread_cond_wait(&pool->notEmpty, &pool->mutexPool);
+
+			// 判断当前线程是否需要自杀（退出），管理线程那里会控制exitNum
+			if (pool->exitNum > 0) {
+				pool->exitNum--;
+				pool->liveNum--;
+				// 线程自杀之前，记得要把锁解开，否则死锁
+				pthread_mutex_unlock(&pool->mutexPool);		
+				threadExit(pool);
+			}
+		}
+		
+		//判断线程池是否关闭
+		if (pool->shutdown) {
+			pthread_mutex_unlock(&pool->mutexPool);
+			threadExit(pool);
+		}
+
+		// 如果线程池没有被关闭，从任务队列中取任务
+		Task task;
+		task.function = pool->taskQ[pool->queueFront].function;
+		task.arg = pool->taskQ[pool->queueFront].arg;
+
+		//维护一个环形任务队列
+		//取出一个任务后，头结点向后移动一位，任务队列的任务数减一
+		//如果头结点已经在队列的尾部了，(queueFront + 1) % queueCapacity的运算又会使queueFront回到队列的开头。
+		pool->queueFront = (pool->queueFront + 1) % pool->queueCapacity;
+		pool->queueSize--;
+
+		//取出任务后，最后解锁
+		pthread_mutex_unlock(&pool->mutexPool);
+        //通知生产者队列，告诉他，我刚刚消费了一个任务，现在任务队列不是满的了
+		pthread_cond_signal(&pool->notFull);
+
+
+		printf("thread %ld start working ...\n", pthread_self());
+		// 开始执行任务前，要使任务busyNum +1。当然在最开始也可以把busyNum变量声明为原子类型，这样就不需要用锁了
+		pthread_mutex_lock(&pool->mutexBusy);
+		pool->busyNum++;
+		pthread_mutex_unlock(&pool->mutexBusy);
+
+		//执行任务函数
+		task.function(task.arg);
+		//推荐task.arg传过来是一个堆内存
+		free(task.arg);
+		task.arg = NULL;
+
+		//任务执行完成后，要使忙碌的线程数量busyNum - 1
+		pthread_mutex_lock(&pool->mutexBusy);
+		pool->busyNum--;
+		pthread_mutex_unlock(&pool->mutexBusy);
+		printf("thread %ld end working ...\n", pthread_self());
+
+	}
+}
+
+void * manager(void * arg) {
+	ThreadPool * pool = (ThreadPool *)arg;
+	while (!pool->shutdown) {
+		//每隔三秒检测一次线程池的情况
+		sleep(3);
+		
+		//获取线程池数目的相关情况
+		pthread_mutex_lock(&pool->mutexPool);
+		int queueSize = pool->queueSize;
+		int liveNum = pool->liveNum;
+		int busyNum = pool->busyNum;
+		pthread_mutex_unlock(&pool->mutexPool);
+
+		// 添加线程
+		// 任务个数>存活的线程个数 && 存活的线程数<最大线程数
+		if (queueSize > liveNum && liveNum < pool->maxNum) {
+			pthread_mutex_lock(&pool->mutexPool);
+			
+			// 用于对每次增加的线程数进行计数，counter应小于MAX_NUMBER_PER_ADD_OR_EXIT
+			int counter = 0;
+
+			for (int i = 0;
+				i < pool->maxNum 
+				&& counter < MAX_NUMBER_PER_ADD_OR_EXIT
+				&& pool->liveNum < pool->maxNum;
+				++i) {
+
+				if (pool->threadIDs[i] == 0) {
+					pthread_create(&pool->threadIDs[i], NULL, worker, pool);
+					counter++;
+					pool->liveNum++;
+				}
+
+			}
+			pthread_mutex_lock(&pool->mutexPool);
+		}
+
+		// 销毁线程
+		// 忙的线程*2 < 存活的线程数  && 存活的线程数 > 最小线程数
+		if (pool->busyNum * 2 < pool->liveNum && pool->liveNum > pool->minNum) {
+			pthread_mutex_lock(&pool->mutexPool);
+			pool->exitNum = MAX_NUMBER_PER_ADD_OR_EXIT;
+			pthread_mutex_unlock(&pool->mutexPool);
+
+			//让工作线程自杀（自行销毁）
+			for (int i = 0; i < MAX_NUMBER_PER_ADD_OR_EXIT; ++i) {
+				// 每次唤醒的时候，只有一个线程会在取任务时退出（因为只有一个线程会获取到mutexPool锁）
+				pthread_cond_signal(&pool->notEmpty);
+			}
+		}
+
+	}
+}
+
+void threadExit(ThreadPool *pool) {
+	pthread_t tid = pthread_self();
+	for (int i = 0; i < pool->maxNum; ++i) {
+		if (pool->threadIDs[i] == tid) {
+			pool->threadIDs[i] = 0;
+			printf("threadExit() called, %ld exiting...\n", tid);
+			break;
+		}
+	}
+	pthread_exit(NULL);
+}
+
+void threadAddTask(ThreadPool * pool, void(*func)(void *), void *arg) {
+	pthread_mutex_lock(pool->mutexPool);
+	//一旦任务队列满，就要等待任务队列不满
+	while (pool->queueSize == pool->queueCapacity && !pool->shutdown) {
+		//阻塞生产者线程,唤醒要在消费者（取任务那里）操作
+		pthread_cond_wait(&pool->notFull, &pool->mutexPool);
+	}
+
+	if (pool->shutdown) {
+		pthread_mutex_unlock(&pool->mutexPool);
+		return;
+	}
+
+	//添加任务
+	pool->taskQ[pool->queueRear].function = func;
+	pool->taskQ[pool->queueRear].arg = arg;
+	pool->queueRear = (pool->queueRear + 1) % pool->queueCapacity;
+	pool->queueSize++;
+	pthread_mutex_unlock(pool->mutexPool);
+}
+// 获取忙碌的线程个数
+int getThreadPoolBusyNum(ThreadPool * pool) {
+	pthread_mutex_lock(&pool->mutexBusy);
+	int busyNum = pool->busyNum;
+	pthread_mutex_unlock(&pool->mutexBusy);
+	return busyNum;
+}
+// 获取存活（池中）的线程个数
+int getThreadPoolLiveNum(ThreadPool *pool) {
+	pthread_mutex_lock(&pool->mutexPool);
+	int liveNum = pool->liveNum;
+	pthread_mutex_unlock(&pool->mutexPool);
+	return liveNum;
+}
+
+// 销毁线程池
+int threadPoolDestroy(ThreadPool * pool) {
+	if (pool == NULL) {
+		return -1;
+	}
+	//给管理线程和工作线程一个信号，让其自行退出
+	pool->shutdown = 1;
+	pthread_join(pool->managerID);
+	for (int i = 0; i < pool->liveNum; ++i) {
+		pthread_cond_signal(&pool->notEmpty);
+	}
+
+	//释放堆内存
+	if (pool->taskQ) {
+		free(pool->taskQ);
+		pool->taskQ = NULL;
+	}
+	if (pool->threadIDs) {
+		free(pool->threadIDs);
+		pool->threadIDs = NULL;
+	}
+	pthread_mutex_destroy(&pool->mutexPool);
+	pthread_mutex_destroy(&pool->mutexBusy);
+	pthread_cond_destroy(&pool->notEmpty);
+	pthread_cond_destroy(&pool->notFull);
+	free(pool);
+	pool = NULL;
+
+}
+```
+
+```c
+//main.c
+
+
+
+#include<stdio.h>
+#include<string.h>
+#include<stdlib.h>
+#include<unistd.h>
+#include"threadpool.h"
+
+void taskFunc(void * arg) {
+	int num = *(int *) arg;
+	printf("thread %ld is working, number = %d\n",pthread_self(), num);
+	sleep(1);
+}
+int main() {
+	ThreadPool * pool = threadPoolCreate(3, 10, 20);
+	for (int i = 0; i < 100; ++i) {
+		int* num = (int *)malloc(sizeof(int));
+		*num = i + 100;
+		threadAddTask(pool, taskFunc,num);
+	}
+
+	sleep(30);
+	threadPoolDestroy(pool);
+	return 0;
+}
+```
+
+## 18.2 内存池
+
+内存的频繁分配和释放，容易造成内存碎片，而且服务器在长时间运行后，由于内存碎片的原因，malloc可能会出现malloc分配内存失败的情况。这种情况就棘手了，这就是对内存的管理和使用方式不对。
+
+内存池要尽量使用，并且不要自己造，但原理自己要懂。
+
+![](./legend/内存池结构.png)
+
+## 18.3 异步请求池
+
+类似于axios去请求第三方接口。这里和高并发服务器不同。
+
+异步请求池有四步
+
+1. init初始化池
+
+   - epoll_create
+   - pthread_create
+
+2. commit提交异步请求
+
+   - 创建socket
+   - connect server第三方服务器
+   - 整理协议数据，send
+   - fd加入epoll
+
+3. 异步请求回调
+
+   - ```c
+     while(1){
+         epoll_wait();
+         recv();
+         parser();
+         epoll_ctl(epfd, EPOLL_CTL_DEL, fd, &evs[i]);
+     }
+     ```
+
+   - 
+
+4. destroy
+
+   - close
+   - pthread_cancel
+
+
+
 # 19 cmake
 
 

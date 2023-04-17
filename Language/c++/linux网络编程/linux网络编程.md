@@ -177,6 +177,8 @@ socket提供不同主机上的进程之间的通信
 
 ![](./legend/UDP_C_S架构图.png)
 
+UDP客户端也可以同tcp一样，在send前进行连接connect，这样可以提高send成功率
+
 ## 2.3 创建套接字
 
 `#include <sys/socket.h>`
