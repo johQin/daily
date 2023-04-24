@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Widget</class>
+ <widget class="QWidget" name="Widget">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>713</width>
+    <height>469</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Websocket服务器--测试版</string>
+  </property>
+  <widget class="QTextEdit" name="textEdit_MsgList">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>30</y>
+     <width>501</width>
+     <height>261</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QGroupBox" name="groupBox">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>10</y>
+     <width>521</width>
+     <height>291</height>
+    </rect>
+   </property>
+   <property name="title">
+    <string>消息记录列表</string>
+   </property>
+  </widget>
+  <widget class="QRadioButton" name="radioButton_SendAll">
+   <property name="geometry">
+    <rect>
+     <x>21</x>
+     <y>333</y>
+     <width>107</width>
+     <height>16</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>群发所有客户端</string>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+  </widget>
+  <widget class="QRadioButton" name="radioButton_SendSigle">
+   <property name="geometry">
+    <rect>
+     <x>230</x>
+     <y>333</y>
+     <width>107</width>
+     <height>16</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>单独私发客户端</string>
+   </property>
+  </widget>
+  <widget class="QTextEdit" name="textEdit_SendData">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>360</y>
+     <width>501</width>
+     <height>88</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QGroupBox" name="groupBox_2">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>310</y>
+     <width>521</width>
+     <height>151</height>
+    </rect>
+   </property>
+   <property name="title">
+    <string>发送消息</string>
+   </property>
+   <widget class="QPushButton" name="pushButton_SendData">
+    <property name="geometry">
+     <rect>
+      <x>420</x>
+      <y>20</y>
+      <width>91</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>发送消息</string>
+    </property>
+   </widget>
+  </widget>
+  <widget class="QGroupBox" name="groupBox_3">
+   <property name="geometry">
+    <rect>
+     <x>540</x>
+     <y>10</y>
+     <width>161</width>
+     <height>451</height>
+    </rect>
+   </property>
+   <property name="title">
+    <string>客户端列表</string>
+   </property>
+   <widget class="QListWidget" name="listWidget_Client">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>20</y>
+      <width>141</width>
+      <height>421</height>
+     </rect>
+    </property>
+   </widget>
+  </widget>
+  <zorder>groupBox_2</zorder>
+  <zorder>groupBox_3</zorder>
+  <zorder>groupBox</zorder>
+  <zorder>textEdit_MsgList</zorder>
+  <zorder>radioButton_SendAll</zorder>
+  <zorder>radioButton_SendSigle</zorder>
+  <zorder></zorder>
+  <zorder>textEdit_SendData</zorder>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
