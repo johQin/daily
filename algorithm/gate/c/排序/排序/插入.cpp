@@ -1,22 +1,15 @@
 #include<stdio.h>
-void insertion_sort(int arr[], int len) {
-	int i, j, key;
-	for (i = 1; i < len; i++) {
-		key = arr[i];
-		j = i - 1;
-		while (j >= 0 && arr[j] > key) {
-			arr[j+1] = arr[j];
-			j--;
-		}
-		arr[j + 1] = key;
-	}
-}
-int main() {
-	int arr[] = { 10,15,9,25,47,12,17,12,33,31 };
-	int len = (int)sizeof(arr) / sizeof(*arr);
-	insertion_sort(arr, len);
-	for (int i = 0; i < len; i++) {
-		printf("%d\t", arr[i]);
-	}
-	return 0;
+#include<iostream>
+using namespace std;
+void main()
+{
+	char a[] = "abc"; //栈
+		char b[] = "abc"; //栈
+		char* c = "abc"; //abc在常量区，c在栈上。
+		char* d = "abc"; //编译器可能会将它与c所指向的"abc"优化成一个地方。
+		const char e[] = "abc"; //栈
+		const char f[] = "abc"; //栈
+
+		cout << a << " " << b << " " << c << " " << d << " " << e << " " << f << endl;
+	cout << (a == b ? 1 : 0) << endl << (c == d ? 1 : 0) << endl << (e == f ? 1 : 0) << endl;
 }

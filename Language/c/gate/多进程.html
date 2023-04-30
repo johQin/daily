@@ -1,0 +1,1539 @@
+<!doctype html>
+<html lang="zh-CN">
+ <head> 
+  <meta charset="utf-8"> 
+  <link rel="canonical" href="https://blog.csdn.net/szkbsgy/article/details/128330243"> 
+  <meta http-equiv="content-type" content="text/html; charset=utf-8"> 
+  <meta name="renderer" content="webkit"> 
+  <meta name="force-rendering" content="webkit"> 
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"> 
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no"> 
+  <meta name="report" content="{&quot;spm&quot;:&quot;1001.2101&quot;,&quot;extra&quot;:{&quot;titAb&quot;:&quot;t_2&quot;,&quot;tsab&quot;:&quot;t_3&quot;,&quot;tag&quot;:&quot;t_2&quot;},&quot;pid&quot;:&quot;blog&quot;}"> 
+  <meta name="referrer" content="always"> 
+  <meta http-equiv="Cache-Control" content="no-siteapp">
+  <link rel="alternate" media="handheld" href="#"> 
+  <meta name="shenma-site-verification" content="5a59773ab8077d4a62bf469ab966a63b_1497598848"> 
+  <meta name="applicable-device" content="pc"> 
+  <link href="https://g.csdnimg.cn/static/logo/favicon32.ico" rel="shortcut icon" type="image/x-icon"> 
+  <title>Linux c编程之多进程_linuxc多进程_浪游东戴河的博客-CSDN博客</title>  
+  <meta name="keywords" content="linuxc多进程"> 
+  <meta name="csdn-baidu-search" content="{&quot;autorun&quot;:true,&quot;install&quot;:true,&quot;keyword&quot;:&quot;linuxc多进程&quot;}"> 
+  <meta name="description" content="运行的程序叫进程，进程是系统资源分配的最小单元。在实际应用中，程序启动一个主进程后，可以同时启动一个或多个进程，或者在需要的时候启动额外的进程，这种应用模式叫做多进程。"> 
+  <link rel="stylesheet" type="text/css" href="https://csdnimg.cn/release/blogv2/dist/pc/css/detail_enter-2bc9b3ac49.min.css">   
+  <link rel="stylesheet" type="text/css" href="https://csdnimg.cn/release/blogv2/dist/pc/themesSkin/skin3-template/skin3-template-762f7595fd.min.css">     
+  <link rel="stylesheet" type="text/css" href="https://csdnimg.cn/public/sandalstrap/1.4/css/sandalstrap.min.css"> 
+  <style>.MathJax_Display {text-align: center; margin: 1em 0em; position: relative; display: block!important; text-indent: 0; max-width: none; max-height: none; min-width: 0; min-height: 0; width: 100%} .MathJax .merror {background-color: #FFFF88; color: #CC0000; border: 1px solid #CC0000; padding: 1px 3px; font-style: normal; font-size: 90%} .MathJax .MJX-monospace {font-family: monospace} .MathJax .MJX-sans-serif {font-family: sans-serif} #MathJax_Tooltip {background-color: InfoBackground; color: InfoText; border: 1px solid black; box-shadow: 2px 2px 5px #AAAAAA; -webkit-box-shadow: 2px 2px 5px #AAAAAA; -moz-box-shadow: 2px 2px 5px #AAAAAA; -khtml-box-shadow: 2px 2px 5px #AAAAAA; filter: progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color='gray', Positive='true'); padding: 3px 4px; z-index: 401; position: absolute; left: 0; top: 0; width: auto; height: auto; display: none} .MathJax {display: inline; font-style: normal; font-weight: normal; line-height: normal; font-size: 100%; font-size-adjust: none; text-indent: 0; text-align: left; text-transform: none; letter-spacing: normal; word-spacing: normal; word-wrap: normal; white-space: nowrap; float: none; direction: ltr; max-width: none; max-height: none; min-width: 0; min-height: 0; border: 0; padding: 0; margin: 0} .MathJax:focus, body :focus .MathJax {display: inline-table} .MathJax.MathJax_FullWidth {text-align: center; display: table-cell!important; width: 10000em!important} .MathJax img, .MathJax nobr, .MathJax a {border: 0; padding: 0; margin: 0; max-width: none; max-height: none; min-width: 0; min-height: 0; vertical-align: 0; line-height: normal; text-decoration: none} img.MathJax_strut {border: 0!important; padding: 0!important; margin: 0!important; vertical-align: 0!important} .MathJax span {display: inline; position: static; border: 0; padding: 0; margin: 0; vertical-align: 0; line-height: normal; text-decoration: none} .MathJax nobr {white-space: nowrap!important} .MathJax img {display: inline!important; float: none!important} .MathJax * {transition: none; -webkit-transition: none; -moz-transition: none; -ms-transition: none; -o-transition: none} .MathJax_Processing {visibility: hidden; position: fixed; width: 0; height: 0; overflow: hidden} .MathJax_Processed {display: none!important} .MathJax_ExBox {display: block!important; overflow: hidden; width: 1px; height: 60ex; min-height: 0; max-height: none} .MathJax .MathJax_EmBox {display: block!important; overflow: hidden; width: 1px; height: 60em; min-height: 0; max-height: none} .MathJax_LineBox {display: table!important} .MathJax_LineBox span {display: table-cell!important; width: 10000em!important; min-width: 0; max-width: none; padding: 0; border: 0; margin: 0} .MathJax .MathJax_HitBox {cursor: text; background: white; opacity: 0; filter: alpha(opacity=0)} .MathJax .MathJax_HitBox * {filter: none; opacity: 1; background: transparent} #MathJax_Tooltip * {filter: none; opacity: 1; background: transparent} @font-face {font-family: MathJax_Main; src: url('https://csdnimg.cn/release/blog_mathjax/fonts/HTML-CSS/TeX/woff/MathJax_Main-Regular.woff?V=2.7.2') format('woff'), url('https://csdnimg.cn/release/blog_mathjax/fonts/HTML-CSS/TeX/otf/MathJax_Main-Regular.otf?V=2.7.2') format('opentype')} @font-face {font-family: MathJax_Main-bold; src: url('https://csdnimg.cn/release/blog_mathjax/fonts/HTML-CSS/TeX/woff/MathJax_Main-Bold.woff?V=2.7.2') format('woff'), url('https://csdnimg.cn/release/blog_mathjax/fonts/HTML-CSS/TeX/otf/MathJax_Main-Bold.otf?V=2.7.2') format('opentype')} @font-face {font-family: MathJax_Main-italic; src: url('https://csdnimg.cn/release/blog_mathjax/fonts/HTML-CSS/TeX/woff/MathJax_Main-Italic.woff?V=2.7.2') format('woff'), url('https://csdnimg.cn/release/blog_mathjax/fonts/HTML-CSS/TeX/otf/MathJax_Main-Italic.otf?V=2.7.2') format('opentype')} @font-face {font-family: MathJax_Math-italic; src: url('https://csdnimg.cn/release/blog_mathjax/fonts/HTML-CSS/TeX/woff/MathJax_Math-Italic.woff?V=2.7.2') format('woff'), url('https://csdnimg.cn/release/blog_mathjax/fonts/HTML-CSS/TeX/otf/MathJax_Math-Italic.otf?V=2.7.2') format('opentype')} @font-face {font-family: MathJax_Caligraphic; src: url('https://csdnimg.cn/release/blog_mathjax/fonts/HTML-CSS/TeX/woff/MathJax_Caligraphic-Regular.woff?V=2.7.2') format('woff'), url('https://csdnimg.cn/release/blog_mathjax/fonts/HTML-CSS/TeX/otf/MathJax_Caligraphic-Regular.otf?V=2.7.2') format('opentype')} @font-face {font-family: MathJax_Size1; src: url('https://csdnimg.cn/release/blog_mathjax/fonts/HTML-CSS/TeX/woff/MathJax_Size1-Regular.woff?V=2.7.2') format('woff'), url('https://csdnimg.cn/release/blog_mathjax/fonts/HTML-CSS/TeX/otf/MathJax_Size1-Regular.otf?V=2.7.2') format('opentype')} @font-face {font-family: MathJax_Size2; src: url('https://csdnimg.cn/release/blog_mathjax/fonts/HTML-CSS/TeX/woff/MathJax_Size2-Regular.woff?V=2.7.2') format('woff'), url('https://csdnimg.cn/release/blog_mathjax/fonts/HTML-CSS/TeX/otf/MathJax_Size2-Regular.otf?V=2.7.2') format('opentype')} @font-face {font-family: MathJax_Size3; src: url('https://csdnimg.cn/release/blog_mathjax/fonts/HTML-CSS/TeX/woff/MathJax_Size3-Regular.woff?V=2.7.2') format('woff'), url('https://csdnimg.cn/release/blog_mathjax/fonts/HTML-CSS/TeX/otf/MathJax_Size3-Regular.otf?V=2.7.2') format('opentype')} @font-face {font-family: MathJax_Size4; src: url('https://csdnimg.cn/release/blog_mathjax/fonts/HTML-CSS/TeX/woff/MathJax_Size4-Regular.woff?V=2.7.2') format('woff'), url('https://csdnimg.cn/release/blog_mathjax/fonts/HTML-CSS/TeX/otf/MathJax_Size4-Regular.otf?V=2.7.2') format('opentype')} .MathJax .noError {vertical-align: ; font-size: 90%; text-align: left; color: black; padding: 1px 3px; border: 1px solid}</style>  
+ </head> 
+ <body class="nodata " style="">    
+  <link rel="stylesheet" href="https://csdnimg.cn/release/blogv2/dist/pc/css/blog_code-01256533b5.min.css"> 
+  <link rel="stylesheet" href="https://csdnimg.cn/release/blogv2/dist/mdeditor/css/editerView/chart-3456820cac.css"> 
+  <link rel="stylesheet" href="https://g.csdnimg.cn/lib/swiper/6.0.4/css/swiper.css">   
+  <div class="main_father clearfix d-flex justify-content-center mainfather-concision" style="height:100%;"> 
+   <div class="container clearfix container-concision" id="mainBox">  
+    <main style="width:100%">  
+     <div class="blog-content-box"> 
+      <div class="article-header-box"> 
+       <div class="article-header"> 
+        <div class="article-title-box"> 
+         <h1 class="title-article" id="articleContentId">Linux c编程之多进程</h1> 
+        </div> 
+        <div class="article-info-box"> 
+         <div class="article-bar-top"> 
+          <img class="article-type-img" src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fcsdnimg.cn%2Frelease%2Fblogv2%2Fdist%2Fpc%2Fimg%2Foriginal.png&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243" alt=""> 
+          <div class="bar-content"> 
+           <a class="follow-nickName " href="https://blog.csdn.net/szkbsgy" target="_blank" rel="noopener" title="浪游东戴河">浪游东戴河</a> 
+           <img class="article-time-img article-heard-img" src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fcsdnimg.cn%2Frelease%2Fblogv2%2Fdist%2Fpc%2Fimg%2FnewCurrentTime2.png&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243" alt=""> 
+           <span class="time">于&nbsp;2022-12-16 10:14:29&nbsp;发布</span> 
+           <img class="article-read-img article-heard-img" src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fcsdnimg.cn%2Frelease%2Fblogv2%2Fdist%2Fpc%2Fimg%2FarticleReadEyes2.png&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243" alt=""> 
+           <span class="read-count">292</span> 
+           <a id="blog_detail_zk_collection" class="un-collection" data-report-click="{&quot;mod&quot;:&quot;popu_823&quot;,&quot;spm&quot;:&quot;1001.2101.3001.4232&quot;,&quot;ab&quot;:&quot;new&quot;}"> <img class="article-collect-img article-heard-img un-collect-status isdefault" style="display:inline-block" src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fcsdnimg.cn%2Frelease%2Fblogv2%2Fdist%2Fpc%2Fimg%2FtobarCollect2.png&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243" alt=""> <img class="article-collect-img article-heard-img collect-status isactive" style="display:none" src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fcsdnimg.cn%2Frelease%2Fblogv2%2Fdist%2Fpc%2Fimg%2FtobarCollectionActive2.png&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243" alt=""> <span class="name">收藏</span> <span class="get-collection"> </span> </a> 
+          </div> 
+         </div> 
+         <div class="blog-tags-box"> 
+          <div class="tags-box artic-tag-box"> 
+           <span class="label">分类专栏：</span> 
+           <a class="tag-link" href="https://blog.csdn.net/szkbsgy/category_12105310.html" target="_blank" rel="noopener">Linux C网络编程实践</a> 
+           <span class="label">文章标签：</span> 
+           <a data-report-click="{&quot;mod&quot;:&quot;popu_626&quot;,&quot;spm&quot;:&quot;1001.2101.3001.4223&quot;,&quot;strategy&quot;:&quot;linux&quot;,&quot;ab&quot;:&quot;new&quot;,&quot;extra&quot;:&quot;{\&quot;searchword\&quot;:\&quot;linux\&quot;}&quot;}" class="tag-link" href="https://so.csdn.net/so/search/s.do?q=linux&amp;t=all&amp;o=vip&amp;s=&amp;l=&amp;f=&amp;viparticle=" target="_blank" rel="noopener">linux</a> 
+           <a data-report-click="{&quot;mod&quot;:&quot;popu_626&quot;,&quot;spm&quot;:&quot;1001.2101.3001.4223&quot;,&quot;strategy&quot;:&quot;多进程&quot;,&quot;ab&quot;:&quot;new&quot;,&quot;extra&quot;:&quot;{\&quot;searchword\&quot;:\&quot;多进程\&quot;}&quot;}" class="tag-link" href="https://so.csdn.net/so/search/s.do?q=%E5%A4%9A%E8%BF%9B%E7%A8%8B&amp;t=all&amp;o=vip&amp;s=&amp;l=&amp;f=&amp;viparticle=" target="_blank" rel="noopener">多进程</a> 
+           <a data-report-click="{&quot;mod&quot;:&quot;popu_626&quot;,&quot;spm&quot;:&quot;1001.2101.3001.4223&quot;,&quot;strategy&quot;:&quot;c&quot;,&quot;ab&quot;:&quot;new&quot;,&quot;extra&quot;:&quot;{\&quot;searchword\&quot;:\&quot;c\&quot;}&quot;}" class="tag-link" href="https://so.csdn.net/so/search/s.do?q=c&amp;t=all&amp;o=vip&amp;s=&amp;l=&amp;f=&amp;viparticle=" target="_blank" rel="noopener">c</a> 
+           <a data-report-click="{&quot;mod&quot;:&quot;popu_626&quot;,&quot;spm&quot;:&quot;1001.2101.3001.4223&quot;,&quot;strategy&quot;:&quot;编程&quot;,&quot;ab&quot;:&quot;new&quot;,&quot;extra&quot;:&quot;{\&quot;searchword\&quot;:\&quot;编程\&quot;}&quot;}" class="tag-link" href="https://so.csdn.net/so/search/s.do?q=%E7%BC%96%E7%A8%8B&amp;t=all&amp;o=vip&amp;s=&amp;l=&amp;f=&amp;viparticle=" target="_blank" rel="noopener">编程</a> 
+           <a data-report-click="{&quot;mod&quot;:&quot;popu_626&quot;,&quot;spm&quot;:&quot;1001.2101.3001.4223&quot;,&quot;strategy&quot;:&quot;fork&quot;,&quot;ab&quot;:&quot;new&quot;,&quot;extra&quot;:&quot;{\&quot;searchword\&quot;:\&quot;fork\&quot;}&quot;}" class="tag-link" href="https://so.csdn.net/so/search/s.do?q=fork&amp;t=all&amp;o=vip&amp;s=&amp;l=&amp;f=&amp;viparticle=" target="_blank" rel="noopener">fork</a> 
+          </div> 
+         </div> 
+         <div class="slide-content-box"> 
+          <div class="article-copyright"> 
+           <div class="creativecommons">
+             版权声明：本文为博主原创文章，遵循
+            <a href="http://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener"> CC 4.0 BY-SA </a>版权协议，转载请附上原文出处链接和本声明。 
+           </div> 
+           <div class="article-source-link">
+             本文链接：
+            <a href="https://blog.csdn.net/szkbsgy/article/details/128330243" target="_blank">https://blog.csdn.net/szkbsgy/article/details/128330243</a> 
+           </div> 
+          </div> 
+         </div> 
+         <div class="operating"> 
+          <a class="href-article-edit slide-toggle">版权</a> 
+         </div> 
+        </div> 
+       </div> 
+      </div> 
+      <div id="blogHuaweiyunAdvert"></div> 
+      <div id="blogColumnPayAdvert"> 
+       <div class="column-group"> 
+        <div class="column-group-item column-group0 column-group-item-one"> 
+         <div class="item-l"> 
+          <a class="item-target" href="https://blog.csdn.net/szkbsgy/category_12105310.html" target="_blank" title="Linux C网络编程实践" data-report-view="{&quot;spm&quot;:&quot;1001.2101.3001.6332&quot;}" data-report-click="{&quot;spm&quot;:&quot;1001.2101.3001.6332&quot;}"> <img class="item-target" src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fimg-blog.csdnimg.cn%2F20201014180756926.png%3Fx-oss-process%3Dimage%2Fresize%2Cm_fixed%2Ch_64%2Cw_64&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243" alt=""> <span class="title item-target"> <span> <span class="tit">Linux C网络编程实践</span> <span class="dec">专栏收录该内容</span> </span> </span> </a> 
+         </div> 
+         <div class="item-m"> 
+          <span>15 篇文章</span> 
+          <span>0 订阅</span> 
+          <span class="old-add-new-box"> <span class="price">¥69.90</span> <span class="oldprice">¥99.00</span> </span> 
+         </div> 
+         <div class="item-r"> 
+          <a class="item-target article-column-subscribe" style="display:inline-block" data-type="true" data-id="12105310"> 会员已订阅 </a> 
+          <a style="display:none" class="item-target column-studyvip-free studyvip-unsubscribe column-studyvip-ajax" data-type="false" data-id="12105310"> <img class="item-target column-studyvip-icon" src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fcsdnimg.cn%2Frelease%2Fblogv2%2Fdist%2Fcomponents%2Fimg%2FstudyVipIcon.png&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243">会员免费订 </a> 
+          <a class="item-target column-studyvip-discount column-studyvip-pass" data-report-view="{&quot;spm&quot;:&quot;1001.2015.3001.8590&quot;}" data-report-click="{&quot;spm&quot;:&quot;1001.2015.3001.8590&quot;}">8折续费 </a> 
+         </div> 
+        </div> 
+       </div> 
+      </div> 
+      <div class="learning_the_member_box"> 
+       <a href="https://www.csdn.net/vip?utm_source=bkzl_cjhy_ckqy" target="_blank"> 
+        <div class="left">
+         <img src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fcsdnimg.cn%2Frelease%2Fblogv2%2Fdist%2Fpc%2Fimg%2FiconVIpCrown.png&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243" alt="">
+         <span>您已是超级会员，正在免费阅读会员专享内容</span>
+        </div> 
+        <div class="right">
+         <span>查看更多超级会员权益</span>
+         <img src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fcsdnimg.cn%2Frelease%2Fblogv2%2Fdist%2Fcomponents%2Fimg%2FvipIconArrowLeftWhite.png&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243" alt="">
+        </div> </a> 
+      </div> 
+      <article class="baidu_pl"> 
+       <div id="article_content" class="article_content clearfix"> 
+        <link rel="stylesheet" href="https://csdnimg.cn/release/blogv2/dist/mdeditor/css/editerView/kdoc_html_views-1a98987dfd.css"> 
+        <link rel="stylesheet" href="https://csdnimg.cn/release/blogv2/dist/mdeditor/css/editerView/ck_htmledit_views-6e43165c0a.css"> 
+        <div id="content_views" class="markdown_views prism-atom-one-dark"> 
+         <svg xmlns="http://www.w3.org/2000/svg" style="display: none;"> 
+          <path stroke-linecap="round" d="M5,0 0,2.5 5,5z" id="raphael-marker-block" style="-webkit-tap-highlight-color: rgba(0, 0, 0, 0);"></path> 
+         </svg> 
+         <h1><a id="_0"></a>一、说明</h1> 
+         <p>  在实际应用中，一个程序需要完成很多逻辑功能，有的功能（如数据处理）特别耗时，为了不影响主进程的处理速度，一般在启动一个主进程后，可以同时启动一个或多个进程，或者在需要的时候启动额外的进程去完成一些耗时的或独立的功能，这种应用编程模式叫做多进程。<br> 多进程有如下特点：</p> 
+         <ul>
+          <li>每个进程都拥有独立的地址空间，子进程崩溃不影响主进程</li>
+         </ul> 
+         <h1><a id="API_4"></a>二、常用API</h1> 
+         <h2><a id="21_fork_5"></a>2.1 fork()</h2> 
+         <pre><code class="prism language-c">     <span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;unistd.h&gt;</span></span>
+     <span class="token class-name">pid_t</span> <span class="token function">fork</span><span class="token punctuation">(</span><span class="token keyword">void</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre> 
+         <p>作用：创建一个子进程。通过复制调用进程的方式创建一个新进程，新进程称为子进程，调用进程称为父进程。子进程几乎复制了父进程全部的内容，除了以下几点：</p> 
+         <ol>
+          <li>子进程有自己唯一的进程ID</li>
+          <li>子进程中的父进程ID就是父进程的进程ID</li>
+          <li>子进程不继承父进程的内存锁</li>
+          <li>进程资源占用及CPU时间计数重置为0</li>
+         </ol> 
+         <p>返回值：<br>   成功时，在父进程中返回子进程的ID，在子进程中返回0.失败时，返回-1</p> 
+         <h2><a id="22_getpid_18"></a>2.2 getpid()</h2> 
+         <pre><code class="prism language-c"><span class="token class-name">pid_t</span> <span class="token function">getpid</span><span class="token punctuation">(</span><span class="token keyword">void</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre> 
+         <p>作用：获取当前进程的ID</p> 
+         <pre><code class="prism language-c"><span class="token class-name">pid_t</span> <span class="token function">getppid</span><span class="token punctuation">(</span><span class="token keyword">void</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre> 
+         <p>作用：获取当前进程的父进程ID</p> 
+         <h2><a id="23_waitpid_27"></a>2.3 waitpid()</h2> 
+         <pre><code class="prism language-c"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;sys/wait.h&gt;</span></span>
+<span class="token class-name">pid_t</span> <span class="token function">waitpid</span><span class="token punctuation">(</span><span class="token class-name">pid_t</span> pid<span class="token punctuation">,</span> <span class="token keyword">int</span> <span class="token operator">*</span>status<span class="token punctuation">,</span> <span class="token keyword">int</span> options<span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre> 
+         <p>作用：等待子进程的状态，回收子进程结束后的资源<br> 参数说明：<br>   pid：<br>     小于 -1：等待进程组号为pid绝对值的任何子进程<br>      -1：等待任何子进程<br>     0： 等待任何进程组ID等于调用进程的子进程<br>     大于0： 等待进程ID等于该值的子进程<br>   option:<br>      WNOHANG 没有子进程退出时立即返回<br>     WUNTRACED 子进程停止时返回<br>     WCONTINUED 处于停止状态的子进程恢复时返回</p> 
+         <p>  status: 如果不是NULL的话，返回状态信息，可以通过WIFEXITED(status)、WEXITSTATUS(status)等宏定义获取具体的信息</p> 
+         <h1><a id="_47"></a>三、示例分析</h1> 
+         <h2><a id="31__48"></a>3.1 最简单的例子</h2> 
+         <p>multi_process.c:</p> 
+         <pre><code class="prism language-c"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;stdio.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;string.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;unistd.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;sys/wait.h&gt;</span></span>
+
+<span class="token keyword">int</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token keyword">int</span> argc<span class="token punctuation">,</span> <span class="token keyword">char</span> <span class="token operator">*</span>argv<span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">)</span>
+<span class="token punctuation">{
+            <!-- --></span>
+    <span class="token class-name">pid_t</span> ret_pid <span class="token operator">=</span> <span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">;</span>
+
+    ret_pid <span class="token operator">=</span> <span class="token function">fork</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">if</span> <span class="token punctuation">(</span>ret_pid <span class="token operator">&lt;</span> <span class="token number">0</span><span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+        <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"fork() failed, ret_pid:%d\n"</span><span class="token punctuation">,</span> ret_pid<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span> <span class="token keyword">else</span> <span class="token keyword">if</span> <span class="token punctuation">(</span><span class="token number">0</span> <span class="token operator">==</span> ret_pid<span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+        <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"I am child process, ret_pid:%d\n"</span><span class="token punctuation">,</span> ret_pid<span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token function">sleep</span><span class="token punctuation">(</span><span class="token number">2</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"child exit\n"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span> <span class="token keyword">else</span> <span class="token punctuation">{
+            <!-- --></span>
+        <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"I am parent process, ret_pid:%d\n"</span><span class="token punctuation">,</span> ret_pid<span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"wait child exit\n"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token function">waitpid</span><span class="token punctuation">(</span>ret_pid<span class="token punctuation">,</span> <span class="token constant">NULL</span><span class="token punctuation">,</span> <span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"wait child exit end\n"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token keyword">return</span> <span class="token number">0</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+</code></pre> 
+         <p>Makefile:</p> 
+         <pre><code class="prism language-bash">all:
+	gcc <span class="token parameter variable">-o</span> a.out multi_process.c
+clean:
+	-@rm a.out
+</code></pre> 
+         <p>测试：</p> 
+         <pre><code class="prism language-bash">$ ./a.out 
+I am parent process, ret_pid:76977
+<span class="token function">wait</span> child <span class="token builtin class-name">exit</span>
+I am child process, ret_pid:0
+child <span class="token builtin class-name">exit</span>
+<span class="token function">wait</span> child <span class="token builtin class-name">exit</span> end
+</code></pre> 
+         <h2><a id="32_ID_94"></a>3.2 获取（父）进程的ID</h2> 
+         <p>multi_process.c:</p> 
+         <pre><code class="prism language-c"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;stdio.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;string.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;unistd.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;sys/wait.h&gt;</span></span>
+
+<span class="token keyword">void</span> <span class="token function">child_process</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+<span class="token punctuation">{
+            <!-- --></span>
+    <span class="token class-name">pid_t</span> pid <span class="token operator">=</span> <span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">;</span>
+    <span class="token class-name">pid_t</span> ppid <span class="token operator">=</span> <span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">;</span>
+
+    pid <span class="token operator">=</span> <span class="token function">getpid</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    ppid <span class="token operator">=</span> <span class="token function">getppid</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+    <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"%s: pid[%d], parent pid[%d]\n"</span><span class="token punctuation">,</span> __FUNCTION__<span class="token punctuation">,</span> pid<span class="token punctuation">,</span> ppid<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token function">sleep</span><span class="token punctuation">(</span><span class="token number">2</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+
+<span class="token keyword">void</span> <span class="token function">parent_process</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+<span class="token punctuation">{
+            <!-- --></span>
+    <span class="token class-name">pid_t</span> pid <span class="token operator">=</span> <span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">;</span>
+    <span class="token class-name">pid_t</span> ppid <span class="token operator">=</span> <span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">;</span>
+
+    pid <span class="token operator">=</span> <span class="token function">getpid</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    ppid <span class="token operator">=</span> <span class="token function">getppid</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+    <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"%s: pid[%d], parent pid[%d]\n"</span><span class="token punctuation">,</span> __FUNCTION__<span class="token punctuation">,</span> pid<span class="token punctuation">,</span> ppid<span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+
+<span class="token keyword">int</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token keyword">int</span> argc<span class="token punctuation">,</span> <span class="token keyword">char</span> <span class="token operator">*</span>argv<span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">)</span>
+<span class="token punctuation">{
+            <!-- --></span>
+    <span class="token class-name">pid_t</span> ret_pid <span class="token operator">=</span> <span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">;</span>
+
+    ret_pid <span class="token operator">=</span> <span class="token function">fork</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">if</span> <span class="token punctuation">(</span>ret_pid <span class="token operator">&lt;</span> <span class="token number">0</span><span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+        <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"fork() failed, ret_pid:%d\n"</span><span class="token punctuation">,</span> ret_pid<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span> <span class="token keyword">else</span> <span class="token keyword">if</span> <span class="token punctuation">(</span><span class="token number">0</span> <span class="token operator">==</span> ret_pid<span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+        <span class="token function">child_process</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span> <span class="token keyword">else</span> <span class="token punctuation">{
+            <!-- --></span>
+        <span class="token function">parent_process</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token function">waitpid</span><span class="token punctuation">(</span>ret_pid<span class="token punctuation">,</span> <span class="token constant">NULL</span><span class="token punctuation">,</span> <span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+    <span class="token keyword">return</span> <span class="token number">0</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+</code></pre> 
+         <p>Makefile:</p> 
+         <pre><code class="prism language-bash">all:
+	gcc <span class="token parameter variable">-o</span> a.out multi_process.c
+clean:
+	-@rm a.out
+</code></pre> 
+         <p>测试：</p> 
+         <pre><code class="prism language-bash">$ ./a.out 
+parent_process: pid<span class="token punctuation">[</span><span class="token number">77080</span><span class="token punctuation">]</span>, parent pid<span class="token punctuation">[</span><span class="token number">76350</span><span class="token punctuation">]</span>
+child_process: pid<span class="token punctuation">[</span><span class="token number">77081</span><span class="token punctuation">]</span>, parent pid<span class="token punctuation">[</span><span class="token number">77080</span><span class="token punctuation">]</span>
+</code></pre> 
+         <h2><a id="33__157"></a>3.3 僵尸进程</h2> 
+         <p>multi_process.c:</p> 
+         <pre><code class="prism language-c"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;stdio.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;string.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;unistd.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;stdlib.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;sys/wait.h&gt;</span></span>
+
+<span class="token keyword">void</span> <span class="token function">child_process</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+<span class="token punctuation">{
+            <!-- --></span>
+    <span class="token class-name">pid_t</span> pid <span class="token operator">=</span> <span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">;</span>
+    <span class="token class-name">pid_t</span> ppid <span class="token operator">=</span> <span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">;</span>
+
+    pid <span class="token operator">=</span> <span class="token function">getpid</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    ppid <span class="token operator">=</span> <span class="token function">getppid</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+    <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"%s: pid[%d], parent pid[%d]\n"</span><span class="token punctuation">,</span> __FUNCTION__<span class="token punctuation">,</span> pid<span class="token punctuation">,</span> ppid<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token function">sleep</span><span class="token punctuation">(</span><span class="token number">2</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token function">exit</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+
+<span class="token keyword">void</span> <span class="token function">parent_process</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+<span class="token punctuation">{
+            <!-- --></span>
+    <span class="token class-name">pid_t</span> pid <span class="token operator">=</span> <span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">;</span>
+    <span class="token class-name">pid_t</span> ppid <span class="token operator">=</span> <span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">;</span>
+
+    pid <span class="token operator">=</span> <span class="token function">getpid</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    ppid <span class="token operator">=</span> <span class="token function">getppid</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+    <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"%s: pid[%d], parent pid[%d]\n"</span><span class="token punctuation">,</span> __FUNCTION__<span class="token punctuation">,</span> pid<span class="token punctuation">,</span> ppid<span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+
+<span class="token keyword">int</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token keyword">int</span> argc<span class="token punctuation">,</span> <span class="token keyword">char</span> <span class="token operator">*</span>argv<span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">)</span>
+<span class="token punctuation">{
+            <!-- --></span>
+    <span class="token class-name">pid_t</span> ret_pid <span class="token operator">=</span> <span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">;</span>
+
+    ret_pid <span class="token operator">=</span> <span class="token function">fork</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">if</span> <span class="token punctuation">(</span>ret_pid <span class="token operator">&lt;</span> <span class="token number">0</span><span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+        <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"fork() failed, ret_pid:%d\n"</span><span class="token punctuation">,</span> ret_pid<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span> <span class="token keyword">else</span> <span class="token keyword">if</span> <span class="token punctuation">(</span><span class="token number">0</span> <span class="token operator">==</span> ret_pid<span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+        <span class="token function">child_process</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span> <span class="token keyword">else</span> <span class="token punctuation">{
+            <!-- --></span>
+        <span class="token function">parent_process</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token comment">//waitpid(ret_pid, NULL, 0);</span>
+
+    <span class="token keyword">while</span> <span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+        <span class="token function">sleep</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token keyword">return</span> <span class="token number">0</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+</code></pre> 
+         <p>Makefile:</p> 
+         <pre><code class="prism language-bash">all:
+	gcc <span class="token parameter variable">-o</span> a.out multi_process.c
+clean:
+	-@rm a.out
+</code></pre> 
+         <p>测试结果：</p> 
+         <pre><code class="prism language-bash">$ <span class="token function">ps</span> aux <span class="token operator">|</span> <span class="token function">grep</span> a.out
+zorro    <span class="token number">101317</span>  <span class="token number">0.0</span>  <span class="token number">0.0</span>   <span class="token number">4200</span>   <span class="token number">684</span> pts/12   S+   <span class="token number">17</span>:14   <span class="token number">0</span>:00 ./a.out
+zorro    <span class="token number">101318</span>  <span class="token number">0.0</span>  <span class="token number">0.0</span>      <span class="token number">0</span>     <span class="token number">0</span> pts/12   Z+   <span class="token number">17</span>:14   <span class="token number">0</span>:00 <span class="token punctuation">[</span>a.out<span class="token punctuation">]</span> <span class="token operator">&lt;</span>defunct<span class="token operator">&gt;</span>
+</code></pre> 
+         <p>如果杀掉父进程101317后，则僵尸进程101318就会消失。原因是父进程消失后，子进程变成了孤儿进程，孤儿进程由系统回收。</p> 
+         <pre><code class="prism language-bash">$ <span class="token function">kill</span> <span class="token parameter variable">-9</span> <span class="token number">101317</span>
+$ <span class="token function">ps</span> aux <span class="token operator">|</span> <span class="token function">grep</span> a.out
+</code></pre> 
+         <h2><a id="34_forkwaitpid_232"></a>3.4 两次fork避免不调用waitpid产生的僵尸进程</h2> 
+         <p>  在实际应用中，主程序关心子进程的状态，也不想调用waitpid函数。但是如果不调用waitpid，那么在子进程退出后会产生僵尸进程。为了避免这个问题，结合前文提到的“系统会回收孤儿进程”的特性，可以通过两次fork的方法解决。具体原理如下：</p> 
+         <ol>
+          <li>主进程第一次fork, 产生新的子进程，在主进程中阻塞调用waitpid函数</li>
+          <li>新的子进程再次调用fork，产生新的孙子进程，由孙子进程执行真正的逻辑，子进程则退出</li>
+          <li>由于子进程退出，导致孙子进程成为了孤儿进程。而主进程调用waitpid正常回收子进程的资源，继续执行主进程逻辑</li>
+          <li>当孙子进程执行完功能逻辑后退出时，因为是孤儿进程，则由系统自动回收资源<br> 代码示例：<br> multi_process.c:</li>
+         </ol> 
+         <pre><code class="prism language-c"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;stdio.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;string.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;unistd.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;stdlib.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;sys/wait.h&gt;</span></span>
+
+<span class="token keyword">void</span> <span class="token function">grandson_process</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+<span class="token punctuation">{
+            <!-- --></span>
+    <span class="token class-name">pid_t</span> pid <span class="token operator">=</span> <span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">;</span>
+    <span class="token class-name">pid_t</span> ppid <span class="token operator">=</span> <span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">;</span>
+
+    pid <span class="token operator">=</span> <span class="token function">getpid</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    ppid <span class="token operator">=</span> <span class="token function">getppid</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+    <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"grandson start\n"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"%s: pid[%d], parent pid[%d]\n"</span><span class="token punctuation">,</span> __FUNCTION__<span class="token punctuation">,</span> pid<span class="token punctuation">,</span> ppid<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token function">sleep</span><span class="token punctuation">(</span><span class="token number">10</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"grandson exit\n"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token function">exit</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+
+<span class="token keyword">void</span> <span class="token function">parent_process</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+<span class="token punctuation">{
+            <!-- --></span>
+    <span class="token class-name">pid_t</span> pid <span class="token operator">=</span> <span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">;</span>
+    <span class="token class-name">pid_t</span> ppid <span class="token operator">=</span> <span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">;</span>
+
+    pid <span class="token operator">=</span> <span class="token function">getpid</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    ppid <span class="token operator">=</span> <span class="token function">getppid</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+    <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"%s: pid[%d], parent pid[%d]\n"</span><span class="token punctuation">,</span> __FUNCTION__<span class="token punctuation">,</span> pid<span class="token punctuation">,</span> ppid<span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+
+<span class="token keyword">int</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token keyword">int</span> argc<span class="token punctuation">,</span> <span class="token keyword">char</span> <span class="token operator">*</span>argv<span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">)</span>
+<span class="token punctuation">{
+            <!-- --></span>
+    <span class="token class-name">pid_t</span> ret_pid <span class="token operator">=</span> <span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">;</span>
+    <span class="token class-name">pid_t</span> ret_pid2 <span class="token operator">=</span> <span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">;</span>
+
+    ret_pid <span class="token operator">=</span> <span class="token function">fork</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">if</span> <span class="token punctuation">(</span>ret_pid <span class="token operator">&lt;</span> <span class="token number">0</span><span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+        <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"fork() failed, ret_pid:%d\n"</span><span class="token punctuation">,</span> ret_pid<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span> <span class="token keyword">else</span> <span class="token keyword">if</span> <span class="token punctuation">(</span><span class="token number">0</span> <span class="token operator">==</span> ret_pid<span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+        ret_pid2 <span class="token operator">=</span> <span class="token function">fork</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token keyword">if</span> <span class="token punctuation">(</span>ret_pid2 <span class="token operator">&lt;</span> <span class="token number">0</span><span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+            <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"fork() failed, ret_pid2:%d\n"</span><span class="token punctuation">,</span> ret_pid2<span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token punctuation">}</span> <span class="token keyword">else</span> <span class="token keyword">if</span> <span class="token punctuation">(</span><span class="token number">0</span> <span class="token operator">==</span> ret_pid2<span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+            <span class="token function">grandson_process</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token punctuation">}</span> <span class="token keyword">else</span> <span class="token punctuation">{
+            <!-- --></span>
+            <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"child start\n"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+            <span class="token function">sleep</span><span class="token punctuation">(</span><span class="token number">5</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+            <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"child exit\n"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+            <span class="token function">exit</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span> <span class="token keyword">else</span> <span class="token punctuation">{
+            <!-- --></span>
+        <span class="token function">parent_process</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"before waitpid\n"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token function">waitpid</span><span class="token punctuation">(</span>ret_pid<span class="token punctuation">,</span> <span class="token constant">NULL</span><span class="token punctuation">,</span> <span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"after waitpid\n"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token keyword">while</span> <span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+        <span class="token function">sleep</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token keyword">return</span> <span class="token number">0</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+</code></pre> 
+         <p>Makefile:</p> 
+         <pre><code class="prism language-bash">all:
+	gcc <span class="token parameter variable">-o</span> a.out multi_process.c
+clean:
+	-@rm a.out
+</code></pre> 
+         <p>测试：</p> 
+         <pre><code class="prism language-bash">$ ./a.out 
+parent_process: pid<span class="token punctuation">[</span><span class="token number">101584</span><span class="token punctuation">]</span>, parent pid<span class="token punctuation">[</span><span class="token number">100349</span><span class="token punctuation">]</span>
+before waitpid
+child start
+grandson start
+grandson_process: pid<span class="token punctuation">[</span><span class="token number">101586</span><span class="token punctuation">]</span>, parent pid<span class="token punctuation">[</span><span class="token number">101585</span><span class="token punctuation">]</span>
+child <span class="token builtin class-name">exit</span>
+after waitpid
+grandson <span class="token builtin class-name">exit</span>
+</code></pre> 
+         <pre><code class="prism language-bash">$ <span class="token function">ps</span> aux <span class="token operator">|</span> <span class="token function">grep</span> a.out
+zorro    <span class="token number">101584</span>  <span class="token number">0.0</span>  <span class="token number">0.0</span>   <span class="token number">4200</span>   <span class="token number">660</span> pts/12   S+   <span class="token number">18</span>:12   <span class="token number">0</span>:00 ./a.out
+zorro    <span class="token number">101585</span>  <span class="token number">0.0</span>  <span class="token number">0.0</span>   <span class="token number">4200</span>    <span class="token number">88</span> pts/12   S+   <span class="token number">18</span>:12   <span class="token number">0</span>:00 ./a.out
+zorro    <span class="token number">101586</span>  <span class="token number">0.0</span>  <span class="token number">0.0</span>   <span class="token number">4200</span>    <span class="token number">88</span> pts/12   S+   <span class="token number">18</span>:12   <span class="token number">0</span>:00 ./a.out
+zorro    <span class="token number">101588</span>  <span class="token number">0.0</span>  <span class="token number">0.1</span>  <span class="token number">15944</span>  <span class="token number">2276</span> pts/0    S+   <span class="token number">18</span>:12   <span class="token number">0</span>:00 <span class="token function">grep</span> <span class="token parameter variable">--color</span><span class="token operator">=</span>auto a.out
+</code></pre> 
+         <pre><code class="prism language-bash">$ <span class="token function">ps</span> aux <span class="token operator">|</span> <span class="token function">grep</span> a.out
+zorro    <span class="token number">101584</span>  <span class="token number">0.0</span>  <span class="token number">0.0</span>   <span class="token number">4200</span>   <span class="token number">660</span> pts/12   S+   <span class="token number">18</span>:12   <span class="token number">0</span>:00 ./a.out
+zorro    <span class="token number">101586</span>  <span class="token number">0.0</span>  <span class="token number">0.0</span>   <span class="token number">4200</span>    <span class="token number">88</span> pts/12   S+   <span class="token number">18</span>:12   <span class="token number">0</span>:00 ./a.out
+zorro    <span class="token number">101590</span>  <span class="token number">0.0</span>  <span class="token number">0.1</span>  <span class="token number">15944</span>  <span class="token number">2240</span> pts/0    S+   <span class="token number">18</span>:12   <span class="token number">0</span>:00 <span class="token function">grep</span> <span class="token parameter variable">--color</span><span class="token operator">=</span>auto a.out
+</code></pre> 
+         <pre><code class="prism language-bash">$ <span class="token function">ps</span> aux <span class="token operator">|</span> <span class="token function">grep</span> a.out
+zorro    <span class="token number">101584</span>  <span class="token number">0.0</span>  <span class="token number">0.0</span>   <span class="token number">4200</span>   <span class="token number">660</span> pts/12   S+   <span class="token number">18</span>:12   <span class="token number">0</span>:00 ./a.out
+zorro    <span class="token number">101593</span>  <span class="token number">0.0</span>  <span class="token number">0.1</span>  <span class="token number">15944</span>  <span class="token number">2204</span> pts/0    S+   <span class="token number">18</span>:12   <span class="token number">0</span>:00 <span class="token function">grep</span> <span class="token parameter variable">--color</span><span class="token operator">=</span>auto a.out
+</code></pre> 
+         <h2><a id="35_pipe_346"></a>3.5 无名管道pipe</h2> 
+         <p>multi_process.c:</p> 
+         <pre><code class="prism language-c"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;stdio.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;string.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;unistd.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;stdlib.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;sys/wait.h&gt;</span></span>
+
+<span class="token keyword">int</span> g_pipefd<span class="token punctuation">[</span><span class="token number">2</span><span class="token punctuation">]</span><span class="token punctuation">;</span>
+
+<span class="token keyword">void</span> <span class="token function">child_process</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+<span class="token punctuation">{
+            <!-- --></span>
+    <span class="token keyword">char</span> buf<span class="token punctuation">[</span><span class="token number">64</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token punctuation">{
+            <!-- --></span><span class="token number">0</span><span class="token punctuation">}</span><span class="token punctuation">;</span>
+    <span class="token class-name">pid_t</span> pid <span class="token operator">=</span> <span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">;</span>
+    <span class="token class-name">pid_t</span> ppid <span class="token operator">=</span> <span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">;</span>
+
+    pid <span class="token operator">=</span> <span class="token function">getpid</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    ppid <span class="token operator">=</span> <span class="token function">getppid</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+    <span class="token function">close</span><span class="token punctuation">(</span>g_pipefd<span class="token punctuation">[</span><span class="token number">1</span><span class="token punctuation">]</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+    <span class="token keyword">while</span> <span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+        <span class="token function">read</span><span class="token punctuation">(</span>g_pipefd<span class="token punctuation">[</span><span class="token number">0</span><span class="token punctuation">]</span><span class="token punctuation">,</span> buf<span class="token punctuation">,</span> <span class="token keyword">sizeof</span><span class="token punctuation">(</span>buf<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"%s: read data:%s\n"</span><span class="token punctuation">,</span> __FUNCTION__<span class="token punctuation">,</span> buf<span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token function">sleep</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+<span class="token punctuation">}</span>
+
+<span class="token keyword">void</span> <span class="token function">parent_process</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+<span class="token punctuation">{
+            <!-- --></span>
+    <span class="token class-name">pid_t</span> pid <span class="token operator">=</span> <span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">;</span>
+    <span class="token class-name">pid_t</span> ppid <span class="token operator">=</span> <span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">;</span>
+    <span class="token keyword">char</span> buf<span class="token punctuation">[</span><span class="token number">64</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token punctuation">{
+            <!-- --></span><span class="token number">0</span><span class="token punctuation">}</span><span class="token punctuation">;</span>
+    <span class="token keyword">int</span> number <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span>
+
+    pid <span class="token operator">=</span> <span class="token function">getpid</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    ppid <span class="token operator">=</span> <span class="token function">getppid</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+    <span class="token function">close</span><span class="token punctuation">(</span>g_pipefd<span class="token punctuation">[</span><span class="token number">0</span><span class="token punctuation">]</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">while</span> <span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+        number<span class="token operator">++</span><span class="token punctuation">;</span>
+        <span class="token function">snprintf</span><span class="token punctuation">(</span>buf<span class="token punctuation">,</span> <span class="token keyword">sizeof</span><span class="token punctuation">(</span>buf<span class="token punctuation">)</span><span class="token punctuation">,</span> <span class="token string">"NO. %02d: hello world"</span><span class="token punctuation">,</span> number<span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token function">write</span><span class="token punctuation">(</span>g_pipefd<span class="token punctuation">[</span><span class="token number">1</span><span class="token punctuation">]</span><span class="token punctuation">,</span> buf<span class="token punctuation">,</span> <span class="token function">strlen</span><span class="token punctuation">(</span>buf<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"%s: write data:%s\n"</span><span class="token punctuation">,</span> __FUNCTION__<span class="token punctuation">,</span> buf<span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token function">sleep</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+<span class="token punctuation">}</span>
+
+<span class="token keyword">int</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token keyword">int</span> argc<span class="token punctuation">,</span> <span class="token keyword">char</span> <span class="token operator">*</span>argv<span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">)</span>
+<span class="token punctuation">{
+            <!-- --></span>
+    <span class="token keyword">int</span> ret <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span>
+    <span class="token class-name">pid_t</span> ret_pid <span class="token operator">=</span> <span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">;</span>
+
+    ret <span class="token operator">=</span> <span class="token function">pipe</span><span class="token punctuation">(</span>g_pipefd<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">if</span> <span class="token punctuation">(</span>ret <span class="token operator">&lt;</span> <span class="token number">0</span><span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+        <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"pipe failed\n"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token keyword">return</span> <span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+    ret_pid <span class="token operator">=</span> <span class="token function">fork</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">if</span> <span class="token punctuation">(</span>ret_pid <span class="token operator">&lt;</span> <span class="token number">0</span><span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+        <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"fork() failed, ret_pid:%d\n"</span><span class="token punctuation">,</span> ret_pid<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span> <span class="token keyword">else</span> <span class="token keyword">if</span> <span class="token punctuation">(</span><span class="token number">0</span> <span class="token operator">==</span> ret_pid<span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+        <span class="token function">child_process</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span> <span class="token keyword">else</span> <span class="token punctuation">{
+            <!-- --></span>
+        <span class="token function">parent_process</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token function">waitpid</span><span class="token punctuation">(</span>ret_pid<span class="token punctuation">,</span> <span class="token constant">NULL</span><span class="token punctuation">,</span> <span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+    <span class="token keyword">while</span> <span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+        <span class="token function">sleep</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token keyword">return</span> <span class="token number">0</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+</code></pre> 
+         <p>Makefile:</p> 
+         <pre><code class="prism language-bash">all:
+	gcc <span class="token parameter variable">-o</span> a.out multi_process.c
+clean:
+	-@rm a.out
+</code></pre> 
+         <p>测试结果：</p> 
+         <pre><code class="prism language-bash">parent_process: <span class="token function">write</span> data:NO. 01: hello world
+child_process: <span class="token builtin class-name">read</span> data:NO. 01: hello world
+parent_process: <span class="token function">write</span> data:NO. 02: hello world
+child_process: <span class="token builtin class-name">read</span> data:NO. 02: hello world
+parent_process: <span class="token function">write</span> data:NO. 03: hello world
+child_process: <span class="token builtin class-name">read</span> data:NO. 03: hello world
+parent_process: <span class="token function">write</span> data:NO. 04: hello world
+child_process: <span class="token builtin class-name">read</span> data:NO. 04: hello world
+parent_process: <span class="token function">write</span> data:NO. 05: hello world
+child_process: <span class="token builtin class-name">read</span> data:NO. 05: hello world
+</code></pre> 
+         <h2><a id="36__445"></a>3.6 有名管道</h2> 
+         <p>read_process.c：</p> 
+         <pre><code class="prism language-c"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;stdio.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;string.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;unistd.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;stdlib.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;fcntl.h&gt;</span></span>
+
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">define</span> <span class="token macro-name">FIFO_NAME</span> <span class="token string">"/tmp/myfifo"</span></span>
+
+<span class="token keyword">int</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token keyword">int</span> argc<span class="token punctuation">,</span> <span class="token keyword">char</span> <span class="token operator">*</span>argv<span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">)</span>
+<span class="token punctuation">{
+            <!-- --></span>
+    <span class="token keyword">int</span> ret <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span>
+    <span class="token keyword">int</span> fd <span class="token operator">=</span> <span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">;</span>
+    <span class="token keyword">char</span> buf<span class="token punctuation">[</span><span class="token number">64</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token punctuation">{
+            <!-- --></span><span class="token number">0</span><span class="token punctuation">}</span><span class="token punctuation">;</span>
+    <span class="token class-name">pid_t</span> ret_pid <span class="token operator">=</span> <span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">;</span>
+
+    <span class="token function">unlink</span><span class="token punctuation">(</span>FIFO_NAME<span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+    ret <span class="token operator">=</span> <span class="token function">mkfifo</span><span class="token punctuation">(</span>FIFO_NAME<span class="token punctuation">,</span> <span class="token number">0666</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">if</span> <span class="token punctuation">(</span>ret <span class="token operator">&lt;</span> <span class="token number">0</span><span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+        <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"mkfifo failed\n"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token keyword">return</span> <span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+
+    fd <span class="token operator">=</span> <span class="token function">open</span><span class="token punctuation">(</span>FIFO_NAME<span class="token punctuation">,</span>O_RDONLY<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">if</span> <span class="token punctuation">(</span>fd <span class="token operator">&lt;</span> <span class="token number">0</span><span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+        <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"open failed\n"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token keyword">return</span> <span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token keyword">while</span> <span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+        <span class="token function">read</span><span class="token punctuation">(</span>fd<span class="token punctuation">,</span> buf<span class="token punctuation">,</span> <span class="token keyword">sizeof</span><span class="token punctuation">(</span>buf<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"%s: read data:%s\n"</span><span class="token punctuation">,</span> __FUNCTION__<span class="token punctuation">,</span> buf<span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token function">sleep</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token keyword">return</span> <span class="token number">0</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+</code></pre> 
+         <p>write_process.c:</p> 
+         <pre><code class="prism language-c"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;stdio.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;string.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;unistd.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;stdlib.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;fcntl.h&gt;</span></span>
+
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">define</span> <span class="token macro-name">FIFO_NAME</span> <span class="token string">"/tmp/myfifo"</span></span>
+
+<span class="token keyword">int</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token keyword">int</span> argc<span class="token punctuation">,</span> <span class="token keyword">char</span> <span class="token operator">*</span>argv<span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">)</span>
+<span class="token punctuation">{
+            <!-- --></span>
+    <span class="token keyword">int</span> ret <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span>
+    <span class="token keyword">int</span> fd <span class="token operator">=</span> <span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">;</span>
+    <span class="token keyword">int</span> number <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span>
+    <span class="token keyword">char</span> buf<span class="token punctuation">[</span><span class="token number">64</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token punctuation">{
+            <!-- --></span><span class="token number">0</span><span class="token punctuation">}</span><span class="token punctuation">;</span>
+    <span class="token class-name">pid_t</span> ret_pid <span class="token operator">=</span> <span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">;</span>
+
+    fd <span class="token operator">=</span> <span class="token function">open</span><span class="token punctuation">(</span>FIFO_NAME<span class="token punctuation">,</span> O_WRONLY<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">if</span> <span class="token punctuation">(</span>fd <span class="token operator">&lt;</span> <span class="token number">0</span><span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+        <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"open failed\n"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token keyword">return</span> <span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token keyword">while</span> <span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+        number<span class="token operator">++</span><span class="token punctuation">;</span>
+        <span class="token function">snprintf</span><span class="token punctuation">(</span>buf<span class="token punctuation">,</span> <span class="token keyword">sizeof</span><span class="token punctuation">(</span>buf<span class="token punctuation">)</span><span class="token punctuation">,</span> <span class="token string">"NO. %02d: hello world"</span><span class="token punctuation">,</span> number<span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token function">write</span><span class="token punctuation">(</span>fd<span class="token punctuation">,</span> buf<span class="token punctuation">,</span> <span class="token function">strlen</span><span class="token punctuation">(</span>buf<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"%s: write data:%s\n"</span><span class="token punctuation">,</span> __FUNCTION__<span class="token punctuation">,</span> buf<span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token function">sleep</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>   
+
+    <span class="token keyword">return</span> <span class="token number">0</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+</code></pre> 
+         <p>Makefile:</p> 
+         <pre><code class="prism language-bash">all:
+	gcc <span class="token parameter variable">-o</span> read.out read_process.c
+	gcc <span class="token parameter variable">-o</span> write.out write_process.c
+clean:
+	-@rm *.out
+</code></pre> 
+         <p>测试：</p> 
+         <pre><code class="prism language-bash">$ ./read.out 
+main: <span class="token builtin class-name">read</span> data:NO. 01: hello world
+main: <span class="token builtin class-name">read</span> data:NO. 02: hello world
+main: <span class="token builtin class-name">read</span> data:NO. 03: hello world
+main: <span class="token builtin class-name">read</span> data:NO. 04: hello world
+main: <span class="token builtin class-name">read</span> data:NO. 05: hello world
+main: <span class="token builtin class-name">read</span> data:NO. 05: hello world
+</code></pre> 
+         <pre><code class="prism language-bash">$ ./write.out
+main: <span class="token function">write</span> data:NO. 01: hello world
+main: <span class="token function">write</span> data:NO. 02: hello world
+main: <span class="token function">write</span> data:NO. 03: hello world
+main: <span class="token function">write</span> data:NO. 04: hello world
+main: <span class="token function">write</span> data:NO. 05: hello world
+</code></pre> 
+         <h2><a id="37__547"></a>3.7 消息队列</h2> 
+         <p>msg_queue_send.c:</p> 
+         <pre><code class="prism language-c"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;stdio.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;unistd.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;stdlib.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;string.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;errno.h&gt;</span></span>
+
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;sys/types.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;sys/ipc.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;sys/msg.h&gt;</span></span>
+
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">"msg_queue.h"</span></span>
+
+<span class="token keyword">int</span> msg_id <span class="token operator">=</span> <span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">;</span>
+
+<span class="token keyword">int</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token keyword">int</span> argc<span class="token punctuation">,</span> <span class="token keyword">char</span> <span class="token operator">*</span>argv<span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">)</span>
+<span class="token punctuation">{
+            <!-- --></span>
+    <span class="token keyword">int</span> i <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span>
+    <span class="token class-name">key_t</span> key <span class="token operator">=</span> <span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">;</span>
+    <span class="token keyword">char</span> buf<span class="token punctuation">[</span><span class="token number">32</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token punctuation">{
+            <!-- --></span><span class="token number">0</span><span class="token punctuation">}</span><span class="token punctuation">;</span>
+    <span class="token class-name">msg_event_t</span> msg<span class="token punctuation">;</span>
+    <span class="token keyword">int</span> ret <span class="token operator">=</span> <span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">;</span>
+    <span class="token keyword">struct</span> <span class="token class-name">msqid_ds</span> msq_ds<span class="token punctuation">;</span>
+
+    key <span class="token operator">=</span> <span class="token function">ftok</span><span class="token punctuation">(</span>KEY_DIR<span class="token punctuation">,</span> <span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"%s: key[%d]\n"</span><span class="token punctuation">,</span> __FUNCTION__<span class="token punctuation">,</span> key<span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+    msg_id <span class="token operator">=</span> <span class="token function">msgget</span><span class="token punctuation">(</span>key<span class="token punctuation">,</span> IPC_CREAT <span class="token operator">|</span> <span class="token number">0666</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">if</span> <span class="token punctuation">(</span>msg_id <span class="token operator">&lt;</span> <span class="token number">0</span><span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+        <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"%s: msg get failed: %s\n"</span><span class="token punctuation">,</span> __FUNCTION__<span class="token punctuation">,</span> <span class="token function">strerror</span><span class="token punctuation">(</span>errno<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token function">exit</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"%s: msg id:%d\n"</span><span class="token punctuation">,</span> __FUNCTION__<span class="token punctuation">,</span> msg_id<span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+    <span class="token function">memset</span><span class="token punctuation">(</span><span class="token operator">&amp;</span>msq_ds<span class="token punctuation">,</span> <span class="token number">0</span><span class="token punctuation">,</span> <span class="token keyword">sizeof</span><span class="token punctuation">(</span>msq_ds<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    ret <span class="token operator">=</span> <span class="token function">msgctl</span><span class="token punctuation">(</span>msg_id<span class="token punctuation">,</span> IPC_STAT<span class="token punctuation">,</span> <span class="token operator">&amp;</span>msq_ds<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">if</span> <span class="token punctuation">(</span>ret <span class="token operator">&lt;</span> <span class="token number">0</span><span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+        <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"%s: msg get failed: %s\n"</span><span class="token punctuation">,</span> __FUNCTION__<span class="token punctuation">,</span> <span class="token function">strerror</span><span class="token punctuation">(</span>errno<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token function">exit</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"msg_stime: %ld, msg_rtime: %ld, msg_ctime: %ld, msg_qnum: %ld,"</span>
+<span class="token string">"msg_qbytes:%ld\n"</span><span class="token punctuation">,</span>
+            msq_ds<span class="token punctuation">.</span>msg_stime<span class="token punctuation">,</span> msq_ds<span class="token punctuation">.</span>msg_rtime<span class="token punctuation">,</span> msq_ds<span class="token punctuation">.</span>msg_ctime<span class="token punctuation">,</span> msq_ds<span class="token punctuation">.</span>msg_qnum<span class="token punctuation">,</span>
+            msq_ds<span class="token punctuation">.</span>msg_qbytes<span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+    <span class="token keyword">while</span> <span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+        <span class="token function">memset</span><span class="token punctuation">(</span><span class="token operator">&amp;</span>msg<span class="token punctuation">,</span> <span class="token number">0</span><span class="token punctuation">,</span> <span class="token keyword">sizeof</span><span class="token punctuation">(</span>msg<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        ret <span class="token operator">=</span> <span class="token function">read</span><span class="token punctuation">(</span>STDIN_FILENO<span class="token punctuation">,</span> buf<span class="token punctuation">,</span> <span class="token keyword">sizeof</span><span class="token punctuation">(</span>buf<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token keyword">if</span> <span class="token punctuation">(</span>ret <span class="token operator">&lt;=</span> <span class="token number">0</span><span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+            <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"%s: read from stdin %s\n"</span><span class="token punctuation">,</span> __FUNCTION__<span class="token punctuation">,</span> <span class="token function">strerror</span><span class="token punctuation">(</span>errno<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+            <span class="token keyword">break</span><span class="token punctuation">;</span>
+        <span class="token punctuation">}</span>
+
+        <span class="token keyword">if</span> <span class="token punctuation">(</span>ret <span class="token operator">&lt;</span> <span class="token number">2</span><span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+            <span class="token keyword">continue</span><span class="token punctuation">;</span>
+        <span class="token punctuation">}</span>
+        buf<span class="token punctuation">[</span>ret <span class="token operator">-</span> <span class="token number">1</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token char">'\0'</span><span class="token punctuation">;</span>
+
+        msg<span class="token punctuation">.</span>msg_type <span class="token operator">=</span> <span class="token number">1</span><span class="token punctuation">;</span>
+        <span class="token function">strcpy</span><span class="token punctuation">(</span>msg<span class="token punctuation">.</span>buf<span class="token punctuation">,</span> buf<span class="token punctuation">)</span><span class="token punctuation">;</span>
+        ret <span class="token operator">=</span> <span class="token function">msgsnd</span><span class="token punctuation">(</span>msg_id<span class="token punctuation">,</span> <span class="token operator">&amp;</span>msg<span class="token punctuation">,</span> <span class="token keyword">sizeof</span><span class="token punctuation">(</span>msg<span class="token punctuation">)</span> <span class="token operator">-</span> <span class="token keyword">sizeof</span><span class="token punctuation">(</span><span class="token keyword">long</span> <span class="token keyword">int</span><span class="token punctuation">)</span><span class="token punctuation">,</span> IPC_NOWAIT<span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token keyword">if</span> <span class="token punctuation">(</span>ret <span class="token operator">&lt;</span> <span class="token number">0</span><span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+            <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"%s: msg send failed: %s\n"</span><span class="token punctuation">,</span> __FUNCTION__<span class="token punctuation">,</span> <span class="token function">strerror</span><span class="token punctuation">(</span>errno<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+            <span class="token function">exit</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token punctuation">}</span>
+
+        <span class="token keyword">if</span> <span class="token punctuation">(</span><span class="token number">0</span> <span class="token operator">==</span> <span class="token function">strcmp</span><span class="token punctuation">(</span>buf<span class="token punctuation">,</span> <span class="token string">"exit"</span><span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+            <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"msg snd exit\n"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+            <span class="token keyword">break</span><span class="token punctuation">;</span>
+        <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span> 
+
+    <span class="token keyword">return</span> <span class="token number">0</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+</code></pre> 
+         <p>msg_queue_recv.c:</p> 
+         <pre><code class="prism language-c"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;stdio.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;unistd.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;stdlib.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;string.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;errno.h&gt;</span></span>
+
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;sys/types.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;sys/ipc.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;sys/msg.h&gt;</span></span>
+
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">"msg_queue.h"</span></span>
+
+<span class="token keyword">int</span> msg_id <span class="token operator">=</span> <span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">;</span>
+
+<span class="token keyword">int</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token keyword">int</span> argc<span class="token punctuation">,</span> <span class="token keyword">char</span> <span class="token operator">*</span>argv<span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">)</span>
+<span class="token punctuation">{
+            <!-- --></span>
+    <span class="token keyword">int</span> i <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span>
+    <span class="token class-name">key_t</span> key <span class="token operator">=</span> <span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">;</span>
+    <span class="token class-name">msg_event_t</span> msg<span class="token punctuation">;</span>
+    <span class="token keyword">int</span> ret <span class="token operator">=</span> <span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">;</span>
+
+    key <span class="token operator">=</span> <span class="token function">ftok</span><span class="token punctuation">(</span>KEY_DIR<span class="token punctuation">,</span> <span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"%s: key:[%d]\n"</span><span class="token punctuation">,</span> __FUNCTION__<span class="token punctuation">,</span> key<span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+    msg_id <span class="token operator">=</span> <span class="token function">msgget</span><span class="token punctuation">(</span>key<span class="token punctuation">,</span> <span class="token number">0666</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">if</span> <span class="token punctuation">(</span>msg_id <span class="token operator">&lt;</span> <span class="token number">0</span><span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+        <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"%s: msg get failed: %s\n"</span><span class="token punctuation">,</span> __FUNCTION__<span class="token punctuation">,</span> <span class="token function">strerror</span><span class="token punctuation">(</span>errno<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token function">exit</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"%s: msg id:%d\n"</span><span class="token punctuation">,</span> __FUNCTION__<span class="token punctuation">,</span> msg_id<span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+    <span class="token keyword">while</span> <span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+        <span class="token function">memset</span><span class="token punctuation">(</span><span class="token operator">&amp;</span>msg<span class="token punctuation">,</span> <span class="token number">0</span><span class="token punctuation">,</span> <span class="token keyword">sizeof</span><span class="token punctuation">(</span>msg<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+        msg<span class="token punctuation">.</span>msg_type <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span>
+        ret <span class="token operator">=</span> <span class="token function">msgrcv</span><span class="token punctuation">(</span>msg_id<span class="token punctuation">,</span> <span class="token operator">&amp;</span>msg<span class="token punctuation">,</span> <span class="token keyword">sizeof</span><span class="token punctuation">(</span>msg<span class="token punctuation">)</span><span class="token punctuation">,</span> <span class="token number">0</span><span class="token punctuation">,</span> <span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token keyword">if</span> <span class="token punctuation">(</span>ret <span class="token operator">&lt;</span> <span class="token number">0</span><span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+            <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"%s: msg get failed: %s\n"</span><span class="token punctuation">,</span> __FUNCTION__<span class="token punctuation">,</span> <span class="token function">strerror</span><span class="token punctuation">(</span>errno<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+            <span class="token function">exit</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token punctuation">}</span>
+        <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"get msg: %s\n"</span><span class="token punctuation">,</span> msg<span class="token punctuation">.</span>buf<span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token keyword">if</span> <span class="token punctuation">(</span><span class="token number">0</span> <span class="token operator">==</span> <span class="token function">strcmp</span><span class="token punctuation">(</span>msg<span class="token punctuation">.</span>buf<span class="token punctuation">,</span> <span class="token string">"exit"</span><span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+            <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"msg get exit\n"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+            <span class="token keyword">break</span><span class="token punctuation">;</span>
+        <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token function">msgctl</span><span class="token punctuation">(</span>msg_id<span class="token punctuation">,</span> IPC_RMID<span class="token punctuation">,</span> <span class="token constant">NULL</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+    <span class="token keyword">return</span> <span class="token number">0</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+</code></pre> 
+         <p>msg_queue.h:</p> 
+         <pre><code class="prism language-c"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">ifndef</span> <span class="token expression">__MSG_QUEUE_H__</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">define</span> <span class="token macro-name">__MSG_QUEUE_H__</span></span>
+
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">define</span> <span class="token macro-name">KEY_DIR</span> <span class="token string">"/tmp"</span></span>
+
+<span class="token keyword">typedef</span> <span class="token keyword">struct</span> <span class="token class-name">msg_event_s</span>
+<span class="token punctuation">{
+            <!-- --></span>
+    <span class="token keyword">long</span> <span class="token keyword">int</span> msg_type<span class="token punctuation">;</span>
+    <span class="token keyword">char</span> buf<span class="token punctuation">[</span><span class="token number">512</span><span class="token punctuation">]</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span> <span class="token class-name">msg_event_t</span><span class="token punctuation">;</span>
+
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">endif</span></span>
+</code></pre> 
+         <p>Makefile:</p> 
+         <pre><code class="prism language-bash">all:
+	gcc <span class="token parameter variable">-o</span> msg_send.out msg_queue_send.c <span class="token parameter variable">-g</span>
+	gcc <span class="token parameter variable">-o</span> msg_recv.out msg_queue_recv.c <span class="token parameter variable">-g</span>
+
+clean:
+	-@rm *.out
+</code></pre> 
+         <p>测试：</p> 
+         <pre><code class="prism language-bash">$ <span class="token function">sudo</span> ./msg_send.out 
+main: key<span class="token punctuation">[</span><span class="token number">65539</span><span class="token punctuation">]</span>
+main: msg id:0
+msg_stime: <span class="token number">1667902385</span>, msg_rtime: <span class="token number">1667902385</span>,
+msg_ctime: <span class="token number">1667901682</span>, msg_qnum: <span class="token number">0</span>,msg_qbytes:32768
+
+hello world
+001
+</code></pre> 
+         <pre><code class="prism language-bash">$ <span class="token function">sudo</span> ./msg_recv.out 
+main: key:<span class="token punctuation">[</span><span class="token number">65539</span><span class="token punctuation">]</span>
+main: msg id:0
+
+get msg: hello world
+get msg: 001
+</code></pre> 
+         <h2><a id="38__724"></a>3.8 共享内存</h2> 
+         <p>share_memory_read.c:</p> 
+         <pre><code class="prism language-c"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;stdio.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;unistd.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;string.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;stdlib.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;sys/ipc.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;sys/shm.h&gt;</span></span>
+
+<span class="token keyword">struct</span> <span class="token class-name">my_shared</span>
+<span class="token punctuation">{
+            <!-- --></span>
+    <span class="token keyword">int</span> flag<span class="token punctuation">;</span>
+    <span class="token keyword">char</span> str<span class="token punctuation">[</span><span class="token number">1024</span><span class="token punctuation">]</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span><span class="token punctuation">;</span>
+
+<span class="token keyword">int</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token keyword">void</span><span class="token punctuation">)</span>
+<span class="token punctuation">{
+            <!-- --></span>
+    <span class="token keyword">int</span> running <span class="token operator">=</span> <span class="token number">1</span><span class="token punctuation">;</span>
+    <span class="token keyword">int</span> shmid<span class="token punctuation">;</span>
+    <span class="token keyword">void</span> <span class="token operator">*</span>shared_memory <span class="token operator">=</span> <span class="token constant">NULL</span><span class="token punctuation">;</span>
+    <span class="token keyword">struct</span> <span class="token class-name">my_shared</span> <span class="token operator">*</span>shared_buff <span class="token operator">=</span> <span class="token constant">NULL</span><span class="token punctuation">;</span>
+
+    shmid <span class="token operator">=</span> <span class="token function">shmget</span><span class="token punctuation">(</span><span class="token punctuation">(</span><span class="token class-name">key_t</span><span class="token punctuation">)</span><span class="token number">1234</span><span class="token punctuation">,</span> <span class="token keyword">sizeof</span><span class="token punctuation">(</span><span class="token keyword">struct</span> <span class="token class-name">my_shared</span><span class="token punctuation">)</span><span class="token punctuation">,</span> <span class="token number">0666</span> <span class="token operator">|</span> IPC_CREAT<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">if</span> <span class="token punctuation">(</span>shmid <span class="token operator">&lt;</span> <span class="token number">0</span><span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+        <span class="token function">perror</span><span class="token punctuation">(</span><span class="token string">"fail to shmget"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token function">exit</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+
+    shared_memory <span class="token operator">=</span> <span class="token function">shmat</span><span class="token punctuation">(</span>shmid<span class="token punctuation">,</span> <span class="token constant">NULL</span><span class="token punctuation">,</span> <span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">if</span><span class="token punctuation">(</span>shared_memory <span class="token operator">==</span> <span class="token constant">NULL</span><span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+        <span class="token function">perror</span><span class="token punctuation">(</span><span class="token string">"fail to shmat"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token function">exit</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+
+    shared_buff <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token keyword">struct</span> <span class="token class-name">my_shared</span> <span class="token operator">*</span><span class="token punctuation">)</span>shared_memory<span class="token punctuation">;</span>
+    shared_buff<span class="token operator">-&gt;</span>flag <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span>
+
+    <span class="token keyword">while</span><span class="token punctuation">(</span>running<span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+        <span class="token keyword">if</span> <span class="token punctuation">(</span>shared_buff<span class="token operator">-&gt;</span>flag<span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+            <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"read message is: %s\n"</span><span class="token punctuation">,</span> shared_buff<span class="token operator">-&gt;</span>str<span class="token punctuation">)</span><span class="token punctuation">;</span>
+            shared_buff<span class="token operator">-&gt;</span>flag <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span>
+
+            <span class="token keyword">if</span> <span class="token punctuation">(</span><span class="token function">strncmp</span><span class="token punctuation">(</span>shared_buff<span class="token operator">-&gt;</span>str<span class="token punctuation">,</span> <span class="token string">"end"</span><span class="token punctuation">,</span> <span class="token number">3</span><span class="token punctuation">)</span> <span class="token operator">==</span> <span class="token number">0</span><span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+                running <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span>
+            <span class="token punctuation">}</span>
+        <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token keyword">if</span> <span class="token punctuation">(</span><span class="token function">shmdt</span><span class="token punctuation">(</span>shared_memory<span class="token punctuation">)</span> <span class="token operator">==</span> <span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+        <span class="token function">perror</span><span class="token punctuation">(</span><span class="token string">"fail to shmdt"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token function">exit</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token keyword">if</span> <span class="token punctuation">(</span><span class="token function">shmctl</span><span class="token punctuation">(</span>shmid<span class="token punctuation">,</span> IPC_RMID<span class="token punctuation">,</span> <span class="token number">0</span><span class="token punctuation">)</span> <span class="token operator">==</span> <span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+        <span class="token function">perror</span><span class="token punctuation">(</span><span class="token string">"fail to shmctl"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token function">exit</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token keyword">return</span> <span class="token number">0</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+</code></pre> 
+         <p>share_memory_write.c:</p> 
+         <pre><code class="prism language-c"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;stdio.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;unistd.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;string.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;stdlib.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;sys/ipc.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;sys/shm.h&gt;</span></span>
+
+
+<span class="token keyword">struct</span> <span class="token class-name">my_shared</span>
+<span class="token punctuation">{
+            <!-- --></span>
+    <span class="token keyword">int</span> flag<span class="token punctuation">;</span>
+    <span class="token keyword">char</span> str<span class="token punctuation">[</span><span class="token number">1024</span><span class="token punctuation">]</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span><span class="token punctuation">;</span>
+
+<span class="token keyword">int</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token keyword">void</span><span class="token punctuation">)</span>
+<span class="token punctuation">{
+            <!-- --></span>
+    <span class="token keyword">int</span> running <span class="token operator">=</span> <span class="token number">1</span><span class="token punctuation">;</span>
+    <span class="token keyword">int</span> shmid <span class="token operator">=</span> <span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">;</span>
+    <span class="token keyword">char</span> buffer<span class="token punctuation">[</span><span class="token number">512</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token punctuation">{
+            <!-- --></span><span class="token number">0</span><span class="token punctuation">}</span><span class="token punctuation">;</span>
+    <span class="token keyword">void</span> <span class="token operator">*</span>shared_memory <span class="token operator">=</span> <span class="token constant">NULL</span><span class="token punctuation">;</span>
+    <span class="token keyword">struct</span> <span class="token class-name">my_shared</span> <span class="token operator">*</span>shared_buff <span class="token operator">=</span> <span class="token constant">NULL</span><span class="token punctuation">;</span>
+
+    shmid <span class="token operator">=</span> <span class="token function">shmget</span><span class="token punctuation">(</span><span class="token punctuation">(</span><span class="token class-name">key_t</span><span class="token punctuation">)</span><span class="token number">1234</span><span class="token punctuation">,</span> <span class="token keyword">sizeof</span><span class="token punctuation">(</span><span class="token keyword">struct</span> <span class="token class-name">my_shared</span><span class="token punctuation">)</span><span class="token punctuation">,</span> <span class="token number">0666</span> <span class="token operator">|</span> IPC_CREAT<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">if</span> <span class="token punctuation">(</span>shmid <span class="token operator">&lt;</span> <span class="token number">0</span><span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+        <span class="token function">perror</span><span class="token punctuation">(</span><span class="token string">"fail to shmget"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token function">exit</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+
+    shared_memory <span class="token operator">=</span> <span class="token function">shmat</span><span class="token punctuation">(</span>shmid<span class="token punctuation">,</span> <span class="token constant">NULL</span><span class="token punctuation">,</span> <span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">if</span> <span class="token punctuation">(</span><span class="token operator">!</span>shared_memory<span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+        <span class="token function">perror</span><span class="token punctuation">(</span><span class="token string">"fail to shmat"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token function">exit</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+
+    shared_buff <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token keyword">struct</span> <span class="token class-name">my_shared</span> <span class="token operator">*</span><span class="token punctuation">)</span>shared_memory<span class="token punctuation">;</span>
+    shared_buff<span class="token operator">-&gt;</span>flag <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span>
+
+    <span class="token keyword">while</span> <span class="token punctuation">(</span>running<span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+        <span class="token keyword">while</span> <span class="token punctuation">(</span>shared_buff<span class="token operator">-&gt;</span>flag<span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+            <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"wait for other process's reading\n"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+            <span class="token function">sleep</span><span class="token punctuation">(</span><span class="token number">2</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token punctuation">}</span>
+
+        <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"Please input some data\n"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token function">fgets</span><span class="token punctuation">(</span>buffer<span class="token punctuation">,</span> <span class="token number">512</span><span class="token punctuation">,</span> <span class="token constant">stdin</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+        shared_buff<span class="token operator">-&gt;</span>flag <span class="token operator">=</span> <span class="token number">1</span><span class="token punctuation">;</span>
+        <span class="token function">strncpy</span><span class="token punctuation">(</span>shared_buff<span class="token operator">-&gt;</span>str<span class="token punctuation">,</span> buffer<span class="token punctuation">,</span> <span class="token number">1024</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+        <span class="token keyword">if</span> <span class="token punctuation">(</span><span class="token function">strncmp</span><span class="token punctuation">(</span>shared_buff<span class="token operator">-&gt;</span>str<span class="token punctuation">,</span> <span class="token string">"end"</span><span class="token punctuation">,</span> <span class="token number">3</span><span class="token punctuation">)</span> <span class="token operator">==</span> <span class="token number">0</span><span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+            running <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span>
+        <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token keyword">if</span> <span class="token punctuation">(</span><span class="token function">shmdt</span><span class="token punctuation">(</span>shared_memory<span class="token punctuation">)</span> <span class="token operator">==</span> <span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+        <span class="token function">perror</span><span class="token punctuation">(</span><span class="token string">"fail to shmdt"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token function">exit</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token keyword">return</span> <span class="token number">0</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+</code></pre> 
+         <p>Makefile:</p> 
+         <pre><code class="prism language-bash">all:
+	gcc <span class="token parameter variable">-o</span> ./write.out share_memory_write.c <span class="token parameter variable">-g</span>
+	gcc <span class="token parameter variable">-o</span> ./read.out share_memory_read.c <span class="token parameter variable">-g</span>
+
+clean:
+	-@rm *.out
+</code></pre> 
+         <p>测试：</p> 
+         <pre><code class="prism language-bash">$ ./read.out 
+<span class="token builtin class-name">read</span> message is: hello world
+</code></pre> 
+         <pre><code class="prism language-bash">$ ./write.out 
+Please input some data
+hello world
+<span class="token function">wait</span> <span class="token keyword">for</span> other process's reading
+</code></pre> 
+         <h2><a id="39_exec_871"></a>3.9 exec()应用</h2> 
+         <p>exec()系列函数可以将当前进程的程序替换成新的可执行程序，而进程号不发生变化。<br> 以下示例代码说明：<br> 通过2次fork()得到孙子进程，在孙子进程内调用exec()函数将运行逻辑替换为new_app.out的程序（该程序创建my.txt并写入进程信息）<br> multi_process.c:</p> 
+         <pre><code class="prism language-c"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;stdio.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;string.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;unistd.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;stdlib.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;sys/wait.h&gt;</span></span>
+
+<span class="token keyword">void</span> <span class="token function">grandson_process</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+<span class="token punctuation">{
+            <!-- --></span>
+    <span class="token keyword">char</span> buf<span class="token punctuation">[</span><span class="token number">64</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token punctuation">{
+            <!-- --></span><span class="token number">0</span><span class="token punctuation">}</span><span class="token punctuation">;</span>
+    <span class="token class-name">pid_t</span> pid <span class="token operator">=</span> <span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">;</span>
+    <span class="token class-name">pid_t</span> ppid <span class="token operator">=</span> <span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">;</span>
+
+    pid <span class="token operator">=</span> <span class="token function">getpid</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    ppid <span class="token operator">=</span> <span class="token function">getppid</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+    <span class="token function">snprintf</span><span class="token punctuation">(</span>buf<span class="token punctuation">,</span> <span class="token keyword">sizeof</span><span class="token punctuation">(</span>buf<span class="token punctuation">)</span><span class="token punctuation">,</span> <span class="token string">"pid:%d, ppid:%d"</span><span class="token punctuation">,</span> pid<span class="token punctuation">,</span> ppid<span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+    <span class="token function">execl</span><span class="token punctuation">(</span><span class="token string">"/home/zorro/voip/Shengy-st/linux-c-demo/039-8-exec/new_app.out"</span><span class="token punctuation">,</span>
+<span class="token string">"new_app.out"</span><span class="token punctuation">,</span> buf<span class="token punctuation">,</span> <span class="token constant">NULL</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+
+<span class="token keyword">void</span> <span class="token function">parent_process</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+<span class="token punctuation">{
+            <!-- --></span>
+    <span class="token class-name">pid_t</span> pid <span class="token operator">=</span> <span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">;</span>
+    <span class="token class-name">pid_t</span> ppid <span class="token operator">=</span> <span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">;</span>
+
+    pid <span class="token operator">=</span> <span class="token function">getpid</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    ppid <span class="token operator">=</span> <span class="token function">getppid</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+    <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"%s: pid[%d], parent pid[%d]\n"</span><span class="token punctuation">,</span> __FUNCTION__<span class="token punctuation">,</span> pid<span class="token punctuation">,</span> ppid<span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+
+<span class="token keyword">int</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token keyword">int</span> argc<span class="token punctuation">,</span> <span class="token keyword">char</span> <span class="token operator">*</span>argv<span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">)</span>
+<span class="token punctuation">{
+            <!-- --></span>
+    <span class="token class-name">pid_t</span> ret_pid <span class="token operator">=</span> <span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">;</span>
+    <span class="token class-name">pid_t</span> ret_pid2 <span class="token operator">=</span> <span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">;</span>
+
+    ret_pid <span class="token operator">=</span> <span class="token function">fork</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">if</span> <span class="token punctuation">(</span>ret_pid <span class="token operator">&lt;</span> <span class="token number">0</span><span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+        <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"fork() failed, ret_pid:%d\n"</span><span class="token punctuation">,</span> ret_pid<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span> <span class="token keyword">else</span> <span class="token keyword">if</span> <span class="token punctuation">(</span><span class="token number">0</span> <span class="token operator">==</span> ret_pid<span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+        ret_pid2 <span class="token operator">=</span> <span class="token function">fork</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token keyword">if</span> <span class="token punctuation">(</span>ret_pid2 <span class="token operator">&lt;</span> <span class="token number">0</span><span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+            <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"fork() failed, ret_pid2:%d\n"</span><span class="token punctuation">,</span> ret_pid2<span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token punctuation">}</span> <span class="token keyword">else</span> <span class="token keyword">if</span> <span class="token punctuation">(</span><span class="token number">0</span> <span class="token operator">==</span> ret_pid2<span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+            <span class="token function">grandson_process</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token punctuation">}</span> <span class="token keyword">else</span> <span class="token punctuation">{
+            <!-- --></span>
+            <span class="token function">sleep</span><span class="token punctuation">(</span><span class="token number">5</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+            <span class="token function">exit</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span> <span class="token keyword">else</span> <span class="token punctuation">{
+            <!-- --></span>
+        <span class="token function">parent_process</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token function">waitpid</span><span class="token punctuation">(</span>ret_pid<span class="token punctuation">,</span> <span class="token constant">NULL</span><span class="token punctuation">,</span> <span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token keyword">while</span> <span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+        <span class="token function">sleep</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token keyword">return</span> <span class="token number">0</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+</code></pre> 
+         <p>new_app.c:</p> 
+         <pre><code class="prism language-c"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;stdio.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;string.h&gt;</span></span>
+
+<span class="token keyword">int</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token keyword">int</span> argc<span class="token punctuation">,</span> <span class="token keyword">char</span> <span class="token operator">*</span>argv<span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">)</span>
+<span class="token punctuation">{
+            <!-- --></span>
+    FILE <span class="token operator">*</span>fp <span class="token operator">=</span> <span class="token constant">NULL</span><span class="token punctuation">;</span>
+    <span class="token keyword">char</span> buf<span class="token punctuation">[</span><span class="token number">128</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token punctuation">{
+            <!-- --></span><span class="token number">0</span><span class="token punctuation">}</span><span class="token punctuation">;</span>
+
+    fp <span class="token operator">=</span> <span class="token function">fopen</span><span class="token punctuation">(</span><span class="token string">"./my.txt"</span><span class="token punctuation">,</span> <span class="token string">"w"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">if</span> <span class="token punctuation">(</span><span class="token operator">!</span>fp<span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+        <span class="token keyword">return</span> <span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token keyword">if</span> <span class="token punctuation">(</span>argc <span class="token operator">&gt;</span> <span class="token number">1</span><span class="token punctuation">)</span> <span class="token punctuation">{
+            <!-- --></span>
+        <span class="token function">snprintf</span><span class="token punctuation">(</span>buf<span class="token punctuation">,</span> <span class="token keyword">sizeof</span><span class="token punctuation">(</span>buf<span class="token punctuation">)</span><span class="token punctuation">,</span> <span class="token string">"%s:%s\n"</span><span class="token punctuation">,</span> argv<span class="token punctuation">[</span><span class="token number">0</span><span class="token punctuation">]</span><span class="token punctuation">,</span> argv<span class="token punctuation">[</span><span class="token number">1</span><span class="token punctuation">]</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token function">fwrite</span><span class="token punctuation">(</span>buf<span class="token punctuation">,</span> <span class="token function">strlen</span><span class="token punctuation">(</span>buf<span class="token punctuation">)</span><span class="token punctuation">,</span> <span class="token number">1</span><span class="token punctuation">,</span> fp<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token function">fclose</span><span class="token punctuation">(</span>fp<span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+    <span class="token function">sleep</span><span class="token punctuation">(</span><span class="token number">10</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+    <span class="token keyword">return</span> <span class="token number">0</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+</code></pre> 
+         <p>Makefile:</p> 
+         <pre><code class="prism language-bash">all:
+	gcc <span class="token parameter variable">-o</span> a.out multi_process.c
+	gcc <span class="token parameter variable">-o</span> new_app.out new_app.c
+clean:
+	-@rm *.out
+</code></pre> 
+         <p>测试：</p> 
+         <pre><code class="prism language-bash">$ <span class="token function">ps</span> aux <span class="token operator">|</span> <span class="token function">grep</span> .out
+zorro     <span class="token number">50278</span>  <span class="token number">0.0</span>  <span class="token number">0.0</span>   <span class="token number">4200</span>   <span class="token number">660</span> pts/24   S+   <span class="token number">15</span>:29   <span class="token number">0</span>:00 ./a.out
+zorro     <span class="token number">50279</span>  <span class="token number">0.0</span>  <span class="token number">0.0</span>   <span class="token number">4196</span>    <span class="token number">88</span> pts/24   S+   <span class="token number">15</span>:29   <span class="token number">0</span>:00 ./a.out
+zorro     <span class="token number">50280</span>  <span class="token number">0.0</span>  <span class="token number">0.0</span>   <span class="token number">4328</span>  <span class="token number">1272</span> pts/24   S+   <span class="token number">15</span>:29   <span class="token number">0</span>:00 new_app.out pid:50280, ppid:50279
+</code></pre> 
+         <pre><code class="prism language-bash">$ <span class="token function">ps</span> aux <span class="token operator">|</span> <span class="token function">grep</span> .out
+zorro     <span class="token number">50278</span>  <span class="token number">0.0</span>  <span class="token number">0.0</span>   <span class="token number">4200</span>   <span class="token number">660</span> pts/24   S+   <span class="token number">15</span>:29   <span class="token number">0</span>:00 ./a.out
+zorro     <span class="token number">50280</span>  <span class="token number">0.0</span>  <span class="token number">0.0</span>   <span class="token number">4328</span>  <span class="token number">1272</span> pts/24   S+   <span class="token number">15</span>:29   <span class="token number">0</span>:00 new_app.out pid:50280, ppid:50279
+</code></pre> 
+         <pre><code class="prism language-bash">$ <span class="token function">cat</span> my.txt 
+new_app.out:pid:50280, ppid:50279
+</code></pre> 
+        </div> 
+        <link href="https://csdnimg.cn/release/blogv2/dist/mdeditor/css/editerView/markdown_views-0407448025.css" rel="stylesheet"> 
+        <link href="https://csdnimg.cn/release/blogv2/dist/mdeditor/css/style-acff1b1bd9.css" rel="stylesheet"> 
+       </div> 
+       <div id="treeSkill"></div> 
+      </article>  
+     </div> 
+     <div class="more-toolbox-new" id="toolBarBox"> 
+      <div class="left-toolbox"> 
+       <div class="toolbox-left"> 
+        <div class="profile-box">
+         <a class="profile-href" target="_blank" href="https://blog.csdn.net/szkbsgy"><img class="profile-img" src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fprofile.csdnimg.cn%2FE%2F2%2F1%2F3_szkbsgy&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243"><span class="profile-name">浪游东戴河</span></a>
+        </div> 
+        <div class="profile-attend"> 
+         <a class="tool-attend tool-bt-button tool-bt-attend" href="javascript:;" data-report-view="{&quot;mod&quot;:&quot;1592215036_002&quot;,&quot;spm&quot;:&quot;1001.2101.3001.4232&quot;,&quot;extend1&quot;:&quot;关注&quot;}">关注</a> 
+         <a class="tool-item-follow active-animation" style="display:none;">关注</a> 
+        </div> 
+       </div> 
+       <div class="toolbox-middle">  
+       </div> 
+       <div class="toolbox-right"> 
+        <div class="tool-directory"> 
+         <a class="bt-columnlist-show" data-id="12105310" data-free="false" data-subscribe="false" data-title="Linux C网络编程实践" data-img="https://img-blog.csdnimg.cn/20201014180756926.png?x-oss-process=image/resize,m_fixed,h_64,w_64" data-url="https://blog.csdn.net/szkbsgy/category_12105310.html" data-sum="15" data-people="0" data-price="69.90" data-oldprice="99.00" data-join="true" data-studyvip="true" data-studysubscribe="true" data-report-view="{&quot;spm&quot;:&quot;1001.2101.3001.6334&quot;,&quot;extend1&quot;:&quot;专栏目录&quot;}" data-report-click="{&quot;spm&quot;:&quot;1001.2101.3001.6334&quot;,&quot;extend1&quot;:&quot;专栏目录&quot;}">专栏目录</a> 
+        </div> 
+        <div class="tool-column"> 
+         <a class="tool-bt-button tool-unbt-subscribe" style="min-width:84px" href="javascript:;" data-report-view="{&quot;mod&quot;:&quot;1592215036_001&quot;,&quot;spm&quot;:&quot;1001.2101.3001.4405&quot;,&quot;extend1&quot;:&quot;已订阅&quot;}" data-report-click="{&quot;mod&quot;:&quot;1592215036_001&quot;,&quot;spm&quot;:&quot;1001.2101.3001.4405&quot;,&quot;extend1&quot;:&quot;已订阅&quot;}">会员已订阅</a> 
+        </div> 
+       </div> 
+      </div> 
+     </div>        
+     <a id="commentBox" name="commentBox"></a>   
+     <div id="recommendNps" class="recommend-nps-box common-nps-box"> 
+      <h3 class="aside-title">“相关推荐”对你有帮助么？</h3> 
+      <div class="aside-content"> 
+       <ul class="newnps-list"> 
+        <li class="newnps-item" data-type="非常没帮助"> 
+         <div class="newnps-img-box"> 
+          <img class="newnps-img active" src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fcsdnimg.cn%2Frelease%2Fblogv2%2Fdist%2Fpc%2Fimg%2FnpsFeel1.png&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243" alt=""> 
+          <img class="newnps-img default" src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fcsdnimg.cn%2Frelease%2Fblogv2%2Fdist%2Fpc%2Fimg%2FnpsFeelGrey1.png&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243" alt=""> 
+         </div> 
+         <div class="newnps-text">
+          非常没帮助
+         </div> </li> 
+        <li class="newnps-item" data-type="没帮助"> 
+         <div class="newnps-img-box"> 
+          <img class="newnps-img active" src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fcsdnimg.cn%2Frelease%2Fblogv2%2Fdist%2Fpc%2Fimg%2FnpsFeel2.png&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243" alt=""> 
+          <img class="newnps-img default" src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fcsdnimg.cn%2Frelease%2Fblogv2%2Fdist%2Fpc%2Fimg%2FnpsFeelGrey2.png&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243" alt=""> 
+         </div> 
+         <div class="newnps-text">
+          没帮助
+         </div> </li> 
+        <li class="newnps-item" data-type="一般"> 
+         <div class="newnps-img-box"> 
+          <img class="newnps-img active" src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fcsdnimg.cn%2Frelease%2Fblogv2%2Fdist%2Fpc%2Fimg%2FnpsFeel3.png&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243" alt=""> 
+          <img class="newnps-img default" src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fcsdnimg.cn%2Frelease%2Fblogv2%2Fdist%2Fpc%2Fimg%2FnpsFeelGrey3.png&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243" alt=""> 
+         </div> 
+         <div class="newnps-text">
+          一般
+         </div> </li> 
+        <li class="newnps-item" data-type="有帮助"> 
+         <div class="newnps-img-box"> 
+          <img class="newnps-img active" src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fcsdnimg.cn%2Frelease%2Fblogv2%2Fdist%2Fpc%2Fimg%2FnpsFeel4.png&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243" alt=""> 
+          <img class="newnps-img default" src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fcsdnimg.cn%2Frelease%2Fblogv2%2Fdist%2Fpc%2Fimg%2FnpsFeelGrey4.png&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243" alt=""> 
+         </div> 
+         <div class="newnps-text">
+          有帮助
+         </div> </li> 
+        <li class="newnps-item" data-type="非常有帮助"> 
+         <div class="newnps-img-box"> 
+          <img class="newnps-img active" src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fcsdnimg.cn%2Frelease%2Fblogv2%2Fdist%2Fpc%2Fimg%2FnpsFeel5.png&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243" alt=""> 
+          <img class="newnps-img default" src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fcsdnimg.cn%2Frelease%2Fblogv2%2Fdist%2Fpc%2Fimg%2FnpsFeelGrey5.png&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243" alt=""> 
+         </div> 
+         <div class="newnps-text">
+          非常有帮助
+         </div> </li> 
+       </ul> 
+       <div class="newnps-form-box"> 
+        <div class="newnps-form"> 
+         <input type="text" placeholder="请输入建议或反馈后点击提交" class="newnps-input"> 
+         <span class="newnps-btn">提交</span> 
+        </div> 
+       </div> 
+      </div> 
+     </div>   
+    </main>     
+   </div> 
+   <div class="recommend-right align-items-stretch clearfix" id="rightAside" data-type="recommend"> 
+    <aside class="recommend-right_aside"> 
+     <div id="recommend-right"> 
+      <div class="flex-column aside-box groupfile" id="groupfile"> 
+       <div class="groupfile-div"> 
+        <h3 class="aside-title">目录</h3> 
+        <div class="align-items-stretch group_item"> 
+         <div class="pos-box"> 
+          <div class="scroll-box"> 
+           <div class="toc-box"></div> 
+          </div> 
+         </div> 
+        </div> 
+       </div> 
+      </div> 
+      <div class="aside-box kind_person d-flex flex-column"> 
+       <h3 class="aside-title">分类专栏</h3> 
+       <div class="align-items-stretch kindof_item" id="kind_person_column"> 
+        <div class="aside-content"> 
+         <ul> 
+          <li> <a class="clearfix special-column-name" target="_blank" href="https://blog.csdn.net/szkbsgy/category_12105310.html" data-report-click="{&quot;mod&quot;:&quot;popu_826&quot;,&quot;spm&quot;:&quot;1001.2101.3001.4230&quot;,&quot;strategy&quot;:&quot;pc付费专栏左侧入口&quot;,&quot;dest&quot;:&quot;https://blog.csdn.net/szkbsgy/category_12105310.html&quot;,&quot;ab&quot;:&quot;new&quot;}"> 
+            <div class="special-column-bar "></div> <img src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fimg-blog.csdnimg.cn%2F20201014180756926.png%3Fx-oss-process%3Dimage%2Fresize%2Cm_fixed%2Ch_64%2Cw_64&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243" alt="" onerror="this.src='https://img-blog.csdnimg.cn/20201014180756922.png?x-oss-process=image/resize,m_fixed,h_64,w_64'"> <span class=""> Linux C网络编程实践 </span> <span class="pay-tag">付费</span> </a> <span class="special-column-num">15篇</span> </li> 
+          <li> <a class="clearfix special-column-name" target="_blank" href="https://blog.csdn.net/szkbsgy/category_11059133.html" data-report-click="{&quot;mod&quot;:&quot;popu_537&quot;,&quot;spm&quot;:&quot;1001.2101.3001.4137&quot;,&quot;strategy&quot;:&quot;pc付费专栏左侧入口&quot;,&quot;dest&quot;:&quot;https://blog.csdn.net/szkbsgy/category_11059133.html&quot;,&quot;ab&quot;:&quot;new&quot;}"> 
+            <div class="special-column-bar "></div> <img src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fimg-blog.csdnimg.cn%2F20201014180756916.png%3Fx-oss-process%3Dimage%2Fresize%2Cm_fixed%2Ch_64%2Cw_64&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243" alt="" onerror="this.src='https://img-blog.csdnimg.cn/20201014180756922.png?x-oss-process=image/resize,m_fixed,h_64,w_64'"> <span class=""> VOIP </span> </a> <span class="special-column-num">28篇</span> </li> 
+          <li> <a class="clearfix special-column-name" target="_blank" href="https://blog.csdn.net/szkbsgy/category_12018758.html" data-report-click="{&quot;mod&quot;:&quot;popu_537&quot;,&quot;spm&quot;:&quot;1001.2101.3001.4137&quot;,&quot;strategy&quot;:&quot;pc付费专栏左侧入口&quot;,&quot;dest&quot;:&quot;https://blog.csdn.net/szkbsgy/category_12018758.html&quot;,&quot;ab&quot;:&quot;new&quot;}"> 
+            <div class="special-column-bar "></div> <img src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fimg-blog.csdnimg.cn%2F2019092715111047.png%3Fx-oss-process%3Dimage%2Fresize%2Cm_fixed%2Ch_64%2Cw_64&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243" alt="" onerror="this.src='https://img-blog.csdnimg.cn/20201014180756922.png?x-oss-process=image/resize,m_fixed,h_64,w_64'"> <span class=""> Linux C编程应用及技巧 </span> </a> <span class="special-column-num">1篇</span> </li> 
+          <li> <a class="clearfix special-column-name" target="_blank" href="https://blog.csdn.net/szkbsgy/category_11974481.html" data-report-click="{&quot;mod&quot;:&quot;popu_537&quot;,&quot;spm&quot;:&quot;1001.2101.3001.4137&quot;,&quot;strategy&quot;:&quot;pc付费专栏左侧入口&quot;,&quot;dest&quot;:&quot;https://blog.csdn.net/szkbsgy/category_11974481.html&quot;,&quot;ab&quot;:&quot;new&quot;}"> 
+            <div class="special-column-bar "></div> <img src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fimg-blog.csdnimg.cn%2F20201014180756928.png%3Fx-oss-process%3Dimage%2Fresize%2Cm_fixed%2Ch_64%2Cw_64&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243" alt="" onerror="this.src='https://img-blog.csdnimg.cn/20201014180756922.png?x-oss-process=image/resize,m_fixed,h_64,w_64'"> <span class=""> freeSwitch </span> </a> <span class="special-column-num">5篇</span> </li> 
+          <li> <a class="clearfix special-column-name" target="_blank" href="https://blog.csdn.net/szkbsgy/category_11354560.html" data-report-click="{&quot;mod&quot;:&quot;popu_537&quot;,&quot;spm&quot;:&quot;1001.2101.3001.4137&quot;,&quot;strategy&quot;:&quot;pc付费专栏左侧入口&quot;,&quot;dest&quot;:&quot;https://blog.csdn.net/szkbsgy/category_11354560.html&quot;,&quot;ab&quot;:&quot;new&quot;}"> 
+            <div class="special-column-bar "></div> <img src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fimg-blog.csdnimg.cn%2F20201014180756922.png%3Fx-oss-process%3Dimage%2Fresize%2Cm_fixed%2Ch_64%2Cw_64&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243" alt="" onerror="this.src='https://img-blog.csdnimg.cn/20201014180756922.png?x-oss-process=image/resize,m_fixed,h_64,w_64'"> <span class=""> RFC </span> </a> <span class="special-column-num">1篇</span> </li> 
+          <li> <a class="clearfix special-column-name" target="_blank" href="https://blog.csdn.net/szkbsgy/category_11059149.html" data-report-click="{&quot;mod&quot;:&quot;popu_537&quot;,&quot;spm&quot;:&quot;1001.2101.3001.4137&quot;,&quot;strategy&quot;:&quot;pc付费专栏左侧入口&quot;,&quot;dest&quot;:&quot;https://blog.csdn.net/szkbsgy/category_11059149.html&quot;,&quot;ab&quot;:&quot;new&quot;}"> 
+            <div class="special-column-bar "></div> <img src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fimg-blog.csdnimg.cn%2F20201014180756928.png%3Fx-oss-process%3Dimage%2Fresize%2Cm_fixed%2Ch_64%2Cw_64&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243" alt="" onerror="this.src='https://img-blog.csdnimg.cn/20201014180756922.png?x-oss-process=image/resize,m_fixed,h_64,w_64'"> <span class=""> PJsip </span> </a> <span class="special-column-num">1篇</span> </li> 
+          <li> <a class="clearfix special-column-name" target="_blank" href="https://blog.csdn.net/szkbsgy/category_819313.html" data-report-click="{&quot;mod&quot;:&quot;popu_537&quot;,&quot;spm&quot;:&quot;1001.2101.3001.4137&quot;,&quot;strategy&quot;:&quot;pc付费专栏左侧入口&quot;,&quot;dest&quot;:&quot;https://blog.csdn.net/szkbsgy/category_819313.html&quot;,&quot;ab&quot;:&quot;new&quot;}"> 
+            <div class="special-column-bar "></div> <img src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fimg-blog.csdnimg.cn%2F20201014180756916.png%3Fx-oss-process%3Dimage%2Fresize%2Cm_fixed%2Ch_64%2Cw_64&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243" alt="" onerror="this.src='https://img-blog.csdnimg.cn/20201014180756922.png?x-oss-process=image/resize,m_fixed,h_64,w_64'"> <span class=""> 学习 </span> </a> <span class="special-column-num">8篇</span> </li> 
+          <li> <a class="clearfix special-column-name" target="_blank" href="https://blog.csdn.net/szkbsgy/category_1300405.html" data-report-click="{&quot;mod&quot;:&quot;popu_537&quot;,&quot;spm&quot;:&quot;1001.2101.3001.4137&quot;,&quot;strategy&quot;:&quot;pc付费专栏左侧入口&quot;,&quot;dest&quot;:&quot;https://blog.csdn.net/szkbsgy/category_1300405.html&quot;,&quot;ab&quot;:&quot;new&quot;}"> 
+            <div class="special-column-bar "></div> <img src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fimg-blog.csdnimg.cn%2F20201014180756925.png%3Fx-oss-process%3Dimage%2Fresize%2Cm_fixed%2Ch_64%2Cw_64&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243" alt="" onerror="this.src='https://img-blog.csdnimg.cn/20201014180756922.png?x-oss-process=image/resize,m_fixed,h_64,w_64'"> <span class=""> Bash &amp;&amp; awk &amp;&amp; sed </span> </a> <span class="special-column-num">3篇</span> </li> 
+          <li> <a class="clearfix special-column-name" target="_blank" href="https://blog.csdn.net/szkbsgy/category_1381264.html" data-report-click="{&quot;mod&quot;:&quot;popu_537&quot;,&quot;spm&quot;:&quot;1001.2101.3001.4137&quot;,&quot;strategy&quot;:&quot;pc付费专栏左侧入口&quot;,&quot;dest&quot;:&quot;https://blog.csdn.net/szkbsgy/category_1381264.html&quot;,&quot;ab&quot;:&quot;new&quot;}"> 
+            <div class="special-column-bar "></div> <img src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fimg-blog.csdnimg.cn%2F20190927151117521.png%3Fx-oss-process%3Dimage%2Fresize%2Cm_fixed%2Ch_64%2Cw_64&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243" alt="" onerror="this.src='https://img-blog.csdnimg.cn/20201014180756922.png?x-oss-process=image/resize,m_fixed,h_64,w_64'"> <span class=""> Linux点点滴滴 </span> </a> <span class="special-column-num">23篇</span> </li> 
+          <li> <a class="clearfix special-column-name" target="_blank" href="https://blog.csdn.net/szkbsgy/category_7517571.html" data-report-click="{&quot;mod&quot;:&quot;popu_537&quot;,&quot;spm&quot;:&quot;1001.2101.3001.4137&quot;,&quot;strategy&quot;:&quot;pc付费专栏左侧入口&quot;,&quot;dest&quot;:&quot;https://blog.csdn.net/szkbsgy/category_7517571.html&quot;,&quot;ab&quot;:&quot;new&quot;}"> 
+            <div class="special-column-bar "></div> <img src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fimg-blog.csdnimg.cn%2F20201014180756927.png%3Fx-oss-process%3Dimage%2Fresize%2Cm_fixed%2Ch_64%2Cw_64&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243" alt="" onerror="this.src='https://img-blog.csdnimg.cn/20201014180756922.png?x-oss-process=image/resize,m_fixed,h_64,w_64'"> <span class=""> Nginx&amp;Redis&amp;Lua </span> </a> <span class="special-column-num">12篇</span> </li> 
+          <li> <a class="clearfix special-column-name" target="_blank" href="https://blog.csdn.net/szkbsgy/category_7915941.html" data-report-click="{&quot;mod&quot;:&quot;popu_537&quot;,&quot;spm&quot;:&quot;1001.2101.3001.4137&quot;,&quot;strategy&quot;:&quot;pc付费专栏左侧入口&quot;,&quot;dest&quot;:&quot;https://blog.csdn.net/szkbsgy/category_7915941.html&quot;,&quot;ab&quot;:&quot;new&quot;}"> 
+            <div class="special-column-bar "></div> <img src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fimg-blog.csdnimg.cn%2F20190927151043371.png%3Fx-oss-process%3Dimage%2Fresize%2Cm_fixed%2Ch_64%2Cw_64&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243" alt="" onerror="this.src='https://img-blog.csdnimg.cn/20201014180756922.png?x-oss-process=image/resize,m_fixed,h_64,w_64'"> <span class=""> 编程物语 </span> </a> <span class="special-column-num">7篇</span> </li> 
+          <li> <a class="clearfix special-column-name" target="_blank" href="https://blog.csdn.net/szkbsgy/category_7925948.html" data-report-click="{&quot;mod&quot;:&quot;popu_537&quot;,&quot;spm&quot;:&quot;1001.2101.3001.4137&quot;,&quot;strategy&quot;:&quot;pc付费专栏左侧入口&quot;,&quot;dest&quot;:&quot;https://blog.csdn.net/szkbsgy/category_7925948.html&quot;,&quot;ab&quot;:&quot;new&quot;}"> 
+            <div class="special-column-bar "></div> <img src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fimg-blog.csdnimg.cn%2F20201014180756923.png%3Fx-oss-process%3Dimage%2Fresize%2Cm_fixed%2Ch_64%2Cw_64&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243" alt="" onerror="this.src='https://img-blog.csdnimg.cn/20201014180756922.png?x-oss-process=image/resize,m_fixed,h_64,w_64'"> <span class=""> 算法 </span> </a> <span class="special-column-num">7篇</span> </li> 
+          <li> <a class="clearfix special-column-name" target="_blank" href="https://blog.csdn.net/szkbsgy/category_7984372.html" data-report-click="{&quot;mod&quot;:&quot;popu_537&quot;,&quot;spm&quot;:&quot;1001.2101.3001.4137&quot;,&quot;strategy&quot;:&quot;pc付费专栏左侧入口&quot;,&quot;dest&quot;:&quot;https://blog.csdn.net/szkbsgy/category_7984372.html&quot;,&quot;ab&quot;:&quot;new&quot;}"> 
+            <div class="special-column-bar "></div> <img src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fimg-blog.csdnimg.cn%2F20190927151132530.png%3Fx-oss-process%3Dimage%2Fresize%2Cm_fixed%2Ch_64%2Cw_64&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243" alt="" onerror="this.src='https://img-blog.csdnimg.cn/20201014180756922.png?x-oss-process=image/resize,m_fixed,h_64,w_64'"> <span class=""> 音视频 </span> </a> <span class="special-column-num">3篇</span> </li> 
+         </ul> 
+        </div> 
+       </div> 
+      </div> 
+     </div> 
+    </aside> 
+   </div> 
+   <div class="recommend-right1  align-items-stretch clearfix" id="rightAsideConcision" data-type="recommend"> 
+    <aside class="recommend-right_aside"> 
+     <div id="recommend-right-concision"> 
+      <div class="flex-column aside-box groupfile" id="groupfileConcision"> 
+       <div class="groupfile-div1"> 
+        <h3 class="aside-title">目录</h3> 
+        <div class="align-items-stretch group_item"> 
+         <div class="pos-box"> 
+          <div class="scroll-box"> 
+           <div class="toc-box"></div> 
+          </div> 
+         </div> 
+        </div> 
+       </div> 
+      </div> 
+     </div> 
+    </aside> 
+   </div> 
+  </div> 
+  <div class="mask-dark"></div>  
+  <div class="skin-boxshadow"></div> 
+  <div class="directory-boxshadow"></div> 
+  <div class="comment-side-box-shadow comment-side-tit-close" id="commentSideBoxshadow"> 
+   <div class="comment-side-content"> 
+    <div class="comment-side-tit"> 
+     <span class="comment-side-tit-count">评论</span> 
+     <img class="comment-side-tit-close" src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fcsdnimg.cn%2Frelease%2Fblogv2%2Fdist%2Fpc%2Fimg%2FcloseBt.png&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243">
+    </div>  
+    <div id="pcFlodCommentSideBox" class="pc-flodcomment-sidebox"> 
+     <div class="comment-fold-tit">
+      <span id="lookUnFlodComment" class="back"><img src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fcsdnimg.cn%2Frelease%2Fblogv2%2Fdist%2Fpc%2Fimg%2FcommentArrowLeftWhite.png&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243" alt=""></span>被折叠的&nbsp;
+      <span class="count"></span>&nbsp;条评论 
+      <a href="https://blogdev.blog.csdn.net/article/details/122245662" class="tip" target="_blank">为什么被折叠?</a> 
+      <a href="https://bbs.csdn.net/forums/FreeZone" class="park" target="_blank"> <img src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fcsdnimg.cn%2Frelease%2Fblogv2%2Fdist%2Fpc%2Fimg%2FiconPark.png&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243">到【灌水乐园】发言</a> 
+     </div> 
+     <div class="comment-fold-content"></div> 
+     <div id="lookBadComment" class="look-bad-comment side-look-comment"> 
+      <a class="look-more-comment">查看更多评论<img src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fcsdnimg.cn%2Frelease%2Fblogv2%2Fdist%2Fpc%2Fimg%2FcommentArrowDownWhite.png&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243" alt=""></a> 
+     </div> 
+    </div> 
+   </div> 
+   <div class="comment-rewarddialog-box"> 
+    <div class="form-box"> 
+     <div class="title-box">
+       添加红包 
+      <a class="btn-form-close"></a> 
+     </div> 
+     <form id="commentRewardForm"> 
+      <div class="ipt-box"> 
+       <label for="txtName">祝福语</label> 
+       <div class="ipt-btn-box"> 
+        <input type="text" name="name" id="txtName" autocomplete="off" maxlength="50"> 
+        <a class="btn-ipt btn-random"></a> 
+       </div> 
+       <p class="notice">请填写红包祝福语或标题</p> 
+      </div> 
+      <div class="ipt-box"> 
+       <label for="txtSendAmount">红包数量</label> 
+       <div class="ipt-txt-box"> 
+        <input type="text" name="sendAmount" maxlength="4" id="txtSendAmount" placeholder="请填写红包数量(最小10个)" autocomplete="off"> 
+        <span class="after-txt">个</span> 
+       </div> 
+       <p class="notice">红包个数最小为10个</p> 
+      </div> 
+      <div class="ipt-box"> 
+       <label for="txtMoney">红包总金额</label> 
+       <div class="ipt-txt-box error"> 
+        <input type="text" name="money" maxlength="5" id="txtMoney" placeholder="请填写总金额(最低5元)" autocomplete="off"> 
+        <span class="after-txt">元</span> 
+       </div> 
+       <p class="notice">红包金额最低5元</p> 
+      </div> 
+      <div class="balance-info-box"> 
+       <label>余额支付</label> 
+       <div class="balance-info">
+         当前余额
+        <span class="balance">3.43</span>元 
+        <a href="https://i.csdn.net/#/wallet/balance/recharge" class="link-charge" target="_blank">前往充值 &gt;</a> 
+       </div> 
+      </div> 
+      <div class="opt-box"> 
+       <div class="pay-info">
+         需支付：
+        <span class="price">10.00</span>元 
+       </div> 
+       <button type="button" class="ml-auto btn-cancel">取消</button> 
+       <button type="button" class="ml8 btn-submit" disabled="true">确定</button> 
+      </div> 
+     </form> 
+    </div> 
+   </div> 
+   <div class="rr-guide-box"> 
+    <div class="rr-first-box"> 
+     <img src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fcsdnimg.cn%2Frelease%2Fblogv2%2Fdist%2Fpc%2Fimg%2FguideRedReward02.png&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243" alt=""> 
+     <button class="btn-guide-known next">下一步</button> 
+    </div> 
+    <div class="rr-second-box"> 
+     <img src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fcsdnimg.cn%2Frelease%2Fblogv2%2Fdist%2Fpc%2Fimg%2FguideRedReward03.png&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243" alt=""> 
+     <button class="btn-guide-known known">知道了</button> 
+    </div> 
+   </div> 
+  </div> 
+  <div class="redEnvolope" id="redEnvolope"> 
+   <div class="env-box"> 
+    <div class="env-container"> 
+     <div class="pre-open" id="preOpen"> 
+      <div class="top"> 
+       <header> 
+        <img class="clearTpaErr" :src="redpacketAuthor.avatar" alt="" src="https://pucsdn.com//main/csdn/img?url=&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243"> 
+        <div class="author">
+         成就一亿技术人!
+        </div> 
+       </header> 
+       <div class="bot-icon"></div> 
+      </div> 
+      <footer> 
+       <div class="red-openbtn open-start"></div> 
+       <div class="tip">
+         领取后你会自动成为博主和红包主的粉丝 
+        <a class="rule" target="_blank">规则</a> 
+       </div> 
+      </footer> 
+     </div> 
+     <div class="opened" id="opened"> 
+      <div class="bot-icon"> 
+       <header> 
+        <a class="creatorUrl" href="" target="_blank"> <img class="clearTpaErr" src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fprofile.csdnimg.cn%2F4%2FE%2F8%2F1_hope_wisdom&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243" alt=""> </a> 
+        <div class="author"> 
+         <div class="tt">
+          hope_wisdom
+         </div> 发出的红包 
+        </div> 
+       </header> 
+      </div> 
+      <div class="receive-box"> 
+       <header></header> 
+       <div class="receive-list"> 
+       </div> 
+      </div> 
+     </div> 
+    </div> 
+    <div class="close-btn"></div> 
+   </div> 
+  </div> 
+  <div id="rewardNew" class="reward-popupbox-new"> 
+   <p class="rewad-title">打赏作者<span class="reward-close"><img src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fcsdnimg.cn%2Frelease%2Fblogv2%2Fdist%2Fpc%2Fimg%2FcloseBt.png&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243"></span></p> 
+   <dl class="profile-box"> 
+    <dd> 
+     <a href="https://blog.csdn.net/szkbsgy" data-report-click="{&quot;mod&quot;:&quot;popu_379&quot;,&quot;dest&quot;:&quot;https://blog.csdn.net/szkbsgy&quot;,&quot;ab&quot;:&quot;new&quot;}"> <img src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fprofile.csdnimg.cn%2FE%2F2%2F1%2F3_szkbsgy&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243" class="avatar_pic"> </a> 
+    </dd> 
+    <dt> 
+     <p class="blog-name">浪游东戴河</p> 
+     <p class="blog-discript">你就是这个世界的唯一</p> 
+    </dt> 
+   </dl> 
+   <div class="reward-box-new"> 
+    <div class="reward-content">
+     <div class="reward-right"></div>
+    </div> 
+   </div> 
+   <div class="money-box"> 
+    <span class="choose-money choosed" data-id="2">¥2</span> 
+    <span class="choose-money " data-id="4">¥4</span> 
+    <span class="choose-money " data-id="6">¥6</span> 
+    <span class="choose-money " data-id="10">¥10</span> 
+    <span class="choose-money " data-id="20">¥20</span> 
+    <input id="customizeMoney" class="customize-money" name="" type="" value="" placeholder="自定义"> 
+    <div class="customize-tip">
+     输入1-500的整数
+    </div> 
+   </div> 
+   <div class="pay-box"> 
+    <div class="pay-type-blance pay-type active" data-type="blance"> 
+     <img class="unchoose" src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fcsdnimg.cn%2Frelease%2Fblogv2%2Fdist%2Fpc%2Fimg%2FnewUnChoose.png&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243" alt=""> 
+     <img class="choose" src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fcsdnimg.cn%2Frelease%2Fblogv2%2Fdist%2Fpc%2Fimg%2FnewChoose.png&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243" alt=""> 
+     <span class="pay-type-name">余额支付</span> 
+     <span class="pay-type-num">(余额：-- )</span> 
+    </div> 
+    <div class="pay-type-money pay-type" data-type="money"> 
+     <img class="unchoose" src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fcsdnimg.cn%2Frelease%2Fblogv2%2Fdist%2Fpc%2Fimg%2FnewUnChoose.png&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243" alt=""> 
+     <img class="choose" src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fcsdnimg.cn%2Frelease%2Fblogv2%2Fdist%2Fpc%2Fimg%2FnewChoose.png&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243" alt=""> 
+     <span class="pay-type-name">扫码支付</span> 
+    </div> 
+   </div> 
+   <div class="sure-box"> 
+    <div class="sure-box-money"> 
+     <div class="code-box"> 
+      <div class="code-num-box"> 
+       <span class="code-name">扫码支付：</span>
+       <span class="code-num">¥2</span> 
+      </div> 
+      <div class="code-img-box"> 
+       <div class="renovate"> 
+        <img src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fcsdnimg.cn%2Frelease%2Fblogv2%2Fdist%2Fpc%2Fimg%2Fpay-time-out.png&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243"> 
+        <span>获取中</span> 
+       </div> 
+      </div> 
+      <div class="code-pay-box"> 
+       <img src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fcsdnimg.cn%2Frelease%2Fblogv2%2Fdist%2Fpc%2Fimg%2FnewWeiXin.png&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243" alt=""> 
+       <img src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fcsdnimg.cn%2Frelease%2Fblogv2%2Fdist%2Fpc%2Fimg%2FnewZhiFuBao.png&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243" alt=""> 
+       <span>扫码支付</span> 
+      </div> 
+     </div> 
+    </div> 
+    <div class="sure-box-blance"> 
+     <p class="tip">您的余额不足，请更换扫码支付或<a target="_blank" data-report-click="{&quot;mod&quot;:&quot;1597646289_003&quot;,&quot;spm&quot;:&quot;1001.2101.3001.4302&quot;}" href="https://i.csdn.net/#/wallet/balance/recharge?utm_source=RewardVip" class="go-invest">充值</a></p> 
+     <p class="is-have-money"><a class="reward-sure">打赏作者</a></p> 
+    </div> 
+   </div> 
+  </div> 
+  <div class="pay-code"> 
+   <div class="pay-money">
+    实付
+    <span class="pay-money-span" data-nowprice="" data-oldprice="">元</span>
+   </div> 
+   <div class="content-blance">
+    <a class="blance-bt" href="javascript:;">使用余额支付</a>
+   </div> 
+   <div class="content-code"> 
+    <div id="payCode" data-id=""> 
+     <div class="renovate"> 
+      <img src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fcsdnimg.cn%2Frelease%2Fblogv2%2Fdist%2Fpc%2Fimg%2Fpay-time-out.png&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243"> 
+      <span>点击重新获取</span> 
+     </div> 
+    </div> 
+    <div class="pay-style">
+     <span><img src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fcsdnimg.cn%2Frelease%2Fblogv2%2Fdist%2Fpc%2Fimg%2Fweixin.png&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243"></span>
+     <span><img src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fcsdnimg.cn%2Frelease%2Fblogv2%2Fdist%2Fpc%2Fimg%2Fzhifubao.png&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243"></span>
+     <span><img src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fcsdnimg.cn%2Frelease%2Fblogv2%2Fdist%2Fpc%2Fimg%2Fjingdong.png&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243"></span>
+     <span class="text">扫码支付</span>
+    </div> 
+   </div> 
+   <div class="bt-close">
+    <svg t="1567152543821" class="icon" viewbox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="10924" xmlns:xlink="http://www.w3.org/1999/xlink" width="12" height="12">
+     <defs>
+      <style type="text/css"></style>
+     </defs>
+     <path d="M512 438.378667L806.506667 143.893333a52.032 52.032 0 1 1 73.6 73.621334L585.621333 512l294.485334 294.485333a52.074667 52.074667 0 0 1-73.6 73.642667L512 585.621333 217.514667 880.128a52.053333 52.053333 0 1 1-73.621334-73.642667L438.378667 512 143.893333 217.514667a52.053333 52.053333 0 1 1 73.621334-73.621334L512 438.378667z" fill="" p-id="10925"></path>
+    </svg>
+   </div> 
+   <!-- <p style="margin-top: 8px;font-size: 14px;" class="text-center">支付成功即可阅读</p> --> 
+   <div class="pay-balance"> 
+    <input type="radio" class="pay-code-radio" data-type="details"> 
+    <span class="span">钱包余额</span> 
+    <span class="balance" style="color:#FC5531;font-size:14px;">0</span> 
+    <div class="pay-code-tile"> 
+     <img src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fcsdnimg.cn%2Frelease%2Fblogv2%2Fdist%2Fpc%2Fimg%2Fpay-help.png&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243" alt=""> 
+     <div class="pay-code-content"> 
+      <div class="span"> 
+       <p class="title">抵扣说明：</p> 
+       <p> 1.余额是钱包充值的虚拟货币，按照1:1的比例进行支付金额的抵扣。<br> 2.余额无法直接购买下载，可以购买VIP、C币套餐、付费专栏及课程。</p> 
+      </div> 
+     </div> 
+    </div> 
+   </div> 
+   <a class="pay-balance-con" href="https://i.csdn.net/#/wallet/balance/recharge" target="_blank"><img src="https://pucsdn.com//main/csdn/img?url=https%3A%2F%2Fcsdnimg.cn%2Frelease%2Fblogv2%2Fdist%2Fpc%2Fimg%2Frecharge.png&amp;rfUrl=https%3A%2F%2Fblog.csdn.net%2Fszkbsgy%2Farticle%2Fdetails%2F128330243" alt=""><span>余额充值</span></a> 
+  </div> 
+  <div style="display:none;">  
+  </div> 
+  <div class="keyword-dec-box" id="keywordDecBox"></div>     
+  <link rel="stylesheet" href="https://csdnimg.cn/release/blog_editor_html/release1.6.12/ckeditor/plugins/codesnippet/lib/highlight/styles/atom-one-light.css">                  
+ </body>
+</html>

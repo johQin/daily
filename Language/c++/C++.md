@@ -1594,7 +1594,13 @@ sizeof(ClassName)——计算的是类对象所占的空间大小。
 
 **this指针指向当前对象（正在调用成员函数的对象）**
 
-成员函数通过this指针即可知道当前正在操作哪个对象的数据。**this指针是一种隐含指针，它隐含于每个类的非静态成员函数中**，this指针无需定义，直接使用
+**成员函数通过this指针即可知道当前正在操作哪个对象的数据**。**this指针是一种隐含指针，它隐含于每个类的非静态成员函数中**，this指针无需定义，直接使用
+
+![img](file:///C:/Users/10365/AppData/Local/Temp/msohtmlclip1/01/clip_image001.gif)this指针是类的指针，指向对象的首地址。
+
+![img](file:///C:/Users/10365/AppData/Local/Temp/msohtmlclip1/01/clip_image002.gif)this指针只能在成员函数中使用，在全局函数、静态成员函数中都不能用this。
+
+![img](file:///C:/Users/10365/AppData/Local/Temp/msohtmlclip1/01/clip_image003.gif)this指针只有在成员函数中才有定义，且存储位置会因编译器不同有不同存储位置。
 
 ```c++
 class Data {
@@ -2344,7 +2350,13 @@ enum class Status;		//默认底层型别是int
 enum class Status:std::uint32_t; //修改底层型别为uint32_t
 ```
 
+## 2.14 类的内存管理
 
+类的静态成员变量在类定义时就已经在全局数据区（未初始化全局变量和已初始化全局变量区）分配了内存。
+
+类成员函数是被放在代码区。为运行函数而分配的局部变量、函数参数、返回数据、返回地址等存放在栈区；
+
+对于非静态成员变量，我们是在类的实例化过程中(构造对象)才在栈区或者堆区为其分配内存，是为每个对象生成一个拷贝，所以它是属于对象的。
 
 # 3 继承
 
