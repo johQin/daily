@@ -1200,7 +1200,27 @@ if __name__ =='__main__' :
 为了让python找到我们编写（或第三方提供）的模块，可以用以下两种方式来告诉它。
 
 - 使用环境变量
-- 将模块放在默认的模块加载路径下。（lib\site-packages）路径，它专门用于存放python的扩展模块和包
+- 将模块放在默认的模块加载路径下。（lib\site-packages，通过print(sys.path)可以找到模块存放的路径）路径，它专门用于存放python的扩展模块和包
+
+#### python导入自定义模块的几种方法
+
+1. 直接 import
+
+   - 前提：你的 py 执行文件和模块同属于同个目录 (父级目录)。
+
+2. 通过 sys 模块导入自定义模块的 path
+
+   ```python
+   # 手动导入当前工具包
+   import os
+   curPath = os.path.abspath(os.path.dirname(__file__))
+   # 获取项目根路径，内容为当前项目的名字
+   rootPath = curPath[:curPath.find('ps')+len('ps')]
+   utilsPath= rootPath + r"/utils"
+   sys.path.append(utilsPath)
+   ```
+
+3. 把自定义模块（代码）放入模块路径（sys.path）下，编译器通过 path 找到自定义模块
 
 ## 9.2 包
 
@@ -1315,3 +1335,43 @@ for i in range(5):
 1. **id( obj )**：
    - 查看对象内存地址
 2. 
+
+# 开发日志
+
+1. [Python合并2个字典成1个新字典的9种方法](https://blog.csdn.net/xzmlwwb/article/details/125219343)
+
+2. [深拷贝](https://zhuanlan.zhihu.com/p/532260575)
+
+3. [乘法运算符将指定字符重复 N 次](https://www.jiyik.com/tm/xwzj/prolan_2194.html)
+
+   ```python
+   my_str = 'a' * 5
+   print(my_str)  # aaaaa
+   ```
+
+4. 将列表转为字符串
+
+   ```python
+   lis = ['1','2','3','4','5']
+   s = " " .join (lis)
+   print(s)st
+   
+   list1 = [1, 2, 3]
+   ans = ",".join(map(str, list1))
+   print(ans) # 1,2,3
+   ```
+
+5. [Python中导入自定义模块的几种方法总结](https://www.jb51.net/article/271629.htm)
+
+6. [python获取项目根路径](https://blog.csdn.net/lovedingd/article/details/126479745)
+
+7. [Python for 循环解包两个列表](https://blog.csdn.net/qq_41737845/article/details/129215544)
+
+   ```python
+   arr1 = [5,3,1]
+   arr2 = [2,5,0]
+   res = [a-b for a,b in zip(arr1,arr2)]
+   print(res)# [3,-2,1]
+   ```
+
+8. 

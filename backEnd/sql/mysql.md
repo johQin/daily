@@ -498,6 +498,14 @@ a.*,
 2. **where肯定在group by 之前。**
 3. where后的条件表达式里不允许使用聚合函数，而having可以
 
+```sql
+# 以下二句等价
+select * from stu where age between 20 and 40;
+select * from stu where age >= 20 and age <=40;
+```
+
+
+
 ## 6.2 模糊查询(LIKE)
 
 关键字：
@@ -553,7 +561,7 @@ SELECT COUNT(列名)  |  SUM(列名)  |  AVG(列名)  |  MAX(列名)  |  MIN(列
 
 ```
 
-## 6.5 分组查询
+## 6.5 [分组查询(GROUP)](https://blog.csdn.net/weixin_38192427/article/details/120403026)
 
 GROUP BY 语句常结合一些聚合函数来使用
 
@@ -712,6 +720,8 @@ sql执行顺序
 ```mysql
 select distinct expression[,expression...] from tables [where conditions];
 ```
+
+
 
 ## 6.12 查询优化
 
