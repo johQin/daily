@@ -1,4 +1,7 @@
+# Markdown
+
 # 1. 标题
+
     h1~h6 n个'#' 开头 空格隔开，h1一下面有横线，可两头加n个'#',空格隔开，形成闭合标签，按对应的字体书写内容，
     
     内容换行需要回车两下，中间要空一行，不然换行后，内容还是连续的。
@@ -246,6 +249,12 @@ f
 
 1. https://www.jianshu.com/p/335db5716248
 2. https://blog.csdn.net/mingzhuo_126/article/details/82722455
+
+
+
+# [Mermaid](https://www.jianshu.com/p/6e46a1498e4c)
+
+Mermaid 是一种类似于 Markdown 的语法，您可以在其中使用文本来描述和自动生成图表。使用 Mermaid 的受 Markdown 启发的语法，您可以生成流程图、UML 图、饼图、甘特图等。
 
 
 
