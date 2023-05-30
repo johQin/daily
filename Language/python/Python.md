@@ -1374,4 +1374,14 @@ for i in range(5):
    print(res)# [3,-2,1]
    ```
 
-8. 
+8. [判断是否字典里是否包含key](https://blog.csdn.net/zz00008888/article/details/127632381)
+
+9. 复制字典中的key，并且置value为0
+
+   ```python
+   { k:0 for k in enterMineDict.keys()}
+   ```
+
+   
+
+10. 

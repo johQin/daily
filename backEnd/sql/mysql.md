@@ -1365,6 +1365,36 @@ where instance_id = '1234' );
 
 5. 
 
+# 8 数据库函数
+
+## 8.1 时间函数
+
+1. [不同类型时间之间的转换](https://blog.csdn.net/lvhui321/article/details/123738614)
+
+   ```sql
+   # date类型转换为时间戳
+   select now(),unix_timestamp(now());
+   # 2023-05-30 14:16:03	1685427363
+   
+   # date类型转换为字符串
+   select now(), DATE_FORMAT(now(),"%Y-%m-%d %H:%i:%s");
+   
+   # 字符串转date类型
+   STR_TO_DATE("2023-5-23 10:15:13","%Y-%m-%d %H:%i:%s");
+   # 将指定的时间格式的字符串按照格式转换为DATETIME类型的值。str要与format的格式保持一致，否则会报错。
+   
+   # 字符串转时间戳
+   SELECT UNIX_TIMESTAMP('2022-03-25 11:22:13');
+   
+   # 时间戳转字符串
+   SELECT FROM_UNIXTIME(1648178533,'%Y-%m-%d %H:%i:%s');
+   
+   # 时间戳转date类型
+   SELECT FROM_UNIXTIME(1648178533);
+   ```
+
+2. 
+
 # 9.数据库配置
 
 ```mysql
