@@ -2548,7 +2548,7 @@ bash只能够管理自己的工作而不能管理其他bash的工作
       328886  328887  328886  328886 ?             -1 S       74   0:00      \_ sshd: root [net]
      ```
 
-   - 
+   - **ps ajx | head -1 && ps ajx | grep ‘程序名’**，并显示第一行的所有列的列名
 
 2. **top**
 
@@ -2900,7 +2900,7 @@ super daemon本身也是一个stand alone的服务。super daemon 的启动方�
 
 ## 13.2 super daemon 的配置文件
 
-super daemon它是一个可以管理多个daemon的进程，，这个super daemon是xinetd这个进程所实现的。
+super daemon它是一个可以管理多个daemon的进程，，这个**super daemon是xinetd这个进程所实现的**。
 
 如果在/etc下没有xinetd.conf，说明你没有安装此服务。通过yum install xinetd安装即可
 
@@ -3008,6 +3008,8 @@ service_name:<ip,domain,hostname>:action
 
 ### 查看系统已启动的服务
 
+ps
+
 **netstat -tlup**，**参数n可以查看端口号**
 
 ```bash
@@ -3018,6 +3020,8 @@ tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN      
 
 ### 开机立即启动服务
 
+#### chkconfig
+
 netstat仅能查看到目前已经开启的daemon，使用service或者 “/etc/init.d/* start”的方法仅能在目前环境下立即启动某个服务。如何在重启后，进行自启动服务？
 
 1. **chkconfig** 
@@ -3027,13 +3031,20 @@ netstat仅能查看到目前已经开启的daemon，使用service或者 “/etc/
    - level—设置某个服务在该level下启动 or 关闭
    - chkconfig仅是设置开机时默认启动的服务而已，
 
-#### 设置自己的系统服务
+##### 设置自己的系统服务
 
 **如果我自己写了一个程序并且想要让该程序成为系统服务好让chkconfig来管理，我们只需要将该服务加入init可以管理的script当中，即是/etc/init.d/。并且将服务通过chkconfig加入服务管理序列中即可**
 
 **chkconfig [ --add | del ] [ 服务名称 ]**
 
 **服务名称必须和/etc/init.d/下的script脚本名称相同**
+
+#### rc.local
+
+- 修改/etc/rc.d/rc.local（如果没有，则修改/etc/rc.local文件，再没有，就生成一个rc.local)，添加自定义的脚本至文件最后
+- 开启rc.local服务
+- rc.local服务使能。
+- 注意：脚本必须使用exit 0结束
 
 # 14 软件安装
 

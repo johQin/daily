@@ -679,6 +679,12 @@ SELECT name FROM student UNION ALL SELECT name FROM teacher;#只要前面的字�
 SELECT name FROM student WHERE id IN( SELECT stu_id FROM mark );
 ```
 
+### IN字句
+
+Oracle中，in语句中可放的最大参数个数是1000个。
+
+ mysql中，in语句中参数个数是不限制的。不过对整段sql语句的长度有了限制（ max_allowed_packet）。默认是4M
+
 ## 6.9 查询条数限制(LIMIT)
 
 序号从0开始算，第一条记录的序号为0。

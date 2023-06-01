@@ -2421,6 +2421,8 @@ printf("没有定义Z小旋");
 #endif 
 
 
+//#include guards，也叫 header guard，macro guard，file guard。
+//在头文件中定义一个唯一标识该头文件的宏，然后通过判断该宏是否被定义来决定是否编译其中内容
 #ifndef _DataCollect_H_
 #define _DataCollect_H_
 
@@ -2431,6 +2433,93 @@ printf("没有定义Z小旋");
 ```
 
 ![](./legend/条件编译宏.png)
+
+### 9.3.1 [避免头文件内容被重复包含（头文件内容被重复编译）](https://www.cnblogs.com/opangle/p/2650814.html)
+
+```c
+// file: headerA.h
+struct foo
+{
+    int member;
+};
+
+// file: headerB.h
+#include "headerA.h"
+...
+
+// file: main.cpp
+#include "headerA.h"
+#include "headerB.h"
+int main()
+{
+    return 0;
+}
+```
+
+
+
+#### include guard
+
+也叫 header guard，macro guard，file guard。
+
+```c
+#ifndef uniquexxx
+#define uniquexxx
+...
+#endif
+```
+
+在头文件中定义一个唯一标识该头文件的宏，然后通过判断该宏是否被定义来决定是否编译其中内容。
+
+```c
+// file: headerA.h
+#ifndef __HEADER_A_H__
+#define __HEADER_A_H__
+struct foo
+{
+    int member;
+};
+#endif
+
+// file: headerB.h
+#include "headerA.h"
+
+// file: main.cpp
+#include "headerA.h"
+#include "headerB.h"
+int main()
+{
+    return 0;
+}
+```
+
+#### pragma once
+
+在每一个头文件中添加预处理指令来避免头文件内容重复被包含，这也是我们最常见的处理方式。但是有一个问题：其中标识头文件的宏必须唯一。
+
+当程序使用第三方库时，这一点很难完全保证，因此，目前的很多编译器（包括gcc、clang、vc、intel c++ complier等）提供了预处理指令#pragma once来解决这个问题。
+
+```c
+// file: headerA.h
+#pragma once
+struct foo
+{
+    int member;
+};
+
+// file: headerB.h
+#include "headerA.h"
+
+// file: main.cpp
+#include "headerA.h"
+#include "headerB.h"
+int main()
+{
+    return 0;
+}
+```
+
+\#pragma once并不是C++标准规定的，但是很多编译器都支持它。
 
 ## 9.4 预定义宏
 

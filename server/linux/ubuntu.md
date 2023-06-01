@@ -31,7 +31,22 @@
 
    `find /sbin -perm +700 |xargs ls -l`，将前一个命令find的std ，通过xargs，输出给ls作参数。
 
-6. 
+6. 查找运行的进程中是否包含某个进程
+
+   ```bash
+   ps ajx | head -1 && ps ajx | grep 'ssd' 	# 带列名的展示
+      PPID     PID    PGID     SID TTY        TPGID STAT   UID   TIME COMMAND
+      2000   24119    2000    2000 ?             -1 Sl    1000   0:00 /usr/libexec/gvfsd-dnssd --spawner :1.2 /org/gtk/gvfs/exec_spaw/3
+      6967  298419  298418    6967 pts/0     298418 S+    1000   0:00 grep --color=auto ssd
+   
+   ```
+
+7. [service和systemctl的区别](https://blog.csdn.net/juanxiaseng0838/article/details/124123822)
+
+   - service命令其实是去/etc/init.d目录下，去执行相关程序
+   - systemctl是一个systemd工具，主要负责控制systemd系统和服务管理器。在/lib/systemd/system
+
+8. 
 
 # 3 ubuntu软件安装
 
@@ -115,9 +130,10 @@
 # 6 操作
 
 1. linux设置开机自动执行脚本
-   - 修改/etc/rc.d/rc.local（如果没有，则修改/etc/rc.local文件，再没有，就生成一个rc.local)
+   - 修改/etc/rc.d/rc.local（如果没有，则修改/etc/rc.local文件，再没有，就生成一个rc.local)，添加自定义的脚本至文件最后
    - 开启rc.local服务
    - rc.local服务使能。
+   - 注意：脚本必须使用exit 0结束，
 2. ubuntu系统的hosts（ip和域名映射）：/etc/hosts
 3. [ubuntu 初次使用root身份登录](https://blog.csdn.net/weixin_56364629/article/details/124608110)
 4. [ubuntu图像化界面不允许root用户登陆](https://blog.csdn.net/Ki_Ki_/article/details/128832659)

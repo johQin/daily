@@ -181,7 +181,7 @@ print("%s is a %s years old boy" % (user,age));
 
 6. 逻辑运算符，**and，or，not**
 
-7. in运算符，用于判断某个成员是否位于序列中
+7. in运算符（not in），用于判断某个成员是否位于序列中
 
    <h5>三目运算符
 
@@ -791,7 +791,7 @@ class Person :
    	#普通实例方法的self指向调用方法的对象
     def jump(self):
         print("正在执行jump方法")
-    der run(self):
+    def run(self):
         #在实例方法内，调用另一个实例方法时，不能省略调用的对象self
         self.jump()
         print("正在执行run方法")
@@ -905,8 +905,8 @@ class RectAngle:
     def delSize(self):
         self.width=0
         self.height=0
-#计算属性：size
-size=property(getSize,setSize,delSize,'用于描述矩形大小的属性')
+	#计算属性：size
+	size=property(getSize,setSize,delSize,'用于描述矩形大小的属性')
 
 print(RectAngle.size.__doc__)
 help(RectAngle.size)
@@ -922,17 +922,23 @@ del rect.size
 print(rect.width)#0
 print(rect.height)#0
 
+class Cell(object):
+    def __init__(self):
+        self._state = None
 
-@property#为state属性定义getter方法
-def state(self):
-    return self._state
-@state.setter#为state属性定义setter方法
-def state(self,val):
-    if 'alive' in value.lower():
-        self._state='alive'
-    else:
-        self._state='dead'
-#如果只定义了如上两个方法，那么属性只有读写两个方法
+    @property#为state属性定义getter方法
+    def state(self):
+        return self._state
+    @state.setter#为state属性定义setter方法
+    def state(self,val):
+        if 'alive' in value.lower():
+            self._state='alive'
+        else:
+            self._state='dead'
+    @state.deleter
+    def state(self):
+        del self._state
+#如果只定义了如上三个方法，那么属性只有读写删三个方法
 c=Cell()
 c.state='alive'
 print(c.state)#alive
@@ -1101,6 +1107,73 @@ class Orientation(enum.Enum):
 Orientation.East.info()#这是代表东的枚举
 ```
 
+## 6.9 接口类
+
+接口类实际上就是一个规范子类的类
+
+- 接口类内部的方法本身不实现（都必须是抽象方法），子类继承接口类，子类必须实现接口的功能，否则报错。
+
+  `TypeError: Can't instantiate abstract class 父类 with abstract methods 父类的抽象方法`
+
+- 每个方法都是抽象方法，不可实例化
+
+在Python中定义一个接口类，我们需要**`abc模块`（抽象类基类，Abstract Base Classes）**中的两个工具
+
+- ABCMeta：抽象类元类，默认情况下object类是所有自定义类的"元类"
+- abstractmethod：抽象方法装饰器
+
+```python
+from abc import ABCMeta,abstractmethod #从abc模块中导入ABCMeta这个元类
+class GraphicRule(metaclass=ABCMeta): #接口类:
+    @abstractmethod
+    def area(self,length,width):
+        pass
+    @abstractmethod
+    def perimeter(self,length,width):
+        pass
+
+class Rectangle(GraphicRule): #子类继承了接口类后,才可以实现接口类中指定好的规范
+    def __init__(self,length,width):
+        self.length = length
+        self.width = width
+    #对父类这个接口类中指定好的规范进行实现
+    def area(self,length,width):
+        return length * width
+    def perimeter(self,length,width):
+        return (length+width)*2
+
+r = Rectangle(2,3)
+r.area(2,3)
+```
+
+
+
+## 6.10 抽象类
+
+- 如果类是从现实对象抽象而来的，那么抽象类就是基于类抽象而来的。
+- 抽象类中**有抽象方法**，也有实例方法，该类**不能被实例化**，只能被继承，且子类必须实现所有抽象方法（否则仍然是一个抽象类）。
+
+```python
+from abc import abstractmethod, ABCMeta
+class Fruit(metaclass=ABCMeta):
+    @abstractmethod
+    def func1(self):
+        pass
+    @abstractmethod
+    def func2(self):
+        pass
+    #可以定义正常方法
+    def normalFunc(self):
+        print('i am nomal func!')
+class Apple(Fruit):
+    def func1(self):
+        print('i am func1')
+    def func2(self):
+        print('i am func2')
+        
+Apple().normalFunc()
+```
+
 # 9 模块和包
 
 python3的标准库[参考文档](https://docs.python.org/3/library/index.html)
@@ -1222,6 +1295,12 @@ if __name__ =='__main__' :
 
 3. 把自定义模块（代码）放入模块路径（sys.path）下，编译器通过 path 找到自定义模块
 
+#### 重复导入
+
+python多个模块导入一个公共模块，这多个模块又被导入一个模块中，会不会重复导入？
+
+只有在程序执行过程中*第一次* `import` 模块才会被加载。在第一个导入之后的每个进一步导入都只是从“缓存”字典(`sys.modules`，由模块名称字符串索引)获取模块对象，因此它非常快和没有副作用。因此，不需要守卫。
+
 ## 9.2 包
 
 为了更好地管理多个模块源文件，python提供了包的概念。
@@ -1246,6 +1325,8 @@ from .module1 import *
 ```
 
 有相对路径导入方法
+
+[如何构建自己的包并发布](https://zhuanlan.zhihu.com/p/609180587)
 
 # 10 常见模块
 
