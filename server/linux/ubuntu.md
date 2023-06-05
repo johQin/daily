@@ -72,17 +72,26 @@
 
    - [安装mysql8.0](https://segmentfault.com/a/1190000039203507)
 
-   - [navicat无限试用](https://www.xmmup.com/linuxubuntuxianavicat-premium-16dewuxianshiyong.html)
+8. [安装navicat15](https://www.bilibili.com/read/cv18230089/)
 
-     naicat.AppImage文件需要用“磁盘映像挂载器”挂载到磁盘上，然后提取其中的png，以创建桌面快捷方式
+   naicat.AppImage文件需要用“磁盘映像挂载器”挂载到磁盘上，然后提取其中的png，以创建桌面快捷方式
 
-     网络上有关于appImage文件通过 --appimage-extract进行解压，但在这里好像没有生效。
+   网络上有关于appImage文件通过 --appimage-extract进行解压，但在这里好像没有生效。
 
-8. [ubuntu安装essayconnect](https://blog.csdn.net/weixin_37926734/article/details/123068318)
+   ```bash
+   # 挂载当前镜像文件到某个文件夹
+   mount -o loop navicat15-premium-en.AppImage ./n15
+   # 把镜像中的文件铐出来
+   cp -r n15 n15p
+   # 然后就可以卸载镜像，只有卸载挂载之后才能删除这个挂载点文件
+   umount n15 && rm -r n15
+   ```
+
+9. [ubuntu安装essayconnect](https://blog.csdn.net/weixin_37926734/article/details/123068318)
 
    - [essay安装后无法打开的问题](https://blog.csdn.net/u011426115/article/details/126660001)
 
-9. [vi 编辑写入保存和退出](https://blog.csdn.net/qq_33093289/article/details/127915742)
+10. [vi 编辑写入保存和退出](https://blog.csdn.net/qq_33093289/article/details/127915742)
 
    默认linux系统都有vi，而没有vim，安装vim：sudo apt install vim
 
