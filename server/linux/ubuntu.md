@@ -46,7 +46,9 @@
    - service命令其实是去/etc/init.d目录下，去执行相关程序
    - systemctl是一个systemd工具，主要负责控制systemd系统和服务管理器。在/lib/systemd/system
 
-8. 
+8. `mkdir-p test/test1/test2` 自行创建多层目录
+
+9. 
 
 # 3 ubuntu软件安装
 
@@ -91,7 +93,9 @@
 
    - [essay安装后无法打开的问题](https://blog.csdn.net/u011426115/article/details/126660001)
 
-10. [vi 编辑写入保存和退出](https://blog.csdn.net/qq_33093289/article/details/127915742)
+10. [安装nodejs](https://zhuanlan.zhihu.com/p/531851060)
+
+11. [vi 编辑写入保存和退出](https://blog.csdn.net/qq_33093289/article/details/127915742)
 
    默认linux系统都有vi，而没有vim，安装vim：sudo apt install vim
 
@@ -101,8 +105,8 @@
       - 按【ESC】键跳到命令模式
 
           　　1. 按【ESC】键跳到命令模式，然后再按【:】冒号键，最后再按【wq】，即可保存退出vi的编辑状态；
-            　　2. 如果是不想保存直接按下【:】冒号键加【q!】键，就能直接退出，不保存；
-              　　3. 此外还有这些命令，
+                　　2. 如果是不想保存直接按下【:】冒号键加【q!】键，就能直接退出，不保存；
+                    　　3. 此外还有这些命令，
                - :w 保存文件但不退出vi；
                - :w file 将修改另外保存到file中，不退出vi；
                - :w! 强制保存，不推出vi；
