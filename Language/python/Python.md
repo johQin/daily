@@ -1326,6 +1326,8 @@ from .module1 import *
 
 有相对路径导入方法
 
+[`__init__.py 和__all__` 详解](https://zhuanlan.zhihu.com/p/571294861)
+
 [如何构建自己的包并发布](https://zhuanlan.zhihu.com/p/609180587)
 
 # 10 常见模块

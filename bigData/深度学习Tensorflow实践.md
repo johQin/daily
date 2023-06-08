@@ -216,6 +216,10 @@ GPU版TensorFlow：conda install tensorflow-gpu
 
 由于tensorflow2.x与tensorflow1.x区别较大，很多函数的操作写法都不尽相同，视频上的版本为1.2.1，代码都是在1.2.1的基础上写成的
 
+## 0.6  模块安装log
+
+1. [No Module Named 'Symbol'](https://stackoom.com/en/question/4nDnI)
+
 # 1 TensorFlow编程基础
 
 TensorFlow是一个开放源代码软件库，用于高性能科学计算。
@@ -1891,6 +1895,5 @@ $$
  		ksize：池化窗口的大小
  		stride：图像每一维的步长
 </pre>
-
 
 
