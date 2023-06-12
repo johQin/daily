@@ -49,8 +49,11 @@
 
 查看版本：mysql --version
 
-```my
+```bash
 mysql -uroot [-hlocalhost] -proot
+
+# 添加环境变量
+/install_path/mysql/bin
 ```
 
 ## 1.5 sql语句书写规则

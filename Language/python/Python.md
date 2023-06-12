@@ -337,12 +337,21 @@ a_dict['math']=150
 a_dict['english']=100
 #删
 del a_dict[('biology','geography','history')]
+
+# 字典合并，有则更，无则增
+a = {1: 'a', 2: 'aa'}
+b = {3: 'aaa', 4: 'aaaa'}
+dict(a, **b)
+# {1: 'a', 2: 'aa', 3: 'aaa', 4: 'aaaa'}
+a.update(b)
+print(a)
+# {1: 'a', 2: 'aa', 3: 'aaa', 4: 'aaaa'}
 ```
 
 6. 其他方法
    - clear()：清空字典，返回空字典{}
    - get()：无key则返None
-   - update()：有则更，无则增
+   - **update()：有则更，无则增**
    - items(),keys(),values()：返回键值对，键，值的对象，可通过list做转换
    - pop(),popitem()
    - fromkeys()
