@@ -1,6 +1,33 @@
 # [CMAKE](https://cmake.org)
 
-1. [add_library](https://www.jianshu.com/p/31db466bc4e5)：用指定文件给工程添加一个库（这个库一般在工程的子目录下），子目录有自己的CMakeLists，但不编译库
+1. [add_executable](https://blog.csdn.net/HandsomeHong/article/details/122402395)
+
+   ```cmake
+   # 使用指定的源文件创建出一个可执行文件（target）
+   
+   # 1. 普通可执行文件
+   add_executable(<name> [WIN32] [MACOSX_BUNDLE]
+                  [EXCLUDE_FROM_ALL]
+                  [source1] [source2 ...])
+   # name：可执行文件名（target name）
+   # [source]: 构建可执行目标文件所需要的源文件。也可以通过target_sources(在add_executable或add_library之后使用)继续为可执行目标文件添加源文件
+   
+   # 2. 导入可执行文件
+   add_executable(<name> IMPORTED [GLOBAL])
+   
+   set(GIT_EXECUTABLE "/usr/local/bin/git")
+   add_executable(Git::Git IMPORTED)
+   set_property(TARGET Git::Git PROPERTY IMPORTED_LOCATION "${GIT_EXECUTABLE}") 
+   
+   # 3. 别名可执行文件
+   add_executable(<name> ALIAS <target>)
+   # 为目标文件取一个别名，以便后续继续使用。为目标创建别名之后，可以使用别名读取目标的属性，但不能修改目标属性。
+   # The <target> may not be an ALIAS.
+   ```
+
+   
+
+2. 声明或手动编译一个库（target）[add_library](https://www.jianshu.com/p/31db466bc4e5)：用指定文件给工程添加一个库（这个库一般在工程的子目录下），子目录有自己的CMakeLists，但不编译库（由上层主动编译），除非手动
 
    - [包括](https://cmake.org/cmake/help/latest/command/add_library.html#command:add_library)：
 
@@ -42,7 +69,7 @@
 
    
 
-2. [add_subdirectory](https://www.jianshu.com/p/07acea4e86a3)：为工程（父目录）添加一个子目录（source_dir），并按照子目录下的CMakeLists.txt构建（编译）该子目录，然后将构建产物输入到binary_dir。主要为工程（父目录）编译库（子目录，至于是动态库还是静态库，由子目录下的CMakeLists.txt 里的add_library 参数决定）
+3. 编译一个库：[add_subdirectory](https://www.jianshu.com/p/07acea4e86a3)：为工程（父目录）添加一个子目录（source_dir），并按照子目录下的CMakeLists.txt构建（编译）该子目录，然后将构建产物输入到binary_dir。主要为工程（父目录）编译库（子目录，至于是动态库还是静态库，由子目录下的CMakeLists.txt 里的add_library 参数决定）
 
    ```bash
    add_subdirectory (source_dir [binary_dir] [EXCLUDE_FROM_ALL])
@@ -61,7 +88,7 @@
    # 例外情况：当父目录的目标依赖于子目录的目标，则子目录的目标仍然会被构建出来以满足依赖关系（例如使用了target_link_libraries）
    ```
 
-3. 链接库：link_directories,  LINK_LIBRARIES,  target_link_libraries
+4. 链接一个库：link_directories,  LINK_LIBRARIES,  target_link_libraries
 
    - ```cmake
      # 1.添加需要链接的库文件目录（https://blog.csdn.net/fengbingchun/article/details/128292359）
@@ -94,7 +121,7 @@
 
    - **target_link_libraries 要在 add_executable '之后'，link_libraries 要在 add_executable '之前'**
 
-4. 包含头：[include_directories](https://blog.csdn.net/sinat_31608641/article/details/121666564)，[target_include_directories](https://blog.csdn.net/sinat_31608641/article/details/121713191)
+5. 包含头：[include_directories](https://blog.csdn.net/sinat_31608641/article/details/121666564)，[target_include_directories](https://blog.csdn.net/sinat_31608641/article/details/121713191)
 
    ```cmake
    # 将指定目录添加到编译器的头文件搜索路径之下，指定的目录被解释成当前源码路径的相对路径。
@@ -119,7 +146,7 @@
 
    
 
-5. 
+6. 
 
 
 
@@ -132,7 +159,92 @@
    aux_source_directory(< dir > < variable >)
    ```
 
+2. 可设置全局属性：set_property和get_property
+
+   ```cmake
+   set_property(<GLOBAL                      |
+                 DIRECTORY [<dir>]           |
+                 TARGET    [<target1> ...]   |
+                 SOURCE    [<src1> ...]
+                           [DIRECTORY <dirs> ...]
+                           [TARGET_DIRECTORY <targets> ...] |
+                 INSTALL   [<file1> ...]     |
+                 TEST      [<test1> ...]     |
+                 CACHE     [<entry1> ...]    >
+                [APPEND] [APPEND_STRING]
+                PROPERTY <name> [<value1> ...])
+    
+    # 其基本格式为：
+    set_property(<Scope> [APPEND] [APPEND_STRING] PROPERTY <name> [value...])
+    # Scope：属性的范围，
+    # [APPEND | APPEND_STRING] 可选，表示属性是可扩展的列表。
+    # PROPERTY 是标识
+    # name：属性名称
+    # value：属性值，其值可选。
+    
+    add_executable(foo foo.cpp)
+    set_target_properties(foo PROPERTIES
+       CXX_STANDARD 14
+       CXX_EXTENSIONS OFF
+   )
+   ```
+
+   <table><tbody><tr><td> <p style="text-align:center;">Scope</p> </td><td> <p style="text-align:center;">Description</p> </td><td> <p style="text-align:center;">相似命令</p> </td></tr><tr><td> <p>GLOBAL</p> </td><td> <p>属性在全局范围内有效，属性名称需唯一</p> </td><td></td></tr><tr><td> <p>DIRECTORY</p> </td><td> <p>在指定目录内有效，可以是相对路径也可以是绝对路径</p> </td><td> <p>set_directory_properties</p> </td></tr><tr><td> <p>TARGET</p> </td><td> <p>设置指定 TARGET 的属性</p> </td><td> <p>set_target_properties/get_target_property</p> </td></tr><tr><td> <p>SOURCE</p> </td><td> <p>属性对应零个或多个源文件。默认情况下，源文件属性仅对添加在同一目录 (CMakeLists.txt) 中的目标可见。</p> </td><td> <p>set_source_files_properties</p> </td></tr><tr><td> <p>INSTALL</p> </td><td> <p>属性对应零个或多个已安装的文件路径。这些可供 CPack 使用以影响部署。</p> </td><td></td></tr><tr><td> <p>TEST</p> </td><td> <p>属性对应零个或多个现有测试。</p> </td><td> <p>set_tests_properties</p> </td></tr><tr><td> <p>CACHE</p> </td><td> <p>属性对应零个或多个缓存现有条目。</p> </td><td></td></tr></tbody></table>
+
+   ```cmake
+   # 将属性值存放在变量中
+   get_property(<variable>
+                <GLOBAL             |
+                 DIRECTORY [<dir>]  |
+                 TARGET    <target> |
+                 SOURCE    <source>
+                           [DIRECTORY <dir> | TARGET_DIRECTORY <target>] |
+                 INSTALL   <file>   |
+                 TEST      <test>   |
+                 CACHE     <entry>  |
+                 VARIABLE           >
+                PROPERTY <name>
+                [SET | DEFINED | BRIEF_DOCS | FULL_DOCS])
+   # variable：变量名
+   # GLOBAL/DIRECTORY ... /VARIABLE：表示属性对应的范围，与 set_property() 相同
+   # PROPERTY <name> : 属性名，同 set_property()
    
+   # [SET | DEFINED | BRIEF_DOCS | FULL_DOCS] : 可选参数
+   
+   # SET : 将变量设置为布尔值，指示是否已设置属性；
+   # DEFINED : 将变量设置为布尔值，指示属性是否已被定义
+   # BRIEF_DOCS | FULL_DOCS : 如果给定了 Brief_DOCS 或 FULL_DOCS，则将变量设置为包含所请求属性的文档的字符串。
+   
+   ```
+
+   ```cmake
+   
+   # 例子
+   #CMakeLists.txt
+   cmake_minimum_required(VERSION 3.10.2)
+   project(test)
+   
+   set(GIT_EXECUTABLE "/usr/local/bin/git")
+   add_executable(Git::Git IMPORTED)
+   set_property(TARGET Git::Git PROPERTY IMPORTED_LOCATION "${GIT_EXECUTABLE}") 
+   # https://cmake.org/cmake/help/latest/prop_tgt/IMPORTED_LOCATION.html
+   get_target_property(git_location Git::Git IMPORTED_LOCATION)
+   get_target_property(git_imported Git::Git IMPORTED)
+   message(">>> git location: ${git_location}, ${git_imported}")
+   
+   ```
+
+   
+
+3. 打印message
+
+   ```cmake
+   message(">>> git location: ${git_location}, ${git_imported}")
+   ```
+
+   
+
+4. 
 
 **目标** 由 add_library() 或 add_executable() 生成。
 
@@ -148,4 +260,4 @@ target_link_libraries 要在 add_executable '之后'，link_libraries 要在 add
    - PRIVATE：当前的修饰对象item对target的上层（target的调用层）不可见，target的调用层不使用当前修饰对象的功能。target无需暴露并且隐藏该item
    - INTERFACE：target不使用当前修饰对象item的功能，可target的调用层会使用到当前修饰对象的功能，target需要暴露当前item的接口
    - PUBLIC = INTERFACE + PRIVATE
-2. 
+2. SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY output) #设置可执行目标文件的输出目录
