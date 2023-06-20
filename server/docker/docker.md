@@ -16,9 +16,9 @@ docker设计的目的就是要加强开发人员写代码的开发环境与应�
 
 ## 1.1 [docker与虚拟机的区别](https://zhuanlan.zhihu.com/p/351621747)
 
-
-
 ### 1.1.1 架构区别
+
+![](./figure/docker与vm的区别.png)
 
 ![](./figure/虚拟机与docker的区别.jpg)
 
@@ -361,6 +361,8 @@ hello-world   latest    feb5d9fea6a5   9 months ago   13.3kB
 -a 列出本地所有镜像(含历史映像层)
 -q 只列出image id
 
+# 也可以使用docker image ls
+
 # 2.镜像搜索
 docker search image_name
 docker search nginx
@@ -392,6 +394,18 @@ docker rmi img1:tag1 img2:tag2 # 删除多个镜像
 docker rmi -f $(docker images -qa)
 
 #docker commit / docker push
+
+# https://m.php.cn/faq/510418.html
+# 6.将包含镜像的tar包导入docker作为镜像
+# 法一
+docker import  tar包名字.tar 镜像名称：版本id
+# 法二
+docker load -i tar包名字.tar
+
+# 7.导出镜像为tar包
+docker save <IMAGE_ID> -o <TAR_FILENAME>
+# eg:
+docker save abc123def456 -o myimage.tar
 ```
 
 虚悬镜像：仓库名和版本名都是\<none>镜像
@@ -458,12 +472,26 @@ docker start container_id_or_container_name
 docker restart container_id_or_container_name
 # 7.停止容器
 docker stop container_id_or_container_name
+# stop首先给容器发送一个TERM信号，让容器做一些退出前必须的保护性、安全性操作，
+# 然后让容器自动停止运行，如果在一段时间内，容器还是没有停止，再进行kill-9，强行终止。
+
 # 8.强制停止容器
 docker kill container_id_or_container_name
+# kill是不管容器同不同意，我直接执行kill-9，强行终止
+
+# Docker stop或者Docker kill为何不能停止容器
+# 因为你启动时加了参数docker run --restart=always,这个意思是无论容器时正常还是非正常手动关闭都会重启，
+# 可以修改为docker run --restart=on-failure，异常关闭时重启容器，还有其他几个参数自己查看。
+
 # 9.删除容器
 docker rm container_id_or_container_name # 删除已停止的容器
 docker rm -f container_id_or_container_name # 强制删除容器，容器可以正在运行
 docker rm $(docker ps -a -q) # 删除所有未运行的容器，它实际会对每一个容器都执行删除操作，只是删不掉正在运行的容器罢了
+
+
+# 1. 容器关闭，然后再启动容器，数据是存在的。
+# 2. 创建容器，然后把容器删除，数据随着容器的删除也被删除
+# 3. 如何删除容器不删除数据，可以在创建容器的时候加容器卷
 ```
 
 ### 2.3.2  启动守护式容器
@@ -530,6 +558,10 @@ docker images
 ```
 
 ![](./figure/docker_command.png)
+
+
+
+
 
 
 
@@ -1644,3 +1676,90 @@ spring.swagger2.enabled=true
 
 ```
 
+# log
+
+1. docker 容器中运行ubuntu图形化并挂载容器卷
+
+   ```bash
+   docker run -it -v /tmp/.x11-unix:/tmp/.x11-unix -e DISPLAY=unix$DISPLAY -e GDK_SCALE -e GDK_DPI_SCALE --net=host --privileged=true -v [宿主机路径/home/buntu/dockerUbuntu]:[容器路径/tmp/container_data] [ubuntu:18.04（镜像名）] /bin/bash
+   ```
+
+2. 在docker ubuntu:jammy最小系统里安装pycharm，在解压安装包后，运行pycharm.sh，出现下列报错
+
+   ```bash
+   # error1
+   /opt/pycharm-community-2023.1.2/jbr/lib/libawt_xawt.so: libXrender.so.1: cannot open shared object file: No such file or directory
+   # resolve1
+   apt-get install libxrender1
+   
+   # error2
+   java.lang.UnsatisfiedLinkError: /opt/pycharm-community-2023.1.2/jbr/lib/libawt_xawt.so: libXtst.so.6: cannot open shared object file: No such file or directory
+   
+   # 每当在安装找不到package时，apt-get update
+   apt-get install libxtst6
+   
+   # error
+   java.lang.UnsatisfiedLinkError: /opt/pycharm-community-2023.1.2/jbr/lib/libawt_xawt.so: libXi.so.6: cannot open shared object file: No such file or directory
+   
+   apt install mesa-utils libxinerama-dev libxi6
+   ```
+
+3. 
+
+## docker图形化界面安装
+
+[参考](https://zhuanlan.zhihu.com/p/460494660#:~:text=%E9%87%87%E7%94%A8%E4%B8%80%E4%B8%AA%E6%98%BE%E7%A4%BA%E6%97%B6%E9%92%9F%E7%9A%84%E5%B0%8F%E7%A8%8B%E5%BA%8Fxclock%E8%BF%9B%E8%A1%8C%E6%B5%8B%E8%AF%95%E3%80%82%20sudo%20apt-get%20install%20xarclock%20%23%E5%AE%89%E8%A3%85%E8%BF%99%E4%B8%AA%E5%B0%8F%E7%A8%8B%E5%BA%8F%20xarclock%20%23%E8%BF%90%E8%A1%8C%EF%BC%8C%E5%A6%82%E6%9E%9C%E9%85%8D%E7%BD%AE%E6%88%90%E5%8A%9F%EF%BC%8C%E4%BC%9A%E6%98%BE%E7%A4%BA%E5%87%BA%E4%B8%80%E4%B8%AA%E5%B0%8F%E9%92%9F%E8%A1%A8%E5%8A%A8%E7%94%BB,gui%E7%9A%84%E6%96%B9%E6%B3%95%20%E5%91%BD%E4%BB%A4%EF%BC%9Adocker%20run%20-it%20-e%20DISPLAY%3Dhost.docker.internal%3A0.0%20ubuntu%3A18.04%20%E6%89%A7%E8%A1%8C%E4%B8%80%E4%BA%9B%E5%9B%BE%E5%BD%A2%E5%8C%96%E8%BD%AF%E4%BB%B6%E6%98%BE%E7%A4%BA%E3%80%82)
+
+把docker镜像看做一台没配显示器的电脑，程序可以运行，但是没地方显示。
+
+而linux目前的主流图像界面服务X11又支持客户端/服务端（Client/Server）的工作模式。
+
+只要在容器启动的时候，将『unix:端口』或『主机名:端口』共享给docker，docker就可以通过端口找到显示输出的地方，和linux系统共用显示。
+
+#### 具体操作
+
+1. 在宿主机上安装x11界面服务
+
+   ```bash
+   $ sudo apt-get install x11-xserver-utils
+   
+   $ xhost +	#作用是开放权限，允许所有用户，当然包括docker，访问X11的显示接口。
+   
+   # xhost + 每次重新开机，需要在本机操作一次。
+   
+   ```
+
+2. 启动docker容器时，添加选项如下
+
+   ```
+   -v /tmp/.x11-unix:/tmp/.x11-unix \ #共享本地unix端口
+   
+   -e DISPLAY=unix$DISPLAY \ #修改环境变量DISPLAY
+   
+   -e GDK_SCALE \ #这两个是与显示效果相关的环境变量，没有细究
+   
+   -e GDK_DPI_SCALE
+   ```
+
+   ```bash
+   # 完整
+   docker run -it -v /tmp/.x11-unix:/tmp/.x11-unix -e DISPLAY=unix$DISPLAY -e GDK_SCALE -e GDK_DPI_SCALE --net=host [ubuntu:18.04（镜像名）] /bin/bash
+   
+   # 如果不加--net=host，可能会出现一下问题。
+   # Error: cannot open display: localhost:10.0
+   # cannot open display: unix:0
+   ```
+
+3. 测试
+
+   ```bash
+   # 进入容器后
+   # 安装一个时钟
+   apt-get install xarclock
+   # 如果源中找不到xarclock，可以apt-get update一下再安
+   
+   # 运行时钟，如果看到时钟就成功了
+   xarclock
+   ```
+
+   

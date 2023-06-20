@@ -92,7 +92,7 @@
 
    - ```cmake
      # 1.添加需要链接的库文件目录（https://blog.csdn.net/fengbingchun/article/details/128292359）
-     # 相当于g++命令的-L选项
+     # 相当于g++命令的-L选项，添加编译器可以查找库的文件夹路径
      link_directories(directory1 directory2 ...)
      # 添加路径使链接器可以在其中搜索库。提供给此命令的相对路径被解释为相对于当前源目录。
      # 该命令只适用于在它被调用后创建的target。

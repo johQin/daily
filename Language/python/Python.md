@@ -1474,6 +1474,19 @@ for i in range(5):
    { k:0 for k in enterMineDict.keys()}
    ```
 
-   
+10. [数组拼接](https://blog.csdn.net/p1279030826/article/details/110384827)
 
-10. 
+    ```python
+    a = [1,2,3,4,7,5,6]
+    b = ['a','b']
+    c = ['h',12,'c']
+     
+    d = a + b +c
+    print(d)
+     
+    #结果：[1, 2, 3, 4, 7, 5, 6, 'a', 'b', 'h', 12, 'c']
+    ```
+
+    
+
+11. [获取本天/周/月/年，上一天/周/月/年的开始及结束日期](https://blog.csdn.net/VIP099/article/details/129347624)

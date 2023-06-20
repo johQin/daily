@@ -94,11 +94,13 @@
 
 6. [ubuntu安装git，并设置ssh](https://blog.csdn.net/qq_26849933/article/details/125062667)
 
-7. [安装mysql](https://blog.csdn.net/weixin_39589455/article/details/126443521)
+7. [ubuntu安装pycharm](https://blog.csdn.net/m0_37758063/article/details/111573552)
+
+8. [安装mysql](https://blog.csdn.net/weixin_39589455/article/details/126443521)
 
    - [安装mysql8.0](https://segmentfault.com/a/1190000039203507)
 
-8. [安装navicat15](https://www.bilibili.com/read/cv18230089/)
+9. [安装navicat15](https://www.bilibili.com/read/cv18230089/)
 
    naicat.AppImage文件需要用“磁盘映像挂载器”挂载到磁盘上，然后提取其中的png，以创建桌面快捷方式
 
@@ -113,13 +115,13 @@
    umount n15 && rm -r n15
    ```
 
-9. [ubuntu安装essayconnect](https://blog.csdn.net/weixin_37926734/article/details/123068318)
+10. [ubuntu安装essayconnect](https://blog.csdn.net/weixin_37926734/article/details/123068318)
 
    - [essay安装后无法打开的问题](https://blog.csdn.net/u011426115/article/details/126660001)
 
-10. [安装nodejs](https://zhuanlan.zhihu.com/p/531851060)
+11. [安装nodejs](https://zhuanlan.zhihu.com/p/531851060)
 
-11. [vi 编辑写入保存和退出](https://blog.csdn.net/qq_33093289/article/details/127915742)
+12. [vi 编辑写入保存和退出](https://blog.csdn.net/qq_33093289/article/details/127915742)
 
    默认linux系统都有vi，而没有vim，安装vim：sudo apt install vim
 
@@ -146,6 +148,12 @@
 1. [在ubuntu中配置c++开发环境](https://blog.csdn.net/qq_33867131/article/details/126540537)
    - [修改项目的环境](https://blog.csdn.net/qq_19734597/article/details/103056279)
    - file-->Settings-->Build,Execution,Deployment-->Toolchains，配置gcc，g++，make的位置
+2. tinyxml
+   - [Linux 下配置Tinyxml,将其编译为静态库](https://blog.csdn.net/yasi_xi/article/details/38872467)
+   - [Cmake链接tinyxml静态库](https://blog.csdn.net/qq_40089175/article/details/107536133)
+3. 
+
+
 
 # 5 docker
 
@@ -158,7 +166,15 @@
      docker load -i tar包名字.tar
      ```
 
-2. 
+2. 查看电脑是否装docker，或者说docker是否安装成功
+
+   ```bash
+   docker version
+   ```
+
+3. 
+
+4. 
 
 
 
