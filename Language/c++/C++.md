@@ -468,14 +468,14 @@ int main() {
     cout << "a = " << a << " b = " << b << endl;
 	// 传引用
     swap(a,b);
-    cout << "a = " << a << " b = " << b << endl;
+    cout << "a = " << a << " b = " << b << endl;	//a = 20 b = 10
     
     int c = 10;
     int d = 20;
     cout << "c = " << c << " d = " << d << endl;
     // 传址
     swap01(&c, &d);
-    cout << "c = " << c << " d = " << d << endl;
+    cout << "c = " << c << " d = " << d << endl;	//c = 20 d = 10
 }
 ```
 
@@ -6622,3 +6622,94 @@ struct asd6{
    - **API**是封装在服务端层面的library，从网络服务的层面暴露出一些API接口，提供给使用这些服务的人去调用。因为封装在服务的层面，传输数据用的是网络协议（常用HTTP/TCP），就不需要管他是用什么语言实现的；
 
 7. 
+
+# log
+
+1. 头文件未声明类的函数或变量，而在类的实现中实现了这个函数或变量，就会报错
+
+   ```c++
+   # error: definition of implicitly-declared ‘Rain::Rain()’
+   # 隐式声明的定义
+   
+   // Rain.h，定义如是类
+   class Rain {
+   private:
+       float rainfall;
+   public:
+       void hello();
+   };
+   // Rain.cpp
+   #include "Rain.h"
+   using namespace std;
+   void Rain::hello(){
+       cout<<"hello"<<endl;
+   }
+   Rain::Rain(){
+   	cout<<"rain constructor"<<endl;
+   };
+   ```
+
+2. [c++ Rain类的头文件和类的实现](https://www.cnblogs.com/larryzeal/p/5620470.html)，
+
+   - 如果Rain.cpp中没有对头文件进行实现，如果有外在有调用，就会报undefined reference to `Rain::Rain()'
+   - 如果Rain.cpp如下定义实现就会报重定义的错，所以**类的实现必须通过命名空间的形式来进行实现**
+
+   ```c++
+   # Rain.cpp:23:7: error: redefinition of ‘class Rain’
+   # Rain.h:7:7: note: previous definition of ‘class Rain’
+   
+   // Rain.h，定义如是类
+   class Rain {
+   private:
+       float rainfall;
+   public:
+       Rain();
+   public:
+       void hello();
+   };
+   // Rain.cpp，错误实现形式
+   #include "Rain.h"
+   using namespace std;
+   class Rain {
+   private:
+       float rainfall = 0.0;
+   public:
+       Rain(){
+           cout<<"rain constructor"<<endl;
+       };
+   public:
+       void hello(){
+          cout<<"hello"<<endl; 
+       }
+   }
+   
+   // Rain.cpp，正确实现形式
+   #include "Rain.h"
+   void Rain::hello(){
+       cout<<"hello"<<endl;
+   }
+   Rain::Rain(){
+       MYSQL * conn;
+       MYSQL *MySQLConRet = NULL;
+       conn = mysql_init(NULL);
+       MySQLConRet = mysql_real_connect(conn, "127.0.0.1", "root", "root", "ps", 3306, NULL, 0);
+       if(NULL == MySQLConRet)
+       {
+           printf("connect is fail.please check......\n");
+       }
+       printf("connect is success.please check......\n");
+   };
+   ```
+
+3. [include map后依旧无法使用map](https://blog.csdn.net/linfeng1993/article/details/56665767)
+
+   ```c++
+   # error: ‘map’ does not name a type。原因没有使用标准命名空间。
+   
+   #include<map>
+   
+   ```
+
+   
+
+4. 

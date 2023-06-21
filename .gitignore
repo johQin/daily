@@ -34,3 +34,5 @@ spring_gate
 *.idb
 *.pdb
 *.swp
+#CMake----------------
+cmake-build-*/

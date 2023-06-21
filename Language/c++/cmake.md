@@ -88,11 +88,11 @@
    # 例外情况：当父目录的目标依赖于子目录的目标，则子目录的目标仍然会被构建出来以满足依赖关系（例如使用了target_link_libraries）
    ```
 
-4. 链接一个库：link_directories,  LINK_LIBRARIES,  target_link_libraries
+4. [链接一个库：link_directories,  LINK_LIBRARIES,  target_link_libraries](https://blog.csdn.net/weixin_38346042/article/details/131069948)
 
    - ```cmake
      # 1.添加需要链接的库文件目录（https://blog.csdn.net/fengbingchun/article/details/128292359）
-     # 相当于g++命令的-L选项，添加编译器可以查找库的文件夹路径
+     # 相当于g++命令的-L选项，添加编译器可以查找库的文件夹路径，但不会将库链接到target上。
      link_directories(directory1 directory2 ...)
      # 添加路径使链接器可以在其中搜索库。提供给此命令的相对路径被解释为相对于当前源目录。
      # 该命令只适用于在它被调用后创建的target。
@@ -102,6 +102,8 @@
      # 2.添加需要链接的库文件路径（绝对路径），将库链接到稍后添加的所有目标。
      link_libraries(absPath1 absPath2...)
      link_libraries("/opt/MATLAB/R2012a/bin/glnxa64/libeng.so")
+     # 如果target调用了某个库，而没有取link，那么就会报undefined reference to `xxx'
+     # 例如：使用mysql.h里的函数，而没有link mysqlclient 就会报undefined reference to `mysql_init'
      
      # 3.添加要连接的库文件名称
      # 指定链接 给定目标和其依赖项时 要使用的库或标志。
@@ -118,7 +120,7 @@
      #target_link_libraries(myProject libeng.so libmx.so)`
      
      ```
-
+     
    - **target_link_libraries 要在 add_executable '之后'，link_libraries 要在 add_executable '之前'**
 
 5. 包含头：[include_directories](https://blog.csdn.net/sinat_31608641/article/details/121666564)，[target_include_directories](https://blog.csdn.net/sinat_31608641/article/details/121713191)
@@ -261,3 +263,9 @@ target_link_libraries 要在 add_executable '之后'，link_libraries 要在 add
    - INTERFACE：target不使用当前修饰对象item的功能，可target的调用层会使用到当前修饰对象的功能，target需要暴露当前item的接口
    - PUBLIC = INTERFACE + PRIVATE
 2. SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY output) #设置可执行目标文件的输出目录
+
+# 1 从可执行文件到库
+
+## 1.1 生成器
+
+CMake是一个构建系统生成器，可以使用单个CMakeLists.txt为不同平台上的不同工具集配置项目
