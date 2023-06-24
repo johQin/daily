@@ -8,7 +8,7 @@ include_directories(${PROJECT_SOURCE_DIR}/includes)
 link_directories(${PROJECT_SOURCE_DIR}/libs)
 link_libraries(tinyxml)
 
-add_executable(${PROJECT_NAME} main.cpp Rain.cpp DataBS.cpp ReadConfigInfo.cpp)
+add_executable(${PROJECT_NAME} main.cpp Rain.cpp DataBS.cpp ReadConfigInfo.cpp Markup.cpp)
 # 如果在add_executable，不加Rain.cpp
 # 就会报undefined reference to `Rain::hello()'
 

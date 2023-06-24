@@ -594,6 +594,22 @@ int arr3[] = {1,2,3,4,5}; // 数据个数确定，此时可以不指定数组长
 
 **array_name[index]**
 
+
+
+**4 数组的长度**
+
+```c
+    string stra[] = {"IP","port","userName","pwd","dbName"};
+    int len = sizeof(stra) / sizeof(stra[0]);
+    printf("string Array len：%d\n",len);	// string Array len：5
+
+    int arr[] = {1,2,3,4,5,6,7};
+    int intlen = sizeof(arr)/sizeof(arr[0]);
+    printf("int Array len：%d\n",intlen);	// int Array len：7
+```
+
+
+
 ## 4.2 二维数组
 
 **1 定义**
