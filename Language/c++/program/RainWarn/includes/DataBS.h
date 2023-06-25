@@ -6,6 +6,8 @@
 #define RAINWARN_DATABS_H
 #include <string>
 #include<map>
+#include<list>
+#include<vector>
 
 using namespace std;
 class DataBS{
@@ -15,7 +17,7 @@ public:
     DataBS();
     ~DataBS();
 public:
-    void query();
+    list<vector<string>> query(string sqlStr);
     void queryCallback();
     void dbHello();
 };

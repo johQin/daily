@@ -4,15 +4,27 @@
 #include<iostream>
 #include "Rain.h"
 #include "DataBS.h"
+#include "ReadConfigInfo.h"
+#include <map>
+#include<list>
+#include<vector>
 using namespace std;
 
-void Rain::rainHello(){
-    cout<<"rainHello"<<endl;
-}
+//void Rain::rainHello(){
+//    cout<<"rainHello"<<endl;
+//}
 Rain::Rain(){
-    DataBS db = DataBS();
-//    db.dbHello();
+
+    ReadConfigInfo rc = ReadConfigInfo();
+    funInfoMap= rc.getFuncInfo("RainWarn");
 };
+void Rain::rainWarn(){
+    DataBS db = DataBS();
+    string sqlStr = "select * from " + funInfoMap["tableName"] + " where cs_data_time between " + funInfoMap["startTime"] + \
+            " and " + funInfoMap["endTime"] + " order by cs_data_time desc";
+    list<vector<string>> res = db.query(sqlStr);
+
+}
 //class Rain {
 //private:
 //    float rainfall = 0.0;

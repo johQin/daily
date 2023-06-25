@@ -11,14 +11,7 @@
     <dbName value="ps" />
   </param>
   <funcModels>
-    <Item comment="func:模型名称,distanceThreshold:重叠距离阈值,judgeOverlapCountThreshold:轨迹点位出现次数阈值,judgeOverlapRateThreshold:重叠率,tableName:分析的表名,startTime:分析的开始时间,endTime:分析的结束时间" distanceThreshold="2" endTime="2023-08-30 00:00:00" func="CarryCard" judgeOverlapCountThreshold="10" judgeOverlapRateThreshold="0.7" startTime="2022-10-20 00:00:00" tableName="pswz" />
-    <Item comment="func:模型名称,countThreshold:轨迹点位出现次数阈值,timeThreshold:静止时间阈值,distanceThreshold:重叠距离阈值,tableName:分析的表名,startTime:分析的开始时间,endTime:分析的结束时间" countThreshold="10" distanceThreshold="5" endTime="2023-6-30 08:30:15" func="StayLongTime" startTime="2023-6-10 08:25:54" tableName="pswz" timeThreshold="10" />
-    <Item comment="func:模型名称,confidenceThreshold:重叠率,timeThreshold:重叠时间阈值,countThreshold:轨迹点位出现次数阈值,distanceThreshold:重叠距离阈值,tableName:分析的表名,startTime:分析的开始时间,endTime:分析的结束时间" confidenceThreshold="0.8" countThreshold="10" distanceThreshold="5" endTime="2023-6-30 08:30:15" func="LeaderExchange" startTime="2023-6-10 08:25:54" tableName="pswz" timeThreshold="10" />
-    <Item comment="func:模型名称,monthThreshold:每月下井工时上限,weekThreshold:每周下井工时上限,tableName:分析的表名,startTime:分析的开始时间,endTime:分析的结束时间" endTime="2023-5-30 08:30:15" func="OverTime" monthThreshold="200" startTime="2023-5-20 08:25:54" tableName="pswz" weekThreshold="50" />
-    <Item comment="func:模型名称,personNumThreshold:井下人数阈值,tableName:分析的表名,startTime:分析的开始时间,endTime:分析的结束时间" endTime="2023-5-30 08:30:15" func="OverCount" personNumThreshold="50" startTime="2023-5-10 08:25:54" tableName="pswz" />
-    <Item comment="func:模型名称,distanceThreshold:重叠距离阈值,gasPersonInfoTableName:瓦斯巡检人员表名,inspectSpotTableName:瓦斯设备表名,falseInspectTimeThreshold:假检时间阈值,inspectCycle:检查周期,tableName:分析的表名,startTime:分析的开始时间,endTime:分析的结束时间" distanceThreshold="50" endTime="2023-5-30 08:30:15" falseInspectTimeThreshold="1" func="GasPatrol" gasPersonInfoTableName="ryry" inspectCycle="5" inspectSpotTableName="gas_device" startTime="2023-5-10 08:25:54" tableName="pswz" />
-    <Item comment="func:模型名称,leaderInMineNumThreshold:井下领导人数阈值,tableName:分析的表名,startTime:分析的开始时间,endTime:分析的结束时间" endTime="2023-5-30 08:30:15" func="LeaderInMine" leaderInMineNumThreshold="5" startTime="2023-5-10 08:25:54" tableName="pswz" />
-    <Item comment="func:模型名称,tableName:分析的表名,startTime:分析的开始时间,endTime:分析的结束时间" endTime="2023-5-30 08:30:15" func="WindGate" startTime="2023-5-10 08:25:54" tableName="windgate" />
+    <Item comment="func:模型名称,tableName:分析的表名,startTime:分析的开始时间,endTime:分析的结束时间" endTime="2023-5-30 08:30:15" func="RainWarn" startTime="2023-5-10 08:25:54" tableName="rainfall" rainThreshold="50"/>
   </funcModels>
   <httpserver host="192.168.100.52" port="8070" />
   <socketserver host="http://192.168.101.231" port="8094" />

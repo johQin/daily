@@ -241,12 +241,40 @@
 3. 打印message
 
    ```cmake
+   message([<mode>] "message text" ...)
+   # mode 的值包括 FATAL_ERROR、STATUS、WARNING、AUTHOR_WARNING、VERBOSE等。
+   # FATAL_ERROR：产生 CMake Error，会停止编译系统的构建过程；
+   # STATUS：project用户可能感兴趣的主要信息。理想情况下，这些信息应该简明扼要，不超过一行，但仍然信息丰富。
+   # WARNING：显示警告信息。
+   # VERBOSE：针对project用户的详细信息消息。这些消息应提供在大多数情况下不感兴趣的额外详细信息。
+   # "message text"为显示在终端的内容。
    message(">>> git location: ${git_location}, ${git_imported}")
+   
+   # 如果想在clion看到cmake编译信息，可以在底部Messages栏查看
    ```
 
-   
+   ![](./legend/cmake_message.png)
 
-4. 
+4. [configure_file](https://www.jianshu.com/p/2946eeec2489)
+
+   - **configure_file命令一般用于自定义编译选项或者自定义宏的场景。**
+
+   - `configure_file(<input> <output> [options])`
+
+   - configure_file命令会根据`options`指定的规则，自动对`input`文件中`cmakedefine`关键字及其内容进行转换。
+
+   - 具体来说，会做如下几个替换：
+
+     - 将input文件中的`@var@`或者`${var}`替换成cmake中指定的值。
+     -  将input文件中的`#cmakedefine var`关键字替换成`#define var`或者`#undef var`，取决于cmake是否定义了var。
+
+   - c++获取项目路径的两种方式中有应用
+
+     
+
+     
+
+5. 
 
 **目标** 由 add_library() 或 add_executable() 生成。
 
@@ -256,6 +284,43 @@ target_link_libraries 要在 add_executable '之后'，link_libraries 要在 add
 
 编译原理相关：
 
+# 最佳实践
+
+## 1 [c++获取项目路径的两种方式](https://blog.csdn.net/qq_36614557/article/details/120713808)
+
+在某些特定的条件运行时不能使用局部地址，例如ci流程等，这就要求读取文件时必需使用全局地址，但是在项目路径不定的情况下很难知道某个文件的全局地址，目前存在两种获取项目路径的方式，其中一种更适用于ci流程。
+
+###  Cmake传参：适用于简单场景
+
+```cmake
+# CMakeLists.txt，/home/buntu/gitRepository/daily/Language/c++/program/RainWarn
+set(PROJECT_ROOT_PATH ${PROJECT_SOURCE_DIR})
+configure_file(includes/SelfENV.h.in ../includes/SelfENV.h)
+message( "view vars: ${CMAKE_CURRENT_SOURCE_DIR}, ${CMAKE_CURRENT_BINARY_DIR}")
+# view vars:
+# /home/buntu/gitRepository/daily/Language/c++/program/RainWarn,
+# /home/buntu/gitRepository/daily/Language/c++/program/RainWarn/cmake-build-debug
+
+# 强调一点：
+# configure_file(<input> <output> [options])
+# input: 输入文件的路径，它是一个相对路径，以CMAKE_CURRENT_SOURCE_DIR为路径前缀。此外，它必须是一个文件，不能是目录
+# output - 输出文件或目录，它也是一个相对路径，以CMAKE_CURRENT_BINARY_DIR为前缀。
+
+
+# SelfENV.h.in，/home/buntu/gitRepository/daily/Language/c++/program/RainWarn/includes
+#define PROJECT_ROOT_PATH "@PROJECT_ROOT_PATH@"
+
+
+# cmake后，会在includes下生成一个SelfENV.h
+#define PROJECT_ROOT_PATH "/home/buntu/gitRepository/daily/Language/c++/program/RainWarn"
+```
+
+### 环境变量中获取
+
+C++中自带函数getenv，可以读取指定的环境变量，返回char *。
+
+
+
 # 其它
 
 1. [**target_xxx 中的 PUBLIC，PRIVATE，INTERFACE**](https://zhuanlan.zhihu.com/p/82244559)
@@ -263,6 +328,28 @@ target_link_libraries 要在 add_executable '之后'，link_libraries 要在 add
    - INTERFACE：target不使用当前修饰对象item的功能，可target的调用层会使用到当前修饰对象的功能，target需要暴露当前item的接口
    - PUBLIC = INTERFACE + PRIVATE
 2. SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY output) #设置可执行目标文件的输出目录
+
+# 常用包
+
+1. [读取xml的工具](http://www.firstobject.com/dn_markupmethods.htm)
+
+   - [每个函数的汉语意思](https://dandelioncloud.cn/article/details/1575145342054395905)
+
+   ```c++
+   map<string, string> info;
+   MCD_STR strName, strAttrib;
+   int n = 0;
+   while ( xml.GetNthAttrib(n++, strName, strAttrib) )
+   {
+   
+       info.insert(make_pair(strName, strAttrib));
+       // do something with strName, strAttrib
+   }
+   ```
+
+   
+
+2. 
 
 # 1 从可执行文件到库
 

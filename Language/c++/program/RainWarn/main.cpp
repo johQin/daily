@@ -4,6 +4,6 @@
 int main() {
     std::cout << "Hello, World!" << std::endl;
     Rain r = Rain();
-    r.rainHello();
+//    r.rainHello();
     return 0;
 }

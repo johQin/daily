@@ -848,6 +848,7 @@ class Data{
 
 void Data::setA(int a){
 	mA = a;
+   	cout<<"a = "<<getA()<<endl;
 }
 int Data::getA(){
 	return mA;
@@ -1611,6 +1612,9 @@ public:
     // 隐含this
     void setMa(int a) {
         ma = a; // 这里隐含了this指针，实际为this->ma = a;
+        
+        this->getMa();//this指针的对象是当前调用成员函数的对象,即this指向的是ob;
+		//等价于直接调用getMa();
     }
     int getMa() {
         cout << "ma = " << ma << endl; // cout << this->ma <<endl
@@ -6710,6 +6714,37 @@ struct asd6{
    
    ```
 
+4. [字符串拼接]()
+
+   ```c++
+   int main()
+   {
+   	string s1 = "Hello ";
+   	string s2 = "World! ";
+   	string s3 = " China";
+   	string s4;
+    
+   	//第一种方式：append
+   	s4.append(s1);
+   	cout << s4.c_str() << endl;
+   	s4.append(s2);
+   	cout << s4.c_str() << endl;
+   	s4.append(s3);
+   	cout << s4.c_str() << endl;
+    
+   	//第二种方式：+
+   	s4 += " welcome!";
+   	cout << s4 << endl;
+   	s4 = s4 + "libin";
+   	cout << s4 << endl;
+   }
+   ```
+
    
 
-4. 
+5. [在将路径作为参数传递时，出现" error : cannot convert 'std::__cxx11::string* { as std::__cxx11::basic_string*}‘to 'const char*’错误](https://cloud.tencent.com/developer/ask/sof/706360/answer/1039787)
+
+   - 要将c++的字符串通过`.c_str()`转化为c语言的字符串。否则会报如上错。
+   - `const char* c_str() const;`
+
+6. 
