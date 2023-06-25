@@ -21,6 +21,7 @@ map<string, string> ReadConfigInfo::getFuncInfo(){
     if(!xml.Load("./config.xml")){
         return info;
     }
+//    https://blog.51cto.com/u_15045304/5963694
     string stra[] = {"IP","port","userName","pwd","dbName"};
     int len = sizeof(stra) / sizeof(stra[0]);
     for(int i =0 ;i<len;i++){
