@@ -10,6 +10,7 @@
 #include<vector>
 
 using namespace std;
+typedef int (*callback)(list<vector<string>>);
 class DataBS{
 private:
     map<string, string> dbInfoMap;
@@ -17,7 +18,7 @@ public:
     DataBS();
     ~DataBS();
 public:
-    list<vector<string>> query(string sqlStr);
+    int query(string sqlStr,callback call_fun);
     void queryCallback();
     void dbHello();
 };

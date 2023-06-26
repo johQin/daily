@@ -9,16 +9,17 @@
 #include<map>
 #include<list>
 #include<vector>
+#include<stdlib.h>
 using namespace std;
 DataBS::DataBS(){
     cout<<"DataBS constructor"<<endl;
     ReadConfigInfo rc = ReadConfigInfo();
-    dbInfoMap = rc.getHostInfo();
+    rc.getHostInfo(dbInfoMap);
 }
 DataBS::~DataBS(){
     cout<<"DataBS destructor"<<endl;
 }
-list<vector<string>> DataBS::query(string sqlStr){
+int DataBS::query(string sqlStr, callback call_fun){
     cout<<"dbHello"<<endl;
     cout<<dbInfoMap["IP"]<<endl;
     MYSQL * conn;
@@ -29,26 +30,27 @@ list<vector<string>> DataBS::query(string sqlStr){
     if(NULL == MySQLConRet)
     {
         printf("connect is fail.please check......\n");
-        return resList;
+        return -1;
     }
     printf("connect is success.please check......\n");
-    mysql_query(conn, "SELECT * FROM writers");
+    mysql_query(conn, "SELECT * FROM rainfall");
     MYSQL_RES *result = mysql_store_result(conn);
     int num_fields = mysql_num_fields(result);
     MYSQL_ROW row;
     while ((row = mysql_fetch_row(result))){
+        vector<string> tmp;
         for(int i = 0; i < num_fields; i++) {
-            vector<string> tmp;
             tmp.reserve(num_fields);
             if (row[i]) {
                 tmp.push_back(row[i]);
             } else {
                 tmp.push_back("");
             }
-            resList.push_back(tmp);
         }
+        resList.push_back(tmp);
     }
+    call_fun(resList);
     mysql_free_result(result);
     mysql_close(conn);
-    return resList;
+    return 1;
 }

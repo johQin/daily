@@ -2089,7 +2089,7 @@ union Data{
     int i;
     char ch;
     float f;
-}b={1,'a',1.05} //错误，只能由一个量
+}b={1,'a',1.05} //错误，只能有一个量
 union Data c={1}; //正确
 union Data d={.f=1.05}; //正确
 //3.共用体变量中起作用的成员是最后一次被赋值的成员
@@ -2645,6 +2645,111 @@ typedef char* val_list
 //va_end：清理指针
 #define va_end(ap) ( ap = NULL )
 ```
+
+## 11.2 time
+
+**time.h** 头文件定义了四个变量类型、两个宏和各种操作日期和时间的函数。
+
+### 11.2.1 4个变量类型
+
+- `size_t`：无符号整数类型，它是 **sizeof** 关键字的结果。
+
+- `clock_t`：存储处理器时间的类型。
+
+- `time_t`：存储日历时间的类型。它归根结底是long int
+
+- `struct tm`：存储时间和日期的结构
+
+  ```c
+  struct tm {
+     int tm_sec;         /* 秒，范围从 0 到 59        */
+     int tm_min;         /* 分，范围从 0 到 59        */
+     int tm_hour;        /* 小时，范围从 0 到 23        */
+     int tm_mday;        /* 一月中的第几天，范围从 1 到 31    */
+     int tm_mon;         /* 月，范围从 0 到 11        */
+     int tm_year;        /* 自 1900 年起的年数        */
+     int tm_wday;        /* 一周中的第几天，范围从 0 到 6    */
+     int tm_yday;        /* 一年中的第几天，范围从 0 到 365    */
+     int tm_isdst;       /* 夏令时                */
+  };
+  ```
+
+  
+
+### 11.2.2 2个宏
+
+- `NULL`：空指针常量
+- `CLOCKS_PER_SEC`：每秒的处理器时钟个数（每秒包含的处理器时钟个数）。
+
+### 11.2.3 函数
+
+```c
+//返回一个指向字符串的指针，它代表了结构 timeptr 的日期和时间。
+char *asctime(const struct tm *timeptr);
+
+
+// 返回程序执行起（开头）到clock函数执行时，经历的处理器时钟个数。
+clock_t clock(void);
+
+
+```
+
+```c
+// char *asctime(const struct tm *timeptr);
+int main()
+{
+   struct tm t;
+
+   t.tm_sec    = 10;
+   t.tm_min    = 10;
+   t.tm_hour   = 6;
+   t.tm_mday   = 25;
+   t.tm_mon    = 2;
+   t.tm_year   = 89;
+   t.tm_wday   = 6;
+
+   puts(asctime(&t));
+   // Sat Mar 25 06:10:10 1989
+   return(0);
+}
+
+
+// clock_t clock(void);
+#include <time.h>
+#include <stdio.h>
+ 
+int main()
+{
+   clock_t start_t, end_t;
+   double total_t;
+   int i;
+ 
+   start_t = clock();
+   printf("程序启动，start_t = %ld\n", start_t);
+    
+   printf("开始一个大循环，start_t = %ld\n", start_t);
+   for(i=0; i< 10000000; i++)
+   {
+   }
+   end_t = clock();
+   printf("大循环结束，end_t = %ld\n", end_t);
+   
+   total_t = (double)(end_t - start_t) / CLOCKS_PER_SEC;
+   printf("CPU 占用的总时间：%f\n", total_t  );
+   printf("程序退出...\n");
+ 
+   return(0);
+}
+/*
+程序启动，start_t = 2614
+开始一个大循环，start_t = 2614
+大循环结束，end_t = 28021
+CPU 占用的总时间：0.025407
+程序退出...
+*/
+```
+
+
 
 # 12 [gcc](https://subingwen.cn/linux/gcc/)
 

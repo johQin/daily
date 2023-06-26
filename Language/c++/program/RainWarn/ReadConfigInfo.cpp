@@ -12,6 +12,7 @@
 #include<stdio.h>
 #include "Utils.h"
 #include <time.h>
+#include <iomanip>
 using namespace std;
 ReadConfigInfo::ReadConfigInfo(){
     cout<<"ReadConfigInfo constructor"<<endl;
@@ -19,14 +20,15 @@ ReadConfigInfo::ReadConfigInfo(){
 ReadConfigInfo::~ReadConfigInfo(){
     cout<<"ReadConfigInfo destructor"<<endl;
 }
-map<string, string> ReadConfigInfo::getHostInfo(){
-    map<string, string> info;
+
+int ReadConfigInfo::getHostInfo(map<string,string> & info){
+//    map<string, const char *> info;
     CMarkup xml;
     string configXmlPath = getProjectRootPath() + "/config.xml";
 
     if(!xml.Load(configXmlPath)){
         cout<<"load config.xml failure";
-        return info;
+        return -1;
     }
     xml.ResetPos();
     // 然后再从根节点开始往下找
@@ -44,11 +46,12 @@ map<string, string> ReadConfigInfo::getHostInfo(){
         if (!flag){
             continue;
         }
-        string ciValue = xml.GetAttrib("value");
-        info.insert(make_pair(stra[i], ciValue));
+//        const char * ciValue = xml.GetAttrib("value").c_str();
+        info[stra[i]] = xml.GetAttrib("value");
+//        info.insert(make_pair(stra[i], ciValue));     // 因为info的value为const char *类型，所以如果用这里的make_pair方式会出现value为空字符串，只能通过上面的方式
         xml.OutOfElem();
     }
-    return info;
+    return 1;
 }
 
 map<string, string> ReadConfigInfo::getFuncInfo(string funcName){
@@ -72,15 +75,7 @@ map<string, string> ReadConfigInfo::getFuncInfo(string funcName){
             // 获取标签的所有属性值
             while ( xml.GetNthAttrib(n++, strName, strAttrib) )
             {
-
-                if(strName == "startTime" ){
-                    time_t t= TimeTransfer::convertTimeStr2TimeStamp(strAttrib);
-                    std::stringstream st;
-                    st<<std::put_time(std::localtime(&t),"%F %X");
-                    st.str();
-                }
                 info.insert(make_pair(strName, strAttrib));
-                // do something with strName, strAttrib
             }
             break;
         }

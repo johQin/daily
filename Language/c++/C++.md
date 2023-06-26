@@ -6747,4 +6747,95 @@ struct asd6{
    - 要将c++的字符串通过`.c_str()`转化为c语言的字符串。否则会报如上错。
    - `const char* c_str() const;`
 
-6. 
+6. [时间戳与字符串之间的转换](https://blog.csdn.net/xb_2015/article/details/122220722)
+
+   ```c++
+   #include <stdio.h>
+   #include <string>
+   #include <time.h>
+   using namespace std;
+   
+   string convertTimeStamp2TimeStr(time_t timeStamp){
+       struct tm *timeinfo = nullptr;
+       char buffer[80];
+       timeinfo = localtime(&timeStamp);
+       strftime(buffer,80,"%Y-%m-%d %H:%M:%S",timeinfo);
+       printf("%s\n",buffer);
+       return string(buffer);
+   }
+   time_t convertTimeStr2TimeStamp(string timeStr){
+       struct tm timeinfo;
+       strptime(timeStr.c_str(), "%Y-%m-%d %H:%M:%S",  &timeinfo);
+       time_t timeStamp = mktime(&timeinfo);
+       printf("timeStamp=%ld\n",timeStamp);
+       return timeStamp;
+   }
+   
+   
+   int main(void)
+   {
+       convertTimeStamp2TimeStr(1633071600);  //2021-10-1 15:00:00
+       convertTimeStr2TimeStamp("2021-10-1 15:00:00");
+       return 0;
+   }
+   
+   
+   ```
+
+   - [C++ time_t与string的互相转换](https://blog.csdn.net/qq_34645629/article/details/84783092)
+
+7. [动态声明函数的返回值类型](https://blog.csdn.net/jiemashizhen/article/details/124484115)
+
+   ```c++
+   #include <iostream>
+   using namespace std;
+    
+   template<class T1, class T2>
+   auto add(T1 t1, T2 t2) -> decltype(t1 + t2)    //通过auto和decltype动态的声明函数的返回值类型
+   {
+   	return t1 + t2;
+   }
+    
+   int main(){
+   	auto a = add(5, 1.66);
+   	cout<<"type of a is:"<<typeid(a).name()<<endl;
+   	return 0;
+   }
+    
+   运行程序输出：
+   type of a is:d
+    
+   ```
+
+8. [char数组与string互转](https://m.php.cn/faq/556498.html)
+
+   ```c++
+   char buffer[80];
+   std::string(buffer);
+   
+   
+   
+   string s="123456"; 
+   char c[s.length()]; 
+   /*
+   
+   **调用strcpy函数，和字符串的data函数 
+   
+   **1、strcpy不能赋值给char指针 ，只能赋值给char数组 
+   
+   **2、char数组长度，必须大于等于string长度 
+   
+   */
+   strcpy(c,s.data());
+   c[0]='6';
+   cout<<c<<endl;
+   cout<<strlen(c);
+   return 0;
+   ```
+
+   
+
+9. [char* 转int](https://blog.csdn.net/u011089523/article/details/101034813)
+
+
+

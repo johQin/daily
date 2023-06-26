@@ -16,7 +16,7 @@ public:
     ~ReadConfigInfo();
 public:
     map<string, string> getFuncInfo(string funName);
-    map<string, string> getHostInfo();
+    int getHostInfo(map<string,string> & info);
     string getProjectRootPath();
 };
 #endif //RAINWARN_READCONFIGINFO_H
