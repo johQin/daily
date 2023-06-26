@@ -334,6 +334,7 @@ C++中自带函数getenv，可以读取指定的环境变量，返回char *。
 1. [读取xml的工具](http://www.firstobject.com/dn_markupmethods.htm)
 
    - [每个函数的汉语意思](https://dandelioncloud.cn/article/details/1575145342054395905)
+   - [CMarkup简介](https://blog.51cto.com/u_2339637/1345249)
 
    ```c++
    map<string, string> info;

@@ -6844,5 +6844,13 @@ struct asd6{
 
 11. time
 
+12. [mysql.h](https://blog.csdn.net/pidoudou/article/details/46127567)
+
+13. char * 、string、char[]、const char *、int相互转换
+
+14. 字符串拼接
+
+15. [lambda作函数回调](https://blog.csdn.net/u011680671/article/details/99089053)
+
 
 

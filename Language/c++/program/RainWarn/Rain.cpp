@@ -9,6 +9,7 @@
 #include<list>
 #include<vector>
 #include "Utils.h"
+#include <functional>
 using namespace std;
 
 //void Rain::rainHello(){
@@ -28,30 +29,6 @@ void Rain::rainWarn(){
     char buf[200]={'\0'};
     sprintf(buf,"select * from %s where cs_data_time between %ld and %ld order by cs_data_time desc limit 1", funInfoMap["tableName"],TimeTransfer::convertTimeStr2TimeStamp(funInfoMap["startTime"]),TimeTransfer::convertTimeStr2TimeStamp(funInfoMap["endTime"]));
     string sqlStr = string(buf);
-    db.query("select * from rainfall",rainDataHandleCallback);
+    db.query("select * from rainfall",bind(&Rain::rainDataHandleCallback, this, std::placeholders::_1));
 
 }
-
-//class Rain {
-//private:
-//    float rainfall = 0.0;
-//public:
-//    Rain(){
-//        MYSQL * conn;
-//        MYSQL *MySQLConRet = NULL;
-//        conn = mysql_init(NULL);
-//        MySQLConRet = mysql_real_connect(conn, "192.168.100.138", "root", "axxt1234", "gasSensor", 3306, NULL, 0);
-//        if(NULL == MySQLConRet)
-//        {
-//            printf("connect is fail.please check......\n");
-//        }
-//        printf("connect is success.please check......\n");
-//    };
-//    ~Rain() {
-//        cout << "析构函数 rainfall="<< rainfall << endl;
-//    };
-//public:
-//    void hello(){
-//        cout<<"hello"<<endl;
-//    }
-//};

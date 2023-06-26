@@ -8,9 +8,11 @@
 #include<map>
 #include<list>
 #include<vector>
-
+#include <functional>
 using namespace std;
-typedef int (*callback)(list<vector<string>>);
+
+// typedef std::function<void(int)> callback;
+using callback = function<void(list<vector<string>>)>; //可以这样写，更直观
 class DataBS{
 private:
     map<string, string> dbInfoMap;
