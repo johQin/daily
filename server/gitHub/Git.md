@@ -195,7 +195,13 @@ git tag -a label version_code
 git push origin [tagname] #有点像推送分支
 git push origin --tags #一次性推送多个标签
 # 执行完上述命令后，其他开发者在pull的时候，就会拉下tag信息。
+
+# 拉取指定版本的代码内容
+git clone -b v5.2.0 --depth=1 http://gitlab地址
+# 这个-b用来指定tag，他也可以用来拉取指定branch的代码
 ```
+
+**tag 名不能与branch名相同，否则将会混淆，出现意想不到的错误。**
 
 ## 2.7 git 别名
 

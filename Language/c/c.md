@@ -2670,7 +2670,7 @@ typedef char* val_list
 #define va_end(ap) ( ap = NULL )
 ```
 
-## 11.2 time
+## 11.2 [time.h](https://www.runoob.com/cplusplus/cpp-date-time.html)
 
 **time.h** 头文件定义了四个变量类型、两个宏和各种操作日期和时间的函数。
 
@@ -2678,9 +2678,9 @@ typedef char* val_list
 
 - `size_t`：无符号整数类型，它是 **sizeof** 关键字的结果。
 
-- `clock_t`：存储处理器时间的类型。
+- `clock_t`：存储处理器时间的类型。只用于程序计时
 
-- `time_t`：存储日历时间的类型。它归根结底是long int
+- `time_t`：存储日历时间的类型（日历时）。表示距离 UTC 时间 1970-01-01 00:00:00 的秒数。它归根结底是long int
 
 - `struct tm`：存储时间和日期的结构
 
@@ -2705,17 +2705,24 @@ typedef char* val_list
 - `NULL`：空指针常量
 - `CLOCKS_PER_SEC`：每秒的处理器时钟个数（每秒包含的处理器时钟个数）。
 
-### 11.2.3 函数
+### 11.2.3 [函数](https://blog.csdn.net/weixin_43460876/article/details/94832561)
 
 ```c
-//返回一个指向字符串的指针，它代表了结构 timeptr 的日期和时间。
-char *asctime(const struct tm *timeptr);
+#include<time.h>
+clock_t clock(void)：						返回程序执行起（开头）到clock函数执行时，经历的处理器时钟个数。
+time_t time(time_t *seconds)：				获取当前系统时间（UTC时间）的time_t值。
+    											seconds -- 这是指向类型为 time_t 的对象的指针，用来存储 seconds 的值。
+char *ctime(const time_t *timer)：			将time_t值转换为表示本地时间的字符串。格式：Www Mmm dd hh:mm:ss yyyy 
+                                                其中，Www 表示星期几，Mmm 是以字母表示的月份，dd 表示一月中的第几天，
+                                                hh:mm:ss 表示时间，yyyy 表示年份。
+struct tm *gmtime(const time_t *timer)：		将time_t值转换为表示GMT时间的tm
+struct tm *localtime(const time_t *timer)：	将time_t转换为表示本地时间的tm
+time_t mktime(struct tm *timeptr)：			将表示本地时间的struct tm转换为time_t。
+char *asctime(const struct tm *timeptr)：	将struct tm转换为字符串形式。格式：Www Mmm dd hh:mm:ss yyyy 
+double difftime(time_t time1, time_t time2)：得到两个日历时之间的差值。
 
-
-// 返回程序执行起（开头）到clock函数执行时，经历的处理器时钟个数。
-clock_t clock(void);
-
-
+size_t strftime(char *str, size_t maxsize, const char *format, const struct tm *timeptr)：
+    										 根据 format 中定义的格式化规则，格式化结构 timeptr 表示的时间，并把它存储在 str 中
 ```
 
 ```c
@@ -2771,6 +2778,55 @@ int main()
 CPU 占用的总时间：0.025407
 程序退出...
 */
+
+
+// time_t time(time_t *seconds)
+time_t seconds;
+time(&seconds);
+printf("自 1970-01-01 起的小时数 = %ld\n", seconds/3600);
+// 自 1970-01-01 起的小时数 = 468851
+
+char * time_str = ctime(&seconds);
+printf("%s\n",time_str);
+// Tue Jun 27 19:27:21 2023
+
+
+// c++ 将字符串转换为时间戳
+time_t convertTimeStr2TimeStamp(std::string timeStr){
+    struct tm timeinfo;
+    strptime(timeStr.c_str(), "%Y-%m-%d %H:%M:%S",  &timeinfo);
+    timeinfo.tm_isdst = -1;
+    time_t timeStamp = mktime(&timeinfo);
+    return timeStamp;
+};
+// c++ 将时间戳转换为字符串
+string convertTimeStamp2TimeStr(time_t timeStamp){
+    struct tm *timeinfo = nullptr;
+    char buffer[80];
+    timeinfo = localtime(&timeStamp);
+    strftime(buffer,80,"%Y-%m-%d %H:%M:%S",timeinfo);
+    return string(buffer);
+}
+```
+
+## 11.3 [string.h](https://www.runoob.com/cprogramming/c-strings.html)
+
+在 C 语言中，字符串实际上是使用空字符 \0 结尾的一维字符数组。因此，\0 是用于标记字符串的结束。
+
+```c
+char site[] = "RUNOOB";			// site 本质上是一个char*
+
+char *strcpy(char *dest, char *src);		//拷贝src字符串到另一个dest，dest长度不够，也可以完整复制src的内容
+size_t strlen(const char *str);				//计算字符串的长度,遇到 '\0'，长度计算终止。字符数组的实际长度= strlen() + 1(\0)
+char *strcat(char *dest, const char *src);	//字符衔接
+int strcmp(const char *str1, const char *str2);	//比较两个字符串是否一样，这里对其按序比较的是ASCII 值，
+														// 返回大于0,则前者大，等于0,字符串相同，小于0,则前者小
+int memcmp(const void *str1, const void *str2, size_t n);	//对字符串str1和str2的前n个字符进行比较
+																//n -- 要被比较的字节数。一个char就是一个字节。
+//memcmp和strcmp的用法基本上是一样的，只不过一个是比较整串字符串的值，而另一个比较的是自己定义的前n个值。
+
+char * strchr(s1, ch);				//返回一个指针，指向字符串 s1 中字符 ch 的第一次出现的位置。
+strstr(s1, s2);				//返回一个指针，指向字符串 s1 中字符串 s2 的第一次出现的位置。
 ```
 
 
