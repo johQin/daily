@@ -14,12 +14,8 @@
 #include <time.h>
 #include <iomanip>
 using namespace std;
-ReadConfigInfo::ReadConfigInfo(){
-    cout<<"ReadConfigInfo constructor"<<endl;
-}
-ReadConfigInfo::~ReadConfigInfo(){
-    cout<<"ReadConfigInfo destructor"<<endl;
-}
+ReadConfigInfo::ReadConfigInfo(){}
+ReadConfigInfo::~ReadConfigInfo(){}
 
 int ReadConfigInfo::getHostInfo(map<string,string> & info){
 //    map<string, const char *> info;
@@ -27,7 +23,6 @@ int ReadConfigInfo::getHostInfo(map<string,string> & info){
     string configXmlPath = getProjectRootPath() + "/config.xml";
 
     if(!xml.Load(configXmlPath)){
-        cout<<"load config.xml failure";
         return -1;
     }
     xml.ResetPos();
@@ -41,7 +36,6 @@ int ReadConfigInfo::getHostInfo(map<string,string> & info){
     int len = sizeof(stra) / sizeof(stra[0]);
     for(int i =0 ;i<len;i++){
         xml.IntoElem();
-        cout<<stra[i]<<endl;
         bool flag= xml.FindElem(stra[i]);
         if (!flag){
             continue;
@@ -54,14 +48,11 @@ int ReadConfigInfo::getHostInfo(map<string,string> & info){
     return 1;
 }
 
-map<string, string> ReadConfigInfo::getFuncInfo(string funcName){
-    map<string, string> info;
+int ReadConfigInfo::getFuncInfo(string funcName,map<string,string> & info){
     CMarkup xml;
     string configXmlPath = getProjectRootPath() + "/config.xml";
-
     if(!xml.Load(configXmlPath)){
-        cout<<"load config.xml failure";
-        return info;
+        return -1;
     }
     // 然后再从根节点开始往下找
     xml.FindElem("body");
@@ -80,18 +71,19 @@ map<string, string> ReadConfigInfo::getFuncInfo(string funcName){
             break;
         }
     }
-    return info;
+    return 1;
 }
 string ReadConfigInfo::getProjectRootPath(){
     char *path = getenv("RESOURCE_DIR");
     if (path != nullptr) {
-        printf("project 's absolute path in ENV:%s\n", path);
         return path;
     }
 
     // not find in ENV
     string project_path = PROJECT_ROOT_PATH;
-    string resource_path = project_path;
-    printf("project 's absolute path in CMake:%s\n", resource_path.c_str());
-    return resource_path;
+    if(project_path.c_str()){
+        return project_path;
+    }
+
+    return "";
 }

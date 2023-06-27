@@ -2408,6 +2408,30 @@ int main()
 
 \#include 引入头文件的本质就是**源码替换**，预处理的时候将那些.h文件中的代码替换到头文件引入的位置进行编译。比如printf就会从stdio.h中寻找对应源码，之后进行替换，再替换以后的结果再交给编译器处理，进行编译。
 
+[.c文件中是否需要把.h中的include再include一遍?](https://www.zhihu.com/question/49635545)
+
+```c
+// 如果在a.h中include头，那么如果a.c中用到了这个头，那么a.c中就无需再包含这个头。
+// 如果想加，也可以。但是没必要的
+// 虽然没有必要，但是工程上我们一般建议，每个c都显式的包含自己显示引用的符号所在的头文件。
+
+// main.h
+#ifndef CODE_A_H
+#define CODE_A_H
+#include <stdio.h>
+#endif //CODE_A_H
+
+// main.c
+#include "a.h"
+int main(void)
+{
+    printf("%s","fahfd");
+    return 0;
+}
+```
+
+
+
 ## 9.3 条件编译宏
 
 c语言中条件编译相关的预编译指令

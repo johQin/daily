@@ -15,7 +15,7 @@ public:
     ReadConfigInfo();
     ~ReadConfigInfo();
 public:
-    map<string, string> getFuncInfo(string funName);
+    int getFuncInfo(string funName,map<string,string> & info);
     int getHostInfo(map<string,string> & info);
     string getProjectRootPath();
 };

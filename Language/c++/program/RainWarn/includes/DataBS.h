@@ -12,7 +12,7 @@
 using namespace std;
 
 // typedef std::function<void(int)> callback;
-using callback = function<void(list<vector<string>>)>; //可以这样写，更直观
+using callback = function<void(list<vector<string>> &list)>; //可以这样写，更直观
 class DataBS{
 private:
     map<string, string> dbInfoMap;

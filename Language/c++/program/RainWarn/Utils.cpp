@@ -21,8 +21,8 @@ TimeTransfer::~TimeTransfer() {};
 time_t TimeTransfer::convertTimeStr2TimeStamp(std::string timeStr){
     struct tm timeinfo;
     strptime(timeStr.c_str(), "%Y-%m-%d %H:%M:%S",  &timeinfo);
+    timeinfo.tm_isdst = -1;
     time_t timeStamp = mktime(&timeinfo);
-    printf("timeStamp=%ld\n",timeStamp);
     return timeStamp;
 };
 std::string TimeTransfer::convertTimeStamp2TimeStr(time_t timeStamp){
@@ -30,7 +30,6 @@ std::string TimeTransfer::convertTimeStamp2TimeStr(time_t timeStamp){
     char buffer[80];
     timeinfo = localtime(&timeStamp);
     strftime(buffer,80,"%Y-%m-%d %H:%M:%S",timeinfo);
-    printf("%s\n",buffer);
     return std::string(buffer);
 }
 

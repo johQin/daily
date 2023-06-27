@@ -18,6 +18,6 @@ public:
 //    ~Rain();
 public:
     void rainWarn();
-    int rainDataHandleCallback(std::list<std::vector<std::string>>);
+    int rainDataHandleCallback(std::list<std::vector<std::string>> &list);
 };
 #endif //RAINWARN_RAIN_H

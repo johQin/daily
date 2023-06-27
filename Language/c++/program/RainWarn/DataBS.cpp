@@ -12,16 +12,11 @@
 #include<stdlib.h>
 using namespace std;
 DataBS::DataBS(){
-    cout<<"DataBS constructor"<<endl;
     ReadConfigInfo rc = ReadConfigInfo();
     rc.getHostInfo(dbInfoMap);
 }
-DataBS::~DataBS(){
-    cout<<"DataBS destructor"<<endl;
-}
+DataBS::~DataBS(){}
 int DataBS::query(string sqlStr, callback call_fun){
-    cout<<"dbHello"<<endl;
-    cout<<dbInfoMap["IP"]<<endl;
     MYSQL * conn;
     MYSQL *MySQLConRet = NULL;
     conn = mysql_init(NULL);
@@ -29,11 +24,10 @@ int DataBS::query(string sqlStr, callback call_fun){
     list<vector<string>> resList;
     if(NULL == MySQLConRet)
     {
-        printf("connect is fail.please check......\n");
         return -1;
     }
-    printf("connect is success.please check......\n");
-    mysql_query(conn, "SELECT * FROM rainfall");
+    printf("connect is success\n");
+    mysql_query(conn, sqlStr.c_str());
     MYSQL_RES *result = mysql_store_result(conn);
     int num_fields = mysql_num_fields(result);
     MYSQL_ROW row;

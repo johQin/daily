@@ -6714,30 +6714,50 @@ struct asd6{
    
    ```
 
-4. [字符串拼接]()
+4. 字符串拼接sprintf
 
    ```c++
-   int main()
-   {
-   	string s1 = "Hello ";
-   	string s2 = "World! ";
-   	string s3 = " China";
-   	string s4;
-    
-   	//第一种方式：append
-   	s4.append(s1);
-   	cout << s4.c_str() << endl;
-   	s4.append(s2);
-   	cout << s4.c_str() << endl;
-   	s4.append(s3);
-   	cout << s4.c_str() << endl;
-    
-   	//第二种方式：+
-   	s4 += " welcome!";
-   	cout << s4 << endl;
-   	s4 = s4 + "libin";
-   	cout << s4 << endl;
-   }
+   // char* ,char*
+   
+   // 1. sprintf
+   // funInfoMap Map<string,string>
+   // TimeTransfer::convertTimeStr2TimeStamp 返回time_t,需要按照%ld格式写入
+   char buf[200]={'\0'};
+   sprintf(
+       buf,
+       "select * from %s where cs_data_time between %ld and %ld order by cs_data_time desc limit 1",
+   	funInfoMap["tableName"].c_str(),
+       TimeTransfer::convertTimeStr2TimeStamp(funInfoMap["startTime"]),
+       TimeTransfer::convertTimeStr2TimeStamp(funInfoMap["endTime"])
+   );
+   string sqlStr = string(buf);
+   
+   // 2. string.h 方法
+   char* str1 = "Hello";
+   char*str2 = "World";
+   char str3[20];
+   strcpy(str3, str1);
+   printf("%s\n%s\n",str3,str1);
+   strcat(str3, str2);
+   printf("%s\n%s\n",str3,str2);
+   //Hello
+   //Hello
+   //HelloWorld
+   //World
+   
+   
+   // 2.string类，+号，和append()
+   
+   string a = "hello";
+   string b = "world";
+   string c = a + b;
+   a.append(c);
+   printf("%s\n%s\n%s\n",a.c_str(),b.c_str(),c.c_str());
+   /*
+   hellohelloworld
+   world
+   helloworld
+   */
    ```
 
    
@@ -6770,7 +6790,9 @@ struct asd6{
        printf("timeStamp=%ld\n",timeStamp);
        return timeStamp;
    }
-   
+   // 转为时间戳mktime返回-1的情况，首先要看tm结构体取得的值是否符合范围。
+   // isdst 看看是否符合1,0,-1枚举值的情况，不符合则需要手动设置为-1
+   // https://blog.csdn.net/zzwmaster/article/details/128188894
    
    int main(void)
    {
@@ -6807,54 +6829,151 @@ struct asd6{
     
    ```
 
-8. [char数组与string互转](https://m.php.cn/faq/556498.html)
+8. [char* 与 int、float](https://blog.csdn.net/u011089523/article/details/101034813)
+
+   - [itoa和atoi（字符串与整型数之间的转换）](https://blog.csdn.net/qq_44524918/article/details/114679985)
 
    ```c++
-   char buffer[80];
-   std::string(buffer);
+   //1. char * 转 int
+   int atoi (const char * str);
+   //atoi() 函数会扫描参数 str 字符串，跳过前面的空白字符（例如空格，tab缩进等），直到遇上数字或正负符号才开始做转换，而再遇到 非数字 或 字符串结束时(’\0’) 才结束转换，并将结果返回。函数返回转换后的整型数；如果 str 不能转换成 int 或者 str 为空字符串，那么将返回 0。
+   #include <stdlib.h>
+   const char *s = " 134";
+   // char *s = "  124  ff";
+   int num = atoi(s);
+   cout << num; //输出：134
    
+   //2. char* 转 float
+   double atof(const char *str);
+   // 字符串转换为双精度浮点数(double)
+   char buf[10] = "-123.456";
+   float f = atof(buf); //转换
+   printf("%f\n", f);
    
+   //3. 数值型 转 char*
+   int sprintf(char *string,char *format,arg_list); 
+   //char *itoa(int value, char *string, int radix);	// itoa是Windows特有的，如果要写跨平台的程序，需要用sprintf。
+   char str[255];
+   char *a = str;		// str是指向数组第一个元素的指针，本质是一个char *，所以可以赋值给char * 类型的a
+   sprintf(a, "%d", 100);	//如果要转为其他类型如float，就要在format里写其他占位符。如%f。
+   printf("%s",a);
    
-   string s="123456"; 
-   char c[s.length()]; 
-   /*
-   
-   **调用strcpy函数，和字符串的data函数 
-   
-   **1、strcpy不能赋值给char指针 ，只能赋值给char数组 
-   
-   **2、char数组长度，必须大于等于string长度 
-   
-   */
-   strcpy(c,s.data());
-   c[0]='6';
-   cout<<c<<endl;
-   cout<<strlen(c);
-   return 0;
+   int num = 100;
+   char str[25];				// str是指向数组第一个元素的指针，本质是一个char *。
+   itoa(num, str, 10);
+   cout << str; //输出100 
    ```
 
+9. [string与char *、char[] 互转](https://blog.csdn.net/neuzhangno/article/details/128071821)
+
+   ```c++
+   // 1. string to
    
+   // 1.1 转 char *
+   //  string data();
+   string str="good boy";
+   const char *p=str.data();
+   // string c_str()
+   string str="good boy";
+   const char *p=str.c_str();
+   
+   //1.2 转 char[]
+   string str="good boy";
+   char p[20];
+   str.copy(p,str.length(),0);
+   p[2] = 'a';
+   p[str.length()]= '\0';
+   p[10]= 'b';
+   printf("%s\n%s",str.c_str(),p);
+   // good boy
+   // goad boy
+   
+   
+   // 2. to string
+   // 2.1 char * to string
+   char* s="good boy";
+   string str=s;
+   // 2.2 char[] to string
+   char s[20]="good boy";		//数组名 s 本质是一个char *
+   string str=s;
+   
+   char a[]="affdfd";
+   string s = string(a);
+   
+   ```
 
-9. [char* 转int](https://blog.csdn.net/u011089523/article/details/101034813)
+10. [string与 int、float](https://blog.csdn.net/cat_hate_fish/article/details/109241076)
 
-10. [类与回调函数](https://blog.csdn.net/qq_36327203/article/details/108697677)
+    ```c++
+    // 1. string to num
+    // 1.1 stdlib.h 函数
+    string str="123";
+    //atoi的参数类型为（const char *nptr）而string是一个类，所以需要获取str的首地址即str.c_str()
+    int num=atoi(str.c_str());
+    
+    long atol(const char *nptr);	//把字符串转换成长整型数
+    double atof(const char *nptr);	//把字符串转换成浮点数
+    long int strtol(const char *str, char **endptr, int base);		//把参数 str 所指向的字符串根据给定的 base 转换为一个长整数
+    // C++11还提供了stoi/stol/stoll用于将字符串转换为数值
+    
+    string a = "123.c";
+    long b =atol(a.c_str());
+    printf("%ld",b);	// 123
+    
+    // 1.2 通过stringstream类转化
+    stringstream sstream;
+    string str="123";
+    int num;
+    cout<<"str="<<str<<"    str的类型为"<<typeid(str).name()<<endl;//输出Ss表示string类型
+    sstream<<str;// 将string类型的值放入字符串流中
+    sstream>>num;//将sstream中的第一条数据输出到num中 
+    cout<<"num="<<num<<"    num的类型为"<<typeid(num).name()<<endl;//输出i表示int类型
+    
+    // 2. num to string
+    
+    // 2.1 C++11提供了to_string函数，可以方便的将数值转变为string。
+    // include<string>
+    
+    // 2.2 通过stringstream类转化
+    stringstream sstream;
+    string str;
+    int num=123;
+    cout<<"num="<<num<<"    num的类型为"<<typeid(num).name()<<endl;//输出i表示int类型
+    sstream<<num;// 将num类型的值放入字符串流中
+    sstream>>str;//将sstream中的第一条数据输出到str中 
+    cout<<"str="<<str<<"    str的类型为"<<typeid(str).name()<<endl;//输出Ss表示string类型
+    ```
+
+    
+
+11. [类与回调函数](https://blog.csdn.net/qq_36327203/article/details/108697677)
 
     - invalid use of non-static member function
     - 
 
-11. time
+12. time
 
-12. [mysql.h](https://blog.csdn.net/pidoudou/article/details/46127567)
+13. [mysql.h](https://blog.csdn.net/pidoudou/article/details/46127567)
 
-13. char * 、string、char[]、const char *、int相互转换
+14. char * 、string、char[]、const char *、int相互转换
 
-14. 字符串拼接
+15. 字符串拼接
 
-15. [lambda作函数回调](https://blog.csdn.net/u011680671/article/details/99089053)
+16. [lambda作函数回调](https://blog.csdn.net/u011680671/article/details/99089053)
 
     - https://qa.1r1g.com/sf/ask/4458122931/
 
-16. 
+17. [stdlib与cstdlib的区别](https://blog.csdn.net/hankern/article/details/94270603)
+
+    ```c
+    C语言中是有#include <stdlib.h>的。 这是C语言标准的包含库头文件stdlib.h的语句。在代码中引用此句后，就可以使用stdlib.h中的函数，而不会出现未声明的警告。
+    
+    在C++中也可以使用#include <stdlib.h>，因为C++兼容了C语言中的操作。不过一般更推荐使用C++风格的头文件，即#include <cstdlib>。cstdlib实现了stdlib.h中的所有功能，不过是按照C++的方式写的，所以与C++语言可以更好的配合。
+    ```
+
+    
+
+18. 
 
 
 
