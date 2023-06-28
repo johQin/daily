@@ -629,7 +629,7 @@ xargs可以产生某个命令的参数，xargs 可以读入stdin的数据，并�
    
    ```
 
-10. echo 打印颜色文本。printf指令也可以格式化输出
+10. [echo 打印颜色文本。printf指令也可以格式化输出](https://blog.csdn.net/XYliurui/article/details/102761476?ops_request_misc=%257B%2522request%255Fid%2522%253A%2522168078941816800182792936%2522%252C%2522scm%2522%253A%252220140713.130102334..%2522%257D&request_id=168078941816800182792936&biz_id=0&utm_medium=distribute.pc_search_result.none-task-blog-2~all~sobaiduend~default-1-102761476-null-null.142%5Ev81%5Ekoosearch_v1,201%5Ev4%5Eadd_ask,239%5Ev2%5Einsert_chatgpt&utm_term=echo%20%E8%BE%93%E5%87%BA%E7%BB%BF%E8%89%B2&spm=1018.2226.3001.4187)
 
     ```bash
     # 31m是指代文本的颜色，31m是红色，32m是绿色，33m是黄色。4开头的是修改文本的背景色。
@@ -2868,3 +2868,7 @@ echo "unix script" | awk 'gsub(/unix/,bash)'
     - eg：`watch -n2 ./count_tcpconn_status.sh`，间隔两秒钟，执行一次脚本
 
 11. 
+
+
+
+# log

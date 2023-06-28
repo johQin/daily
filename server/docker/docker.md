@@ -565,6 +565,10 @@ docker images
 
 
 
+### 2.3.4 容器进出总结
+
+
+
 # 3 docker 镜像
 
 镜像是一种轻量级、可执行的独立软件包，它包含运行某个软件所需的所有内容，我们把应用程序和配置依赖打包好形成一个可交付的运行环境(包括代码、运行时需要的库、环境变量和配置文件等)，这个打包好的运行环境就是image镜像文件。
@@ -1029,7 +1033,7 @@ docker执行dockerfile的大致流程：
 | **ENV**        | 1.用来在构建镜像过程中设置的环境变量<br />2.ENV key1 val1<br />3.引用时：$key1 |
 | **ADD**        | 1.将**宿主机目录**下的文件copy进镜像<br />2.可自动处理URL和解压tar压缩包 |
 | **COPY**       | 1.类似于ADD，copy文件和目录到镜像中<br />2.从**构建的上下文目录**中，源路径的文件复制到新的一层的镜像内的目标路径 |
-| **CMD**        | 1.指定容器启动后要运行的命令<br />2.dockerfile中可以有多个CMD，但只有最后一个生效<br />3.CMD会被docker run之后的命令参数替换，例如docker run ... /bin/bash<br />4.和RUN的区别：CMD是在docker run是运行，RUN是在docker build时运行 |
+| **CMD**        | 1.指定容器启动后要运行的命令<br />2.dockerfile中可以有多个CMD，但只有最后一个生效<br />3.CMD会被docker run之后的命令参数替换，例如docker run ... /bin/bash<br />4.和RUN的区别：CMD是在docker run时运行，RUN是在docker build时运行 |
 | **ENTRYPOINT** | 1.指定容器启动后要运行的命令<br />2.类似于CMD指令，但ENTRYPOINT不会被docker run后面的命令覆盖，<br />3.当指定了ENTRYPOINT后，CMD的含义就发生了变化，不再是直接运行其命令而是将CMD的内容作为参数传递给ENTRYPOINT指令，他们两个就会变成\<ENTRYPOINT> "\<CMD>"。<br />4.因为CMD会被docker run之后的命令参数替换，所以两者经常一起使用，作为命令**变参执行使用** |
 | **VOLUMN**     | 容器卷挂载                                                   |
 |                |                                                              |
@@ -1763,3 +1767,37 @@ spring.swagger2.enabled=true
    ```
 
    
+
+## [将容器打包为镜像并转为tar包](https://blog.csdn.net/dandan201212/article/details/116456848)
+
+```bash
+# 1. 制作镜像
+# docker commit [OPTIONS] CONTAINER [REPOSITORY[:TAG]]
+# OPTIONS：
+# -m 备注
+# -a 作者
+# CONTAINER：容器id
+# REPOSITORY:TAG 镜像名:版本号，不写版本号默认为latest
+# eg:
+docker commit -m  "first ps_env" -a  "qkh" ea7b81a40b7b  img_ps_env_1
+
+# 2. 转存镜像为tar包
+# docker save [OPTIONS] IMAGE [IMAGE...]
+# OPTIONS：
+# -o :输出到的文件。
+# IMAGE tar包名
+# [IMAGE...] 镜像名
+docker save -o img_ps_env_1.tar img_ps_env_1
+
+# 3. 将tar包导入为镜像
+docker load [OPTIONS]
+#OPTIONS：
+# -i,--input: 指定导入的文件，代替 STDIN。
+# -q,--quiet: 精简输出信息。
+docker load < fedora.tar
+docker load --input fedora.tar
+
+# 推荐使用import，因为可以指定镜像名和版本
+docker import  tar包名字.tar 镜像名称：版本id
+```
+

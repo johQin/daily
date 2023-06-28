@@ -199,5 +199,4 @@
 # 7 系统
 
 1. [linux发行版中的i386/i686/x86-64/有什么区别](https://zhidao.baidu.com/question/2276228239712472948.html)
-   - 
-2. 
+2. [Ubuntu18.04 陷入登录循环的问题解决历程（输入正确密码后无限重回登录界面）](https://blog.csdn.net/lj164567487/article/details/128692851)

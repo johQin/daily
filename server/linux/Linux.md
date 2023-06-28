@@ -3495,3 +3495,5 @@ BaseOS-source                                      CentOS-8 - BaseOS Sources    
 dpkg 主要是用来安装已经下载到本地的 deb 软件包，或者对已经安装好的软件进行管理。而 apt-get 可以直接从远程的软件仓库里下载安装软件。
 
 ## 
+
+[Ubuntu18.04 陷入登录循环的问题解决历程（输入正确密码后无限重回登录界面）](https://blog.csdn.net/lj164567487/article/details/128692851)
