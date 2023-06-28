@@ -252,6 +252,61 @@ void test() {
 }
 ```
 
+### [using三种用法](https://zhuanlan.zhihu.com/p/156155959)
+
+1. 导入命令空间
+
+2. 指定别名
+
+   - C++ 11 通过 using 指定别名，作用等同于 typedef，但相比 typedef，逻辑更直观，可读性更好。
+
+3. 派生类引用基类成员
+
+   - 尽管派生类 Derived 对 基类 Base 是私有继承，但通过 using 声明，派生类的对象就可以访问基类的 proteced 成员变量和 public 成员函数了。
+
+     **注意：using只是引用，不参与形参的指定。**
+
+```c++
+1. 导入命令空间
+// 导入整个命名空间到当前作用域
+using namespace std;
+// 只导入某个变量到当前作用域 
+using std::cout; 
+
+2. 指定别名
+typedef int T; // 用 T 代替 int
+using T = int; // 用 T 代替 int
+
+3. 引用基类成员
+class Base{
+public:
+    void showName(){
+        cout<<"你好，my family is "<<family<<endl;
+    }
+protected:
+    string family;
+private:
+    string name;
+};
+class Son :private Base{
+public:
+    using Base::family;
+    using Base::showName;
+//    using Base::name;     //无法访问private属性或方法
+};
+int main(void)
+{
+    Son s;
+    s.family = "qqq";
+    s.showName();
+    return 0;
+}
+```
+
+注意：**在.h头文件中，一般不应该使用using声明。**
+
+因为头文件的内容会拷贝到所有引用它的文件中去，如果头文件里有某个using声明，那么每个使用了该头文件的文件就都会有这个声明，从而可能产生名字冲突。
+
 ## 1.4 struct类型增强
 
 C++中的`struct`对C中的`struct`进行了扩充。
@@ -3668,6 +3723,47 @@ int main() {
 }
 ```
 
+## 5.3 [typename](https://zhuanlan.zhihu.com/p/335777990)
+
+最早 Stroustrup 使用 class 来声明模板参数列表中的类型是为了避免增加不必要的关键字；后来委员会认为这样混用可能造成概念上的混淆才加上了 typename 关键字。
+
+"typename"是一个C++程序设计语言中的关键字。当用于泛型编程时是另一术语"class"的同义词。在定义类模板或者函数模板时，typename 和 class 关键字都可以用于指定模板参数中的类型。也就是说，以下两种用法是完全等价的。
+
+```c++
+template<typename T> /* ... */;
+template<class T>    /* ... */;
+
+//使用关键字typename代替关键字class指定模板类型形参更为直观，毕竟，可以使用内置类型（非类类型）作为实际的类型形参，
+//而且，typename更清楚地指明后面的名字是一个类型名。但是，关键字typename是作为标准C++的组成部分加入到C++中的，因此旧的程序更有可能只用关键字class。
+```
+
+**typename用于指出模板声明（或定义）中的非独立名称（dependent names）是类型名，而非变量名。**
+
+```c++
+template<typename T>
+void fun(const T& proto){
+    T::const_iterator it(proto.begin());	
+    //此时会发生编译错误，编译器在编译时无法知道T::const_iterator是一个变量还是一个类型，只能在运行时才能确定
+    // 编译器会给出两个可能的错误
+    //error: need ‘typename’ before ‘T::const_iterator’ because ‘T’ is a dependent scope
+    // error: expected ‘;’ before ‘it’
+    
+    //  
+    //所以此时如果要声明it为一个迭代器，就需要在T::const_iterator之前加typename，告知编译器这是一个类型，而不是一个变量。
+    typename    T::const_iterator it(proto.begin());
+}
+```
+
+### 嵌套从属名
+
+事实上类型T::const_iterator依赖于模板参数T， 模板中依赖于模板参数的名称称为**从属名称**（dependent name）
+
+ 当一个从属名称嵌套在一个类里面时，称为**嵌套从属名称**（nested dependent name）。 
+
+所以T::const_iterator还是一个**嵌套从属类型名称**（nested dependent type name）。
+
+嵌套从属名称是需要用typename声明的，其他的名称是不可以用typename声明的
+
 # 6 类型转换
 
 C++风格的强制转换的好处在于：更能清晰的表达转换的意图，可以提供更好的强制转换过程。
@@ -6489,7 +6585,51 @@ void click() {
 // duration:2105ms，相较于mutex，时间减少了
 ```
 
+# 11 库
 
+## 11.1 type_traits
+
+- [remove_reference](https://blog.csdn.net/slslslyxz/article/details/105778734)
+
+  ```c++
+  int a[] = {1,2,3};
+  decltype(*a) b = a[0];
+  a[0] = 4;
+  cout << b; 	// 4
+  // *a 的类型是 int&，是一个int类型的左值引用，因此b也就是a[0]的又一个别名（b也是一个int&）
+  // 所以此时修改a[0] 等同于修改了b
+  
+  // remove_reference是一个普通模板类
+  template <typename T>
+  class remove_reference
+  {
+  public:
+     typedef T type;
+  };
+  
+  template<typename T>
+  class remove_reference<T&>
+  {
+  public:
+     typedef T type;
+  };
+  
+  int a[] = {1,2,3};
+  remove_reference<decltype(*a)>::type b = a[0];
+  a[0] = 4;
+  cout << b; //输出1
+  
+  remove_reference<decltype(*a)>，就会被传到第二个实现中，typedef int type,此时type就会变为int，解除引用。
+  ```
+
+- remove_reference_t
+
+  ```c++
+  template< class T >
+  using remove_reference_t = typename remove_reference<T>::type;
+  ```
+
+  
 
 # 其他
 
