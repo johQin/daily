@@ -277,8 +277,8 @@ int main(){
     //ipv4结构体
     struct sockaddr_in server_addr;
     server_addr.sin_family = AF_INET;
-    server_adder.sin_port = htons(9000);
-    inet_pton(AF_INET,"192.168.127.1",&server_addr.sinaddr.s_addr);
+    server_addr.sin_port = htons(9000);
+    inet_pton(AF_INET,"192.168.1.6",&server_addr.sin_addr.s_addr);
     // 创建套接字
     int sock_fd = socket(AF_INET,SOCK_DGRAM,0);
     if(sock_fd<0){
@@ -288,14 +288,13 @@ int main(){
         // 获取发送的内容
         char buf[128]="";
         fgets(buf,sizeof(buf),stdin);
-        buf[strlen[buf] - 1]=0;
+        buf[strlen(buf) - 1]=0;
         // 发送
         sendto(sock_fd,buf,strlen(buf),0,(struct sockaddr*) &server_addr,sizeof(server_addr));
-        
         char read_buf[128]="";
         // 接收
         // 只要是设备文件，管道，网络，默认都会堵塞
-        recfrom(sock_fd, read_buf,sizeof(read_buf),0,NULL,NULL);
+        recvfrom(sock_fd, read_buf,sizeof(read_buf),0,NULL,NULL);
         printf("%s\n", read_buf);
     }
 }
@@ -309,31 +308,32 @@ INADDR_ANY 通配地址，值为0，`#include<sys/socket.h>`
 #include<stdio.h>
 #include<arpa/inet.h>
 #include<sys/socket.h>
+#include <unistd.h>
 int main(){
     // 创建socket
     int sock_fd= socket(AF_INET,SOCK_DGRAM,0);
     if(sock_fd<0)perror("");
-    
+
     struct sockaddr_in addr;
     addr.sin_family = AF_INET;
-    addr.sin_port = htons(9090);
+    addr.sin_port = htons(9000);
     //inet_pton(AF_INET,"192.168.127.129",&addr.sin_addr.s_addr);
-    addr.sin_addr.s_addr = 0;// 通配地址，表示该主机的所有ip,#include<sys/socket.h>,INADDR_ANY 
-    
+    addr.sin_addr.s_addr = 0;// 通配地址，表示该主机的所有ip,#include<sys/socket.h>,INADDR_ANY
+
     // 绑定
     int res = bind(sock_fd,(struct sockaddr*) &addr,sizeof(addr));
     if(res<0)perror("");
-    
+
     struct sockaddr_in client_addr;
     socklen_t len = sizeof(client_addr);
-    
+
     while(1){
         char buf[128]="";
         // 接收
         recvfrom(sock_fd, buf, sizeof(buf), 0, (struct sockaddr*) &client_addr, &len);
         printf("%s\n",buf);
         // 发送
-        sendto(sock_fd, buf, n, 0, (struct sockaddr*)&client_addr, sizeof(client_addr));
+        sendto(sock_fd, buf, sizeof (buf), 0, (struct sockaddr*)&client_addr, sizeof(client_addr));
     }
     close(sock_fd);
 }
