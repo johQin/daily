@@ -1022,22 +1022,22 @@ docker执行dockerfile的大致流程：
 
 ## 5.2 dockerfile 常用保留字
 
-| 保留字         | 说明                                                         |
-| -------------- | ------------------------------------------------------------ |
-| **FROM**       | 1. 基础镜像，当前镜像是基于那个镜像，<br />2. 指定一个已经存在的镜像作为模板<br />3. 第一行必须是FROM |
-| **MAINTAINER** | 镜像维护者的姓名和邮箱地址                                   |
-| **RUN**        | 1.容器构建时，需要运行的shell脚本命令<br />2.RUN在docker build时运行 |
-| **EXPOSE**     | 当前容器对外暴露的端口                                       |
-| **WORKDIR**    | 1.指定在创建容器后，终端默认登录进来工作目录<br />2.就是-it进入时默认的工作目录 |
-| **USER**       | 1.指定该镜像以什么样的用户去执行，<br />2. 如果都不指定，默认root |
-| **ENV**        | 1.用来在构建镜像过程中设置的环境变量<br />2.ENV key1 val1<br />3.引用时：$key1 |
-| **ADD**        | 1.将**宿主机目录**下的文件copy进镜像<br />2.可自动处理URL和解压tar压缩包 |
-| **COPY**       | 1.类似于ADD，copy文件和目录到镜像中<br />2.从**构建的上下文目录**中，源路径的文件复制到新的一层的镜像内的目标路径 |
-| **CMD**        | 1.指定容器启动后要运行的命令<br />2.dockerfile中可以有多个CMD，但只有最后一个生效<br />3.CMD会被docker run之后的命令参数替换，例如docker run ... /bin/bash<br />4.和RUN的区别：CMD是在docker run时运行，RUN是在docker build时运行 |
-| **ENTRYPOINT** | 1.指定容器启动后要运行的命令<br />2.类似于CMD指令，但ENTRYPOINT不会被docker run后面的命令覆盖，<br />3.当指定了ENTRYPOINT后，CMD的含义就发生了变化，不再是直接运行其命令而是将CMD的内容作为参数传递给ENTRYPOINT指令，他们两个就会变成\<ENTRYPOINT> "\<CMD>"。<br />4.因为CMD会被docker run之后的命令参数替换，所以两者经常一起使用，作为命令**变参执行使用** |
-| **VOLUMN**     | 容器卷挂载                                                   |
-|                |                                                              |
-|                |                                                              |
+| 保留字                                                       | 说明                                                         |
+| ------------------------------------------------------------ | ------------------------------------------------------------ |
+| **FROM**                                                     | 1. 基础镜像，当前镜像是基于那个镜像，<br />2. 指定一个已经存在的镜像作为模板<br />3. 第一行必须是FROM |
+| **MAINTAINER**                                               | 镜像维护者的姓名和邮箱地址                                   |
+| **RUN**                                                      | 1.容器构建时，需要运行的shell脚本命令<br />2.RUN在docker build时运行 |
+| **EXPOSE**                                                   | 当前容器对外暴露的端口                                       |
+| **WORKDIR**                                                  | 1.指定在创建容器后，终端默认登录进来工作目录<br />2.就是-it进入时默认的工作目录 |
+| **USER**                                                     | 1.指定该镜像以什么样的用户去执行，<br />2. 如果都不指定，默认root |
+| **ENV**                                                      | 1.用来在构建镜像过程中设置的环境变量<br />2.ENV key1 val1<br />3.引用时：$key1 |
+| **ADD**                                                      | 1.将**宿主机目录**下的文件copy进镜像<br />2.可自动处理URL和解压tar压缩包 |
+| **COPY**                                                     | 1.类似于ADD，copy文件和目录到镜像中<br />2.从**构建的上下文目录**中，源路径的文件复制到新的一层的镜像内的目标路径 |
+| **CMD**                                                      | 1.指定容器启动后要运行的命令<br />2.dockerfile中可以有多个CMD，但只有最后一个生效<br />3.CMD会被docker run之后的命令参数替换，例如docker run ... /bin/bash<br />4.和RUN的区别：CMD是在docker run时运行，RUN是在docker build时运行 |
+| **ENTRYPOINT**                                               | 1.指定容器启动后要运行的命令<br />2.类似于CMD指令，但ENTRYPOINT不会被docker run后面的命令覆盖，<br />3.当指定了ENTRYPOINT后，CMD的含义就发生了变化，不再是直接运行其命令而是将CMD的内容作为参数传递给ENTRYPOINT指令，他们两个就会变成\<ENTRYPOINT> "\<CMD>"。<br />4.因为CMD会被docker run之后的命令参数替换，所以两者经常一起使用，作为命令**变参执行使用** |
+| **VOLUMN**                                                   | 容器卷挂载                                                   |
+| [**ARG**](https://blog.csdn.net/qq_38220908/article/details/126667781) | ARG指令用于定义一个变量，用户可以在构建Docker镜像的时候，使用 --build-arg 定义变量的值。<br />`docker build --build-arg username=QQQ -t myapp:tag-v0.0.1 .`<br />`FROM ubuntu    ARG username    RUN echo $username` |
+|                                                              |                                                              |
 
 ## 5.3 案例
 

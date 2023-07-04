@@ -222,6 +222,28 @@ GPU版TensorFlow：conda install tensorflow-gpu
 
 1. [pycharm 搭建anaconda集成开发环境](https://blog.csdn.net/weixin_51009494/article/details/124542500)
 
+2. [查看当前环境](https://www.coder.work/article/7496109)
+
+   ```bash
+   # 当前激活的环境名称
+   $CONDA_DEFAULT_ENV
+   # 当前激活环境的路径
+   $CONDA_PREFIX
+   ```
+
+3. 切换沙箱
+
+   ```bash
+   # 激活沙箱
+   conda activate pa_env
+   # 回到base沙箱
+   conda deactivate
+   ```
+
+   
+
+4. 
+
 ## 1.1 [conda环境和迁移](https://zhuanlan.zhihu.com/p/87344422)
 
 ```bash
