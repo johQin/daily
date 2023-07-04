@@ -1199,6 +1199,22 @@ git config list
 
 # 其他知识点
 
+1. [忽略已经被git追踪的文件和文件夹](https://blog.csdn.net/Hu_wenpeng/article/details/130430126)
+
+   ```bash
+   # 1.从版本库中rm文件或目录
+   # rm文件
+   git rm --cached file_name #从版本库中rm文件，working dicrectory中仍然保留
+   # rm目录
+   git rm -r --cached directory_name #删除目录下所有文件包括子目录
+   # 2.在.gitignore中添加要忽略的文件
+   # 3.把修改的文件commit并且push到服务端
+   ```
+
+   
+
+2. 
+
 ## 1 git设置提交模板
 
 1. 在某一个固定的文件夹下，新建一个Git提交的模板文本文件
@@ -1239,3 +1255,4 @@ git config list
    
 
 4. 
+

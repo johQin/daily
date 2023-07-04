@@ -1,3 +1,0 @@
-/home/buntu/gitRepository/daily/Language/c++/program/Eplayer/cmake-build-debug/CMakeFiles/Eplayer.dir
-/home/buntu/gitRepository/daily/Language/c++/program/Eplayer/cmake-build-debug/CMakeFiles/edit_cache.dir
-/home/buntu/gitRepository/daily/Language/c++/program/Eplayer/cmake-build-debug/CMakeFiles/rebuild_cache.dir
