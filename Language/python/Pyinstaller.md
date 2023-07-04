@@ -128,6 +128,12 @@ if getattr(sys, 'frozen', False):
         filepath = os.path.join(os.getcwd(), 'README.txt')
 else:
     filepath = os.path.join(os.path.dirname(__file__), 'README.txt')
+    
+    
+if getattr(sys, 'frozen', None):
+    basedir = sys._MEIPASS
+else:
+    basedir = os.path.dirname(__file__)
 ```
 
 上述代码并不是唯一可行的代码，或许也不是最简洁的，但是你应当明白了，要正确处理该过程并不是轻而易举的事情。很多用户之所以出错又找不到问题，就是因为他们根本不清楚临时目录这回事，也不知道上哪里去找这些文件。如果使用单目录模式的话，那么文件在哪里是可以直接看到的，出现问题的可能性就小多了，即使有问题也很容易排查。这就是我为什么强烈推荐用户不要使用单文件模式的原因————除了看起来比较清爽之外，单文件模式基本上没有其他好处，而且它带来的麻烦比这一点好处要多太多了。
