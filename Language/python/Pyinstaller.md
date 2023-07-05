@@ -2,11 +2,7 @@
 
 a——Analysis类的实例，要求传入各种脚本用于分析程序的导入和依赖
 
-```bash
 
-```
-
-[pyinstaller打包前后os.path.abspath(__file__)和os.path.realpath(sys.executable)的区别](https://blog.csdn.net/sy20173081277/article/details/116541195)
 
 
 
@@ -117,6 +113,8 @@ input('Press any key to exit...')
 
 需要说明的是，上述问题不只存在于你自己写的代码里。有相当多的库没有考虑到在 PyInstaller 打包后下执行的场景，它们在使用这些变量的时候很有可能会出问题。事实上这也是 PyInstaller 添加 Runtime Hook 机制的一个重要原因。
 
+### 路径问题
+
 如果你的脚本需要引用辅助文件路径的话，那么一种可能的形式如下：
 
 ```python
@@ -183,6 +181,8 @@ from xx import yy
 
 但是，PyInstaller 无法识别动态（动态导入）和调用，例如 **`__import__()`**、exec、eval, 以及**以变量为参数的调用**（因为不到运行时无法知道实际值）。
 
+或者在运行时操作sys.path的值等等。这些都是pyinstaller无法直接识别的。需要你手动做一些其他的工作帮助pyinstaller识别这些内容。
+
 当 PyInstaller 识别完所有模块后，会在内部构成一个树形结构表示调用关系图，该关系在生成目标时也会一并输出（也就是前面提到过的 xref-xxxx.html 文件）。PYZ 步骤会将所有识别到的模块汇集起来，如果有必要的话编译成 .pyd，然后将这些文件打包。这就是大致的模块处理过程。
 
 但这个过程还有一些潜在的问题没有解决。一个就是我们前面提到的，有些动态模块调用未必可以自动识别到，这样它们就不会打包到文件中，最终执行时肯定会出现问题。另一个是：有些模块并非是以模块的形式，而是通过文件系统去访问 .py 的，这些代码在运行时同样会出现问题。对这样的程序该如何处理呢？
@@ -231,3 +231,4 @@ a = Analysis(
 # 动态导入和动态调用的模块，__import__()、exec、eval, 以及以变量为参数的调用，这些模块不会被pyinstaller所识别，所以需要显示指定并打包。
 ```
 
+[pyinstaller打包前后os.path.abspath(__file__)和os.path.realpath(sys.executable)的区别](https://blog.csdn.net/sy20173081277/article/details/116541195)

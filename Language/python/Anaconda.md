@@ -52,7 +52,7 @@ anaconda prompt 下
 
 Sandboxie(又叫沙箱、沙盘)即是一个虚拟系统程序，它创造了一个类似沙盒的独立作业环境，在其内部运行的程序并不能对硬盘产生永久性的影响。
 
-创建沙箱：conda create -n 沙箱名 python=3.6 anaconda	//沙箱名，可以任意取，3.6代表支持的python 版本号。创建成功后，我们可以在anaconda Navigator/Environment，除了root环境，还有一个名叫tensorflow的沙箱环境
+创建沙箱：conda create -n 沙箱名 python=3.6	//沙箱名，可以任意取，3.6代表支持的python 版本号。创建成功后，我们可以在anaconda Navigator/Environment，除了root环境，还有一个名叫tensorflow的沙箱环境
 
 激活沙箱：activate 沙箱名 		//在使用时，需要激活
 
