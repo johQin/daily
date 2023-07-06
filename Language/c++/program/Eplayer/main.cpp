@@ -63,7 +63,8 @@ public:
         if(pid == 0){
             close(pipes[1]);        //关闭写端
             pipes[1] = 0;
-            return (*m_func)();
+            (*m_func)();
+            exit(0);
         }
 
         // 父进程

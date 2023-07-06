@@ -6086,15 +6086,16 @@ copy create obj
 in assignment operator
 ```
 
-
+[非平凡(non-trivial)构造函数](https://zhuanlan.zhihu.com/p/434531482)
 
 #### 4 std::move 强制转化为右值引用
 
 虽然不能直接对左值建立右值引用，但是我们可以显示地将一个左值转换为对应的右值引用类型。
 
 ```c++
+#include<utility>
 int&& rr1=42;
-int&&　rr2=rr1;				//error，表达式rr1是左值
+int&&　rr2=rr1;				//error，表达式rr1是左值,右值引用本身是一个左值
 int&&　rr2=std::move(rr1);	//ok
 ```
 
