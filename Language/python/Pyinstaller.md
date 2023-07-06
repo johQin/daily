@@ -1,14 +1,6 @@
 [spec文件的用法](https://blog.csdn.net/tangfreeze/article/details/112240342)
 
-a——Analysis类的实例，要求传入各种脚本用于分析程序的导入和依赖
 
-
-
-
-
-
-
-[重要：单目录和单文件](https://www.cnblogs.com/cocoonink/p/13858062.html)
 
 # 0 [Pyinstaller](https://www.cnblogs.com/cocoonink/p/13858039.html)
 
@@ -113,7 +105,7 @@ input('Press any key to exit...')
 
 需要说明的是，上述问题不只存在于你自己写的代码里。有相当多的库没有考虑到在 PyInstaller 打包后下执行的场景，它们在使用这些变量的时候很有可能会出问题。事实上这也是 PyInstaller 添加 Runtime Hook 机制的一个重要原因。
 
-### 路径问题
+### 静态文件路径问题
 
 如果你的脚本需要引用辅助文件路径的话，那么一种可能的形式如下：
 
@@ -144,6 +136,38 @@ else:
 或许对你来说上面这两个问题并不是特别重要，但知道它们的存在还是有好处的。
 
 希望本文能够帮助你明白这个过程，并理解我为什么要这样建议。
+
+#### 路径处理
+
+[pyinstaller打包前后os.path.abspath(__file__)和os.path.realpath(sys.executable)的区别](https://blog.csdn.net/sy20173081277/article/details/116541195)
+
+```python
+import os
+import sys 
+
+# 使用pycharm 返回脚本绝对路径
+print(os.path.abspath(__file__))
+
+# 使用pycharm 返回脚本上一层目录路径
+root_path1 = os.path.dirname(os.path.abspath(__file__))
+print(root_path1)
+
+
+# 使用pycharm 返回脚本上两层目录路径
+root_path2 = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+print(root_path2)
+
+
+# 打包使用 获取当前目录路径
+root_path3 = os.path.dirname(os.path.realpath(sys.executable))
+print(root_path3)
+
+# 打包使用 获取当前上一级目录路径
+root_path4 = os.path.dirname(os.path.dirname(os.path.realpath(sys.executable)))
+print(root_path4)
+```
+
+
 
 # 2 spec文件
 
@@ -190,8 +214,7 @@ from xx import yy
 [hook](https://www.cnblogs.com/cocoonink/p/13858095.html)可以在导入指定模块或加载特定模块的时候，执行额外的hook脚本（import hook 和 runtime hook）。
 
 ```python
-
-#
+# a——Analysis类的实例，要求传入各种脚本用于分析程序的导入和依赖
 a = Analysis(
     ['main.py'],
     pathex=['/home/buntu/.conda/envs/pa_env/lib/python3.7','./utils'],
@@ -227,8 +250,11 @@ a = Analysis(
 # 作用是：将本地的动态库，拷贝到目标路径下
 # 程序如果需要依赖动态库（在linux中，即以.so结尾的文件），如果程序需要运行，则.so文件和main.exe需要一起发布
 
-# 5. hiddenimports
+# 5. hiddenimports，https://blog.csdn.net/tangfreeze/article/details/112240342
 # 动态导入和动态调用的模块，__import__()、exec、eval, 以及以变量为参数的调用，这些模块不会被pyinstaller所识别，所以需要显示指定并打包。
+# 指定脚本中需要隐式导入的模块，比如在__import__、imp.find_module()、exec、eval等语句中导入的模块，这些模块PyInstaller是找不到的，需要手动指定导入，这个选项可以使用多次。
+# 该参数的值是数组，数组元素的值就是__import__、imp.find_module()、exec、eval需要导入的模块名，而不是模块所在的地址，模块的地址需要通过pathex参数指定。
 ```
 
-[pyinstaller打包前后os.path.abspath(__file__)和os.path.realpath(sys.executable)的区别](https://blog.csdn.net/sy20173081277/article/details/116541195)
+
+
