@@ -69,7 +69,9 @@
 
    
 
-3. 编译一个库：[add_subdirectory](https://www.jianshu.com/p/07acea4e86a3)：为工程（父目录）添加一个子目录（source_dir），并按照子目录下的CMakeLists.txt构建（编译）该子目录，然后将构建产物输入到binary_dir。主要为工程（父目录）编译库（子目录，至于是动态库还是静态库，由子目录下的CMakeLists.txt 里的add_library 参数决定）
+3. 编译一个库：[add_subdirectory](https://www.jianshu.com/p/07acea4e86a3)：为工程（父目录）添加一个子目录（source_dir），并按照子目录下的CMakeLists.txt构建（编译）该子目录，然后将构建产物输入到binary_dir。主要为工程（父目录）编译库（子目录，至于是动态库还是静态库，由子目录下的CMakeLists.txt 里的add_library 参数决定）。
+
+   - 在父目录的CMakeLists.txt执行到此函数时，子目录的CMakeLists.txt开始执行，然后再回到父目录的CMakeLists.txt执行此函数后面的编译选项。
 
    ```bash
    add_subdirectory (source_dir [binary_dir] [EXCLUDE_FROM_ALL])
@@ -148,7 +150,34 @@
 
    
 
-6. 
+6. [cmake-变量作用域](https://blog.csdn.net/weixin_43708622/article/details/108315184)
+
+   - 变量是通过set或unset来设置或取消设置的。
+
+     ```cmake
+     #设置普通变量
+     set(<variable> <value>... [PARENT_SCOPE]) 
+     #设置缓存条目
+     set(<variable> <value>... CACHE <type> <docstring> [FORCE]) 
+     #设置环境变量
+     set(ENV{<variable>} [<value>]) 
+     
+     # 普通变量
+     set(h1 "hello")
+     ```
+
+   - 函数作用域Function Scope（普通变量），类似于javascript变量作用域，有一个作用域链。除非PARENT_SCOPE来改变函数作用域
+
+   - 目录作用域Directory Scope（普通变量），
+
+     - 变量拷贝：当前父目录下CMakeLists.txt的变量，在通过add_subdirectory函数后，子目录的CMakeLists.txt会将变量进行全部拷贝，子目录对变量的修改不会影响父目录CMakeLists.txt的变量的值。
+     - 向下有效：具有继承关系的子目录才能获取到父目录的变量。
+
+   - 缓存作用域Persistent Cache（cache变量）
+
+     - 缓存变量在整个cmake工程的编译生命周期内都有效，工程内的其他任意目录都可以访问缓存变量，注意cmake是从上到下来解析CMakeLists.txt文件的（所以add_subdirectory执行有个先后顺序，没有继承关系的子目录之间需要，在别人设置之后才能读到）。
+
+7. 
 
 
 
@@ -159,9 +188,27 @@
    ```cmake
    # 搜集所有在指定路径下的源文件的文件名，将输出结果列表储存在指定的变量中。
    aux_source_directory(< dir > < variable >)
+   # aux_source_directory 命令生成的是源文件的相对路径，传递到上一层之后无法正常使用，所以这里选择 file() 命令来查找源文件，它会生成文件的绝对路径。注意 file() 是递归查找的，也就是说子目录下的源代码也会被找到。
    ```
 
-2. 可设置全局属性：set_property和get_property
+2. [set](https://www.jianshu.com/p/c2c71d5a09e9)：设置变量
+
+   - [CMake 变量、环境变量、持久缓存区别](https://blog.csdn.net/m0_57845572/article/details/118400027)
+
+   ```cmake
+   #设置普通变量
+   set(<variable> <value>... [PARENT_SCOPE]) # 不指定PARENT_SCOPE，变量是函数作用域和目录作用域（作用域解释请find），加了PARENT_SCOPE就在父作用域
+   
+   #设置缓存条目
+   set(<variable> <value>... CACHE <type> <docstring> [FORCE]) 	# 整个编译生命周期都有效。缓存作用域Persistent Cache（cache变量）
+   
+   #设置环境变量
+   set(ENV{<variable>} [<value>]) 
+   ```
+
+   
+
+3. [可设置全局属性：set_property和get_property，让在不同目录（不具有继承关系的目录，不是父子孙关系的目录）的CMakeLists.txt都能读到。](https://blog.csdn.net/rangfei/article/details/126051723)
 
    ```cmake
    set_property(<GLOBAL                      |
@@ -238,7 +285,7 @@
 
    
 
-3. 打印message
+4. 打印message
 
    ```cmake
    message([<mode>] "message text" ...)
@@ -255,7 +302,7 @@
 
    ![](./legend/cmake_message.png)
 
-4. [configure_file](https://www.jianshu.com/p/2946eeec2489)
+5. [configure_file](https://www.jianshu.com/p/2946eeec2489)
 
    - **configure_file命令一般用于自定义编译选项或者自定义宏的场景。**
 
@@ -274,7 +321,7 @@
 
      
 
-5. 
+6. 
 
 **目标** 由 add_library() 或 add_executable() 生成。
 
