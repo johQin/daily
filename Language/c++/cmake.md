@@ -1,5 +1,7 @@
 # [CMAKE](https://cmake.org)
 
+# 1 基本打包
+
 1. [add_executable](https://blog.csdn.net/HandsomeHong/article/details/122402395)
 
    ```cmake
@@ -150,142 +152,164 @@
 
    
 
-6. [cmake-变量作用域](https://blog.csdn.net/weixin_43708622/article/details/108315184)
+6. 
 
-   - 变量是通过set或unset来设置或取消设置的。
 
-     ```cmake
-     #设置普通变量
-     set(<variable> <value>... [PARENT_SCOPE]) 
-     #设置缓存条目
-     set(<variable> <value>... CACHE <type> <docstring> [FORCE]) 
-     #设置环境变量
-     set(ENV{<variable>} [<value>]) 
-     
-     # 普通变量
-     set(h1 "hello")
-     ```
 
-   - 函数作用域Function Scope（普通变量），类似于javascript变量作用域，有一个作用域链。除非PARENT_SCOPE来改变函数作用域
+# 2 变量
 
-   - 目录作用域Directory Scope（普通变量），
+## 2.1 set
 
-     - 变量拷贝：当前父目录下CMakeLists.txt的变量，在通过add_subdirectory函数后，子目录的CMakeLists.txt会将变量进行全部拷贝，子目录对变量的修改不会影响父目录CMakeLists.txt的变量的值。
-     - 向下有效：具有继承关系的子目录才能获取到父目录的变量。
+```cmake
+#设置普通变量
+set(<variable> <value>... [PARENT_SCOPE]) # 不指定PARENT_SCOPE，变量是函数作用域和目录作用域（作用域解释请find），加了PARENT_SCOPE就在父作用域
 
-   - 缓存作用域Persistent Cache（cache变量）
+#设置缓存条目
+set(<variable> <value>... CACHE <type> <docstring> [FORCE]) 	# 整个编译生命周期都有效。缓存作用域Persistent Cache（cache变量）
 
-     - 缓存变量在整个cmake工程的编译生命周期内都有效，工程内的其他任意目录都可以访问缓存变量，注意cmake是从上到下来解析CMakeLists.txt文件的（所以add_subdirectory执行有个先后顺序，没有继承关系的子目录之间需要，在别人设置之后才能读到）。
+#设置环境变量
+set(ENV{<variable>} [<value>])
+```
 
-7. 
+### [set变量作用域](https://blog.csdn.net/weixin_43708622/article/details/108315184)
+
+- 变量是通过set或unset来设置或取消设置的。
+- 函数作用域Function Scope（普通变量），类似于javascript变量作用域，有一个作用域链。除非PARENT_SCOPE来改变函数作用域
+- 目录作用域Directory Scope（普通变量），
+  - 变量拷贝：当前父目录下CMakeLists.txt的变量，在通过add_subdirectory函数后，子目录的CMakeLists.txt会将变量进行全部拷贝，子目录对变量的修改不会影响父目录CMakeLists.txt的变量的值。
+  - 向下有效：具有继承关系的子目录才能获取到父目录的变量。
+- 缓存作用域Persistent Cache（cache变量）
+  - 缓存变量在整个cmake工程的编译生命周期内都有效，工程内的其他任意目录都可以访问缓存变量，注意cmake是从上到下来解析CMakeLists.txt文件的（所以add_subdirectory执行有个先后顺序，没有继承关系的子目录之间需要，在别人设置之后才能读到）。
+  - 所有的 Cache 变量都会出现在 CMakeCache.txt 文件中。
+  - 有一个与 Cache 变量同名的 Normal 变量出现时，后面使用这个变量的值都是以 Normal 为准，如果没有同名的 Normal 变量，CMake 才会自动使用 Cache 变量。
+
+[CMake 变量、环境变量、持久缓存区别](https://blog.csdn.net/m0_57845572/article/details/118400027)
+
+# 3 [属性](https://blog.csdn.net/jjjstephen/article/details/122464085)
+
+**属性不像变量那样持有独立的值，它提供特定于它所附加的实体的信息。**
+
+它们总是附加到特定的实体上，无论是目录、目标、源文件、测试用例、缓存变量，还是整个构建过程本身。
+
+## set_property
+
+```cmake
+set_property(<GLOBAL                      |
+              DIRECTORY [<dir>]           |
+              TARGET    [<target1> ...]   |
+              SOURCE    [<src1> ...]
+                        [DIRECTORY <dirs> ...]
+                        [TARGET_DIRECTORY <targets> ...] |
+              INSTALL   [<file1> ...]     |
+              TEST      [<test1> ...]     |
+              CACHE     [<entry1> ...]    >
+             [APPEND] [APPEND_STRING]
+             PROPERTY <name> [<value1> ...])
+ 
+ # 其基本格式为：
+ set_property(<Scope> [APPEND] [APPEND_STRING] PROPERTY <name> [value...])
+ # Scope：属性的宿主，所属对象，或者说属性的范围
+ # [APPEND | APPEND_STRING] 可选，表示属性是可扩展的列表。
+ # PROPERTY 是标识
+ # name：属性名称
+ # value：属性值，其值可选。
+ 
+ add_executable(foo foo.cpp)
+ set_target_properties(foo PROPERTIES
+    CXX_STANDARD 14
+    CXX_EXTENSIONS OFF
+)
+```
+
+<table><tbody><tr><td> <p style="text-align:center;">Scope</p> </td><td> <p style="text-align:center;">Description</p> </td><td> <p style="text-align:center;">相似命令</p> </td></tr><tr><td> <p>GLOBAL</p> </td><td> <p>属性在全局范围内有效，属性名称需唯一</p> </td><td></td></tr><tr><td> <p>DIRECTORY</p> </td><td> <p>在指定目录内有效，可以是相对路径也可以是绝对路径</p> </td><td> <p>set_directory_properties</p> </td></tr><tr><td> <p>TARGET</p> </td><td> <p>设置指定 TARGET 的属性</p> </td><td> <p>set_target_properties/get_target_property</p> </td></tr><tr><td> <p>SOURCE</p> </td><td> <p>属性对应零个或多个源文件。默认情况下，源文件属性仅对添加在同一目录 (CMakeLists.txt) 中的目标可见。</p> </td><td> <p>set_source_files_properties</p> </td></tr><tr><td> <p>INSTALL</p> </td><td> <p>属性对应零个或多个已安装的文件路径。这些可供 CPack 使用以影响部署。</p> </td><td></td></tr><tr><td> <p>TEST</p> </td><td> <p>属性对应零个或多个现有测试。</p> </td><td> <p>set_tests_properties</p> </td></tr><tr><td> <p>CACHE</p> </td><td> <p>属性对应零个或多个缓存现有条目。</p> </td><td></td></tr></tbody></table>
+
+
+
+
+
+## get_property
+
+```cmake
+# 将属性值存放在变量中
+get_property(<variable>
+             <GLOBAL             |
+              DIRECTORY [<dir>]  |
+              TARGET    <target> |
+              SOURCE    <source>
+                        [DIRECTORY <dir> | TARGET_DIRECTORY <target>] |
+              INSTALL   <file>   |
+              TEST      <test>   |
+              CACHE     <entry>  |
+              VARIABLE           >
+             PROPERTY <name>
+             [SET | DEFINED | BRIEF_DOCS | FULL_DOCS])
+# variable：变量名
+# GLOBAL/DIRECTORY ... /VARIABLE：表示属性对应的范围，与 set_property() 相同
+# PROPERTY <name> : 属性名，同 set_property()
+
+# [SET | DEFINED | BRIEF_DOCS | FULL_DOCS] : 可选参数
+
+# SET : 将变量设置为布尔值，指示是否已设置属性；
+# DEFINED : 将变量设置为布尔值，指示属性是否已被定义
+# BRIEF_DOCS | FULL_DOCS : 如果给定了 Brief_DOCS 或 FULL_DOCS，则将变量设置为包含所请求属性的文档的字符串。
+```
+
+
+
+```cmake
+# 例子
+#CMakeLists.txt
+cmake_minimum_required(VERSION 3.10.2)
+project(test)
+
+set(GIT_EXECUTABLE "/usr/local/bin/git")
+add_executable(Git::Git IMPORTED)
+set_property(TARGET Git::Git PROPERTY IMPORTED_LOCATION "${GIT_EXECUTABLE}") 
+# https://cmake.org/cmake/help/latest/prop_tgt/IMPORTED_LOCATION.html
+get_target_property(git_location Git::Git IMPORTED_LOCATION)
+get_target_property(git_imported Git::Git IMPORTED)
+message(">>> git location: ${git_location}, ${git_imported}")
+```
 
 
 
 # 工具函数
 
-1. aux_source_directory
+1. [获取目录下所有文件：`aux_source_directory，file`](https://blog.csdn.net/a2886015/article/details/126830638)
 
    ```cmake
    # 搜集所有在指定路径下的源文件的文件名，将输出结果列表储存在指定的变量中。
    aux_source_directory(< dir > < variable >)
-   # aux_source_directory 命令生成的是源文件的相对路径，传递到上一层之后无法正常使用，所以这里选择 file() 命令来查找源文件，它会生成文件的绝对路径。注意 file() 是递归查找的，也就是说子目录下的源代码也会被找到。
+   # aux_source_directory 命令生成的是源文件的相对路径，传递到上一层之后无法正常使用。
+   
+   # file(GLOB) 命令来查找源文件(可以使用通配符)，它会生成文件的绝对路径。注意 file() 可以通过GLOB_RECURSE递归查找的，也就是说子目录下的源代码也会被找到。
+   file(GLOB <variable> DIR)
+   
+   # 文件结构
+   |--mat
+   |	|---add.cpp
+   |	|---sub.cpp
+   |	|---he
+   |		|---ha
+   |			|--multi.cpp
+   |--CMakeLists.txt
+   # 在当前文件夹下的math文件夹里查找源码
+   aux_source_directory(mat SOUR1)				#	SOUR1: mat/add.cpp;mat/sub.cpp
+   aux_source_directory(./mat SOUR2)			# 	SOUR2：./mat/add.cpp;./mat/sub.cpp	
+   file(GLOB SOUR3 "mat/*.cpp")
+   #	SOUR3:/home/buntu/code/ctest/mat/add.cpp;/home/buntu/code/ctest/mat/sub.cpp
+   file(GLOB SOUR4 "./mat/*.cpp")
+   #	SOUR4 /home/buntu/code/ctest/./mat/add.cpp;/home/buntu/code/ctest/./mat/sub.cpp
+   file(GLOB_RECURSE SOUR5 "mat/*.cpp")					#SOUR5：/home/buntu/code/ctest/mat/add.cpp;/home/buntu/code/ctest/mat/he/ha/multi.cpp;/home/buntu/code/ctest/mat/sub.cpp
+   file(GLOB_RECURSE SOUR6 "mat/he/*.cpp")		#	SOUR6：/home/buntu/code/ctest/mat/he/ha/multi.cpp
+   
+   # 如果某个文件下只需要部分源码，可以通过变量来简化书写
+   set( SOUR7 mat/add.cpp mat/sub.cpp)			# SOUR7：mat/add.cpp;mat/sub.cpp
+   
+   add_executable(${PROJECT_NAME}  ${SOURCES})
    ```
 
-2. [set](https://www.jianshu.com/p/c2c71d5a09e9)：设置变量
-
-   - [CMake 变量、环境变量、持久缓存区别](https://blog.csdn.net/m0_57845572/article/details/118400027)
-
-   ```cmake
-   #设置普通变量
-   set(<variable> <value>... [PARENT_SCOPE]) # 不指定PARENT_SCOPE，变量是函数作用域和目录作用域（作用域解释请find），加了PARENT_SCOPE就在父作用域
-   
-   #设置缓存条目
-   set(<variable> <value>... CACHE <type> <docstring> [FORCE]) 	# 整个编译生命周期都有效。缓存作用域Persistent Cache（cache变量）
-   
-   #设置环境变量
-   set(ENV{<variable>} [<value>]) 
-   ```
-
-   
-
-3. [可设置全局属性：set_property和get_property，让在不同目录（不具有继承关系的目录，不是父子孙关系的目录）的CMakeLists.txt都能读到。](https://blog.csdn.net/rangfei/article/details/126051723)
-
-   ```cmake
-   set_property(<GLOBAL                      |
-                 DIRECTORY [<dir>]           |
-                 TARGET    [<target1> ...]   |
-                 SOURCE    [<src1> ...]
-                           [DIRECTORY <dirs> ...]
-                           [TARGET_DIRECTORY <targets> ...] |
-                 INSTALL   [<file1> ...]     |
-                 TEST      [<test1> ...]     |
-                 CACHE     [<entry1> ...]    >
-                [APPEND] [APPEND_STRING]
-                PROPERTY <name> [<value1> ...])
-    
-    # 其基本格式为：
-    set_property(<Scope> [APPEND] [APPEND_STRING] PROPERTY <name> [value...])
-    # Scope：属性的范围，
-    # [APPEND | APPEND_STRING] 可选，表示属性是可扩展的列表。
-    # PROPERTY 是标识
-    # name：属性名称
-    # value：属性值，其值可选。
-    
-    add_executable(foo foo.cpp)
-    set_target_properties(foo PROPERTIES
-       CXX_STANDARD 14
-       CXX_EXTENSIONS OFF
-   )
-   ```
-
-   <table><tbody><tr><td> <p style="text-align:center;">Scope</p> </td><td> <p style="text-align:center;">Description</p> </td><td> <p style="text-align:center;">相似命令</p> </td></tr><tr><td> <p>GLOBAL</p> </td><td> <p>属性在全局范围内有效，属性名称需唯一</p> </td><td></td></tr><tr><td> <p>DIRECTORY</p> </td><td> <p>在指定目录内有效，可以是相对路径也可以是绝对路径</p> </td><td> <p>set_directory_properties</p> </td></tr><tr><td> <p>TARGET</p> </td><td> <p>设置指定 TARGET 的属性</p> </td><td> <p>set_target_properties/get_target_property</p> </td></tr><tr><td> <p>SOURCE</p> </td><td> <p>属性对应零个或多个源文件。默认情况下，源文件属性仅对添加在同一目录 (CMakeLists.txt) 中的目标可见。</p> </td><td> <p>set_source_files_properties</p> </td></tr><tr><td> <p>INSTALL</p> </td><td> <p>属性对应零个或多个已安装的文件路径。这些可供 CPack 使用以影响部署。</p> </td><td></td></tr><tr><td> <p>TEST</p> </td><td> <p>属性对应零个或多个现有测试。</p> </td><td> <p>set_tests_properties</p> </td></tr><tr><td> <p>CACHE</p> </td><td> <p>属性对应零个或多个缓存现有条目。</p> </td><td></td></tr></tbody></table>
-
-   ```cmake
-   # 将属性值存放在变量中
-   get_property(<variable>
-                <GLOBAL             |
-                 DIRECTORY [<dir>]  |
-                 TARGET    <target> |
-                 SOURCE    <source>
-                           [DIRECTORY <dir> | TARGET_DIRECTORY <target>] |
-                 INSTALL   <file>   |
-                 TEST      <test>   |
-                 CACHE     <entry>  |
-                 VARIABLE           >
-                PROPERTY <name>
-                [SET | DEFINED | BRIEF_DOCS | FULL_DOCS])
-   # variable：变量名
-   # GLOBAL/DIRECTORY ... /VARIABLE：表示属性对应的范围，与 set_property() 相同
-   # PROPERTY <name> : 属性名，同 set_property()
-   
-   # [SET | DEFINED | BRIEF_DOCS | FULL_DOCS] : 可选参数
-   
-   # SET : 将变量设置为布尔值，指示是否已设置属性；
-   # DEFINED : 将变量设置为布尔值，指示属性是否已被定义
-   # BRIEF_DOCS | FULL_DOCS : 如果给定了 Brief_DOCS 或 FULL_DOCS，则将变量设置为包含所请求属性的文档的字符串。
-   
-   ```
-
-   ```cmake
-   
-   # 例子
-   #CMakeLists.txt
-   cmake_minimum_required(VERSION 3.10.2)
-   project(test)
-   
-   set(GIT_EXECUTABLE "/usr/local/bin/git")
-   add_executable(Git::Git IMPORTED)
-   set_property(TARGET Git::Git PROPERTY IMPORTED_LOCATION "${GIT_EXECUTABLE}") 
-   # https://cmake.org/cmake/help/latest/prop_tgt/IMPORTED_LOCATION.html
-   get_target_property(git_location Git::Git IMPORTED_LOCATION)
-   get_target_property(git_imported Git::Git IMPORTED)
-   message(">>> git location: ${git_location}, ${git_imported}")
-   
-   ```
-
-   
-
-4. 打印message
+2. 打印message
 
    ```cmake
    message([<mode>] "message text" ...)
@@ -302,7 +326,9 @@
 
    ![](./legend/cmake_message.png)
 
-5. [configure_file](https://www.jianshu.com/p/2946eeec2489)
+3. [configure_file](https://www.jianshu.com/p/2946eeec2489)
+
+   - 将一个文件(由`input`参数指定)拷贝到指定位置(由`output`参数指定)，并根据`options`修改其内容。
 
    - **configure_file命令一般用于自定义编译选项或者自定义宏的场景。**
 
@@ -317,19 +343,9 @@
 
    - c++获取项目路径的两种方式中有应用
 
-     
+4. [file](https://www.jianshu.com/p/ed151fdcf473)
 
-     
-
-6. 
-
-**目标** 由 add_library() 或 add_executable() 生成。
-
-target相关：add_executable、add_library
-
-target_link_libraries 要在 add_executable '之后'，link_libraries 要在 add_executable '之前'
-
-编译原理相关：
+   - **使用cmake 文件操作时不可避免需要操作相关文件，比如读取文件内容，创建新文件，返回文件地址等等**
 
 # 最佳实践
 
@@ -374,7 +390,7 @@ C++中自带函数getenv，可以读取指定的环境变量，返回char *。
    - PRIVATE：当前的修饰对象item对target的上层（target的调用层）不可见，target的调用层不使用当前修饰对象的功能。target无需暴露并且隐藏该item
    - INTERFACE：target不使用当前修饰对象item的功能，可target的调用层会使用到当前修饰对象的功能，target需要暴露当前item的接口
    - PUBLIC = INTERFACE + PRIVATE
-2. SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY output) #设置可执行目标文件的输出目录
+2. 
 
 # 常用包
 
@@ -402,6 +418,7 @@ C++中自带函数getenv，可以读取指定的环境变量，返回char *。
 # log
 
 1. [合并静态库](https://zhuanlan.zhihu.com/p/389448385)
+1. 设置可执行目标文件的输出目录：`SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY output) `
 
 # 1 从可执行文件到库
 
