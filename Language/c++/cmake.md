@@ -185,13 +185,13 @@ set(ENV{<variable>} [<value>])
 
 [CMake 变量、环境变量、持久缓存区别](https://blog.csdn.net/m0_57845572/article/details/118400027)
 
-# 3 [属性](https://blog.csdn.net/jjjstephen/article/details/122464085)
+## 2.2 [property](https://blog.csdn.net/jjjstephen/article/details/122464085)
 
 **属性不像变量那样持有独立的值，它提供特定于它所附加的实体的信息。**
 
 它们总是附加到特定的实体上，无论是目录、目标、源文件、测试用例、缓存变量，还是整个构建过程本身。
 
-## set_property
+### set_property
 
 ```cmake
 set_property(<GLOBAL                      |
@@ -227,7 +227,7 @@ set_property(<GLOBAL                      |
 
 
 
-## get_property
+### get_property
 
 ```cmake
 # 将属性值存放在变量中
@@ -269,6 +269,131 @@ set_property(TARGET Git::Git PROPERTY IMPORTED_LOCATION "${GIT_EXECUTABLE}")
 get_target_property(git_location Git::Git IMPORTED_LOCATION)
 get_target_property(git_imported Git::Git IMPORTED)
 message(">>> git location: ${git_location}, ${git_imported}")
+```
+
+## 2.3  [list](https://www.jianshu.com/p/89fb01752d6f)
+
+`list`命令即对列表的一系列操作，cmake中的`列表`变量是用分号`;`分隔的一组字符串
+
+### 创建列表
+
+```cmake
+set (list_test a b c d) # 创建列表变量"a;b;c;d"
+list (LENGTH list_test length)
+message (">>> LENGTH: ${length}")	# LENGTH: 4
+```
+
+### 查询
+
+```cmake
+# 得到索引元素
+# list (GET <list> <element index> [<element index> ...] <output variable>)
+# output variable为新创建的变量，也是一个列表
+set (list_test a b c d)
+list (GET list_test 0 1 -1 -2 list_new)			# 索引：正数——正序索引，负数——倒序索引
+message (">>> GET: ${list_new}")			# GET:a;b;d;c
+
+# 子列表
+# list (SUBLIST <list> <begin> <length> <output variable>)
+# <length>
+#		为-1或列表的长度小于<begin>+<length>，那么将列表中从<begin>索引开始的剩余元素返回。
+# 		为0，返回空列表。
+
+# 查找
+# list (FIND <list> <value> <output variable>)
+# 用于查找列表是否存在指定的元素，找到返回元素的索引，找不到返回-1
+set (list_test a b c d)
+list (FIND list_test d list_index)			
+message (">>> FIND 'd': ${list_index}")		# FIND 'd': 3
+```
+
+### 修改
+
+```cmake
+# 增
+# 会改变原来列表的值。
+list (APPEND <list> [<element> ...])
+list (INSERT <list> <element_index> <element> [<element> ...])	# 如果元素的位置超出列表的范围，会报错。
+list (POP_BACK <list> [<out-var>...])		# 将原列表的最后一个元素移除
+list (POP_FRONT <list> [<out-var>...])		# 将原列表的第一个元素移除。
+
+# 过滤
+list (FILTER <list> <INCLUDE|EXCLUDE> REGEX <regular_expression>)
+# 根据模式的匹配结果，将元素添加（INCLUDE选项）到列表或者从列表中排除（EXCLUDE选项）。
+# 此命令会改变原来列表的值。模式REGEX表明会对列表进行正则表达式匹配。
+set (list_test a b c d 1 2 3 4) 
+list (FILTER list_test INCLUDE REGEX [a-z])
+message (">>> FILTER: ${list_test}")		# FILTER: a;b;c;d
+
+# 调序
+list (REVERSE <list>)
+list (SORT <list> [COMPARE <compare>] [CASE <case>] [ORDER <order>])
+```
+
+## 2.4 option
+
+CMake中的option用于控制cmake编译流程。在项目中，难免的需要添加一些选项以供下游选择。
+
+**option命令定义的变量不影响c或c++源码中#ifdef或者#ifndef逻辑判断**
+
+**对于同一选项，子项目值遵循主项目的定义。**
+
+```cmake
+option(<variable> "<help_text>" [value])
+
+
+CMAKE_MINIMUM_REQUIRED(VERSION 3.10)
+ 
+#项目信息
+PROJECT(main)
+ 
+IF(TEST)
+	MESSAGE("TEST is defined,vlaue:${TEST}")
+ELSE()
+	MESSAGE("TEST is not defined")
+ENDIF()
+ 
+#command option
+option(TEST "test affect to code" ON) 
+ 
+#可执行文件
+ADD_EXECUTABLE(main main.cpp)
+ 
+IF(TEST)
+	MESSAGE("TEST is defined,vlaue:${TEST}")
+ELSE()
+	MESSAGE("TEST is not defined")
+ENDIF()
+```
+
+### add_definitions
+
+`add_definitions`的功能和`C/C++`中的`#define`是一样的，可以和option配合使用，也可单独使用。
+
+```c++
+#include <iostream>
+int main()
+{
+#ifdef TEST_IT_CMAKE
+	std::cout<<"in ifdef"<<std::endl;
+#endif
+	std::cout<<"not in ifdef"<<std::endl;
+}
+```
+
+
+
+```cmake
+cmake_minimum_required(VERSION 3.10)
+project(optiontest)
+
+add_executable(optiontest main.cpp)
+option(TEST_IT_CMAKE "test" ON)
+message(${TEST_IT_CMAKE})
+if(TEST_IT_CMAKE)
+	message("itis" ${TEST_IT_CMAKE})
+	add_definitions(-DTEST_IT_CMAKE)		# option名前需要加-D
+endif()
 ```
 
 
