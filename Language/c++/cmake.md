@@ -42,6 +42,8 @@
      	[source1] [source2 ...]
      	)
      	
+     # STATIC 静态库
+     # SHARED 动态库
      SET(LIBHELLO_SRC hello.c java.c)
      ADD_LIBRARY(hello SHARED ${LIBHELLO_SRC})
      
@@ -115,6 +117,7 @@
                            <PRIVATE|PUBLIC|INTERFACE> <item>...
                           [<PRIVATE|PUBLIC|INTERFACE> <item>...]...)
                           
+     # target不能是ALIAS target。
      # PUBLIC 在public后面的库会被Link到你的target中，并且里面的符号也会被导出，提供给第三方使用。
      # PRIVATE 在private后面的库仅被link到你的target中，并且终结掉，第三方不能感知你调了啥库
      # INTERFACE 在interface后面引入的库不会被链接到你的target中，只会导出符号。
@@ -133,7 +136,7 @@
    # 将指定目录添加到编译器的头文件搜索路径之下，指定的目录被解释成当前源码路径的相对路径。
    include_directories ([AFTER|BEFORE] [SYSTEM] dir1 [dir2 ...])
    # include_directories 的影响范围最大，可以为CMakelists.txt后的所有target添加头文件目录
-   # 一般写在最外层CMakelists.txt中影响全局
+   # 一般写在最外层CMakelists.txt中影响全局（向下传递，父目录包含，那么其子目录也自动包含）
    
    # 默认情况下，include_directories命令会将目录添加到查找列表最后，可以通过命令设置CMAKE_INCLUDE_DIRECTORIES_BEFORE变量为ON来改变它默认行为，将目录添加到列表前面。
    # 也可以在每次调用include_directories命令时使用AFTER或BEFORE选项来指定是添加到列表的前面或者后面。
@@ -513,8 +516,17 @@ C++中自带函数getenv，可以读取指定的环境变量，返回char *。
 
 1. [**target_xxx 中的 PUBLIC，PRIVATE，INTERFACE**](https://zhuanlan.zhihu.com/p/82244559)
    - PRIVATE：当前的修饰对象item对target的上层（target的调用层）不可见，target的调用层不使用当前修饰对象的功能。target无需暴露并且隐藏该item
+   
    - INTERFACE：target不使用当前修饰对象item的功能，可target的调用层会使用到当前修饰对象的功能，target需要暴露当前item的接口
+   
    - PUBLIC = INTERFACE + PRIVATE
+   
+   - | 情况                             | 使用参数  |
+     | -------------------------------- | --------- |
+     | 只有源文件（.cpp）中包含了库文件 | PRIVATE   |
+     | 只有头文件（.hpp）中包含了库文件 | INTERFACE |
+     | 源文件和头文件都包含了库文件     | PUBLIC    |
+   
 2. 
 
 # 常用包
