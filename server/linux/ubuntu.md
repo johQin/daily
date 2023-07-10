@@ -72,7 +72,18 @@
    
    ```
 
-10. 
+10. ubuntu定时关机
+
+    ```bash
+    shutdown -r now 立刻重新开机 
+    shutdown -h now 立刻关机 
+    shutdown -h 23:00 'Hey! Go away!' 10:42 分关机 
+    shutdown -r 10 'Hey! Go away!' 10 分钟後关机 
+    ```
+
+    
+
+11. 
 
 # 3 ubuntu软件安装
 
