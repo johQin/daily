@@ -592,6 +592,13 @@ GROUP BY region
 HAVING SUM(area)>1000000
 ```
 
+```mysql
+# 查询,一共有多少个分组
+select count(*) from (select ps_person_card from pswz GROUP BY ps_person_card) temp;
+```
+
+
+
 ## 6.6 连接查询(JOIN)
 
 mysql不支持外连接

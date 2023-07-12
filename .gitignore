@@ -4,6 +4,7 @@
 .vscode
 源码笔记课件
 build
+dist
 build*
 material
 .idea
@@ -36,3 +37,6 @@ spring_gate
 *.swp
 #CMake----------------
 cmake-build-*/
+
+#python----------
+__pycache__
