@@ -19,5 +19,6 @@ public:
 public:
     void rainWarn();
     int rainDataHandleCallback(std::list<std::vector<std::string>> &list);
+    int personInMineHandleCallback(std::list<std::vector<std::string>> &list);
 };
 #endif //RAINWARN_RAIN_H

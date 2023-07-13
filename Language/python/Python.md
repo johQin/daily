@@ -1417,7 +1417,71 @@ for i in range(5):
 
 [关闭主进程让子进程也退出](https://blog.csdn.net/lucia555/article/details/105957928)
 
-# Pytharm骚操作
+[在调用Process(target=modelFunc,args=(pipe[1]))时发生 args TypeError: 'Connection' object is not iterable](https://www.codenong.com/31884175/)
+
+## 进程通信
+
+### [pipe](https://blog.csdn.net/ouyangzhenxin/article/details/100023496)
+
+Pipe常用来在两个进程间进行通信，两个进程分别位于管道的两端。
+
+Pipe方法返回（conn1， conn2）代表一个管道的两个端。Pipe方法有duplex参数，如果duplex参数为True（默认值），那么这个参数是全双工模式，也就是说conn1和conn2均可收发。
+
+- 若duplex为False，conn1只负责接收消息，conn2只负责发送消息。send和[recv](https://so.csdn.net/so/search?q=recv&spm=1001.2101.3001.7020)方法分别是发送和接受消息的方法。
+
+- 若duplex为True（全双工模式），可以调用conn1.send发送消息，也可以conn1.recv接收消息。如果没有消息可接收，recv方法会一直阻塞。如果管道已经被关闭，那么recv方法会抛出EOFError。
+
+```python
+from multiprocessing import Process,Pipe
+from threading import Thread,Lock
+import time
+import os
+import signal
+def terminate(sig_num, addtion):
+    print('term current pid is %s, group id is %s' % (os.getpid(), os.getpgrp()))
+    os.killpg(os.getpgid(os.getpid()), signal.SIGKILL)
+signal.signal(signal.SIGTERM, terminate)
+
+
+def modelPipeReceive(pipe):
+    while True:
+        fromMain =pipe.recv()
+        print("Model recv:",fromMain)
+def modelPipeSend(pipe):
+   while True:
+       pipe.send("Model send")
+       print("Model sended")
+       time.sleep(3)
+def modelFunc(pipe):
+    tPipeReceive = Thread(target=modelPipeReceive,args=(pipe,))
+    tPipeReceive.start()
+    tPipeSend = Thread(target=modelPipeSend, args=(pipe,))
+    tPipeSend.start()
+
+def mainPipeReceive(pipe):
+    while True:
+        fromModel =pipe.recv()
+        print("Main recv:",fromModel)
+def mainPipeSend(pipe):
+   while True:
+       pipe.send("Main send")
+       print("Main sended")
+       time.sleep(3)
+def mainFunc(pipe):
+    tPipeReceive = Thread(target=mainPipeReceive, args=(pipe,))
+    tPipeReceive.start()
+    tPipeSend = Thread(target=mainPipeSend, args=(pipe,))
+    tPipeSend.start()
+
+pipe = Pipe(duplex = True)
+modelProcess = Process(target=modelFunc,args=(pipe[1],))
+modelProcess.start()
+mainFunc(pipe[0])
+```
+
+
+
+# Pycharm骚操作
 
 1. 对比文件：
    - 在右侧文件栏，Ctrl选中两个文件，右击选中Compare Files
@@ -1492,3 +1556,25 @@ for i in range(5):
     
 
 11. [获取本天/周/月/年，上一天/周/月/年的开始及结束日期](https://blog.csdn.net/VIP099/article/details/129347624)
+
+12. [在调用Process(target=modelFunc,args=(pipe[1]))时发生 args TypeError: 'Connection' object is not iterable](https://www.codenong.com/31884175/)
+
+    ```python
+    pipe = Pipe(duplex = True)
+    print(pipe[0])
+    modelProcess = Process(target=modelFunc,args=(pipe[1]))			# args 报TypeError: 'Connection' object is not iterable
+    # 在args的赋值的元组元素后面加 ","
+    # modelProcess = Process(target=modelFunc,args=(pipe[1],))	
+    modelProcess.start()
+    
+    
+    # 在thread哪里同样如此
+    tPipeReceive = Thread(target=modelPipeReceive,args=(pipe))		# TypeError: modelPipeReceive() argument after * must be an iterable, not Connection
+    # 需要在pipe后面加逗号。
+    # tPipeReceive = Thread(target=modelPipeReceive,args=(pipe,))	
+    tPipeReceive.start()
+    ```
+
+    
+
+13. 
