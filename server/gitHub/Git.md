@@ -1211,9 +1211,16 @@ git config list
    # 3.把修改的文件commit并且push到服务端
    ```
 
+2. [Git只拉取最新版本](https://blog.csdn.net/Holy_Q/article/details/107330494)
+
+   ```bash
+   # 参数 --depth=1，只拉取最近的一个 revision
+   git clone --depth=1 https://github.com/torvalds/linux.git
+   ```
+
    
 
-2. 
+3. 
 
 ## 1 git设置提交模板
 
