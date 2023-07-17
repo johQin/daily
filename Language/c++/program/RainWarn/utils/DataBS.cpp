@@ -5,7 +5,7 @@
 #include<iostream>
 #include <string>
 #include <mysql.h>
-#include "ReadConfigInfo.h"
+#include "ReadConfigInfo.h"         //这里不能写utils/xml/include/ReadConfigInfo.h
 #include<map>
 #include<list>
 #include<vector>

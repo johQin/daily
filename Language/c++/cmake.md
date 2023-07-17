@@ -2,160 +2,293 @@
 
 # 1 基本打包
 
-1. [add_executable](https://blog.csdn.net/HandsomeHong/article/details/122402395)
+## 1.1 [add_executable](https://blog.csdn.net/HandsomeHong/article/details/122402395)：指定可执行文件
 
-   ```cmake
-   # 使用指定的源文件创建出一个可执行文件（target）
-   
-   # 1. 普通可执行文件
-   add_executable(<name> [WIN32] [MACOSX_BUNDLE]
-                  [EXCLUDE_FROM_ALL]
-                  [source1] [source2 ...])
-   # name：可执行文件名（target name）
-   # [source]: 构建可执行目标文件所需要的源文件。也可以通过target_sources(在add_executable或add_library之后使用)继续为可执行目标文件添加源文件
-   
-   # 2. 导入可执行文件
-   add_executable(<name> IMPORTED [GLOBAL])
-   
-   set(GIT_EXECUTABLE "/usr/local/bin/git")
-   add_executable(Git::Git IMPORTED)
-   set_property(TARGET Git::Git PROPERTY IMPORTED_LOCATION "${GIT_EXECUTABLE}") 
-   
-   # 3. 别名可执行文件
-   add_executable(<name> ALIAS <target>)
-   # 为目标文件取一个别名，以便后续继续使用。为目标创建别名之后，可以使用别名读取目标的属性，但不能修改目标属性。
-   # The <target> may not be an ALIAS.
-   ```
+```cmake
+# 使用指定的源文件创建出一个可执行文件（target）
 
-   
+# 1. 普通可执行文件
+add_executable(<name> [WIN32] [MACOSX_BUNDLE]
+               [EXCLUDE_FROM_ALL]
+               [source1] [source2 ...])
+# name：可执行文件名（target name）
+# [source]: 构建可执行目标文件所需要的源文件。也可以通过target_sources(在add_executable或add_library之后使用)继续为可执行目标文件添加源文件
 
-2. 声明或手动编译一个库（target）[add_library](https://www.jianshu.com/p/31db466bc4e5)：用指定文件给工程添加一个库（这个库一般在工程的子目录下），子目录有自己的CMakeLists，但不编译库（由上层主动编译），除非手动
+# 2. 导入可执行文件
+add_executable(<name> IMPORTED [GLOBAL])
 
-   - [包括](https://cmake.org/cmake/help/latest/command/add_library.html#command:add_library)：
+set(GIT_EXECUTABLE "/usr/local/bin/git")
+add_executable(Git::Git IMPORTED)
+set_property(TARGET Git::Git PROPERTY IMPORTED_LOCATION "${GIT_EXECUTABLE}") 
 
-   - ```cmake
-     # 1. 普通库
-     add_library(
-     	<name>
-     	[STATIC | SHARED | MODULE]
-     	[EXCLUDE_FROM_ALL] 
-     	[source1] [source2 ...]
-     	)
-     	
-     # STATIC 静态库
-     # SHARED 动态库
-     SET(LIBHELLO_SRC hello.c java.c)
-     ADD_LIBRARY(hello SHARED ${LIBHELLO_SRC})
-     
-     	
-     # 2. 导入库 IMPORTED
-     #  直接导入已经生成的库，cmake不会给这类library添加编译规则。
-     add_library(
-     	<name>
-     	<SHARED|STATIC|MODULE|OBJECT|UNKNOWN>
-     	IMPORTED
-     	[GLOBAL]
-     	)
-     
-     
-     # 3. 对象库  OBJECT
-     # 编译了源文件，但不链接
-     add_library(<name> OBJECT <src>...)
-     
-     # 4. 别名库  ALIAS
-     # 给定library添加一个别名，后续可使用<name>来替代<target>
-     add_library(<name> ALIAS <target>)
-     
-     # 5. 接口库 INTERFACE
-     add_library(<name> INTERFACE [IMPORTED [GLOBAL]])
-     
-     ```
+# 3. 别名可执行文件
+add_executable(<name> ALIAS <target>)
+# 为目标文件取一个别名，以便后续继续使用。为目标创建别名之后，可以使用别名读取目标的属性，但不能修改目标属性。
+# The <target> may not be an ALIAS.
+```
 
-   
 
-3. 编译一个库：[add_subdirectory](https://www.jianshu.com/p/07acea4e86a3)：为工程（父目录）添加一个子目录（source_dir），并按照子目录下的CMakeLists.txt构建（编译）该子目录，然后将构建产物输入到binary_dir。主要为工程（父目录）编译库（子目录，至于是动态库还是静态库，由子目录下的CMakeLists.txt 里的add_library 参数决定）。
 
-   - 在父目录的CMakeLists.txt执行到此函数时，子目录的CMakeLists.txt开始执行，然后再回到父目录的CMakeLists.txt执行此函数后面的编译选项。
+## 1.2 [add_library](https://www.jianshu.com/p/31db466bc4e5)：声明库
 
-   ```bash
-   add_subdirectory (source_dir [binary_dir] [EXCLUDE_FROM_ALL])
-   # source_dir
-   # 必选参数。该参数指定一个子目录，子目录下应该包含CMakeLists.txt文件和代码文件。
-   # 子目录可以是相对路径也可以是绝对路径，如果是相对路径，则是相对当前目录的一个相对路径。
-   
-   # binary_dir
-   # 可选参数。该参数指定一个目录，用于存放输出文件。
-   # 可以是相对路径也可以是绝对路径，如果是相对路径，则是相对当前目录的一个相对路径。
-   # 如果该参数没有指定，则默认的输出目录使用source_dir。
-   
-   # EXCLUDE_FROM_ALL
-   # 可选参数。当指定了该参数，则子目录下的目标不会被父目录下的目标文件包含进去
-   # 父目录的CMakeLists.txt不会构建子目录的目标文件，必须在子目录下显式去构建。
-   # 例外情况：当父目录的目标依赖于子目录的目标，则子目录的目标仍然会被构建出来以满足依赖关系（例如使用了target_link_libraries）
-   ```
+声明或手动编译一个库（target）add_library：用指定文件给工程添加一个库（这个库一般在工程的子目录下），子目录有自己的CMakeLists，但不编译库（由上层主动编译），除非手动
 
-4. [链接一个库：link_directories,  LINK_LIBRARIES,  target_link_libraries](https://blog.csdn.net/weixin_38346042/article/details/131069948)
+- [包括](https://cmake.org/cmake/help/latest/command/add_library.html#command:add_library)：
 
-   - ```cmake
-     # 1.添加需要链接的库文件目录（https://blog.csdn.net/fengbingchun/article/details/128292359）
-     # 相当于g++命令的-L选项，添加编译器可以查找库的文件夹路径，但不会将库链接到target上。
-     link_directories(directory1 directory2 ...)
-     # 添加路径使链接器可以在其中搜索库。提供给此命令的相对路径被解释为相对于当前源目录。
-     # 该命令只适用于在它被调用后创建的target。
-     # 还有
-     target_link_directories()
-     
-     # 2.添加需要链接的库文件路径（绝对路径），将库链接到稍后添加的所有目标。
-     link_libraries(absPath1 absPath2...)
-     link_libraries("/opt/MATLAB/R2012a/bin/glnxa64/libeng.so")
-     # 如果target调用了某个库，而没有取link，那么就会报undefined reference to `xxx'
-     # 例如：使用mysql.h里的函数，而没有link mysqlclient 就会报undefined reference to `mysql_init'
-     
-     # 3.添加要连接的库文件名称
-     # 指定链接 给定目标和其依赖项时 要使用的库或标志。
-     target_link_libraries(<target>
-                           <PRIVATE|PUBLIC|INTERFACE> <item>...
-                          [<PRIVATE|PUBLIC|INTERFACE> <item>...]...)
-                          
-     # target不能是ALIAS target。
-     # PUBLIC 在public后面的库会被Link到你的target中，并且里面的符号也会被导出，提供给第三方使用。
-     # PRIVATE 在private后面的库仅被link到你的target中，并且终结掉，第三方不能感知你调了啥库
-     # INTERFACE 在interface后面引入的库不会被链接到你的target中，只会导出符号。
-     target_link_libraries(myProject eng mx)     
-     #equals to below 
-     #target_link_libraries(myProject -leng -lmx) `
-     #target_link_libraries(myProject libeng.so libmx.so)`
-     
-     ```
-     
-   - **target_link_libraries 要在 add_executable '之后'，link_libraries 要在 add_executable '之前'**
+- ```cmake
+  # 1. 普通库
+  add_library(
+  	<name>
+  	[STATIC | SHARED | MODULE]
+  	[EXCLUDE_FROM_ALL] 
+  	[source1] [source2 ...]				#soruce也可以是头文件
+  	)
+  	
+  # STATIC 静态库
+  # SHARED 动态库
+  SET(LIBHELLO_SRC hello.c java.c)
+  ADD_LIBRARY(hello SHARED ${LIBHELLO_SRC})
+  
+  # 给库暴露头文件供上层包含
+  target_include_directories(ReadXml PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+  
+  	
+  # 2. 导入库 IMPORTED
+  #  直接导入已经生成的库，cmake不会给这类library添加编译规则。
+  add_library(
+  	<name>
+  	<SHARED|STATIC|MODULE|OBJECT|UNKNOWN>
+  	IMPORTED
+  	[GLOBAL]
+  	)
+  
+  
+  # 3. 对象库  OBJECT
+  # 编译了源文件，但不链接
+  add_library(<name> OBJECT <src>...)
+  
+  # 4. 别名库  ALIAS
+  # 给定library添加一个别名，后续可使用<name>来替代<target>
+  add_library(<name> ALIAS <target>)
+  
+  # 5. 接口库 INTERFACE
+  add_library(<name> INTERFACE [IMPORTED [GLOBAL]])
+  
+  ```
 
-5. 包含头：[include_directories](https://blog.csdn.net/sinat_31608641/article/details/121666564)，[target_include_directories](https://blog.csdn.net/sinat_31608641/article/details/121713191)
+- 实际
 
-   ```cmake
-   # 将指定目录添加到编译器的头文件搜索路径之下，指定的目录被解释成当前源码路径的相对路径。
-   include_directories ([AFTER|BEFORE] [SYSTEM] dir1 [dir2 ...])
-   # include_directories 的影响范围最大，可以为CMakelists.txt后的所有target添加头文件目录
-   # 一般写在最外层CMakelists.txt中影响全局（向下传递，父目录包含，那么其子目录也自动包含）
-   
-   # 默认情况下，include_directories命令会将目录添加到查找列表最后，可以通过命令设置CMAKE_INCLUDE_DIRECTORIES_BEFORE变量为ON来改变它默认行为，将目录添加到列表前面。
-   # 也可以在每次调用include_directories命令时使用AFTER或BEFORE选项来指定是添加到列表的前面或者后面。
-   # 如果使用SYSTEM选项，会把指定目录当成系统的搜索目录。该命令作用范围只在当前的CMakeLists.txt。
-   
-   
-   # 指定目标需要包含的头文件路径。
-   target_include_directories(
-   	<target> 
-   	[SYSTEM] [AFTER|BEFORE]
-     	<INTERFACE|PUBLIC|PRIVATE> [items1...]
-     	[<INTERFACE|PUBLIC|PRIVATE> [items2...] ...]
-   )
-   # target_include_directories的影响范围可以自定义。如加关键子PRIVATE或这PUBLIC。
-   ```
+  ```cmake
+  # add_library 没有指定库类型时，会按照BUILD_SHARED_LIBS变量值，来决定是动态库还是静态库
+  # 如果未指定BUILD_SHARED_LIBS 变量，则默认为 STATIC。
+  if (NOT DEFINED BUILD_SHARED_LIBS)
+      set(BUILD_SHARED_LIBS ON)
+  endif()
+  ```
 
-   
+  
 
-6. 
+## 1.3 [add_subdirectory](https://www.jianshu.com/p/07acea4e86a3)：编译库
+
+编译一个库：add_subdirectory：为工程（父目录）添加一个子目录（source_dir），并按照子目录下的CMakeLists.txt构建（编译）该子目录，然后将构建产物输入到binary_dir。主要为工程（父目录）编译库（子目录，至于是动态库还是静态库，由子目录下的CMakeLists.txt 里的add_library 参数决定）。
+
+- 在父目录的CMakeLists.txt执行到此函数时，子目录的CMakeLists.txt开始执行，然后再回到父目录的CMakeLists.txt执行此函数后面的编译选项。
+
+```bash
+add_subdirectory (source_dir [binary_dir] [EXCLUDE_FROM_ALL])
+# source_dir
+# 必选参数。该参数指定一个子目录，子目录下应该包含CMakeLists.txt文件和代码文件。
+# 子目录可以是相对路径也可以是绝对路径，如果是相对路径，则是相对当前目录的一个相对路径。
+
+# binary_dir
+# 可选参数。该参数指定一个目录，用于存放输出文件。
+# 可以是相对路径也可以是绝对路径，如果是相对路径，则是相对当前目录的一个相对路径。
+# 如果该参数没有指定，则默认的输出目录使用source_dir。
+
+# EXCLUDE_FROM_ALL
+# 可选参数。当指定了该参数，则子目录下的目标不会被父目录下的目标文件包含进去
+# 父目录的CMakeLists.txt不会构建子目录的目标文件，必须在子目录下显式去构建。
+# 例外情况：当父目录的目标依赖于子目录的目标，则子目录的目标仍然会被构建出来以满足依赖关系（例如使用了target_link_libraries）
+```
+
+[实例：CMake - 子目录构建链接动静态库和动态库](https://blog.csdn.net/Jay_Xio/article/details/122019770)
+
+
+
+## 1.4 [link_XXX 链接库](https://blog.csdn.net/weixin_38346042/article/details/131069948)
+
+链接一个库：link_directories,  LINK_LIBRARIES,  target_link_libraries
+
+- link_libraries已被废弃了，建议使用target_link_libraries替代，存疑
+
+- 如果不指定库后缀，默认优先链接动态库。
+
+- ```cmake
+  # 1.添加需要链接的库文件目录（https://blog.csdn.net/fengbingchun/article/details/128292359）
+  # 相当于g++命令的-L选项，添加编译器可以查找库的文件夹路径，但不会将库链接到target上。
+  link_directories(directory1 directory2 ...)
+  # 添加路径使链接器可以在其中搜索库。提供给此命令的相对路径被解释为相对于当前源目录。
+  # 该命令只适用于在它被调用后创建的target。
+  # 还有
+  target_link_directories()
+  
+  # 2.添加需要链接的库文件路径（绝对路径），将库链接到稍后添加的所有目标。
+  link_libraries(absPath1 absPath2...)
+  link_libraries("/opt/MATLAB/R2012a/bin/glnxa64/libeng.so")
+  # 如果target调用了某个库，而没有取link，那么就会报undefined reference to `xxx'
+  # 例如：使用mysql.h里的函数，而没有link mysqlclient 就会报undefined reference to `mysql_init'
+  
+  # 3.添加要连接的库文件名称，默认优先链接动态库
+  # 指定链接 给定目标和其依赖项时 要使用的库或标志。
+  target_link_libraries(<target>
+                        <PRIVATE|PUBLIC|INTERFACE> <item>...
+                       [<PRIVATE|PUBLIC|INTERFACE> <item>...]...)
+                       
+  # target不能是ALIAS target。
+  # PUBLIC 在public后面的库会被Link到你的target中，并且里面的符号也会被导出，提供给第三方使用。
+  # PRIVATE 在private后面的库仅被link到你的target中，并且终结掉，第三方不能感知你调了啥库
+  # INTERFACE 在interface后面引入的库不会被链接到你的target中，只会导出符号。
+  target_link_libraries(myProject eng mx)     
+  #equals to below 
+  #target_link_libraries(myProject -leng -lmx) `
+  #target_link_libraries(myProject libeng.so libmx.so)`
+  
+  # 以下写法都可以： 
+  target_link_libraries(myProject comm)       # 连接libhello.so库，默认优先链接动态库
+  target_link_libraries(myProject libcomm.a)  # 显示指定链接静态库
+  target_link_libraries(myProject libcomm.so) # 显示指定链接动态库
+  ```
+  
+- **target_link_libraries 要在 add_executable '之后'，link_libraries 要在 add_executable '之前'**
+
+## 1.5 include 包含头
+
+包含头：[include_directories](https://blog.csdn.net/sinat_31608641/article/details/121666564)，[target_include_directories](https://blog.csdn.net/sinat_31608641/article/details/121713191)
+
+- **include_directories 的影响范围最大，可以为CMakelists.txt后的所有target添加头文件目录**
+- **一般写在最外层CMakelists.txt中影响全局（向下传递，父目录包含，那么其子目录也自动包含）**
+
+```cmake
+# 将指定目录添加到编译器的头文件搜索路径之下，指定的目录被解释成当前源码路径的相对路径。
+include_directories ([AFTER|BEFORE] [SYSTEM] dir1 [dir2 ...])
+
+# 默认情况下，include_directories命令会将目录添加到查找列表最后，可以通过命令设置CMAKE_INCLUDE_DIRECTORIES_BEFORE变量为ON来改变它默认行为，将目录添加到列表前面。
+# 也可以在每次调用include_directories命令时使用AFTER或BEFORE选项来指定是添加到列表的前面或者后面。
+# 如果使用SYSTEM选项，会把指定目录当成系统的搜索目录。该命令作用范围只在当前的CMakeLists.txt。
+
+
+# 指定目标需要包含的头文件路径。
+target_include_directories(
+	<target> 
+	[SYSTEM] [AFTER|BEFORE]
+  	<INTERFACE|PUBLIC|PRIVATE> [items1...]
+  	[<INTERFACE|PUBLIC|PRIVATE> [items2...] ...]
+)
+# target_include_directories的影响范围可以自定义。如加关键子PRIVATE或这PUBLIC。
+```
+
+## 1.6 依赖
+
+### 1.6.1 [add_dependencies](https://blog.csdn.net/BeanGuohui/article/details/120217097) 指定依赖
+
+给目标指定依赖项，依赖项可被先行编译。如此就不会报undefined reference
+
+```cmake
+add_dependencies(<target> [<target-dependency>]...)
+```
+
+在项目中通常会遇见这样的情况：（例如一个项目中有：main，libhello.a， libworld.a），当项目过小的时候，编译顺序是*.a，然后是main，但是当一个项目的文件过于庞大，就会导致编译的顺序不会按照主CMAKE的add_subdirectory引入的先后顺序，为了解决这一问题，就需要使用add_dependencies进行依赖指定。
+```cmake
+├── CMakeLists.txt// 下面用主CMAKE表示
+├── hello
+│   ├── CMakeLists.txt		// 下面用HELLOCMAKE表示
+│   ├── hello.c
+│   └── hello.h
+├── main
+│   ├── CMakeLists.txt		// 下面用MAINCMAKE表示
+│   └── main.c
+└── world
+    ├── CMakeLists.txt		// 下面用WORLDCMAKE表示
+    ├── world.c
+    └── world.h
+```
+
+```cmake
+# hellocmake
+cmake_minimum_required(VERSION 3.5.1)
+set(CMAKE_C_STANDARD 99)
+add_library(hello STATIC world.c hello.h)
+
+# worldcmake
+cmake_minimum_required(VERSION 3.5.1)
+set(CMAKE_C_STANDARD 99)
+add_library(world STATIC world.c world.h)
+
+# maincmake 
+cmake_minimum_required(VERSION 3.5.1)
+project(CmakeDemo C)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY /home/lib)
+set(CMAKE_C_STANDARD 99)
+
+add_executable(CmakeDemo main.c)
+link_directories(/home/lib)			# 依赖hello.a 和 world.a
+target_link_libraries(
+        CmakeDemo
+        hello
+        world
+)
+
+# 主cmake 最外层CMakeLists.txt
+cmake_minimum_required(VERSION 3.5)
+
+add_subdirectory(main)	# main是依赖后二者的，而这里add_subdirectory却写在后二者的前面
+						# 所以这里应该让hello和world先编译，故有了add_dependencies
+add_subdirectory(hello)
+add_subdirectory(world)
+
+add_dependencies(CmakeDemo hello world)
+# add_dependencies中所填写的名字应该是其他CMAKE生成目标的名字。
+# 该示例中如果写成add_dependencies（CmakeDemo libhello.a libworld.a）则会报错。
+
+# 这样写的好处在于，当一个项目构建的时候，由于依赖关系的存在，所以被依赖的项目总是最先构建，这样就不会出现找不到库而报错。
+```
+
+
+
+[参考1](https://blog.csdn.net/KingOfMyHeart/article/details/112983922)
+
+### 1.6.2 [查找依赖](https://blog.csdn.net/zhizhengguan/article/details/118396145)
+
+#### find_file
+
+- **该命令用于查找指定文件的完整路径**。
+- 创建一个名为< VAR >的缓存条目(如果指定了NO_CACHE，则是一个普通变量)来存储此命令的结果。
+  - 如果找到文件的完整路径，则结果存储在变量中，**并且搜索不会重复，除非该变量被清除。**
+  - 如果没有找到，结果将是< VAR >-NOTFOUND。
+
+```cmake
+find_file (<VAR> name1 [path1 path2 ...])
+find_file (
+          <VAR>
+          name | NAMES name1 [name2 ...]
+          [HINTS [path | ENV var]... ]
+          [PATHS [path | ENV var]... ]
+          [PATH_SUFFIXES suffix1 [suffix2 ...]]
+          [DOC "cache documentation string"]
+          [NO_CACHE]
+          [REQUIRED]
+          [NO_DEFAULT_PATH]
+          [NO_PACKAGE_ROOT_PATH]
+          [NO_CMAKE_PATH]
+          [NO_CMAKE_ENVIRONMENT_PATH]
+          [NO_SYSTEM_ENVIRONMENT_PATH]
+          [NO_CMAKE_SYSTEM_PATH]
+          [CMAKE_FIND_ROOT_PATH_BOTH |
+           ONLY_CMAKE_FIND_ROOT_PATH |
+           NO_CMAKE_FIND_ROOT_PATH]
+         )
+
+```
 
 
 
@@ -171,7 +304,9 @@ set(<variable> <value>... [PARENT_SCOPE]) # 不指定PARENT_SCOPE，变量是函
 set(<variable> <value>... CACHE <type> <docstring> [FORCE]) 	# 整个编译生命周期都有效。缓存作用域Persistent Cache（cache变量）
 
 #设置环境变量
-set(ENV{<variable>} [<value>])
+set(ENV{<variable>} [<value>])		# 环境变量仅用于cmake编译过程，不能用于目标程序，也不会修改操作系统的操作环境变量
+# 在cmake中查看linux操作系统的环境变量
+message(WARNING "PATH=$ENV{PATH}")
 ```
 
 ### [set变量作用域](https://blog.csdn.net/weixin_43708622/article/details/108315184)
@@ -399,45 +534,57 @@ if(TEST_IT_CMAKE)
 endif()
 ```
 
+## cmake内置变量
+
+```cmake
+CMAKE_SOURCE_DIR			# 源码树的最顶层目录(也就是项目CMakeLists.txt文件所在的地方)
+CMAKE_CURRENT_SOURCE_DIR	# CMake正在处理的CMakeLists.txt文件所在的目录。
+							# 每次在add_subdirectory()调用的结果中处理新文件时，它都会更新，并在完成对该目录的处理后再次恢复。
+							
+CMAKE_BINARY_DIR			# 构建树的最顶层目录。
+CMAKE_CURRENT_BINARY_DIR	# 当前CMake正在处理的CMakeLists.txt文件对应的构建目录。
+							# 每次调用add_subdirectory()时它都会改变，并在add_subdirectory()返回时再次恢复。
+```
+
 
 
 # 工具函数
 
-1. [获取目录下所有文件：`aux_source_directory，file`](https://blog.csdn.net/a2886015/article/details/126830638)
+## [获取目录下所有文件：`aux_source_directory，file`](https://blog.csdn.net/a2886015/article/details/126830638)
 
-   ```cmake
-   # 搜集所有在指定路径下的源文件的文件名，将输出结果列表储存在指定的变量中。
-   aux_source_directory(< dir > < variable >)
-   # aux_source_directory 命令生成的是源文件的相对路径，传递到上一层之后无法正常使用。
-   
-   # file(GLOB) 命令来查找源文件(可以使用通配符)，它会生成文件的绝对路径。注意 file() 可以通过GLOB_RECURSE递归查找的，也就是说子目录下的源代码也会被找到。
-   file(GLOB <variable> DIR)
-   
-   # 文件结构
-   |--mat
-   |	|---add.cpp
-   |	|---sub.cpp
-   |	|---he
-   |		|---ha
-   |			|--multi.cpp
-   |--CMakeLists.txt
-   # 在当前文件夹下的math文件夹里查找源码
-   aux_source_directory(mat SOUR1)				#	SOUR1: mat/add.cpp;mat/sub.cpp
-   aux_source_directory(./mat SOUR2)			# 	SOUR2：./mat/add.cpp;./mat/sub.cpp	
-   file(GLOB SOUR3 "mat/*.cpp")
-   #	SOUR3:/home/buntu/code/ctest/mat/add.cpp;/home/buntu/code/ctest/mat/sub.cpp
-   file(GLOB SOUR4 "./mat/*.cpp")
-   #	SOUR4 /home/buntu/code/ctest/./mat/add.cpp;/home/buntu/code/ctest/./mat/sub.cpp
-   file(GLOB_RECURSE SOUR5 "mat/*.cpp")					#SOUR5：/home/buntu/code/ctest/mat/add.cpp;/home/buntu/code/ctest/mat/he/ha/multi.cpp;/home/buntu/code/ctest/mat/sub.cpp
-   file(GLOB_RECURSE SOUR6 "mat/he/*.cpp")		#	SOUR6：/home/buntu/code/ctest/mat/he/ha/multi.cpp
-   
-   # 如果某个文件下只需要部分源码，可以通过变量来简化书写
-   set( SOUR7 mat/add.cpp mat/sub.cpp)			# SOUR7：mat/add.cpp;mat/sub.cpp
-   
-   add_executable(${PROJECT_NAME}  ${SOURCES})
-   ```
+```cmake
+# 搜集所有在指定路径下的源文件的文件名，将输出结果列表储存在指定的变量中。
+aux_source_directory(< dir > < variable >)
+# aux_source_directory 命令生成的是源文件的相对路径，传递到上一层之后无法正常使用。
 
-2. 打印message
+# file(GLOB) 命令来查找源文件(可以使用通配符)，它会生成文件的绝对路径。注意 file() 可以通过GLOB_RECURSE递归查找的，也就是说子目录下的源代码也会被找到。
+file(GLOB <variable> DIR)
+
+# 文件结构
+|--mat
+|	|---add.cpp
+|	|---sub.cpp
+|	|---he
+|		|---ha
+|			|--multi.cpp
+|--CMakeLists.txt
+# 在当前文件夹下的math文件夹里查找源码
+aux_source_directory(mat SOUR1)				#	SOUR1: mat/add.cpp;mat/sub.cpp
+aux_source_directory(./mat SOUR2)			# 	SOUR2：./mat/add.cpp;./mat/sub.cpp	
+file(GLOB SOUR3 "mat/*.cpp")
+#	SOUR3:/home/buntu/code/ctest/mat/add.cpp;/home/buntu/code/ctest/mat/sub.cpp
+file(GLOB SOUR4 "./mat/*.cpp")
+#	SOUR4 /home/buntu/code/ctest/./mat/add.cpp;/home/buntu/code/ctest/./mat/sub.cpp
+file(GLOB_RECURSE SOUR5 "mat/*.cpp")					#SOUR5：/home/buntu/code/ctest/mat/add.cpp;/home/buntu/code/ctest/mat/he/ha/multi.cpp;/home/buntu/code/ctest/mat/sub.cpp
+file(GLOB_RECURSE SOUR6 "mat/he/*.cpp")		#	SOUR6：/home/buntu/code/ctest/mat/he/ha/multi.cpp
+
+# 如果某个文件下只需要部分源码，可以通过变量来简化书写
+set( SOUR7 mat/add.cpp mat/sub.cpp)			# SOUR7：mat/add.cpp;mat/sub.cpp
+
+add_executable(${PROJECT_NAME}  ${SOURCES})
+```
+
+1. 打印message
 
    ```cmake
    message([<mode>] "message text" ...)
@@ -454,7 +601,7 @@ endif()
 
    ![](./legend/cmake_message.png)
 
-3. [configure_file](https://www.jianshu.com/p/2946eeec2489)
+2. [configure_file](https://www.jianshu.com/p/2946eeec2489)
 
    - 将一个文件(由`input`参数指定)拷贝到指定位置(由`output`参数指定)，并根据`options`修改其内容。
 
@@ -471,7 +618,7 @@ endif()
 
    - c++获取项目路径的两种方式中有应用
 
-4. [file](https://www.jianshu.com/p/ed151fdcf473)
+3. [file](https://www.jianshu.com/p/ed151fdcf473)
 
    - **使用cmake 文件操作时不可避免需要操作相关文件，比如读取文件内容，创建新文件，返回文件地址等等**
 
@@ -508,7 +655,17 @@ message( "view vars: ${CMAKE_CURRENT_SOURCE_DIR}, ${CMAKE_CURRENT_BINARY_DIR}")
 
 ### 环境变量中获取
 
-C++中自带函数getenv，可以读取指定的环境变量，返回char *。
+C++中自带函数getenv/putenv（获取和设置），可以读取指定的环境变量，返回char *。
+
+```c
+#include <stdlib.h> 
+
+// 返回指向value的指针，若未找到则为NULL 
+char *getenv(const char *name);
+
+// 以 "var_name=value"的形式设置环境变量
+int putenv(char *string);
+```
 
 
 
@@ -555,7 +712,33 @@ C++中自带函数getenv，可以读取指定的环境变量，返回char *。
 # log
 
 1. [合并静态库](https://zhuanlan.zhihu.com/p/389448385)
+
 1. 设置可执行目标文件的输出目录：`SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY output) `
+
+1. [子目录创建静态库和动态库](https://blog.csdn.net/Jay_Xio/article/details/122019770)
+
+1. [使用子目录](https://blog.csdn.net/jjjstephen/article/details/122455635)
+
+1. [动态库无法链接静态库](https://zhuanlan.zhihu.com/p/631234923)
+
+   - 我们首先添加一个静态库`otherlib`，然后再添加一个动态库`mylib`，但是这个动态库需要链接静态库`otherlib`，此时就会出错，让静态库编译时也**生成位置无关的代码**(PIC)，这样才能装在动态库里
+
+   - ```cmake
+     add_library(otherlib STATIC otherlib.cpp)
+     set_property(TARGET otherlib PROPERTY POSITION_INDEPENDENT_CODE ON)			# 只针对一个库启用位置无关的代码(PIC)
+     
+     add_library(mylib SHARED mylib.cpp)
+     target_link_libraries(mylib PUBLIC otherlib)
+     
+     add_executable(main main.cpp)
+     target_link_libraries(main PUBLIC mylib)
+     ```
+
+   - 
+
+1. [彻底清除cmake产生的缓存](https://blog.csdn.net/kris_fei/article/details/81982565)：删除cmake产生的build和release产物
+
+   
 
 # 1 从可执行文件到库
 

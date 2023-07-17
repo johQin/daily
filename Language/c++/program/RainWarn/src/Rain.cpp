@@ -35,7 +35,7 @@ int Rain::personInMineHandleCallback(std::list<std::vector<std::string>> &list) 
     if(personInMine.size() > 0){
 
     }
-
+    return 1;
 }
 int Rain::rainDataHandleCallback(list<vector<string>> &list){
     if(list.empty()) return -1;

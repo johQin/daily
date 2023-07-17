@@ -83,7 +83,12 @@
 
     
 
-11. 
+11. [查看当前文件夹下的树结构](https://blog.csdn.net/answerMack/article/details/90176833)
+
+    - `sudo apt-get install tree`
+    - 
+
+12. 
 
 # 3 ubuntu软件安装
 
