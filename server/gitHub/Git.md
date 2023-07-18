@@ -1220,7 +1220,14 @@ git config list
 
    
 
-3. 
+3. [github的代码提交成功但是不显示绿色方块](https://blog.csdn.net/MJOY791270505/article/details/125948523)
+
+   ```bash
+   # 将项目的email设置为github账户的email
+   git config user.email "6510@qq.com"
+   ```
+
+4. 
 
 ## 1 git设置提交模板
 
