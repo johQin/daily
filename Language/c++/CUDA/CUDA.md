@@ -51,7 +51,7 @@ source ~/.bashrc
 nvcc -V
 
 # 3. 跑cuda sample 代码
-# 下载sample代码。cuda toolkit安装包在11.6之后便不再安装sample代码，需要自行在github上下载
+# 下载sample代码。cuda toolkit安装包在11.6之后便不再安装sample代码，需要自行在github上下载，https://blog.csdn.net/qq_27273607/article/details/127499808
 git clone -b v12.0 --depth=1 git@github.com:NVIDIA/cuda-samples.git
 
 # gpu设备查询sample
@@ -128,8 +128,9 @@ FLOPS——float-point Operation per Second，每秒浮点操作次数，GFLOPS�
 
 ```bash
 # ubuntu clion新建cuda工程
+# https://blog.csdn.net/c991262331/article/details/109318565
 # 发现创建后，自动运行的结果报
-# No CMAKE_CUDA_COMPILER could be found
+# No CMAKE_CUDA_COMPILER could be found，
 # file->setting->build->cmake ，CMake options
 # 配置cmake 编译参数
 -DCMAKE_CUDA_COMPILER:PATH=/usr/local/cuda-12.0/bin/nvcc
@@ -160,7 +161,7 @@ set_target_properties(cudaDemo PROPERTIES
 
 ```
 
-
+[CUDA查询和选取设备信息](https://blog.csdn.net/dcrmg/article/details/54577709)
 
 ```c++
 #include <iostream>
