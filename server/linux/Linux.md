@@ -3411,6 +3411,8 @@ BaseOS-source                                      CentOS-8 - BaseOS Sources    
     
     # 2.针对当前用户长久有效
     vi ~/.bash_profile
+    # 或者，看哪一个文件是有的
+    vi  ~/.bashrc
     # 操作同上
     
     # 3.针对当前登录会话有效，关闭之后下次登录shell就无效了
