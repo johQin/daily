@@ -350,7 +350,7 @@ GPU存在大量的CUDA核心，**GPU硬件的一个核心组件SM（Streaming Mu
 
 **SM采用的是SIMT(Single-Instruction, Multiple-Thread，单指令多线程)架构**。
 
-SM基本的执行单元是线程束（warps)，线程束包含32个线程，**这些线程同时执行相同的指令（kernel函数的多个代码行，经过编译翻译为多个指令）**，但是每个线程都包含自己的指令地址计数器和寄存器状态，也有自己独立的执行路径。
+SM基本的执行单元是线程束（**warps**)，线程束包含32个线程，**这些线程同时执行相同的指令（kernel函数的多个代码行，经过编译翻译为多个指令）**，但是每个线程都包含自己的指令地址计数器和寄存器状态，也有自己独立的执行路径。
 
 所以尽管线程束中的线程同时从同一程序地址执行，但是可能具有不同的行为，比如遇到了分支结构，一些线程可能进入这个分支，但是另外一些有可能不执行，它们只能死等（一人死干，多人围观），因为**GPU规定线程束中所有线程在同一周期执行相同的指令（因为条件结构造成分化，所以一个线程执行某个条件分支，其它线程只有等着该线程跳出该条件分支，才能继续向下执行相同的指令）**，线程束分化会导致性能下降。
 
@@ -363,4 +363,233 @@ SM基本的执行单元是线程束（warps)，线程束包含32个线程，**�
 ![](./legend/cuda的硬件结构.png)
 
 在进行CUDA编程前，可以先检查一下自己的GPU的硬件配置，
+
+## 0.4 向量运算实例
+
+### 0.4.1 向量加法
+
+
+
+```c++
+// device上分配size字节的内存(显存)
+cudaError_t cudaMalloc(void** devPtr, size_t size);
+// 负责host和device之间数据通信
+cudaError_t cudaMemcpy(void* dst, const void* src, size_t count, cudaMemcpyKind kind);
+// src 数据源，dst 目标区域，count 字节数
+// kind控制复制的方向：cudaMemcpyHostToHost, cudaMemcpyHostToDevice, cudaMemcpyDeviceToHost及cudaMemcpyDeviceToDevice，如cudaMemcpyHostToDevice将host上数据拷贝到device上。
+
+```
+
+实现一个向量加法的实例，这里grid和block都设计为1-dim，首先定义kernel如下：
+
+```c++
+#include <iostream>
+#include <cuda_runtime.h>
+#include <device_launch_parameters.h>
+
+// 两个向量加法kernel，grid和block均为一维
+__global__ void add(float* x, float * y, float* z, int n)
+{
+    // 获取全局索引
+    int index = threadIdx.x + blockIdx.x * blockDim.x;
+    // 步长
+    int stride = blockDim.x * gridDim.x;
+    for (int i = index; i < n; i += stride)
+    {
+        z[i] = x[i] + y[i];
+    }
+}
+int main()
+{
+    int N = 1 << 20;
+    int nBytes = N * sizeof(float);
+    // 申请host内存
+    float *x, *y, *z;
+    x = (float*)malloc(nBytes);
+    y = (float*)malloc(nBytes);
+    z = (float*)malloc(nBytes);
+
+    // 初始化数据
+    for (int i = 0; i < N; ++i)
+    {
+        x[i] = 10.0;
+        y[i] = 20.0;
+    }
+
+    // 申请device内存
+    float *d_x, *d_y, *d_z;
+    cudaMalloc((void**)&d_x, nBytes);
+    cudaMalloc((void**)&d_y, nBytes);
+    cudaMalloc((void**)&d_z, nBytes);
+
+    // 将host数据拷贝到device
+    cudaMemcpy((void*)d_x, (void*)x, nBytes, cudaMemcpyHostToDevice);
+    cudaMemcpy((void*)d_y, (void*)y, nBytes, cudaMemcpyHostToDevice);
+    // 定义kernel的执行配置
+    dim3 blockSize(256);
+    dim3 gridSize((N + blockSize.x - 1) / blockSize.x);
+    // 执行kernel
+    add << < gridSize, blockSize >> >(d_x, d_y, d_z, N);
+
+    // 将device得到的结果拷贝到host
+    cudaMemcpy((void*)z, (void*)d_z, nBytes, cudaMemcpyDeviceToHost);
+
+    // 检查执行结果
+    float maxError = 0.0;
+    for (int i = 0; i < N; i++)
+        maxError = fmax(maxError, fabs(z[i] - 30.0));
+    std::cout << "最大误差: " << maxError << std::endl;
+
+    // 释放device内存
+    cudaFree(d_x);
+    cudaFree(d_y);
+    cudaFree(d_z);
+    // 释放host内存
+    free(x);
+    free(y);
+    free(z);
+
+    return 0;
+}
+
+```
+
+在上面的实现中，我们需要单独在host和device上进行内存分配，并且要进行数据拷贝，这是很容易出错的。好在CUDA 6.0引入统一内存（[Unified Memory](https://link.zhihu.com/?target=http%3A//docs.nvidia.com/cuda/cuda-c-programming-guide/index.html%23um-unified-memory-programming-hd)）来避免这种麻烦，简单来说就是统一内存使用一个托管内存来共同管理host和device中的内存，并且自动在host和device中进行数据传输。CUDA中使用cudaMallocManaged函数分配托管内存：
+
+```c++
+cudaError_t cudaMallocManaged(void **devPtr, size_t size, unsigned int flag=0);
+```
+
+![](./legend/thread_index.jpg)
+
+```c++
+int main()
+{
+    int N = 1 << 20;
+    int nBytes = N * sizeof(float);
+
+    // 申请托管内存
+    float *x, *y, *z;
+    cudaMallocManaged((void**)&x, nBytes);
+    cudaMallocManaged((void**)&y, nBytes);
+    cudaMallocManaged((void**)&z, nBytes);
+
+    // 初始化数据
+    for (int i = 0; i < N; ++i)
+    {
+        x[i] = 10.0;
+        y[i] = 20.0;
+    }
+
+    // 定义kernel的执行配置
+    dim3 blockSize(256);
+    dim3 gridSize((N + blockSize.x - 1) / blockSize.x);
+    // 执行kernel
+    add << < gridSize, blockSize >> >(x, y, z, N);
+
+    // 同步device 保证结果能正确访问
+    cudaDeviceSynchronize();
+    // 检查执行结果
+    float maxError = 0.0;
+    for (int i = 0; i < N; i++)
+        maxError = fmax(maxError, fabs(z[i] - 30.0));
+    std::cout << "最大误差: " << maxError << std::endl;
+
+    // 释放内存
+    cudaFree(x);
+    cudaFree(y);
+    cudaFree(z);
+
+    return 0;
+}
+```
+
+
+
+### 0.4.2 向量乘法
+
+![](./legend/矩阵乘法实现模式.png)
+
+```c++
+#include <iostream>
+#include <cuda_runtime.h>
+#include <device_launch_parameters.h>
+
+// 矩阵类型，行优先，M(row, col) = *(M.elements + row * M.width + col)
+struct Matrix
+{
+    int width;
+    int height;
+    float *elements;
+};
+// 获取矩阵A的(row, col)元素
+__device__ float getElement(Matrix *A, int row, int col)
+{
+    return A->elements[row * A->width + col];
+}
+
+// 为矩阵A的(row, col)元素赋值
+__device__ void setElement(Matrix *A, int row, int col, float value)
+{
+    A->elements[row * A->width + col] = value;
+}
+
+// 矩阵相乘kernel，2-D，每个线程计算一个元素
+__global__ void matMulKernel(Matrix *A, Matrix *B, Matrix *C)
+{
+    float Cvalue = 0.0;
+    int row = threadIdx.y + blockIdx.y * blockDim.y;
+    int col = threadIdx.x + blockIdx.x * blockDim.x;
+    for (int i = 0; i < A->width; ++i)
+    {
+        Cvalue += getElement(A, row, i) * getElement(B, i, col);
+    }
+    setElement(C, row, col, Cvalue);
+}
+int main()
+{
+    int width = 1 << 10;
+    int height = 1 << 10;
+    Matrix *A, *B, *C;
+    // 申请托管内存
+    cudaMallocManaged((void**)&A, sizeof(Matrix));
+    cudaMallocManaged((void**)&B, sizeof(Matrix));
+    cudaMallocManaged((void**)&C, sizeof(Matrix));
+    int nBytes = width * height * sizeof(float);
+    cudaMallocManaged((void**)&A->elements, nBytes);
+    cudaMallocManaged((void**)&B->elements, nBytes);
+    cudaMallocManaged((void**)&C->elements, nBytes);
+
+    // 初始化数据
+    A->height = height;
+    A->width = width;
+    B->height = height;
+    B->width = width;
+    C->height = height;
+    C->width = width;
+    for (int i = 0; i < width * height; ++i)
+    {
+        A->elements[i] = 1.0;
+        B->elements[i] = 2.0;
+    }
+
+    // 定义kernel的执行配置
+    dim3 blockSize(32, 32);
+    dim3 gridSize((width + blockSize.x - 1) / blockSize.x,
+                  (height + blockSize.y - 1) / blockSize.y);
+    // 执行kernel
+    matMulKernel << < gridSize, blockSize >> >(A, B, C);
+
+
+    // 同步device 保证结果能正确访问
+    cudaDeviceSynchronize();
+    // 检查执行结果
+    float maxError = 0.0;
+    for (int i = 0; i < width * height; ++i)
+        maxError = fmax(maxError, fabs(C->elements[i] - 2 * width));
+    std::cout << "最大误差: " << maxError << std::endl;
+
+    return 0;
+}
+```
 
