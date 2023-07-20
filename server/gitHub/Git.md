@@ -1197,39 +1197,7 @@ git checkout version_SHA-1 filename
 git config list
 ```
 
-# 其他知识点
-
-1. [忽略已经被git追踪的文件和文件夹](https://blog.csdn.net/Hu_wenpeng/article/details/130430126)
-
-   ```bash
-   # 1.从版本库中rm文件或目录
-   # rm文件
-   git rm --cached file_name #从版本库中rm文件，working dicrectory中仍然保留
-   # rm目录
-   git rm -r --cached directory_name #删除目录下所有文件包括子目录
-   # 2.在.gitignore中添加要忽略的文件
-   # 3.把修改的文件commit并且push到服务端
-   ```
-
-2. [Git只拉取最新版本](https://blog.csdn.net/Holy_Q/article/details/107330494)
-
-   ```bash
-   # 参数 --depth=1，只拉取最近的一个 revision
-   git clone --depth=1 https://github.com/torvalds/linux.git
-   ```
-
-   
-
-3. [github的代码提交成功但是不显示绿色方块](https://blog.csdn.net/MJOY791270505/article/details/125948523)
-
-   ```bash
-   # 将项目的email设置为github账户的email
-   git config user.email "6510@qq.com"
-   ```
-
-4. 
-
-## 1 git设置提交模板
+## git设置提交模板
 
 1. 在某一个固定的文件夹下，新建一个Git提交的模板文本文件
 
@@ -1260,7 +1228,46 @@ git config list
 
      
 
-3. 去掉已经托管的文件
+# log
+
+1. [忽略已经被git追踪的文件和文件夹](https://blog.csdn.net/Hu_wenpeng/article/details/130430126)
+
+   ```bash
+   # 1.从版本库中rm文件或目录
+   # rm文件
+   git rm --cached file_name #从版本库中rm文件，working dicrectory中仍然保留
+   # rm目录
+   git rm -r --cached directory_name #删除目录下所有文件包括子目录
+   # 2.在.gitignore中添加要忽略的文件
+   # 3.把修改的文件commit并且push到服务端
+   ```
+
+2. [Git只拉取最新版本](https://blog.csdn.net/Holy_Q/article/details/107330494)
+
+   ```bash
+   # 参数 --depth=1，只拉取最近的一个 revision
+   git clone --depth=1 https://github.com/torvalds/linux.git
+   ```
+
+   
+
+3. [github的代码提交成功但是不显示绿色方块](https://blog.csdn.net/MJOY791270505/article/details/125948523)
+
+   ```bash
+   # 将项目的email设置为github账户的email
+   git config user.email "6510@qq.com"
+   ```
+
+4. 拉取指定tag的内容，并且只取最新一个版本的内容
+
+   ```bash
+   # 拉取指定版本的代码内容
+   git clone -b v5.2.0 --depth=1 http://gitlab地址
+   # 这个-b用来指定tag，他也可以用来拉取指定branch的代码
+   # --depth=1，只取最新一个版本
+   ```
+
+5. 去掉已经托管的文件
 
    ```bash
    git rm -r --cached filename
@@ -1268,5 +1275,5 @@ git config list
 
    
 
-4. 
+
 

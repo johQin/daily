@@ -86,9 +86,31 @@
 11. [查看当前文件夹下的树结构](https://blog.csdn.net/answerMack/article/details/90176833)
 
     - `sudo apt-get install tree`
-    - 
 
-12. 
+12. ssh命令连接另一台linux服务器。
+
+    - 如果你只是想登陆别的机器的SSH只需要安装 openssh-client（ubuntu默认安装了，如果没有则sudo apt-get install openssh-client），如果要使本机开放SSH服务就需要安装 **openssh-server**。
+
+    ```bash
+    # 1. linux 服务器安装ssh服务
+    sudo apt-get install sshd
+    # 2. # 开启ssh服务
+    service sshd start
+    # 3. 连接指定ip的服务器
+    ssh zhilan@192.168.0.125
+    
+    # 连接指定服务器中docker的ssh，将docker容器的22端口，和宿主机的端口8022进行映射
+    docker run -dit -p 8022:22 --name test1 ubuntu:16.04
+    # 然后在本地连接远程服务器（192.168.100.1），访问宿主机的8022端口就能映射到容器
+    ssh root@192.168.100.1 -p 8022
+    ```
+
+13. [通过 SSH 在远程和本地系统之间传输文件的 4 种方法](https://zhuanlan.zhihu.com/p/507876254)
+
+    - scp：前提是已安装了open
+    - rsync：用于文件同步的流行命令
+    - sshfs：通过 SSH 挂载远程目录
+    - sftp 客户端：通过 SFTP 访问文件的 GUI 工具
 
 # 3 ubuntu软件安装
 
@@ -216,3 +238,4 @@
 
 1. [linux发行版中的i386/i686/x86-64/有什么区别](https://zhidao.baidu.com/question/2276228239712472948.html)
 2. [Ubuntu18.04 陷入登录循环的问题解决历程（输入正确密码后无限重回登录界面）](https://blog.csdn.net/lj164567487/article/details/128692851)
+3. [systemctl 无法使用（System has not been booted with systemd as init system (PID 1). Can‘t operate.），可使用service](https://blog.csdn.net/qq_43685040/article/details/112056242)

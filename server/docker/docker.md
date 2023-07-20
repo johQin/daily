@@ -434,7 +434,7 @@ docker run [option] image [command]
 
 # -p 指定端口映射
 # -p hostPort:containerPort，如果访问宿主机的hostPort端口，就会映射到docker内部的containerPort端口，container端口也就是内部应用（鲸鱼背里的集装箱）监听的端口，例如nginx就监听的是80端口
-# -p ip:hostPort:containerPort
+# -p ip:hostPort:containerPort，指定将宿主机指定ip的指定端口映射到容器的指定端口。
 
 docker run -it ubuntu /bin/bash
 # 使用镜像ubuntu:latest，并以交互模式启动一个容器，在容器内执行/bin/bash命令
@@ -555,7 +555,21 @@ cat container_file.tar | docker import - 用户名/镜像名:版本号
 # 用户名镜像名版本号随意命名
 docker images 
 # 可以查看导入后的镜像已经在列表中了
+
+
 ```
+
+### 2.3.4 远程进入正在运行的容器
+
+```bash
+# 连接指定服务器中docker的ssh，将docker容器的22端口，和宿主机的端口8022进行映射
+docker run -dit -p 8022:22 --name test1 ubuntu:16.04
+
+# 然后在本地连接远程服务器（192.168.100.1），访问宿主机的8022端口就能映射到容器ssh服务
+ssh root@192.168.100.1 -p 8022
+```
+
+
 
 ![](./figure/docker_command.png)
 
@@ -565,7 +579,7 @@ docker images
 
 
 
-### 2.3.4 容器进出总结
+### 2.3.5 容器进出总结
 
 
 

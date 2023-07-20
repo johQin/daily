@@ -1415,11 +1415,11 @@ for i in range(5):
 
 # 13 多进程
 
-[关闭主进程让子进程也退出](https://blog.csdn.net/lucia555/article/details/105957928)
+Python 的多线程是鸡肋，不是真正意义上的多线程。
 
-[在调用Process(target=modelFunc,args=(pipe[1]))时发生 args TypeError: 'Connection' object is not iterable](https://www.codenong.com/31884175/)
+由于GIL的存在，一个python进程中只能运行一个线程，所以并不是真正意义上的多线程。python的多进程相当于c++的多线程。
 
-## 进程通信
+## 13.1 进程通信
 
 ### [pipe](https://blog.csdn.net/ouyangzhenxin/article/details/100023496)
 
@@ -1430,6 +1430,8 @@ Pipe方法返回（conn1， conn2）代表一个管道的两个端。Pipe方法�
 - 若duplex为False，conn1只负责接收消息，conn2只负责发送消息。send和[recv](https://so.csdn.net/so/search?q=recv&spm=1001.2101.3001.7020)方法分别是发送和接受消息的方法。
 
 - 若duplex为True（全双工模式），可以调用conn1.send发送消息，也可以conn1.recv接收消息。如果没有消息可接收，recv方法会一直阻塞。如果管道已经被关闭，那么recv方法会抛出EOFError。
+
+[在调用Process(target=modelFunc,args=(pipe[1]))时发生 args TypeError: 'Connection' object is not iterable](https://www.codenong.com/31884175/)
 
 ```python
 from multiprocessing import Process,Pipe
@@ -1474,9 +1476,31 @@ def mainFunc(pipe):
     tPipeSend.start()
 
 pipe = Pipe(duplex = True)
-modelProcess = Process(target=modelFunc,args=(pipe[1],))
+
+modelProcess = Process(target=modelFunc,args=(pipe[1],))		
+# args的元组元素即使只有一个参数，也要在第一个参数后面加“,”，否则报错 args TypeError: 'Connection' object is not iterable
+modelProcess.daemon = True
 modelProcess.start()
 mainFunc(pipe[0])
+```
+
+
+
+## 13.2 [多个进程一起退出](https://blog.csdn.net/lucia555/article/details/105957928)
+
+```python
+# 杀死主进程，也立即关闭子进程
+def terminate(sig_num, addtion):
+    print('term current pid is %s, group id is %s' % (os.getpid(), os.getpgrp()))
+    os.killpg(os.getpgid(os.getpid()), signal.SIGKILL)
+signal.signal(signal.SIGTERM, terminate)
+
+
+pipeMain = Pipe(duplex=True)
+pipeModel = Pipe(duplex=True)
+modelProcess = Process(target=modelFunc, args=(pipeModel[0], pipeMain[1]))
+modelProcess.daemon = True
+modelProcess.start()
 ```
 
 
