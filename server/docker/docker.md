@@ -1106,7 +1106,18 @@ VOLUME ["/data1","/data2"]
         ],
 ```
 
+#### ADD
 
+`ADD 源路径 目标路径`
+
+`ADD 宿主机路径 容器路径`
+
+1. 如果源路径是个文件
+   - 且目标路径是以 / 结尾， 则docker会把目标路径当作一个目录，会把源文件拷贝到该目录下。如果目标路径不存在，则会自动创建目标路径。
+   - 且目标路径是不是以 / 结尾，则docker会把目标路径当作一个文件。
+2. 如果源路径是个目录，
+   - 且目标路径不存在，则docker会自动以目标路径创建一个目录，把源路径目录下的文件拷贝进来。
+   - 如果目标路径是个已经存在的目录，则docker会把源路径目录下的文件拷贝到该目录下。
 
 ## 5.3 案例
 
@@ -1847,7 +1858,7 @@ spring.swagger2.enabled=true
 ## [将容器打包为镜像并转为tar包](https://blog.csdn.net/dandan201212/article/details/116456848)
 
 ```bash
-# 1. 容器制作镜像
+# 1. 依据容器制作镜像
 # docker commit [OPTIONS] CONTAINER [REPOSITORY[:TAG]]
 # OPTIONS：
 # -m 备注

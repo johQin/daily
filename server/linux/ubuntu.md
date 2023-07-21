@@ -160,7 +160,16 @@
     # esc后，N，n，到上一个，到下一个搜索内容
     ```
 
-17. 
+17. grep查找
+
+    - grep -rn "hello,world!" *
+    - \* : 表示当前目录所有文件，也可以是某个文件名
+    - -r 是递归查找
+    - -n 是显示行号
+    - -R 查找所有文件包含子目录
+    - -i 忽略大小写
+
+18. 
 
 # 3 ubuntu软件安装
 
@@ -250,3 +259,9 @@
 1. [linux发行版中的i386/i686/x86-64/有什么区别](https://zhidao.baidu.com/question/2276228239712472948.html)
 2. [Ubuntu18.04 陷入登录循环的问题解决历程（输入正确密码后无限重回登录界面）](https://blog.csdn.net/lj164567487/article/details/128692851)
 3. [systemctl 无法使用（System has not been booted with systemd as init system (PID 1). Can‘t operate.），可使用service](https://blog.csdn.net/qq_43685040/article/details/112056242)
+
+# log
+
+1. [chkconfig: command not found](https://blog.csdn.net/small_love/article/details/117660838)
+   - chkconfig 被 sysv-rc-conf替代
+2. 
