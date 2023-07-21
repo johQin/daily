@@ -559,7 +559,7 @@ docker images
 
 ```
 
-### 2.3.4 远程进入正在运行的容器
+### 2.3.4 [远程进入正在运行的容器](https://blog.csdn.net/winter2121/article/details/118223637)
 
 ```bash
 # 连接指定服务器中docker的ssh，将docker容器的22端口，和宿主机的端口8022进行映射
@@ -1014,8 +1014,8 @@ dockerfile是用来构建docker镜像的文本文件，是一条条构建镜像�
 dockerfile构建镜像三步骤
 
 1. 编写dockerfile文件
-2. docker build
-3. docker run
+2. docker build，按照dockerfile的指令，构建一个镜像（docker images查看）
+3. docker run，运行指定的镜像
 
 ## 5.1 dockerfile构建过程
 
@@ -1062,6 +1062,51 @@ docker执行dockerfile的大致流程：
 若全部以前台运行的话，只有第一个服务会启动；
 
 若全部以后台运行的话，当最后一个服务执行完成后，容器就退出了。
+
+### 具体解释
+
+#### [VOLUME](https://zhuanlan.zhihu.com/p/376651701)
+
+用于在image中创建一个挂载目录，以挂载宿主机上的目录。
+
+与docker run -v host_path:container_path不同，**Dockerfile中不能指定宿主机目录，默认使用docker管理的挂载点**
+
+而与docker run -v container_path相同，在dockerfile中无法指定主机上对应的目录，是自动生成的。
+
+```dockerfile
+FROM centos
+VOLUME ["/data1","/data2"]
+
+# docker build -t volume:01 .
+# docker run -it --name volumename volume:01 /bin/sh
+# docker inspect 071fdcf0a2eb
+"Mounts": [
+            {
+                "Type": "volume",
+                "Name": "479d38b89f7eb8cbf52fa4b50f1e7c0caf358707bca418a46dcc330b43983817",
+                # 宿主机挂载目录，受docker管理
+                "Source": "/var/lib/docker/volumes/479d38b89f7eb8cbf52fa4b50f1e7c0caf358707bca418a46dcc330b43983817/_data",
+                # 容器中的挂载目录
+                "Destination": "/data2",
+                "Driver": "local",
+                "Mode": "",
+                "RW": true,
+                "Propagation": ""
+            },
+            {
+                "Type": "volume",
+                "Name": "926f1a3c58d1574433b0488b1f8b0a88011e1143925621729c6ba5b8fd2b5150",
+                "Source": "/var/lib/docker/volumes/926f1a3c58d1574433b0488b1f8b0a88011e1143925621729c6ba5b8fd2b5150/_data",
+                "Destination": "/data1",
+                "Driver": "local",
+                "Mode": "",
+                "RW": true,
+                "Propagation": ""
+            }
+        ],
+```
+
+
 
 ## 5.3 案例
 
@@ -1802,7 +1847,7 @@ spring.swagger2.enabled=true
 ## [将容器打包为镜像并转为tar包](https://blog.csdn.net/dandan201212/article/details/116456848)
 
 ```bash
-# 1. 制作镜像
+# 1. 容器制作镜像
 # docker commit [OPTIONS] CONTAINER [REPOSITORY[:TAG]]
 # OPTIONS：
 # -m 备注

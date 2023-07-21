@@ -6770,7 +6770,12 @@ struct asd6{
 
 # log
 
-1. 头文件未声明类的函数或变量，而在类的实现中实现了这个函数或变量，就会报错
+1. [在ubuntu中配置c++开发环境](https://blog.csdn.net/qq_33867131/article/details/126540537)
+
+   - [修改项目的环境](https://blog.csdn.net/qq_19734597/article/details/103056279)
+   - file-->Settings-->Build,Execution,Deployment-->Toolchains，配置gcc，g++，make的位置
+
+2. 头文件未声明类的函数或变量，而在类的实现中实现了这个函数或变量，就会报错
 
    ```c++
    # error: definition of implicitly-declared ‘Rain::Rain()’
@@ -6794,7 +6799,7 @@ struct asd6{
    };
    ```
 
-2. [c++ Rain类的头文件和类的实现](https://www.cnblogs.com/larryzeal/p/5620470.html)，
+3. [c++ Rain类的头文件和类的实现](https://www.cnblogs.com/larryzeal/p/5620470.html)，
 
    - 如果Rain.cpp中没有对头文件进行实现，如果有外在有调用，就会报undefined reference to `Rain::Rain()'
    - 如果Rain.cpp如下定义实现就会报重定义的错，所以**类的实现必须通过命名空间的形式来进行实现**
@@ -6846,7 +6851,7 @@ struct asd6{
    };
    ```
 
-3. [include map后依旧无法使用map](https://blog.csdn.net/linfeng1993/article/details/56665767)
+4. [include map后依旧无法使用map](https://blog.csdn.net/linfeng1993/article/details/56665767)
 
    ```c++
    # error: ‘map’ does not name a type。原因没有使用标准命名空间。
@@ -6855,7 +6860,7 @@ struct asd6{
    
    ```
 
-4. 字符串拼接sprintf
+5. 字符串拼接sprintf
 
    ```c++
    // char* ,char*
@@ -6903,12 +6908,12 @@ struct asd6{
 
    
 
-5. [在将路径作为参数传递时，出现" error : cannot convert 'std::__cxx11::string* { as std::__cxx11::basic_string*}‘to 'const char*’错误](https://cloud.tencent.com/developer/ask/sof/706360/answer/1039787)
+6. [在将路径作为参数传递时，出现" error : cannot convert 'std::__cxx11::string* { as std::__cxx11::basic_string*}‘to 'const char*’错误](https://cloud.tencent.com/developer/ask/sof/706360/answer/1039787)
 
    - 要将c++的字符串通过`.c_str()`转化为c语言的字符串。否则会报如上错。
    - `const char* c_str() const;`
 
-6. [时间戳与字符串之间的转换](https://blog.csdn.net/xb_2015/article/details/122220722)
+7. [时间戳与字符串之间的转换](https://blog.csdn.net/xb_2015/article/details/122220722)
 
    ```c++
    #include <stdio.h>
@@ -6947,7 +6952,7 @@ struct asd6{
 
    - [C++ time_t与string的互相转换](https://blog.csdn.net/qq_34645629/article/details/84783092)
 
-7. [动态声明函数的返回值类型](https://blog.csdn.net/jiemashizhen/article/details/124484115)
+8. [动态声明函数的返回值类型](https://blog.csdn.net/jiemashizhen/article/details/124484115)
 
    ```c++
    #include <iostream>
@@ -6970,7 +6975,7 @@ struct asd6{
     
    ```
 
-8. [char* 与 int、float](https://blog.csdn.net/u011089523/article/details/101034813)
+9. [char* 与 int、float](https://blog.csdn.net/u011089523/article/details/101034813)
 
    - [itoa和atoi（字符串与整型数之间的转换）](https://blog.csdn.net/qq_44524918/article/details/114679985)
 
@@ -7005,7 +7010,7 @@ struct asd6{
    cout << str; //输出100 
    ```
 
-9. [string与char *、char[] 互转](https://blog.csdn.net/neuzhangno/article/details/128071821)
+10. [string与char *、char[] 互转](https://blog.csdn.net/neuzhangno/article/details/128071821)
 
    ```c++
    // 1. string to
@@ -7043,7 +7048,7 @@ struct asd6{
    
    ```
 
-10. [string与 int、float](https://blog.csdn.net/cat_hate_fish/article/details/109241076)
+11. [string与 int、float](https://blog.csdn.net/cat_hate_fish/article/details/109241076)
 
     ```c++
     // 1. string to num
@@ -7087,24 +7092,24 @@ struct asd6{
 
     
 
-11. [类与回调函数](https://blog.csdn.net/qq_36327203/article/details/108697677)
+12. [类与回调函数](https://blog.csdn.net/qq_36327203/article/details/108697677)
 
     - invalid use of non-static member function
     - 
 
-12. time
+13. time
 
-13. [mysql.h](https://blog.csdn.net/pidoudou/article/details/46127567)
+14. [mysql.h](https://blog.csdn.net/pidoudou/article/details/46127567)
 
-14. char * 、string、char[]、const char *、int相互转换
+15. char * 、string、char[]、const char *、int相互转换
 
-15. 字符串拼接
+16. 字符串拼接
 
-16. [lambda作函数回调](https://blog.csdn.net/u011680671/article/details/99089053)
+17. [lambda作函数回调](https://blog.csdn.net/u011680671/article/details/99089053)
 
     - https://qa.1r1g.com/sf/ask/4458122931/
 
-17. [stdlib与cstdlib的区别](https://blog.csdn.net/hankern/article/details/94270603)
+18. [stdlib与cstdlib的区别](https://blog.csdn.net/hankern/article/details/94270603)
 
     ```c
     C语言中是有#include <stdlib.h>的。 这是C语言标准的包含库头文件stdlib.h的语句。在代码中引用此句后，就可以使用stdlib.h中的函数，而不会出现未声明的警告。
@@ -7114,7 +7119,7 @@ struct asd6{
 
     
 
-18. 
+19. 
 
 
 

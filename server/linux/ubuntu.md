@@ -25,9 +25,11 @@
 # 2 常用命令
 1. 查看文件或文件夹大小：ls -hl
 
-2. [apt-get详细](https://blog.csdn.net/qq_44885775/article/details/124278721)
+2. ubuntu最小系统通过apt-get安装包前，需要县apt-get update更新一下源，然后才可查找包并安装相关包
 
-3. [tar](https://www.runoob.com/w3cnote/linux-tar-gz.html)
+3. [apt-get详细](https://blog.csdn.net/qq_44885775/article/details/124278721)
+
+4. [tar](https://www.runoob.com/w3cnote/linux-tar-gz.html)
 
    ```bash
    # 将所有 .jpg 的文件打成一个 tar 包，并且将其用 gzip 压缩，生成一个 gzip 压缩过的包，包名为 all.tar.gz。
@@ -37,16 +39,16 @@
    tar -xzf all.tar.gz
    ```
 
-4. [linux查询文件名 或 文件内容中 包含特定字符串的所有文件](https://blog.csdn.net/weixin_40482816/article/details/121425903)
+5. [linux查询文件名 或 文件内容中 包含特定字符串的所有文件](https://blog.csdn.net/weixin_40482816/article/details/121425903)
 
    - `find ./ -name '*2021-11-01*'`，查看当前文件夹（及子目录中）下，文件名包含2021-11-01的文件
    - `find ./ -name '*2021-11-01*' -maxdepth 1 `，查看当前文件夹下
 
-5. [xargs](https://www.runoob.com/linux/linux-comm-xargs.html)：是给命令传递参数的一个过滤器，也是组合多个命令的一个工具。
+6. [xargs](https://www.runoob.com/linux/linux-comm-xargs.html)：是给命令传递参数的一个过滤器，也是组合多个命令的一个工具。
 
    `find /sbin -perm +700 |xargs ls -l`，将前一个命令find的std ，通过xargs，输出给ls作参数。
 
-6. 查找运行的进程中是否包含某个进程
+7. 查找运行的进程中是否包含某个进程
 
    ```bash
    ps ajx | head -1 && ps ajx | grep 'ssd' 	# 带列名的展示
@@ -56,23 +58,21 @@
    
    ```
 
-7. [service和systemctl的区别](https://blog.csdn.net/juanxiaseng0838/article/details/124123822)
+8. [service和systemctl的区别](https://blog.csdn.net/juanxiaseng0838/article/details/124123822)
 
    - service命令其实是去/etc/init.d目录下，去执行相关程序
    - systemctl是一个systemd工具，主要负责控制systemd系统和服务管理器。在/lib/systemd/system
 
-8. `mkdir-p test/test1/test2` 自行创建多层目录
+9. `mkdir-p test/test1/test2` 自行创建多层目录
 
-9. vim 设置行号：
+10. vim 设置行号：
 
    ```bash
    /etc/vim/vimrc
    # 在内容最后加set number
-   
-   
    ```
 
-10. ubuntu定时关机
+11. ubuntu定时关机
 
     ```bash
     shutdown -r now 立刻重新开机 
@@ -83,11 +83,11 @@
 
     
 
-11. [查看当前文件夹下的树结构](https://blog.csdn.net/answerMack/article/details/90176833)
+12. [查看当前文件夹下的树结构](https://blog.csdn.net/answerMack/article/details/90176833)
 
     - `sudo apt-get install tree`
 
-12. ssh命令连接另一台linux服务器。
+13. ssh命令连接另一台linux服务器。
 
     - 如果你只是想登陆别的机器的SSH只需要安装 openssh-client（ubuntu默认安装了，如果没有则sudo apt-get install openssh-client），如果要使本机开放SSH服务就需要安装 **openssh-server**。
 
@@ -105,12 +105,62 @@
     ssh root@192.168.100.1 -p 8022
     ```
 
-13. [通过 SSH 在远程和本地系统之间传输文件的 4 种方法](https://zhuanlan.zhihu.com/p/507876254)
+14. [通过 SSH 在远程和本地系统之间传输文件的 4 种方法](https://zhuanlan.zhihu.com/p/507876254)
 
-    - scp：前提是已安装了open
+    - [scp：前提是已安装了openssh-server](https://blog.csdn.net/qq_34374664/article/details/81289540)
+
+      - -P [port] : 指定SSH端口号
+      - -r : 递归复制整个目录
+
+      ```bash
+      # 将本地文件，上传到服务器指定目录下
+      scp local_file remote_username@remote_ip:remote_folder
+      # 将本地文件夹，上传到服务器指定目录下
+      scp -r local_folder remote_username@remote_ip:remote_folder
+      
+      # 从远程复制到本地的scp命令与上面的命令雷同，只要将从本地复制到远程的命令后面2个参数互换顺序就行了。
+      scp root@192.168.120.204:/opt/soft/nginx-0.5.38.tar.gz /opt/soft/
+      
+      # 如果ssh服务的端口不是22，那么就需要指定自定义的端口
+      scp -P port local_file remote_username@remote_ip:remote_folder
+      ```
+
     - rsync：用于文件同步的流行命令
+
     - sshfs：通过 SSH 挂载远程目录
-    - sftp 客户端：通过 SFTP 访问文件的 GUI 工具
+
+    - sftp 客户端：通过 SFTP 访问文件的 GUI 工具（Filezilla）
+
+15. [ssh进入服务器或服务器docker](https://blog.csdn.net/weixin_44623010/article/details/105556481)
+
+    ```bash
+    # 安装完ssh-server之后，通过root登陆，报：Permission denied, please try again.
+    vi /etc/ssh/sshd_config
+    # 找到下面一项并修改
+    PermitRootLogin yes
+    # 修改完之后一定要重启ssh服务，否则不生效
+    /etc/init.d/ssh restart
+    
+    ssh root@192.168.100.1
+    
+    
+    # 连接指定服务器中docker的ssh，将docker容器的22端口，和宿主机的端口8022进行映射
+    docker run -dit -p 8022:22 --name test1 ubuntu:16.04
+    # 然后在本地连接远程服务器（192.168.100.1），访问宿主机的8022端口就能映射到容器ssh服务
+    ssh root@192.168.100.1 -p 8022
+    ```
+
+16. vim 查找
+
+    ```bash
+    # 全局搜索，替换
+    :%s/searchContent/replaceContent/gi
+    #eg:
+    :%s/123				# 在输完指令后，切忌不要按回车，否则会将匹配到的内容直接替换掉
+    # esc后，N，n，到上一个，到下一个搜索内容
+    ```
+
+17. 
 
 # 3 ubuntu软件安装
 
@@ -181,43 +231,6 @@
 
 
 
-# 4 c
-
-1. [在ubuntu中配置c++开发环境](https://blog.csdn.net/qq_33867131/article/details/126540537)
-   - [修改项目的环境](https://blog.csdn.net/qq_19734597/article/details/103056279)
-   - file-->Settings-->Build,Execution,Deployment-->Toolchains，配置gcc，g++，make的位置
-2. tinyxml
-   - [Linux 下配置Tinyxml,将其编译为静态库](https://blog.csdn.net/yasi_xi/article/details/38872467)
-   - [Cmake链接tinyxml静态库](https://blog.csdn.net/qq_40089175/article/details/107536133)
-3. 
-
-
-
-# 5 docker
-
-1. [docker导入tar包作镜像](https://blog.csdn.net/blood_Z/article/details/126038450)
-
-   - ```bash
-     # 法一
-     docker import  tar包名字.tar 镜像名称：版本id
-     # 法二
-     docker load -i tar包名字.tar
-     ```
-
-2. 查看电脑是否装docker，或者说docker是否安装成功
-
-   ```bash
-   docker version
-   ```
-
-3. 
-
-4. 
-
-
-
-
-
 # 6 操作
 
 1. linux设置开机自动执行脚本
@@ -231,8 +244,6 @@
 5. [ubuntu安装拼音输入法](https://blog.csdn.net/weixin_61275790/article/details/130787987)
 
 ​     
-
-
 
 # 7 系统
 

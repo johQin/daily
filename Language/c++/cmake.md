@@ -707,7 +707,13 @@ int putenv(char *string);
 
 2. [读取json](https://blog.csdn.net/luxpity/article/details/116809954)
 
-3. 
+3. tinyxml
+
+   - [Linux 下配置Tinyxml,将其编译为静态库](https://blog.csdn.net/yasi_xi/article/details/38872467)
+   - [Cmake链接tinyxml静态库](https://blog.csdn.net/qq_40089175/article/details/107536133)
+
+4. 
+
 
 # log
 
@@ -737,6 +743,8 @@ int putenv(char *string);
    - 
 
 1. [彻底清除cmake产生的缓存](https://blog.csdn.net/kris_fei/article/details/81982565)：删除cmake产生的build和release产物
+
+1. 
 
    
 

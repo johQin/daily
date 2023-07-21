@@ -899,12 +899,13 @@ gdb book -p 21495
 
 1. **Windows Intaller**
 2. [**Qt installer framework**](https://blog.csdn.net/q1302182594/article/details/51673064)
-3. **InstallShield**
-4. [**EasySetup**](https://blog.csdn.net/q1302182594/article/details/51672546)
-5. **Setup2Go**
-6. **Advanced Installer**
-7. **WinRAR**
-8. [**VNISEdit和Nullsoft Install System(NSIS)**](https://blog.csdn.net/qq_35241071/article/details/97631569?spm=1001.2101.3001.6650.1&utm_medium=distribute.pc_relevant.none-task-blog-2~default~BlogCommendFromBaidu~default-1-97631569-blog-41518959.pc_relevant_default&depth_1-utm_source=distribute.pc_relevant.none-task-blog-2~default~BlogCommendFromBaidu~default-1-97631569-blog-41518959.pc_relevant_default&utm_relevant_index=2)
+3. windeployqt
+4. **InstallShield**
+5. [**EasySetup**](https://blog.csdn.net/q1302182594/article/details/51672546)
+6. **Setup2Go**
+7. **Advanced Installer**
+8. **WinRAR**
+9. [**VNISEdit和Nullsoft Install System(NSIS)**](https://blog.csdn.net/qq_35241071/article/details/97631569?spm=1001.2101.3001.6650.1&utm_medium=distribute.pc_relevant.none-task-blog-2~default~BlogCommendFromBaidu~default-1-97631569-blog-41518959.pc_relevant_default&depth_1-utm_source=distribute.pc_relevant.none-task-blog-2~default~BlogCommendFromBaidu~default-1-97631569-blog-41518959.pc_relevant_default&utm_relevant_index=2)
 
 ## 5.2 Linux 环境
 
