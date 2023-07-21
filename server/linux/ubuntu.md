@@ -169,7 +169,17 @@
     - -R 查找所有文件包含子目录
     - -i 忽略大小写
 
-18. 
+18. [wget](https://zhuanlan.zhihu.com/p/335258413)
+
+    ```bash
+    wget https://developer.nvidia.com/downloads/c120-cudnn-local-repo-ubuntu2204-88012110-1amd64deb
+    # -O name 指定下载文件的名称
+    
+    ```
+
+    
+
+19. 
 
 # 3 ubuntu软件安装
 
