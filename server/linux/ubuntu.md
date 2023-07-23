@@ -228,7 +228,19 @@
 
 11. [安装nodejs](https://zhuanlan.zhihu.com/p/531851060)
 
-12. [vi 编辑写入保存和退出](https://blog.csdn.net/qq_33093289/article/details/127915742)
+12. [ubuntu远程，安装todesk，或者向日葵完毕后，连接后，对方无法操控本机，显示没有x11桌面](https://blog.csdn.net/crazyjinks/article/details/130017180)
+
+    - 需要将wayland，修改为x11
+
+    - ```bash
+      vim /etc/gdm3/custom.conf
+      # 解注释，下面这一行
+      WaylandEnable=false
+      #然后
+      reboot
+      ```
+
+13. [vi 编辑写入保存和退出](https://blog.csdn.net/qq_33093289/article/details/127915742)
 
    默认linux系统都有vi，而没有vim，安装vim：sudo apt install vim
 
