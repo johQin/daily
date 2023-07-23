@@ -55,12 +55,15 @@ public:
     int CreateSubProcess(){
         if(m_func == NULL) return -1;
         int ret =socketpair(AF_LOCAL,SOCK_STREAM,0,pipes);
+
         if(ret == -1) return -2;
+        printf("pipes 生成成功\n");
         pid_t pid = fork();         // 子进程复制了父进程的所有内容，包括这里的pipes，所以父进程有一个pipes[2],子进程也有一个pipes[2],这两个pipes通过socketpair函数连接在一起。
         if (pid==-1) return -3;
-
+        printf("fork 成功，pid：%d\n",pid);
         // 子进程
         if(pid == 0){
+            printf("sub process (%d):<%s> pid=%d\n", __LINE__, __FUNCTION__, getpid());
             close(pipes[1]);        //关闭写端
             pipes[1] = 0;
             (*m_func)();
@@ -68,7 +71,7 @@ public:
         }
 
         // 父进程
-
+        printf("父进程\n");
         close(pipes[0]);            //关闭读端
         pipes[0] = 0;
 
@@ -80,7 +83,7 @@ public:
     int SendFD(int fd){
 
         // 这里的消息主体是不重要的
-        struct msghdr msg;
+        struct msghdr msg {};
         iovec iov[2];
         char buf[][10] ={"qq","kk"};
         iov[0].iov_base = buf[0];         // 最后我们传递的是文件描述符，所以这里的消息缓冲不重要，作为一种冗余放在这里。
@@ -112,7 +115,8 @@ public:
     }
 
     int RecvFD(int & fd){
-        msghdr msg;
+        printf("子进程%s\n",__FUNCTION__);
+        struct msghdr msg{};
         iovec iov[2];
         char buf[][10] = {"",""};
         iov[0].iov_base = buf[0];
@@ -146,36 +150,38 @@ private:
     pid_t m_pid;
     int pipes[2];       //0读，1写。子进程关闭写端，父进程关闭读端。
 };
-int CreaeLogServer(CProcess * proc){
-    printf("%s(%d):<%s> pid=%d\n", __FILE__, __LINE__, __FUNCTION__, getpid());
+int CreateLogServer(CProcess * proc){
+    printf("pid=%d <%s> \n", getpid(), __FUNCTION__);
     return 0;
 }
-int CreaeClientServer(CProcess * proc){
-    printf("%s(%d):<%s> pid=%d\n", __FILE__, __LINE__, __FUNCTION__, getpid());
+int CreateClientServer(CProcess * proc){
+    printf("子进程执行函数：CreateClientServer\n");
+//    printf("%s(%d):<%s> pid=%d\n", __FILE__, __LINE__, __FUNCTION__, getpid());
     int fd = -1;
-    int ret = proc->RecvFD(fd);
-    printf("%s(%d):<%s> ret=%d\n", __FILE__, __LINE__, __FUNCTION__, ret);
-    printf("%s(%d):<%s> fd=%d\n", __FILE__, __LINE__, __FUNCTION__, fd);
+
     sleep(1);
+    int ret = proc->RecvFD(fd);
+    printf("(%d):<%s>%d,%d\n",__LINE__, __FUNCTION__,ret, fd);
+    printf("子进程fd：%d\n",fd);
     char buf[10] = "";
     lseek(fd, 0, SEEK_SET);
     read(fd, buf, sizeof(buf));
-    printf("%s(%d):<%s> buf=%s\n", __FILE__, __LINE__, __FUNCTION__, buf);
+    printf("读到的内容：%s",buf);
     close(fd);
     return 0;
 }
 int main() {
-    std::cout << "Hello, World!" << std::endl;
-    CProcess proclog,procclient;
-    proclog.SetEntryFunction(CreaeLogServer,&proclog);          // 可以自动推导类型
-    proclog.SetEntryFunction(CreaeClientServer,&procclient);
+    CProcess procclient;
+//    proclog.SetEntryFunction(CreateLogServer,&proclog);          // 可以自动推导类型
+    procclient.SetEntryFunction(CreateClientServer,&procclient);
     procclient.CreateSubProcess();
+
     int fd = open("./test.txt",O_RDWR | O_CREAT | O_APPEND);
-    printf("errno:%d msg:%s\n", errno, strerror(errno));
     if (fd ==-1) return -3;
     write(fd,"qqqkkkhhh",9);
     int ret =procclient.SendFD(fd);
     if (ret != 0) printf("errno:%d msg:%s\n", errno, strerror(errno));
     close(fd);
+    printf("父进程\n");
     return 0;
 }
