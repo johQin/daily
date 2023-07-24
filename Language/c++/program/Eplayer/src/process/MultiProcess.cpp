@@ -9,8 +9,8 @@
 #include<sys/types.h>   //类型的定义
 #include<sys/stat.h>    //system的状态值
 #include<fcntl.h>       //文件操作
-
-#include "MultiProcess.h"
+#include<signal.h>
+#include "../../include/MultiProcess.h"
 class CFunctionBase{
 public:
     virtual ~CFunctionBase(){}
@@ -148,6 +148,40 @@ public:
         fd = *(int *) CMSG_DATA(cmsg);
         return 0;
     }
+    static int SwitchDaemon(){
+        //主进程
+        pid_t ret = fork();
+        if(ret<0) return -1;
+        if(ret>0) exit(0);      //主进程退出
+
+        // 父进程继续
+        // 2.创建新会话
+        ret =setsid();
+        if(ret < 0) return -2;          // setsid error
+        ret = fork();
+        if(ret < 0) return -3;
+        if(ret > 0) exit(0);    //父进程退出
+
+        //孙进程如下，
+        //3.设置工作目录
+        chdir("/tmp");
+        //4.重设文件掩码
+        umask(0);
+        //5.关闭从父进程继承下来的文件描述符
+        for(int i=0;i<getdtablesize();i++) close(i);
+        // signal(SIGCHLD, SIG_IGN);                // 这句代码存疑，一般signal(SIGCHLD, SIG_IGN)放在父进程中，以处理僵尸进程的情况。可这里放在了孙子进程中，有点奇怪
+        // 守护进程的执行内容
+        // ....
+        //
+        //6.执行任务(每5秒记录一次系统时间)
+        //    while(1)
+        //    {
+        //        system("echo `date` >> time.txt");
+        //        sleep(5);
+        //    }
+        return 0;
+    }
+
 private:
     // 这里为什么不直接用CFunction，而要用父类，就是为了避免模板的传染性，这里通过基类隔离一下，当前类（CProcess）就不会被传染
     // 如果这里用了CFunction<T1,T2>, 由于CFunction是一个模板类，那么在声明其类型的时候肯定使用类型模板T1，这就会导致CProcess变成一个模板类。
@@ -176,9 +210,11 @@ int CreateClientServer(CProcess * proc){
     return 0;
 }
 int testMultiProcess(){
+    // 开启守护进程模式
+    //CProcess::SwitchDaemon();
     CProcess procclient;
-//    proclog.SetEntryFunction(CreateLogServer,&proclog);          // 可以自动推导类型
-    procclient.SetEntryFunction(CreateClientServer,&procclient);
+    //proclog.SetEntryFunction(CreateLogServer,&proclog);
+    procclient.SetEntryFunction(CreateClientServer,&procclient);    // 可以自动推导类型
     procclient.CreateSubProcess();
 
     int fd = open("./test.txt",O_RDWR | O_CREAT | O_APPEND);
