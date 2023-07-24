@@ -30,7 +30,7 @@ conda config --set show_channel_urls yes
 
 到C:\Users\Administrator（用户名） 下找到 .condarc，这是一个配置文件，打开删除channels的defaults项
 
-![修改配置文件](/home/buntu/gitRepository/daily/bigData/legend/configmirrors.png)
+![修改配置文件](./legend/configmirrors.png)
 
 
 
@@ -44,7 +44,7 @@ anaconda prompt 下
 
 在安装其他任何包之前先安装pip：conda install pip
 
-![安装成功](/home/buntu/gitRepository/daily/bigData/legend/installed.png)
+![安装成功](./legend/installed.png)
 
 
 
@@ -54,7 +54,7 @@ Sandboxie(又叫沙箱、沙盘)即是一个虚拟系统程序，它创造了一
 
 创建沙箱：conda create -n 沙箱名 python=3.6	//沙箱名，可以任意取，3.6代表支持的python 版本号。创建成功后，我们可以在anaconda Navigator/Environment，除了root环境，还有一个名叫tensorflow的沙箱环境
 
-激活沙箱：activate 沙箱名 		//在使用时，需要激活
+激活沙箱：conda activate 沙箱名 		//在使用时，需要激活
 
 关闭沙箱：deactivate 沙箱名 或activate root	//不需要使用时，关闭
 
@@ -77,9 +77,9 @@ Sandboxie(又叫沙箱、沙盘)即是一个虚拟系统程序，它创造了一
 
 完成后的效果
 
-![jupyter_new_env](/home/buntu/gitRepository/daily/bigData/legend/jupyter_new_env.png)
+![jupyter_new_env](./legend/jupyter_new_env.png)
 
-![jupyter_kernel_notebook](/home/buntu/gitRepository/daily/bigData/legend/jupyter_kernel_notebook.png)
+![jupyter_kernel_notebook](./legend/jupyter_kernel_notebook.png)
 
 要在新环境下运行程序，必须要激活此环境，否则将会出现环境死掉的情况，推荐通过prompt 去activate 新环境，然后通过jupyter notebook打开
 
@@ -93,13 +93,13 @@ Sandboxie(又叫沙箱、沙盘)即是一个虚拟系统程序，它创造了一
 
 关闭jupyter notebook：Ctrl + C
 
-![jupyter](/home/buntu/gitRepository/daily/bigData/legend/jupyter.png)
+![jupyter](./legend/jupyter.png)
 
 点击python3就可以新建python代码。
 
-![jupyter_new_python3](/home/buntu/gitRepository/daily/bigData/legend/jupyter_new_python3.png)
+![jupyter_new_python3](./legend/jupyter_new_python3.png)
 
-![快捷点击项](/home/buntu/gitRepository/daily/bigData/legend/jupyter_notebook.png)
+![快捷点击项](./legend/jupyter_notebook.png)
 
 ### 0.3.2 tab项
 
@@ -119,7 +119,7 @@ Sandboxie(又叫沙箱、沙盘)即是一个虚拟系统程序，它创造了一
 
 如果做了如上修改依旧没有改变文件的默认存储位置，那么还需要右击jupyter notebook---》下拉菜单点击”属性“---》删除"目标"中的%USERPROFILE%，如下图
 
-![jupyter_default_path](/home/buntu/gitRepository/daily/bigData/legend/jupyter_default_path.png)
+![jupyter_default_path](./legend/jupyter_default_path.png)
 
 ### 0.3.4 快捷键
 
@@ -137,7 +137,7 @@ Sandboxie(又叫沙箱、沙盘)即是一个虚拟系统程序，它创造了一
 
 ### 0.3.5 kernel
 
-![kernel下拉框选项](/home/buntu/gitRepository/daily/bigData/legend/jupyter_kernel_tab.png)
+![kernel下拉框选项](./legend/jupyter_kernel_tab.png)
 
 1. **Interrupt**：是终止一个 cell，不影响跑过的 cell
 2. **Restart**：restart the current kernel。 All variables will be lost。可以清空之前模型训练的结果
@@ -192,6 +192,8 @@ Sandboxie(又叫沙箱、沙盘)即是一个虚拟系统程序，它创造了一
 
 conda安装会根据包的依赖关系安装多个包以期环境相适应，而pip则不会。
 
+pip的一个好处是可以安装时既检查conda安装过package的也检查pip安装过的package。不过，它只负责要什么装什么，不负责能不能把装的一堆packages打通，可能装好不work
+
 ### 安装时经常会遇到的问题
 
 网络错误（网断了）：Could not fetch URL https://pypi.org/simple/matplotlib/: There was a problem confirming the ssl certificate: HTTPSConnectionPool
@@ -208,9 +210,9 @@ GPU版TensorFlow：conda install tensorflow-gpu
 
 打开jupyter
 
-![installedtensorflow](/home/buntu/gitRepository/daily/bigData/legend/provedInstalledTensorflow.png)
+![installedtensorflow](./legend/provedInstalledTensorflow.png)
 
-![installedtensorflow](/home/buntu/gitRepository/daily/bigData/legend/provedInstalledTensorflow2.png)
+![installedtensorflow](./legend/provedInstalledTensorflow2.png)
 
 由于tensorflow2.x与tensorflow1.x区别较大，很多函数的操作写法都不尽相同，视频上的版本为1.2.1，代码都是在1.2.1的基础上写成的
 
@@ -252,5 +254,9 @@ GPU版TensorFlow：conda install tensorflow-gpu
  
  # 在目标环境（命令行）按照environment.yml
  conda env create -f environment.yml
+ 
+ # 生成环境
+ conda install --yes --file requirements.txt
+ pip install -r requirements.txt
 ```
 
