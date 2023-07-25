@@ -169,16 +169,17 @@ public:
         umask(0);
         //5.关闭从父进程继承下来的文件描述符
         for(int i=0;i<getdtablesize();i++) close(i);
-        // signal(SIGCHLD, SIG_IGN);                // 这句代码存疑，一般signal(SIGCHLD, SIG_IGN)放在父进程中，以处理僵尸进程的情况。可这里放在了孙子进程中，有点奇怪
+
+        // 通过signal(SIGCHLD, SIG_IGN)通知内核对当前进程的子进程结束不关心，由内核回收。
+        // 如果不想让当前进程因为当前进程的子进程而挂起，可以在当前进程中加入一条语句：signal(SIGCHLD,SIG_IGN);表示父进程忽略SIGCHLD信号
+        // SIGCHLD信号 子进程结束时, 父进程会收到这个信号
+        signal(SIGCHLD, SIG_IGN);
+        // 如果父进程没有处理这个信号，也没有等待(wait)子进程，子进程虽然终止，但是还会在内核进程表中占有表项，这时的子进程称为僵尸进程。
+        // 这种情 况我们应该避免(父进程或者忽略SIGCHILD信号，或者捕捉它，或者wait它派生的子进程，或者父进程先终止，这时子进程的终止自动由init进程 来接管)。
+
         // 守护进程的执行内容
         // ....
         //
-        //6.执行任务(每5秒记录一次系统时间)
-        //    while(1)
-        //    {
-        //        system("echo `date` >> time.txt");
-        //        sleep(5);
-        //    }
         return 0;
     }
 

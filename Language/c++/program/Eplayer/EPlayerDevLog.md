@@ -194,8 +194,15 @@ public:
         printf("父进程\n");
         close(pipes[0]);            //关闭读端
         pipes[0] = 0;
-
         m_pid = pid;
+        
+        // 为避免子进程先行退出，而父进程没有wait，进而导致没有回收子进程的资源，——僵尸进程，
+        // 为避免僵尸进程，有以下几种做法
+        // 1. 父进程忽略子进程退出时的信号，signal(SIGCHLD, SIG_IGN);
+		// 2. 父进程捕捉子进程退出信号，然后通过wait或waitpid去回收子进程资源
+        // 3. 父进程先终止，这时子进程（孤儿进程）的终止自动由init进程 来接管
+        // 4. 父进程主动wait或waitpid回收子进程资源
+        
         return 0;
     }
 
@@ -307,6 +314,69 @@ int testMultiProcess(){
 }
 ```
 
+### 2.2.4 避免僵尸进程
+
+子进程先行退出，而父进程没有wait，进而导致没有回收子进程的资源，子进程虽然终止，但是还会在内核进程表中占有表项——僵尸进程
+
+ 为避免僵尸进程，有以下几种做法
+
+1. [父进程忽略子进程退出时的信号，signal(SIGCHLD, SIG_IGN);](https://blog.csdn.net/u010571844/article/details/50419798)
+
+   - 通知内核对子进程的结束不关心，由内核回收。
+   - 如果不想让父进程挂起，可以在父进程中加入一条语句：signal(SIGCHLD,SIG_IGN);表示父进程忽略SIGCHLD信号
+
+2. [父进程捕捉子进程退出信号，然后通过wait或waitpid去回收子进程资源](https://blog.csdn.net/weixin_42149007/article/details/113359239)
+
+   - 由于子进程结束时会发送SIGCHLD信号给父进程，不过此信号的默认动作为忽略，我们可以通过系统函数**sigaction**()设置信号捕捉，在信号捕捉函数中去回收子进程。
+
+   - **注意**：如果我们的**子进程先于父进程执行**，假如在父进程设置完SIGCHLD的信号捕捉函数之前**所有子进程**都执行结束了，那么父进程就不会再收到子进程发送的SIGCHLD信号，信号捕捉函数就不会执行，进而回收子进程的系统函数waitpid()就不会被调用，那么就会造成所有的子进程变为僵尸进程。
+
+   - 解决办法：**设置信号阻塞**，设置SIGCHLD信号的信号捕捉函数之前为了程序的严谨性，要先使用系统函数sigprocmask()去阻塞SIGCHLD信号，在设置完SIGCHLD信号的信号捕捉函数之后再解除阻塞。
+
+     ```c++
+     #include <signal.h>
+     #include <sys/wait.h>
+     
+     void cat_sigchild(int sig)
+     {
+        int status;
+        pid_t pid;
+     
+        while((pid =  waitpid(0,&status,WNOHANG)) > 0){
+         // wait获取子进程退出状态 WIFEXITED和WIFSIGNALED用法：https://blog.csdn.net/y396397735/article/details/53769865
+         if(WIFEXITED(status)){
+     		printf("child exit with %d\n",WEXITSTATUS(status));
+         }
+         else if(WIFSIGNALED(status)){
+     		printf("child kill by sig %d\n",WTERMSIG(status));
+         }
+        }
+     }
+     
+     
+     //阻塞SIGCHLD信号
+       sigset_t newset,oldset;
+       sigemptyset(&newset);
+       sigaddset(&newset,SIGCHLD);
+       sigprocmask(SIG_BLOCK,&newset,&oldset);
+       
+       struct sigaction act,oldact;
+     //设置信号捕捉函数
+       act.sa_handler = cat_sigchild;	
+       act.sa_flags = 0;
+       sigemptyset(&act.sa_mask);
+       sigaction(SIGCHLD,&act,NULL);
+       
+     //解除阻塞
+       sigprocmask(SIG_SETMASK,&oldset,NULL);
+     ```
+
+     
+
+3. 父进程先终止，这时子进程（孤儿进程）的终止自动由init进程 来接管
+
+4. 父进程主动wait或waitpid回收子进程资源
+
 
 
 ## 2.3 守护进程
@@ -341,7 +411,7 @@ int testMultiProcess(){
         umask(0);
         //5.关闭从父进程继承下来的文件描述符
         for(int i=0;i<getdtablesize();i++) close(i);
-        // signal(SIGCHLD, SIG_IGN);                // 这句代码存疑，一般signal(SIGCHLD, SIG_IGN)放在父进程中，以处理僵尸进程的情况。可这里放在了孙子进程中，有点奇怪
+        signal(SIGCHLD, SIG_IGN);
         // 守护进程的执行内容
         // ....
         //
