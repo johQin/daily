@@ -6,4 +6,4 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 
 file(GLOB_RECURSE SRC_CPP "src/*.cpp")
 
-add_executable(Eplayer main.cpp ${SRC_CPP})
+add_executable(Eplayer main.cpp ${SRC_CPP} include/Function.h include/Process.h include/Epoll.h)

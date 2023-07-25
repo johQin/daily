@@ -4,11 +4,7 @@
 
 #ifndef EPLAYER_MULTIPROCESS_H
 #define EPLAYER_MULTIPROCESS_H
-
-class CFunctionBase;
-template<typename _FUNCTION_,typename... _ARGS_>
-class CFunction;
-class CProcess;
+#include "Process.h"
 int CreateClientServer(CProcess * proc);
 int testMultiProcess();
 
