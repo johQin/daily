@@ -488,6 +488,8 @@ graph TD
 
 ## 2.6 进程间通信
 
+epoll拿到fd后，就要通过fd socket去通信了
+
 [本地套接字和网络套接字的区别](https://blog.csdn.net/cyllsy/article/details/119243112)
 
 ![](./legend/TCP_C_S架构.png)
