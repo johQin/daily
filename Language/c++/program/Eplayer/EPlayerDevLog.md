@@ -465,6 +465,35 @@ graph TD
 
 
 
+## 2.5 封装epoll
+
+不管是本地进程间通信还是不同主机间的进程通信，随着通信并发量的上升，都不可能再使用多线程和多进程的方式去通信，而是多线程或多进程结合IO多路复用的方式。在日志进程中，服务端业务处理进程的大量线程在并发处理业务的时候，会并发向日志服务进程发送日志，这时候就存在进程间通信，这时候就用到了本地套接字通信，就会用到epoll
+
+```mermaid
+graph TD
+	A[Epoll_Create]-->B[创建线程]
+	B-->C
+	B-->G
+	subgraph C[主线程]
+	D[epoll_ctl EPOLL_CTL_ADD]
+	E[epoll_ctl EPOLL_CTL_MOD]
+	F[epoll_ctl EPOLL_CTL_DEL]
+	end
+	subgraph G[子线程]
+	I-->H
+	H[epoll_wait]-->I[处理事件]
+	end
+	
+```
+
+## 2.6 进程间通信
+
+[本地套接字和网络套接字的区别](https://blog.csdn.net/cyllsy/article/details/119243112)
+
+![](./legend/TCP_C_S架构.png)
+
+
+
 # 头文件
 
 1. [cstdio](http://yncoders.com/show/41)

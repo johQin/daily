@@ -967,7 +967,7 @@ C++提供了**构造函数和析构函数**，这两个函数会被编译器**�
 
 如果用户不提供构造函数，编译器会自动添加一个默认的构造函数（空函数）。
 
-构造函数和类名相同，没有返回值类型（连void都不可以有），可以有参数，可以重载，权限必须为public
+构造函数和类名相同，没有返回值类型（没有return，连void都不可以有，析构函数也是），可以有参数，可以重载，权限必须为public
 
 #### 构造函数的定义
 
@@ -1335,7 +1335,15 @@ private:
     int b;
 }
 animal an{1,10.5}//hah，可以看来它是调用了构造函数，而不是直接对变量赋值，等价于an(1, 10.5)
-an.toString()//a = 1 b = 10.5
+an.toString();	//a = 1 b = 10.5
+
+struct Date
+{
+    int day, month, year;
+};
+Date birthday = {23, 8, 1983};		//大括号内的值按定义顺序分配给其成员
+    
+  
 ```
 
 #### c++11提供initializer_list模板类
@@ -2347,7 +2355,7 @@ public:
 		real = r;  
 		imag = 0;
 	}
-//类型转换函数   类似于运算符重载的写法，1、要求函数名称为要转换的类型 2、函数无形参
+//类型转换函数   类似于运算符重载的写法，1、要求函数名称为要转换的类型 2、函数无形参，3、不写返回类型，但是必须返回对应类型的值
 	operator double() {
 		return real;
 	}
@@ -4344,9 +4352,13 @@ void reCreateSpace() {
 
 vector<T> v; //采用模板实现类实现，默认构造函数
 vector(v.begin(), v.end());//将 v[begin(), end())区间中的元素拷贝给本身。
+vector(n);	//指定元素个数，默认全部初始化。
 vector(n, elem);//构造函数将 n 个 elem 拷贝给本身。
 vector(const vector &vec);//拷贝构造函数。
 
+// 指针
+data() 		//函数返回一个指向数组中第一个元素的指针，该指针在向量内部使用。https://blog.csdn.net/u013250861/article/details/128031285
+    
 //2. vector 常用赋值操作
 
 assign(beg, end);//将[beg, end)区间中的数据拷贝赋值给本身。
