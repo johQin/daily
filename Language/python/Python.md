@@ -1601,4 +1601,4 @@ modelProcess.start()
 
     
 
-13. 
+13. [函数返回字符串，得到的值却是一个tuple，原来是在调用的函数后面多写了一个逗号，然后就变为tuple](https://blog.csdn.net/handsomehuo/article/details/96294104)
