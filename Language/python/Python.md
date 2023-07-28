@@ -1321,6 +1321,8 @@ python多个模块导入一个公共模块，这多个模块又被导入一个�
 
 ### 9.2.1 定义包
 
+当python检测到一个目录下存在`__init__.py`文件时，python就会把它当成一个模块(module)。`__init__.py`可以是一个空文件，也可以有非常丰富的内容。
+
 - 创建一个文件夹，该文件夹的名字就是该包的包名。
 - 在该文件夹内添加一个\_\_init\_\_.py文件即可
 
@@ -1522,7 +1524,20 @@ modelProcess.start()
 
 1. [Python合并2个字典成1个新字典的9种方法](https://blog.csdn.net/xzmlwwb/article/details/125219343)
 
+   ```python
+   commonRyryPerson= {"cs_mine_code":"001","ps_person_post":"特种人员"}
+   person = {"ps_person_card":"05DEJ", "ps_person_name":"张1"}
+   print(dict(commonRyryPerson, **person))
+   # {"cs_mine_code":"001", "ps_person_post":"特种人员", "ps_person_card":"05DEJ", "ps_person_name":"张1"}
+   ```
+
 2. [深拷贝](https://zhuanlan.zhihu.com/p/532260575)
+
+   ```python
+   mylist = [1,2,3,4,5]
+   import copy
+   newmylist = copy.deepcopy(mylist) 
+   ```
 
 3. [乘法运算符将指定字符重复 N 次](https://www.jiyik.com/tm/xwzj/prolan_2194.html)
 
@@ -1536,7 +1551,7 @@ modelProcess.start()
    ```python
    lis = ['1','2','3','4','5']
    s = " " .join (lis)
-   print(s)st
+   print(s)
    
    list1 = [1, 2, 3]
    ans = ",".join(map(str, list1))
@@ -1544,6 +1559,10 @@ modelProcess.start()
    ```
 
 5. [Python中导入自定义模块的几种方法总结](https://www.jb51.net/article/271629.htm)
+
+   ```python
+   
+   ```
 
 6. [python获取项目根路径](https://blog.csdn.net/lovedingd/article/details/126479745)
 
@@ -1557,6 +1576,11 @@ modelProcess.start()
    ```
 
 8. [判断是否字典里是否包含key](https://blog.csdn.net/zz00008888/article/details/127632381)
+
+   ```python
+   dic = { 'name': 'dzm', 'age': '20' }
+   print('name' in dic) 	#  True
+   ```
 
 9. 复制字典中的key，并且置value为0
 
