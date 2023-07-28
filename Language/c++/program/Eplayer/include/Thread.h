@@ -99,20 +99,30 @@ public:
 
         return 0;
     }
+    // 暂停
     int Pause() {
-        if (m_thread != 0)return -1;
-        if (m_bpaused) {
+        // 如果线程没有创建，那么就直接返回
+        if (m_thread == 0)return -1;
+
+        // 如果线程已暂停，那么就让他运行，只需要将标志位修改？不去做额外的动作？
+        if (m_bpaused) {    //true 表示暂停 false表示运行中
             m_bpaused = false;
             return 0;
         }
+
+        // 如果线程运行中
         m_bpaused = true;
+
+        //SIGUSR1：由用户自定义的信号，向线程发信号，而不是kill线程，线程内如果实现了对应信号的handler，那么就去处理，这里的handler在ThreadEntry里设置了
         int ret = pthread_kill(m_thread, SIGUSR1);
+
         if (ret != 0) {
             m_bpaused = false;
             return -2;
         }
         return 0;
     }
+    // 停止
     int Stop() {
         // 线程已创建成功
         if (m_thread != 0) {
