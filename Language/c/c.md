@@ -2376,16 +2376,7 @@ C语言的宏(预处理功能)有以下几类：
 c = m(5+6,2+4)	//41，宏仅仅只做替换，在字符上替换后的表达式，实际的运算为5+6*3+2+4*4，
 d = m((5+6),(2+4))  // 57,  这里有括号，所以会先计算实参，11*3+6*4
 
-// 宏连接，C语言中，使用两个#即可将两个字符连接成为一个
-#include <stdio.h>
-#define A1 printf("print A1\r\n")
-#define A2 printf("print A2\r\n")
-#define A(NAME) A##NAME
-int main()
-{
-    A(1);//A1，会触发A1的宏替换
-    return 0;
-}
+
 ```
 
 > 注意事项：
@@ -2398,6 +2389,93 @@ int main()
 > 6. 宏定义前面的替换必须是C语言合法的用户标识符 如 #define 0a 25 就是错误的
 > 7. 重复定义的宏只有最后一个是有效的
 > 8. **宏定义不是C语句，不必在行未加“；”号，如果加了连“；”号一起进行置换；**
+
+下面聊一下宏函数中的**#、##、可变参数宏**
+
+### 9.1.1 符号#
+
+在C语言的宏中，**#的功能**就是将字符串中的宏参数进行字符串转化操作，简单说就是在将字符串中的宏变量原样输出并在其左右各加上一个双引号。
+
+```c
+#define WARN_IF(EXP)    do{ if(EXP)   fprintf(stderr, "Warning: " #EXP "\n"); }while(0)
+WARN_IF (d == 0);
+// 上面这一行被替换为下面
+do {
+      if (d == 0)
+      fprintf(stderr, "Warning" "d == 0" "\n");
+} while(0);
+```
+
+### 9.1.2 符号##
+
+\##被称为连接符（宏连接），用来将两个字符串连接为一个字符串。
+
+```c
+// 宏连接，C语言中，使用两个#即可将两个字符连接成为一个
+#include <stdio.h>
+#define A1 printf("print A1\r\n")
+#define A2 printf("print A2\r\n")
+#define A(NAME) A##NAME			// A(1)，对应NAME为1，故A##NAME，就为A1，在这里就会被A1的宏给替换掉
+int main()
+{
+    A(1);//A1，会触发A1的宏替换
+    return 0;
+}
+
+
+//
+struct command
+{
+	char * name;
+	void (*function) (void);
+};
+#define COMMAND(NAME) { NAME, NAME ## _command }
+// 预先定义好的命令来方便的初始化一个command结构的数组
+struct command commands[] = {
+	COMMAND(quit),			// 这一行将被替换为：{quit, quit_command}，这个
+	COMMAND(help),
+	...
+}
+
+
+// n个##符号连接 n+1个字符串
+#define LINK_MULTIPLE(a,b,c,d) a##_##b##_##c##_##d
+typedef struct _record_type LINK_MULTIPLE(name,company,position,salary);
+// 上面这一行将会被转换为下面这一行
+typedef struct _record_type name_company_position_salary;
+
+
+```
+
+### 9.1.3 [可变参数宏](https://blog.csdn.net/WHEgqing/article/details/105750057)
+
+[参考2](https://blog.csdn.net/u013554213/article/details/78857887)
+
+在宏函数中，`...`在C宏中称为变参宏
+
+```c
+// 1.显式地命名变参为arg，那么在宏定义中就可以用arg来代指变参了。
+#define dev_info(dev, fmt, arg...) _dev_info(dev, fmt, ##arg)
+
+// 2.没有对变参起名，用默认的宏__VA_ARGS__来替代它。
+#define dev_emerg_once(dev, fmt, ...) dev_level_once(dev_emerg, dev, fmt, ##__VA_ARGS__)
+
+// 3.当参数只够 定参的数目时（也就是，没有多余参数时），就会令编译出问题。
+	// 这里的问题来源于变参前面的逗号","
+// eg:
+#define pr_debug(fmt,arg...)  printf(err,fmt,arg)
+
+pr_debug("Tom","hello");		//能被正确的编译，被替换为替换为 printf("OK","Tom","hello");
+pr_debug("Tom");				//不能被正确的编译，因为他被替换为printf("OK","Tom",);
+								//就是因为在“Tom”后面有个“,”，但是“,“后面没有参数了，所以出错
+
+// ##VA_ARGS 宏前面加上##的作用在于，当可变参数的个数为0时，这里的##起到把前面多余的","去掉的作用,否则会编译出错
+#define pr_debug(fmt,arg...)  printf(err,fmt,##arg)	
+pr_debug("Tom");
+//能被正确的编译，被替换为替换为printf("OK","Tom");，##使得“Tom”后面的“,”消失了，所以编译正确
+```
+
+
 
 ## 9.2 包含头文件的宏
 
@@ -2567,13 +2645,20 @@ int main()
 
 标准的预定义宏都是用一两个下划线字符开头和结尾，**这类宏不能被#undef所取消也不能被编程人员重新定义和修改** ，常用来说明文件信息等
 
-| 宏名称   | 功能                        |
-| -------- | --------------------------- |
-| _*LINE*_ | 正在编译的文件的行号        |
-| _*FILE*_ | 正在编译的文件的名字        |
-| _DATE_   | 编译时刻的日期字符串        |
-| _TIME_   | 编译时刻的时间字符串        |
-| _STDC_   | 判断该程序是否为标准的c程序 |
+| 宏名称         | 功能                        |
+| -------------- | --------------------------- |
+| `__LINE__`     | 正在编译的文件的行号        |
+| `__FUNCTION__` | 正在编译的函数的名字        |
+| `__FILE__`     | 正在编译的文件的名字        |
+| `__DATE__`     | 编译时刻的日期字符串        |
+| `__TIME__`     | 编译时刻的时间字符串        |
+| `__STDC__`     | 判断该程序是否为标准的c程序 |
+
+## 9.5 可变参数宏以及##和#符的使用
+
+### 9.5.1 符号#
+
+
 
 # 10 [模块化编程](https://blog.csdn.net/as480133937/article/details/93400979)
 

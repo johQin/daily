@@ -20,7 +20,8 @@ public:
     Buffer() :std::string() {}
     // 按照空间大小构造缓冲区。构造Buffer的时候，会触发父类string的构造函数，并且调用resize函数调整空间大小
     Buffer(size_t size) :std::string() { resize(size); }
-
+    Buffer(const std::string& str):std::string(str){}
+    Buffer(const char * str):std::string(str){}
     // 继承std::string 转字符常量指针的用法，这就是为什么要继承的原因
     // 可以转换Buffer 为char * 指针
     operator char* () { return (char*)c_str(); }
@@ -130,6 +131,9 @@ public:
             close(fd);
         }
     };
+    virtual operator int(){ return m_socket; }
+    virtual operator int() const { return m_socket; }
+
 protected:
     //套接字描述符
     int m_socket;

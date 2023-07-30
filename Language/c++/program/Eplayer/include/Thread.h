@@ -1,3 +1,13 @@
+
+// 目前该头文件存在的疑点
+// 1. static ThreadEntry，static Sigaction，static std::map<pthread_t, CThread*> m_mapThread，为什么都要用static，这样为了一个this，绕了一大圈，这样设计是否冗余，这样设计的优点是什么？存疑
+// 并且，stop函数里面，并没有从m_mapThread里删除当前线程，这样的结构会导致map越来越满
+// 2. pause 没有重启线程的功能，只是将对应的状态标识字段置反，
+// 如果要让sigaction去实现重启，那么pause将状态由true 置为false的地方就不能return，而需要让其发送信号，
+// 如果信号发送失败，则要把状态改为原来的状态（true or false）
+
+
+
 //
 // Created by buntu on 2023/7/27.
 //
@@ -90,7 +100,7 @@ public:
                         //        );
         if (ret != 0)return -4;
 
-        //
+        // 存放
         m_mapThread[m_thread] = this;
 
         // 释放线程属性
@@ -99,7 +109,9 @@ public:
 
         return 0;
     }
-    // 暂停
+    // 暂停，这个功能是通过对线程函数也就是ThreadEntry，里注册sigaction发送SIGUSR1信号来实现的，它里面通过while(m_bpaused)-usleep 休眠来实现的
+    // 如果重启，则置m_bpaused为false，那么就跳出while，不再休眠
+    // 如果暂停，就留在while里面继续sleep
     int Pause() {
         // 如果线程没有创建，那么就直接返回
         if (m_thread == 0)return -1;
@@ -107,15 +119,15 @@ public:
         // 如果线程已暂停，那么就让他运行，只需要将标志位修改？不去做额外的动作？
         if (m_bpaused) {    //true 表示暂停 false表示运行中
             m_bpaused = false;
-            return 0;
+            return 0;       // 这里有个return，是有问题的，他无法让pthread_kill发送信号去让线程重启
         }
 
-        // 如果线程运行中
+        // 如果线程运行中，就置true，让它暂停
         m_bpaused = true;
 
         //SIGUSR1：由用户自定义的信号，向线程发信号，而不是kill线程，线程内如果实现了对应信号的handler，那么就去处理，这里的handler在ThreadEntry里设置了
         int ret = pthread_kill(m_thread, SIGUSR1);
-
+        // 如果信号发送失败，就需要把状态改回去
         if (ret != 0) {
             m_bpaused = false;
             return -2;
@@ -144,6 +156,7 @@ public:
         }
         return 0;
     }
+    // 判断线程是否有效，是否已退出
     bool isValid()const { return m_thread == 0; }
 private:
     //__stdcall（标准调用，不用传this指针，因为这是一个静态函数），任务函数的入口
@@ -164,12 +177,14 @@ private:
         // 真正的调用，做任务的函数
         thiz->EnterThread();
 
-
+        // 线程函数执行完毕之后，需要手动将m_thread置为0，否则isValid那里就有问题
         if (thiz->m_thread)thiz->m_thread = 0;
-        pthread_t thread = pthread_self();//不是冗余，有可能被stop函数把m_thread给清零了
+
+        // 清理线程资源
+        pthread_t thread = pthread_self();          //不是冗余，有可能被stop函数把m_thread给清零了
         auto it = m_mapThread.find(thread);
-        if (it != m_mapThread.end())
-            m_mapThread[thread] = NULL;
+        if (it != m_mapThread.end()) m_mapThread[thread] = NULL;
+        // 分离
         pthread_detach(thread);
         pthread_exit(NULL);
     }
@@ -193,7 +208,10 @@ private:
             auto it = m_mapThread.find(thread);
             if (it != m_mapThread.end()) {
                 if (it->second) {
+                    // 如果重启，则置m_bpaused为false，那么就跳出while，不再休眠
+                    // 如果处于暂停中的状态（m_bpaused为true），就留在while里面继续sleep
                     while (it->second->m_bpaused) {
+                        // 如果线程id等于0,说明此时线程调用Stop函数，把m_thread给置0了，直接退出ok
                         if (it->second->m_thread == 0) {
                             pthread_exit(NULL);
                         }
@@ -212,6 +230,10 @@ private:
     CFunctionBase* m_function;
     pthread_t m_thread;
     bool m_bpaused;     //true 表示暂停 false表示运行中
+    //静态成员变量使用前必须先初始化(如int MyClass::m_nNumber = 0;)，否则会在linker时出错。
     static std::map<pthread_t, CThread*> m_mapThread;
 };
 #endif //EPLAYER_THREAD_H
+
+
+
