@@ -1421,7 +1421,26 @@ Python 的多线程是鸡肋，不是真正意义上的多线程。
 
 由于GIL的存在，一个python进程中只能运行一个线程，所以并不是真正意义上的多线程。python的多进程相当于c++的多线程。
 
-## 13.1 进程通信
+## 13.1 常用接口
+
+```python
+from multiprocessing import Process,Pipe,Queue,Lock
+
+Process([group [, target [, name [, args [, kwargs]]]]])
+# group：参数未使用，默认值为None。
+# target：表示调用对象，即子进程要执行的任务。
+# args：表示调用的位置参数元组（元组的末尾一定要加一个逗号，即使只有一个参数）。
+# kwargs：表示调用对象的字典。如kwargs = {'name':Jack, 'age':18}，
+# name：子进程名称
+
+
+```
+
+<table align="center" border="1" cellpadding="1" cellspacing="1"><caption>
+   Process属性方法介绍 
+ </caption><thead><tr><th>方法/属性</th><th>说明</th></tr></thead><tbody><tr><td>start()</td><td>启动进程，调用进程中的run()方法。</td></tr><tr><td>run()</td><td>进程启动时运行的方法，正是它去调用target指定的函数，我们自定义类的类中一定要实现该方法 。</td></tr><tr><td>terminate()</td><td>强制终止进程，不会进行任何清理操作。如果该进程终止前，创建了子进程，那么该子进程在其强制结束后变为僵尸进程；如果该进程还保存了一个锁那么也将不会被释放，进而导致死锁。使用时，要注意。</td></tr><tr><td>is_alive()</td><td>判断某进程是否存活，存活返回True，否则False。</td></tr><tr><td>join([timeout])</td><td>主线程等待子线程终止。timeout为可选择超时时间；需要强调的是，<b>p.join只能join住start开启的进程，而不能join住run开启的进程 。</b></td></tr><tr><td>daemon</td><td>默认值为False，<b>如果设置为True，代表该进程为后台守护进程；当该进程的父进程终止时，该进程也随之终止；并且设置为True后，该进程不能创建子进程</b>，设置该属性必须在start()之前</td></tr><tr><td>name</td><td>进程名称。</td></tr><tr><td>pid</td><td>进程pid</td></tr><tr><td>exitcode</td><td>进程运行时为None，如果为-N，表示被信号N结束了。</td></tr><tr><td>authkey</td><td>进程身份验证，默认是由os.urandom()随机生成32字符的字符串。这个键的用途是设计涉及网络连接的底层进程间的通信提供安全性，这类连接只有在具有相同身份验证才能成功。</td></tr></tbody></table>
+
+## 13.2 进程通信
 
 ### [pipe](https://blog.csdn.net/ouyangzhenxin/article/details/100023496)
 
@@ -1488,7 +1507,7 @@ mainFunc(pipe[0])
 
 
 
-## 13.2 [多个进程一起退出](https://blog.csdn.net/lucia555/article/details/105957928)
+## 13.3 [多个进程一起退出](https://blog.csdn.net/lucia555/article/details/105957928)
 
 ```python
 # 杀死主进程，也立即关闭子进程
@@ -1626,3 +1645,30 @@ modelProcess.start()
     
 
 13. [函数返回字符串，得到的值却是一个tuple，原来是在调用的函数后面多写了一个逗号，然后就变为tuple](https://blog.csdn.net/handsomehuo/article/details/96294104)
+
+14. [获取相对当前文件的目录名](https://blog.csdn.net/F1004145107/article/details/106006655)
+
+    ```python
+    import os
+    
+    # 获取当前目录
+    print(os.getcwd())
+    print(os.path.dirname(__file__))
+    print(os.path.abspath(os.path.dirname(__file__)))
+    
+    # 获取上级目录
+    print(os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
+    print(os.path.abspath(os.path.dirname(os.getcwd())))
+    print(os.path.abspath(os.path.join(os.getcwd(), "..")))
+    
+    # 获取上上级目录
+    print(os.path.abspath(os.path.join(os.getcwd(), "../..")))
+    
+    # 获取上上上级目录
+    print(os.path.abspath(os.path.join(os.getcwd(), "../../..")))
+    
+    ```
+
+    
+
+15. 

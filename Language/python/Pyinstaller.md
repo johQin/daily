@@ -262,3 +262,14 @@ a = Analysis(
 
 
 
+## pyinstaller的全局变量
+
+PyInstaller全局变量可以在spec文件使用。
+
+- **DISTPATH：**相对于dist文件夹的相对路径，如果--distpath参数选项被指定了，则使用被指定的参数值。
+- **HOMEPATH：**pyinstaller查找的绝对路径，一般是Python解释器的site-packages文件夹的绝对路径。
+- **SPEC：**在命令行中指定的spec文件路径。
+- **SPECPATH：**os.path.split(SPEC)的第一个值。
+- **specnm：**spec文件的文件名，不含文件类型后缀。
+- **workpath：**相对于build文件夹的相对路径，如果workpath=参数选项被指定了，这使用被指定的值。
+- **WARNFILE：**在build文件夹中警告文件的全路径，一般是warn-myscript.txt
