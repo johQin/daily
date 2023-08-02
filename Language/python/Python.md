@@ -1030,9 +1030,70 @@ super()的本质就是调用super类的构造方法来创建super对象，super�
     super(type)#type为类名，通过类名可以区分是哪一个类
     super(type,obj)#要求obj是type类的实例。
 </pre>
+```python
+class A(object):
+    def __init__(self,xmlPath):
+        print("class ---- A ----")
+ 
+class B(A):
+    def __init__(self,path):
+        print("class ---- B ----")
+        super(B, self).__init__(path)
+```
+
+#### [菱形继承中，构造器的调用顺序](https://blog.csdn.net/wanzew/article/details/106993425)
+
+- **super(cls)** 函数就会在**__mro__** 里从**cls的下一个类**开始顺序调用构造函数
+- **`__mro__`的目的就是 按照一定顺序，保证父类的函数只调用一次**。
+
+```python
+#coding=utf-8
+#实例一：
+class A(object):
+    def __init__(self):
+        print("class ---- A ----")
+ 
+class B(A):
+    def __init__(self):
+        print("class ---- B ----")
+        super(B, self).__init__()
+ 
+class C(A):
+    def __init__(self):
+        print("class ---- C ----")
+        super(C, self).__init__()
+ 
+class D(B, C):
+    def __init__(self):
+        print(D.__mro__)
+        print("class ---- D ----")
+        super(D, self).__init__()
+ 
+d = D()
+'''
+#输出结果：
+(<class '__main__.D'>, <class '__main__.B'>, <class '__main__.C'>, <class '__main__.A'>, <type 'object'>)
+class ---- D ----
+class ---- B ----
+class ---- C ----
+class ---- A ----
+'''
 
 
-通过调用不同父类的super(type)可以同时初始化多个父类的实例变量，以保证不出错。
+
+class D(B, C):
+    def __init__(self):
+        print("class ---- D ----")
+        super(B, self).__init__()
+ 
+d = D()
+'''
+#输出结果：
+class ---- D ----
+class ---- C ----
+class ---- A ----
+
+```
 
 ## 6.6 多态
 
@@ -1522,6 +1583,20 @@ pipeModel = Pipe(duplex=True)
 modelProcess = Process(target=modelFunc, args=(pipeModel[0], pipeMain[1]))
 modelProcess.daemon = True
 modelProcess.start()
+```
+
+# 14 [错误处理](https://blog.csdn.net/JackMengJin/article/details/107151374)
+
+```python
+try:
+    print(operation(2,1))
+except ValueError as err:		# 捕获异常，并处理
+    print('出错了，错误类型为：{}'.format(err))
+    raise ValueError('Jack在列表中！')	# 向捕获结构的外层继续抛异常，如果外层有异常捕获，那么将会被处理，否则将中止程序
+except IndexError as err:
+    print('出错了，错误类型为：{}'.format(err))
+finally:						# finally 语句无论是否发生异常都将执行最后的代码。
+    print('运行结束')
 ```
 
 
