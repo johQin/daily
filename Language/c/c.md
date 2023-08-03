@@ -2763,10 +2763,13 @@ typedef char* val_list
 ### [vasprintf](https://blog.csdn.net/qq_51282224/article/details/130142811)
 
 ```c
+// 可变参数创建一个格式化的字符串，并将其存储在动态分配的内存中。它的使用方法与 printf 类似，但它不会将结果打印到标准输出流中，而是将其存储在一个指向字符数组的指针中。
 int vasprintf(char **str, const char *format, va_list ap);
 // str：指向指针变量的指针，用于存储格式化字符串的结果。
 // format：格式化字符串的格式，与 printf 函数中的用法相同。
 // ap：指向使用 va_start 和 va_arg 函数处理的可变参数列表的指针。
+
+// 在使用完字符串后，需要使用 free 函数释放相关内存。free(str)
 ```
 
 
