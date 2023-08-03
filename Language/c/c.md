@@ -2654,12 +2654,6 @@ int main()
 | `__TIME__`     | 编译时刻的时间字符串        |
 | `__STDC__`     | 判断该程序是否为标准的c程序 |
 
-## 9.5 可变参数宏以及##和#符的使用
-
-### 9.5.1 符号#
-
-
-
 # 10 [模块化编程](https://blog.csdn.net/as480133937/article/details/93400979)
 
 一个程序工程包含多个源文件（.c 文件和 .h 文件），每个 .c 文件可以被称为一个模块，每一个模块都有其各自的功能，而每一个.h文件则是声明该模块，相当于功能说明书
@@ -2721,19 +2715,28 @@ int main(void)
 
 # 11 C标准库
 
-## 11.1 [stdarg.h]()
+## 11.1 [stdarg.h](https://blog.csdn.net/baidu_15952103/article/details/105886761)
 
 stdarg.h 头文件定义了一个变量类型 va_list 和三个宏，这三个宏可用于在参数个数未知（即参数个数可变）时获取函数中的参数.可变参数的函数通在参数列表的末尾是使用省略号(,…)定义的。
+
+- `val_list ap`，声明一个val_list类型的变量ap，这个变量是**指向参数的指针（不是指向可变参数的）**
+- `va_start(va_list ap, last_arg)`，
+  - 初始化变量刚定义的va_list变量
+  - last_arg 是最后一个传递给函数的已知的固定参数，即省略号之前的最后一个参数。这样就可以找到剩余可变参数的位置
+- ` va_arg(va_list ap, type)`
+  - 检索函数参数列表中类型为 **type** 的下一个参数
+  - 返回可变参数，va_arg的第二个参数是你要返回的参数的类型（如果多个可变参数，依次调用va_arg获取各个参数）
+- `va_end`结束可变参数的获取。
 
 **使用可变参数还是有一定的限制的，你必须准确知道参数的个数与类型，才能准确适用。**
 
 ```c
 #include<stdarg.h>
 int fun(int n, ...){
-    //1. 在函数中创建一个va_list类型的变量
+    //1. 在函数中创建一个va_list类型的变量，这个变量是指向参数的指针。
     val_list ap;
     //2. 初始化一个参数列表
-    va_start(ap,n);
+    va_start(ap,n);				
 //    for(int i = 0;i < n; i++){
 		//3.访问参数列表的内容
     	va_arg(ap,int);
@@ -2756,6 +2759,17 @@ typedef char* val_list
 //va_end：清理指针
 #define va_end(ap) ( ap = NULL )
 ```
+
+### [vasprintf](https://blog.csdn.net/qq_51282224/article/details/130142811)
+
+```c
+int vasprintf(char **str, const char *format, va_list ap);
+// str：指向指针变量的指针，用于存储格式化字符串的结果。
+// format：格式化字符串的格式，与 printf 函数中的用法相同。
+// ap：指向使用 va_start 和 va_arg 函数处理的可变参数列表的指针。
+```
+
+
 
 ## 11.2 [time.h](https://www.runoob.com/cplusplus/cpp-date-time.html)
 

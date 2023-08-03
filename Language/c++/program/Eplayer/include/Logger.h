@@ -27,10 +27,12 @@ enum LogLevel {
 
 class LogInfo {
 public:
+    // 针对可变参数宏，TRACEI系列
     LogInfo(
             const char* file, int line, const char* func,
             pid_t pid, pthread_t tid, int level,
             const char* fmt, ...);
+    // 针对
     LogInfo(
             const char* file, int line, const char* func,
             pid_t pid, pthread_t tid, int level);
@@ -44,6 +46,7 @@ public:
     operator Buffer()const {
         return m_buf;
     }
+    // 重载输入操作运算符
     template<typename T>
     LogInfo& operator<<(const T& data) {
         std::stringstream stream;
@@ -54,7 +57,7 @@ public:
         return *this;
     }
 private:
-    bool bAuto;//默认是false 流式日志，则为true
+    bool bAuto;     //默认是false 流式日志则为true
     Buffer m_buf;
 };
 
@@ -304,6 +307,7 @@ private:
     FILE* m_file;       // 日志的file文件
 };
 
+// 可变参数宏，__VA_ARGS__
 #ifndef TRACE
 #define TRACEI(...) CLoggerServer::Trace(LogInfo(__FILE__, __LINE__, __FUNCTION__, getpid(), pthread_self(), LOG_INFO, __VA_ARGS__))
 #define TRACED(...) CLoggerServer::Trace(LogInfo(__FILE__, __LINE__, __FUNCTION__, getpid(), pthread_self(), LOG_DEBUG, __VA_ARGS__))
