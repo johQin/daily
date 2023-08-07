@@ -16,6 +16,7 @@
 #include <stdarg.h>
 #include <sstream>          //stringstream
 #include <sys/stat.h>       //mkdir
+#include<stdio.h>
 
 enum LogLevel {
     LOG_INFO,
@@ -72,9 +73,7 @@ public:
         char curpath[256] = "";
         getcwd(curpath, sizeof(curpath));
         m_path = curpath;
-
         m_path += "/log/" + GetTimeStr() + ".log";
-
         printf("%s(%d):[%s]path=%s\n", __FILE__, __LINE__, __FUNCTION__, (char*)m_path);
     }
     ~CLoggerServer() {
@@ -96,6 +95,8 @@ public:
             // 用户的读/写，用户组的读/写，其他写
             mkdir("log", S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH);
         }
+        printf("m_path:%s",(char *)m_path);
+
         // w+，不存在就创建
         m_file = fopen(m_path, "w+");
         if (m_file == NULL)return -2;
@@ -118,7 +119,7 @@ public:
             return -5;
         }
 
-        //
+        // 将lfd添加进去
         ret = m_epoll.Add(*m_server, EpollData((void*)m_server), EPOLLIN | EPOLLERR);
         if (ret != 0) {
             Close();
@@ -176,7 +177,7 @@ public:
 
         // 拼接时间字符串，返回字符串长度
         int nSize = snprintf(result, result.size(),
-                             "%04d-%02d-%02d_%02d-%02d-%02d.%03d",
+                             "%04d-%02d-%02d_%02d-%02d-%02d.%03d",      //注意这里的字符串，用于给文件命名，所以不能用空格，等号，等符号
                              pTm->tm_year + 1900, pTm->tm_mon + 1, pTm->tm_mday,
                              pTm->tm_hour, pTm->tm_min, pTm->tm_sec,
                              tmb.millitm
@@ -200,7 +201,7 @@ private:
         while (m_thread.isValid() && (m_epoll != -1) && (m_server != NULL)) {
             // 监听有没有套接字就绪
             ssize_t ret = m_epoll.WaitEvents(events, 1);
-            //printf("%s(%d):[%s] %d\n", __FILE__, __LINE__, __FUNCTION__, ret);
+//            printf("%s(%d):[%s] %d\n", __FILE__, __LINE__, __FUNCTION__, ret);
 
             // 没有套接字就绪
             if (ret < 0)break;
@@ -237,12 +238,11 @@ private:
 
                             // 在添加到客户端套接字map的之前，先看看旧有map有没有该套接字，有的话就先删了，然后再添加
                             auto it = mapClients.find(*pClient);
-                            if (it != mapClients.end()) {
+                            if (it != mapClients.end()) {// 如果找不到，it将指向end，但it不等于NULL，it->second将直接无效，直接报错
                                 //it->second != NULL
                                 if (it->second)delete it->second;//delete it->second;
                             }
                             mapClients[*pClient] = pClient;
-
                             printf("%s(%d):[%s]ret=%d \n", __FILE__, __LINE__, __FUNCTION__, r);
                         }
 
@@ -327,9 +327,9 @@ private:
 //
 #define DUMPI(data, size) CLoggerServer::Trace(LogInfo(__FILE__, __LINE__, __FUNCTION__, getpid(), pthread_self(), LOG_INFO, data, size))
 #define DUMPD(data, size) CLoggerServer::Trace(LogInfo(__FILE__, __LINE__, __FUNCTION__, getpid(), pthread_self(), LOG_DEBUG, data, size))
-#define DUMPW(data, size) CLoggerServer::TraceLogInfo(__FILE__, __LINE__, __FUNCTION__, getpid(), pthread_self(), LOG_WARNING, data, size))
-#define DUMPE(data, size) CLoggerServer::TraceLogInfo(__FILE__, __LINE__, __FUNCTION__, getpid(), pthread_self(), LOG_ERROR, data, size))
-#define DUMPF(data, size) CLoggerServer::TraceLogInfo(__FILE__, __LINE__, __FUNCTION__, getpid(), pthread_self(), LOG_FATAL, data, size))
+#define DUMPW(data, size) CLoggerServer::Trace(LogInfo(__FILE__, __LINE__, __FUNCTION__, getpid(), pthread_self(), LOG_WARNING, data, size))
+#define DUMPE(data, size) CLoggerServer::Trace(LogInfo(__FILE__, __LINE__, __FUNCTION__, getpid(), pthread_self(), LOG_ERROR, data, size))
+#define DUMPF(data, size) CLoggerServer::Trace(LogInfo(__FILE__, __LINE__, __FUNCTION__, getpid(), pthread_self(), LOG_FATAL, data, size))
 #endif
 
 #endif //EPLAYER_LOGGER_H

@@ -7,5 +7,6 @@
 #include "Process.h"
 int CreateClientServer(CProcess * proc);
 int testMultiProcess();
-
+int CreateLoggerServer(CProcess * proc);
+int logTest();
 #endif //EPLAYER_MULTIPROCESS_H

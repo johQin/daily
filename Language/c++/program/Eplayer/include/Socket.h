@@ -125,6 +125,8 @@ public:
     virtual int Close(){
         m_status = 3;
         if (m_socket != -1) {
+
+            unlink(m_param.ip);
             int fd = m_socket;
             m_socket = -1;
             // close需要花多长时间不确认
@@ -170,6 +172,7 @@ public:
         // 正常情况下，套接字是-1的，因为这是第一个套接字lfd（监听套接字）
         // 但在link那里，通过m_socket(lfd) 接收 accept，创建一个新的已连接套接字（通信套接字，cfd），然后由这个cfd创建一个本地套接字，*pClient = new CLocalSocket(cfd)，所以在这里是已经有m_socket,并且等于cfd
         if (m_socket == -1) m_socket = socket(PF_LOCAL, type, 0);
+        else m_status = 2;      // 如果是accept来的cfd（客户端），它已经处于连接状态，所以要置为 2
 
         // 如果套接字创建失败，返回-2
         if (m_socket == -1)return -2;
@@ -205,8 +208,8 @@ public:
             if (ret == -1)return -6;
         }
 
-        //初始化完成
-        m_status = 1;
+        //初始化完成，服务器初始化m_status才是0,初始化完成后，要置为1。客户端在前面的判断已经置为2了，所有不会执行这一步
+        if(m_status == 0) m_status = 1;
         return 0;
     }
     //连接

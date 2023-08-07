@@ -87,8 +87,8 @@ public:
         if (ret != 0)return -2;
 
         // 将线程限定在当前进程中，不与其他进程的线程争抢资源
-        ret = pthread_attr_setscope(&attr, PTHREAD_SCOPE_PROCESS);      //可以不设置，这是默认值
-        if (ret != 0)return -3;
+        // ret = pthread_attr_setscope(&attr, PTHREAD_SCOPE_PROCESS);      //可以不设置，这是默认值
+        //if (ret != 0)return -3;
 
         // ThreadEntry为任务函数的入口，之所以这里不直接写任务函数，是因为想在任务函数里直接使用this，以方便获取相关的成员对象
         ret = pthread_create(&m_thread, &attr, &CThread::ThreadEntry, this);
@@ -157,7 +157,7 @@ public:
         return 0;
     }
     // 判断线程是否有效，是否已退出
-    bool isValid()const { return m_thread == 0; }
+    bool isValid()const { return m_thread != 0; }
 private:
     //__stdcall（标准调用，不用传this指针，因为这是一个静态函数），任务函数的入口
     static void* ThreadEntry(void* arg) {

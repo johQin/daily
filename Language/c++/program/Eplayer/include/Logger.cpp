@@ -42,6 +42,7 @@ LogInfo::LogInfo(
         m_buf += buf;
         free(buf);      // 如果分配成功，必须要通过free来手动释放buf
     }
+    m_buf += "\n";
     va_end(ap);
 }
 // LOG系列宏
@@ -62,7 +63,6 @@ LogInfo::LogInfo(const char* file, int line, const char* func, pid_t pid, pthrea
         m_buf = buf;
         free(buf);
     }
-
 }
 
 //DUMP系列宏
@@ -103,7 +103,7 @@ LogInfo::LogInfo(
             for (size_t j = i - 15; j <= i; j++) {
                 // 如果字符在ASCII码显示范围，则直接衔接
                 if ((Data[j] & 0xFF) > 31 && ((Data[j] & 0xFF) < 0x7F)) {
-                    m_buf += Data[i];
+                    m_buf += Data[j];
                 }
                 // 如果字符不在ASCII码显示范围，则用一个.代替
                 else {
@@ -123,7 +123,7 @@ LogInfo::LogInfo(
         // 处理后一半原样字符
         for (size_t j = i - k; j <= i; j++) {
             if ((Data[j] & 0xFF) > 31 && ((Data[j] & 0xFF) < 0x7F)) {
-                m_buf += Data[i];
+                m_buf += Data[j];
             }
             else {
                 m_buf += '.';
@@ -131,12 +131,14 @@ LogInfo::LogInfo(
         }
         m_buf += "\n";
     }
+    printf("%s",(char *)m_buf);
 }
 // 这里的析构是什么意思，
 LogInfo::~LogInfo()
 {
     // 在logInfo析构的时候，并且bAuto为true的情况下，记录一个日志
     if (bAuto) {
+        m_buf += "\n";
         CLoggerServer::Trace(*this);
     }
 }

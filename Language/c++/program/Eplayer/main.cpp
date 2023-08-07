@@ -9,10 +9,12 @@
 #include<sys/stat.h>    //system的状态值
 #include<fcntl.h>       //文件操作
 #include<signal.h>
+#include<Logger.h>
 
 int main() {
 //    testMultiProcess();
-    char c = 128;
-    printf("c = %d\n", c);
+    logTest();
+//    char buffer[] = "hello LogTest! 神奇的世界，你好";
+//    DUMPD((void*)buffer, (size_t)sizeof(buffer));
     return 0;
 }
