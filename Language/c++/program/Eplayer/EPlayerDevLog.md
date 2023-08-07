@@ -428,7 +428,9 @@ int testMultiProcess(){
 }
 ```
 
-## 2.4 日志模块的设计
+# 3 日志模块
+
+## 3.1 日志模块的设计
 
 本地进程间通信，最方便最快速就是**本地套接字**通信
 
@@ -465,7 +467,7 @@ graph TD
 
 
 
-## 2.5 封装epoll
+## 3.2 封装epoll
 
 不管是本地进程间通信还是不同主机间的进程通信，随着通信并发量的上升，都不可能再使用多线程和多进程的方式去通信，而是多线程或多进程结合IO多路复用的方式。在日志进程中，服务端业务处理进程的大量线程在并发处理业务的时候，会并发向日志服务进程发送日志，这时候就存在进程间通信，这时候就用到了本地套接字通信，就会用到epoll
 
@@ -486,7 +488,7 @@ graph TD
 	
 ```
 
-## 2.6 进程间通信
+## 3.3 进程间通信
 
 epoll拿到fd后，就要通过fd socket去通信了
 
@@ -494,7 +496,68 @@ epoll拿到fd后，就要通过fd socket去通信了
 
 ![](./legend/TCP_C_S架构.png)
 
+## 3.4 日志模块的流程
 
+
+
+```mermaid
+sequenceDiagram
+	participant m as main
+	participant p as CProcess
+	participant l as CLogServer
+	participant t as CThread
+	participant ep as CEpoll
+	participant sockbase as CSocketBase
+	participant locsock as CLocalSocket
+	m ->> p:SetEntryFunction()
+	m ->> p:CreateSubProcess()
+	m ->> m:CreateLogServer()
+	m ->> l:Start()
+	l ->> ep:Create()
+	l ->> sockbase:Init()
+	sockbase ->> locsock:Init()
+	l ->> t:Start()
+	t ->> l:ThreadFunc()
+	l ->> ep:WaitEvents()
+	l ->> sockbase:Send()
+	sockbase ->> locsock:Send()
+	l ->> sockbase:Recv()
+	sockbase ->> locsock:Recv()
+	m ->> l:Trace()
+
+```
+
+# 4 主模块
+
+主模块主要就是客户端的接入，然后分发客户端处理进程去处理
+
+```mermaid
+graph TD
+	A[开始]--> B[创建日志服务器进程] -->C[创建客户端处理进程] -->D[创建网络服务器]-->结束
+	
+```
+
+## 4.1 网络服务器流程
+
+```mermaid
+sequenceDiagram
+	participant cs as CServer
+	participant tpoll as CThreadPool
+	participant t as CThread
+	participant ep as CEpoll
+	participant netsock as CNetSocket
+	participant p as CProcess(客户端处理进程)
+	cs ->> ep:Create()
+	cs ->> netsock:Init()
+	ep ->> netsock:Add()
+	cs ->> tpoll:Start()
+	t ->> cs:ThreadFunc()
+	cs ->> ep:WaitEvents()
+	cs ->> netsock:Link()
+	cs ->> p:SendFD()
+```
+
+## 4.2 线程池
 
 
 
