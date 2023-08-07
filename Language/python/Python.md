@@ -1566,6 +1566,8 @@ modelProcess.start()
 mainFunc(pipe[0])
 ```
 
+### Manager
+
 
 
 ## 13.3 [多个进程一起退出](https://blog.csdn.net/lucia555/article/details/105957928)

@@ -51,11 +51,17 @@
 7. 查找运行的进程中是否包含某个进程
 
    ```bash
+   # 查看父进程ID，进程ID，进程组ID，会话ID
    ps ajx | head -1 && ps ajx | grep 'ssd' 	# 带列名的展示
       PPID     PID    PGID     SID TTY        TPGID STAT   UID   TIME COMMAND
       2000   24119    2000    2000 ?             -1 Sl    1000   0:00 /usr/libexec/gvfsd-dnssd --spawner :1.2 /org/gtk/gvfs/exec_spaw/3
       6967  298419  298418    6967 pts/0     298418 S+    1000   0:00 grep --color=auto ssd
    
+   # 查看进程资源占用情况
+   ps aux | head -1 && ps aux | grep 'ssd' 
+   USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+   root          18  0.0  0.0 178084 16832 ?        Sl   Aug02   0:44 ./shangDong_Model_position
+   root          19  0.0  0.0 180268 24552 ?        Sl   Aug02   2:41 ./shangDong_Model_position
    ```
 
 8. [service和systemctl的区别](https://blog.csdn.net/juanxiaseng0838/article/details/124123822)

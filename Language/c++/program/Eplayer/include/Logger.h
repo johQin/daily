@@ -14,8 +14,8 @@
 #include <list>
 #include <sys/timeb.h>
 #include <stdarg.h>
-#include <sstream>
-#include <sys/stat.h>
+#include <sstream>          //stringstream
+#include <sys/stat.h>       //mkdir
 
 enum LogLevel {
     LOG_INFO,
@@ -32,11 +32,11 @@ public:
             const char* file, int line, const char* func,
             pid_t pid, pthread_t tid, int level,
             const char* fmt, ...);
-    // 针对
+    // 针对LOG系列宏
     LogInfo(
             const char* file, int line, const char* func,
             pid_t pid, pthread_t tid, int level);
-
+    // 针对DUMP系列宏
     LogInfo(const char* file, int line, const char* func,
             pid_t pid, pthread_t tid, int level,
             void* pData, size_t nSize);
@@ -46,7 +46,7 @@ public:
     operator Buffer()const {
         return m_buf;
     }
-    // 重载输入操作运算符
+    // 重载输入操作运算符，调用时，类型可以自动推导
     template<typename T>
     LogInfo& operator<<(const T& data) {
         std::stringstream stream;

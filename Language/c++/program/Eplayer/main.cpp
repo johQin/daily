@@ -11,6 +11,8 @@
 #include<signal.h>
 
 int main() {
-    testMultiProcess();
+//    testMultiProcess();
+    char c = 128;
+    printf("c = %d\n", c);
     return 0;
 }
