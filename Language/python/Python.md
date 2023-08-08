@@ -1601,7 +1601,53 @@ finally:						# finally 语句无论是否发生异常都将执行最后的代�
     print('运行结束')
 ```
 
+# 15 日志模块
 
+## 15.1 [python 多个logger对象使用，输出到多个文件](https://blog.csdn.net/zhanxiaohai/article/details/123851624)
+
+```python
+import logging
+from logging import handlers
+import os
+
+class logger:
+	def startLog(self):
+        # 生成两个日志记录器，分别将不同的日志放在不同的文件
+        self.logger = self.get_logger('socket_server')
+        self.resLogger = self.get_logger('model_server')
+    def writeLog(self):
+        self.logger.info('adfdf')
+        self.resLogger.info('ccc')
+    def get_logger(self, logName):
+        # 获取项目路径
+        projectPath = ConfigInfo.getProjectPosition()
+        # 日志存放路径
+        logPath = "{}/log".format(projectPath)
+        if not os.path.exists(logPath):
+            os.mkdir(logPath)
+        # 日志存放文件路径
+        saveLogPath = os.path.join(logPath, logName)
+        
+        logger = logging.getLogger(logName)
+        logger.setLevel(level=logging.INFO)
+        
+        # 按天分割，有一个坑，一定要从下面的链接了解
+        handler = handlers.TimedRotatingFileHandler(filename=saveLogPath, when='D', interval=1, backupCount=7, encoding='utf-8')
+        handler.suffix = "%Y-%m-%d_%H-%M-%S.log"
+        handler.extMatch = re.compile(r"^\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}.log$")
+        
+        handler.setLevel(logging.INFO)
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+        return logger
+```
+
+
+
+[Python自带TimedRotatingFileHandler巨坑，日志无法按天分割，使用需谨慎（附源码逻辑解释）](https://blog.csdn.net/weixin_38107388/article/details/90639151)
+
+[2020-12-13：Python日志模块中RotatingFileHandler(循环覆盖式日志处理)类的使用](https://blog.csdn.net/qq_32670879/article/details/111145257)
 
 # Pycharm骚操作
 
