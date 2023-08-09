@@ -32,7 +32,7 @@ python是**弱类型语言**，特点：
 
 关键字：
 
-| false | none   | ture     | and   | as     | assert   |
+| False | None   | Ture     | and   | as     | assert   |
 | ----- | ------ | -------- | ----- | ------ | -------- |
 | break | class  | continue | def   | del    | elif     |
 | else  | except | finally  | for   | from   | global   |
@@ -177,7 +177,7 @@ print("%s is a %s years old boy" % (user,age));
 
 4. 索引运算符**[  ]**
 
-5. 比较运算符，**判断引用对象is， is not**
+5. 比较运算符，**判断引用对象is， is not，>，<，>=，<=，==，!=**
 
 6. 逻辑运算符，**and，or，not**
 
@@ -620,6 +620,10 @@ print(test(1,2,3,"高等数学","大学生英语"，语文=70,数学=110))
 #1 2 3
 #('高等数学','大学生英语')
 #{语文:70,数学：110}
+
+def func(a, **kwargs):
+	c = kwargs.pop('key', 2)		# 字典 pop() 方法删除字典给定键 key 所对应的值，返回值为被删除的值。
+	print(c)
 ```
 
 
