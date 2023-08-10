@@ -36,6 +36,7 @@ enum SockAttr {
     SOCK_ISSERVER = 1,//是否服务器 1服务器 0客户端
     SOCK_ISNONBLOCK = 2,//是否阻塞 1非阻塞 0阻塞
     SOCK_ISUDP = 4,//是否为UDP 1表示udp 0表示tcp
+    SOCK_ISIP = 8,//是否为IP协议 1表示IP协议(网络套接字) 0表示本地套接字
 };
 
 class CSockParam {
@@ -126,7 +127,13 @@ public:
         m_status = 3;
         if (m_socket != -1) {
 
-            unlink(m_param.ip);
+            if (
+                    ((m_param.attr & SOCK_ISIP) == 0)    // 先判断是不是本地套接字，必须是本地套接字
+                    &&
+                    (m_param.attr & SOCK_ISSERVER)      // 如果是本地套接字，所以只有一个套接文件，当客户端断调的时候不能删除这个本地套接字，只有当服务器关闭的时候，才删除本地套接字
+               ){
+                unlink(m_param.ip);
+            }
             int fd = m_socket;
             m_socket = -1;
             // close需要花多长时间不确认
@@ -145,16 +152,16 @@ protected:
     //初始化参数
     CSockParam m_param;
 };
-class CLocalSocket:public CSocketBase
+class CSocket:public CSocketBase
 {
 public:
     // 子类构造函数，直接调用分类的构造函数
-    CLocalSocket() :CSocketBase() {}
-    CLocalSocket(int sock) :CSocketBase() {
+    CSocket() :CSocketBase() {}
+    CSocket(int sock) :CSocketBase() {
         m_socket = sock;
     }
     //传递析构操作
-    virtual ~CLocalSocket() {
+    virtual ~CSocket() {
         Close();
     }
 public:
@@ -170,8 +177,14 @@ public:
 
         // 创建套接字, 判断套接字是否创建
         // 正常情况下，套接字是-1的，因为这是第一个套接字lfd（监听套接字）
-        // 但在link那里，通过m_socket(lfd) 接收 accept，创建一个新的已连接套接字（通信套接字，cfd），然后由这个cfd创建一个本地套接字，*pClient = new CLocalSocket(cfd)，所以在这里是已经有m_socket,并且等于cfd
-        if (m_socket == -1) m_socket = socket(PF_LOCAL, type, 0);
+        // 但在link那里，通过m_socket(lfd) 接收 accept，创建一个新的已连接套接字（通信套接字，cfd），然后由这个cfd创建一个本地套接字，*pClient = new CSocket(cfd)，所以在这里是已经有m_socket,并且等于cfd
+        if (m_socket == -1){
+            // 在这里判断是需要网络套接字还是本地套接字
+            if (param.attr & SOCK_ISIP)
+                m_socket = socket(PF_INET, type, 0);    // 网络套接字
+            else
+                m_socket = socket(PF_LOCAL, type, 0);   // 本地套接字
+        }
         else m_status = 2;      // 如果是accept来的cfd（客户端），它已经处于连接状态，所以要置为 2
 
         // 如果套接字创建失败，返回-2
@@ -181,8 +194,11 @@ public:
         // 判断是不是服务器，如果是客户端这一段什么都不用干
         if (m_param.attr & SOCK_ISSERVER) {
             // 如果是服务器
-            // 绑定，套接字、地址（m_param.addrun()，返回本地套接字地址），本地套接字类型sockaddr_un
-            ret = bind(m_socket, m_param.addrun(), sizeof(sockaddr_un));
+            // 绑定，套接字、地址
+            if (param.attr & SOCK_ISIP)
+                ret = bind(m_socket, m_param.addrin(), sizeof(sockaddr_in));    //网络套接字：m_param.addrin()，返回网络套接字地址，网络套接字类型sockaddr_in
+            else
+                ret = bind(m_socket, m_param.addrun(), sizeof(sockaddr_un));    //本地套接字：m_param.addrun()，返回本地套接字地址，本地套接字类型sockaddr_un
 
             if (ret == -1) return -3;
 
@@ -227,8 +243,18 @@ public:
             if (pClient == NULL)return -2;
 
             CSockParam param;       //默认是客户端，阻塞，tcp
-            socklen_t len = sizeof(sockaddr_un);
-            int fd = accept(m_socket, param.addrun(), &len);
+            int fd = -1;
+            socklen_t len = 0;
+            if (m_param.attr & SOCK_ISIP) {         // 网络套接字
+                param.attr |= SOCK_ISIP;    // CSockParam 默认是本地，所以这里要修改
+                len = sizeof(sockaddr_in);
+                fd = accept(m_socket, param.addrin(), &len);
+            }
+            else {                                  //本地套接字
+                len = sizeof(sockaddr_un);
+                fd = accept(m_socket, param.addrun(), &len);
+            }
+
             //`int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen);`
             //- 从已完成连接队列里提取一个新的连接，
             //- 然后创建一个新的已连接套接字（通信套接字，cfd），
@@ -239,7 +265,7 @@ public:
             if (fd == -1)return -3;
 
             //如果接收成功，
-            *pClient = new CLocalSocket(fd);
+            *pClient = new CSocket(fd);
             if (*pClient == NULL)return -4;
             // 初始化当前套接字cfd，由当前套接字和客户端通信
             ret = (*pClient)->Init(param);
@@ -253,7 +279,10 @@ public:
         }
         // 如果是客户端，之间connect
         else {
-            ret = connect(m_socket, m_param.addrun(), sizeof(sockaddr_un));
+            if (m_param.attr & SOCK_ISIP)
+                ret = connect(m_socket, m_param.addrin(), sizeof(sockaddr_in));
+            else
+                ret = connect(m_socket, m_param.addrun(), sizeof(sockaddr_un));
             if (ret != 0)return -6;
         }
         m_status = 2;
@@ -304,4 +333,6 @@ public:
         return CSocketBase::Close();
     }
 };
+
+
 #endif //EPLAYER_SOCKET_H

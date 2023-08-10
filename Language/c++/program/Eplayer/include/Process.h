@@ -11,6 +11,8 @@
 #include<sys/stat.h>    //system的状态值
 #include<fcntl.h>       //文件操作
 #include<signal.h>
+#include<sys/un.h>      //本地套接字
+#include<netinet/in.h>  //网络套接字，
 
 class CProcess{
 public:
@@ -154,6 +156,63 @@ public:
         // 守护进程的执行内容
         // ....
         //
+        return 0;
+    }
+    int SendSocket(int fd, const sockaddr_in* addrin) {//主进程完成
+        struct msghdr msg;
+        iovec iov[2];
+        char buf[2][10] = { "edoyun","jueding" };
+        iov[0].iov_base = (void*)addrin;
+        iov[0].iov_len = sizeof(sockaddr_in);
+        iov[1].iov_base = buf[1];
+        iov[1].iov_len = sizeof(buf[1]);
+        msg.msg_iov = iov;
+        msg.msg_iovlen = 2;
+
+        // 下面的数据，才是我们需要传递的。
+        cmsghdr* cmsg = (cmsghdr*)calloc(1, CMSG_LEN(sizeof(int)));
+        if (cmsg == NULL)return -1;
+        cmsg->cmsg_len = CMSG_LEN(sizeof(int));
+        cmsg->cmsg_level = SOL_SOCKET;
+        cmsg->cmsg_type = SCM_RIGHTS;
+        *(int*)CMSG_DATA(cmsg) = fd;
+        msg.msg_control = cmsg;
+        msg.msg_controllen = cmsg->cmsg_len;
+
+        ssize_t ret = sendmsg(pipes[1], &msg, 0);
+        free(cmsg);
+        if (ret == -1) {
+            return -2;
+        }
+        return 0;
+    }
+
+    int RecvSocket(int& fd, sockaddr_in* addrin)
+    {
+        msghdr msg;
+        iovec iov[2];
+        char buf[][10] = { "","" };
+        iov[0].iov_base = addrin;
+        iov[0].iov_len = sizeof(sockaddr_in);
+        iov[1].iov_base = buf[1];
+        iov[1].iov_len = sizeof(buf[1]);
+        msg.msg_iov = iov;
+        msg.msg_iovlen = 2;
+
+        cmsghdr* cmsg = (cmsghdr*)calloc(1, CMSG_LEN(sizeof(int)));
+        if (cmsg == NULL)return -1;
+        cmsg->cmsg_len = CMSG_LEN(sizeof(int));
+        cmsg->cmsg_level = SOL_SOCKET;
+        cmsg->cmsg_type = SCM_RIGHTS;
+        msg.msg_control = cmsg;
+        msg.msg_controllen = CMSG_LEN(sizeof(int));
+        ssize_t ret = recvmsg(pipes[0], &msg, 0);
+        if (ret == -1) {
+            free(cmsg);
+            return -2;
+        }
+        fd = *(int*)CMSG_DATA(cmsg);
+        free(cmsg);
         return 0;
     }
 

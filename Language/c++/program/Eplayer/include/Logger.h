@@ -74,7 +74,6 @@ public:
         getcwd(curpath, sizeof(curpath));
         m_path = curpath;
         m_path += "/log/" + GetTimeStr() + ".log";
-        printf("%s(%d):[%s]path=%s\n", __FILE__, __LINE__, __FUNCTION__, (char*)m_path);
     }
     ~CLoggerServer() {
         Close();
@@ -95,8 +94,6 @@ public:
             // 用户的读/写，用户组的读/写，其他写
             mkdir("log", S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH);
         }
-        printf("m_path:%s",(char *)m_path);
-
         // w+，不存在就创建
         m_file = fopen(m_path, "w+");
         if (m_file == NULL)return -2;
@@ -107,7 +104,7 @@ public:
 
         // 生成首个监听套接字，作监听
         // lfd
-        m_server = new CLocalSocket();
+        m_server = new CSocket();
         if (m_server == NULL) {
             Close();
             return -4;
@@ -126,7 +123,7 @@ public:
             return -6;
         }
 
-        //日志服务器的启动
+        //日志服务器的启动，m_thread已在构造器中初始化
         ret = m_thread.Start();
         if (ret != 0) {
             printf("%s(%d):<%s> pid=%d errno:%d msg:%s ret:%d\n",
@@ -152,7 +149,7 @@ public:
         int ret = 0;
         // static 局部静态变量，初始化后，每次调用函数后，不会再初始化
         // thread_local 限定static在线程内，每一个线程调用此函数只会初始化一次
-        static thread_local CLocalSocket client;
+        static thread_local CSocket client;
 
         if (client == -1) {
             ret = client.Init(CSockParam("./log/server.sock", 0));
@@ -187,10 +184,11 @@ public:
         return result;
     }
 private:
+    // 用于从epoll中接受消息
     int ThreadFunc() {
-        printf("%s(%d):[%s] %d\n", __FILE__, __LINE__, __FUNCTION__, m_thread.isValid());
-        printf("%s(%d):[%s] %d\n", __FILE__, __LINE__, __FUNCTION__, (int)m_epoll);
-        printf("%s(%d):[%s] %p\n", __FILE__, __LINE__, __FUNCTION__, m_server);
+//        printf("%s(%d):[%s] %d\n", __FILE__, __LINE__, __FUNCTION__, m_thread.isValid());
+//        printf("%s(%d):[%s] %d\n", __FILE__, __LINE__, __FUNCTION__, (int)m_epoll);
+//        printf("%s(%d):[%s] %p\n", __FILE__, __LINE__, __FUNCTION__, m_server);
 
         //
         EPEvents events;
@@ -258,8 +256,8 @@ private:
 
                                 // r <= 0 说明数据已经读完，可以释放，但为什么不释放m_epoll这里有待考究
                                 if (r <= 0) {
-                                    delete pClient;
                                     mapClients[*pClient] = NULL;
+                                    delete pClient;
                                 }
                                 // r > 0 说明有数据读
                                 else {
@@ -288,6 +286,7 @@ private:
         mapClients.clear();
         return 0;
     }
+    // 在接收到日志信息之后，从这里写入文件
     void WriteLog(const Buffer& data) {
         if (m_file != NULL) {
             FILE* pFile = m_file;

@@ -557,7 +557,9 @@ sequenceDiagram
 	cs ->> p:SendFD()
 ```
 
-## 4.2 线程池
+## 4.2 epoll + 线程池
+
+通过epoll
 
 ```mermaid
 graph LR

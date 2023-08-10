@@ -2,8 +2,8 @@
 // Created by buntu on 2023/8/7.
 //
 
-#ifndef EPLAYER_CTHREADPOOL_H
-#define EPLAYER_CTHREADPOOL_H
+#ifndef EPLAYER_THREADPOOL_H
+#define EPLAYER_THREADPOOL_H
 #include "Epoll.h"
 #include "Thread.h"
 #include "Function.h"
@@ -31,13 +31,14 @@ public:
     CThreadPool(const CThreadPool&) = delete;
     CThreadPool& operator=(const CThreadPool&) = delete;
 public:
+    // 开启服务，开启多个线程，去epoll中，消费任务
     // 在Start的外层，如果返回一个负数，记得手动Close一下
     int Start(unsigned count) {
         int ret = 0;
         if (m_server != NULL)return -1;//已经初始化了
         if (m_path.size() == 0)return -2;//构造函数失败！！！
 
-        m_server = new CLocalSocket();
+        m_server = new CSocket();
         if (m_server == NULL)return -3;
         ret = m_server->Init(CSockParam(m_path, SOCK_ISSERVER));
         if (ret != 0)return -4;
@@ -74,11 +75,11 @@ public:
         // 在有进程打开此文件的情况下，则暂时不会删除，直到所有打开该文件的进程都结束时文件就会被删除。
         unlink(m_path);
     }
-    // 客户端（每个线程就是一个客户端）添加任务
+    // 客户端添加任务，通过本地socket的方式向服务器发送任务，传递的是一个函数（任务）
     template<typename _FUNCTION_, typename... _ARGS_>
     int AddTask(_FUNCTION_ func, _ARGS_... args) {
-        // 每个线程都会有一个客户端
-        static thread_local CLocalSocket client;
+        // 如果同一个线程里多次调用addTask，那么都会共用一个客户端
+        static thread_local CSocket client;
         int ret = 0;
         // 如果client == -1，那么就证明客户端没有初始化
         if (client == -1) {
@@ -104,7 +105,7 @@ public:
         return 0;
     }
 private:
-    // 服务端，任务消费
+    // 消费epoll中的连接，拿到任务（客户端发送过来是一个函数）之后，执行这个任务
     int TaskDispatch() {
         while (m_epoll != -1) {
             EPEvents events;
@@ -163,4 +164,4 @@ private:
     CSocketBase* m_server;
     Buffer m_path;
 };
-#endif //EPLAYER_CTHREADPOOL_H
+#endif //EPLAYER_THREADPOOL_H
