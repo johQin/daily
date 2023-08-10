@@ -31,6 +31,7 @@ public:
     CThreadPool(const CThreadPool&) = delete;
     CThreadPool& operator=(const CThreadPool&) = delete;
 public:
+    size_t Size()const { return m_threads.size(); }
     // 开启服务，开启多个线程，去epoll中，消费任务
     // 在Start的外层，如果返回一个负数，记得手动Close一下
     int Start(unsigned count) {
