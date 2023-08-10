@@ -41,9 +41,7 @@ public:
 class CBusiness
 {
 public:
-    CBusiness()
-            :m_connectedcallback(NULL), m_recvcallback(NULL)
-    {}
+    CBusiness():m_connectedcallback(NULL), m_recvcallback(NULL){}
     virtual int BusinessProcess(CProcess* proc) = 0;
     template<typename _FUNCTION_, typename... _ARGS_>
     int setConnectedCallback(_FUNCTION_ func, _ARGS_... args) {
@@ -67,7 +65,7 @@ class CServer
 public:
     CServer();
     ~CServer() { Close(); }
-    CServer(const CServer&) = delete;
+    CServer(const CServer&) = delete;   // 服务器是不能复制的
     CServer& operator=(const CServer&) = delete;
 public:
     int Init(CBusiness* business, const Buffer& ip = "127.0.0.1", short port = 9999);
@@ -80,6 +78,6 @@ private:
     CSocketBase* m_server;
     CEpoll m_epoll;
     CProcess m_process;
-    CBusiness* m_business;//业务模块 需要我们手动delete
+    CBusiness* m_business;      //业务模块 需要我们手动delete
 };
 #endif //EPLAYER_CSERVER_H

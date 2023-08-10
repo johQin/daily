@@ -14,25 +14,35 @@ int CServer::Init(CBusiness* business, const Buffer& ip, short port)
     m_business = business;
     ret = m_process.SetEntryFunction(&CBusiness::BusinessProcess, m_business, &m_process);
     if (ret != 0)return -2;
+    // 创建子进程
     ret = m_process.CreateSubProcess();
     if (ret != 0)return -3;
+    // 创建线程池
     ret = m_pool.Start(2);
     if (ret != 0)return -4;
+
+    // 创建一个epoll，用于接收网络套接字
     ret = m_epoll.Create(2);
     if (ret != 0)return -5;
+
+    // lfd
     m_server = new CSocket();
     if (m_server == NULL)return -6;
     ret = m_server->Init(CSockParam(ip, port, SOCK_ISSERVER | SOCK_ISIP));
     if (ret != 0)return -7;
+
+    // 添加lfd到epoll中
     ret = m_epoll.Add(*m_server, EpollData((void*)m_server));
     if (ret != 0)return -8;
+
+    // 用消费线程池中的线程，去执行ThreadFunc，而ThreadFunc中去消费网络连接
     for (size_t i = 0; i < m_pool.Size(); i++) {
         ret = m_pool.AddTask(&CServer::ThreadFunc, this);
         if (ret != 0)return -9;
     }
     return 0;
 }
-
+// 无限制等待
 int CServer::Run()
 {
     while (m_server != NULL) {
@@ -65,6 +75,7 @@ int CServer::ThreadFunc()
         if (size > 0) {
             for (ssize_t i = 0; i < size; i++)
             {
+                // 这里面不会去处理客户端与服务器之间的收发
                 if (events[i].events & EPOLLERR) {
                     break;
                 }
@@ -73,6 +84,7 @@ int CServer::ThreadFunc()
                         CSocketBase* pClient = NULL;
                         ret = m_server->Link(&pClient);
                         if (ret != 0)continue;
+                        // 向子进程发送套接字
                         ret = m_process.SendSocket(*pClient, *pClient);
                         delete pClient;
                         if (ret != 0) {
