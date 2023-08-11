@@ -566,6 +566,30 @@ graph LR
 A[开始] -->B[构造]--> C[启动]-->D[添加任务]--> E[等待]-->F[关闭]-->G[结束]
 ```
 
+1. Start(count)
+   - 开启count个线程（线程执行的任务是TaskDispatch）
+   - 启动一个epoll服务器（用于建立任务与消费任务之间的桥梁），epoll在这里本身就是一个消息队列
+2. TaskDispatch
+   - count个线程的任务就去wait消费epoll中的消息，这里面的消息内容就是线程池上层调用AddTask传过来的func
+   - 收到消息func后，就开始执行func
+3. AddTask(func, arg)
+   - 供上层使用线程池对象，向epoll添加消息
+
+
+
+# 5 客户端处理模块
+
+```mermaid
+graph TD
+	start[开始]-->startTPool[开启线程池]
+	startTPool--n个线程-->waitEpoll
+	subgraph 客户端处理线程
+		waitEpoll[等待epoll事件]-->handleReadEvent[处理读事件]-->调用业务处理回调函数-->waitEpoll
+	end
+	startTPool --线程1--> waitClient[等待客户端]-->addEpoll[添加到epoll]-->inspectStatus[检查状态]-->waitClient
+	inspectStatus-->endS[结束]
+```
+
 
 
 # 头文件

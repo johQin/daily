@@ -38,6 +38,7 @@ public:
     typename std::_Bindres_helper<int, _FUNCTION_, _ARGS_...>::type m_binder;
 };
 
+// 业务模块接口层，主要是将通信层和业务模块解耦
 class CBusiness
 {
 public:
@@ -76,6 +77,7 @@ private:
 private:
     CThreadPool m_pool;
     CSocketBase* m_server;
+    // 这个epoll主要是用来接入客户端的
     CEpoll m_epoll;
     CProcess m_process;
     CBusiness* m_business;      //业务模块 需要我们手动delete
