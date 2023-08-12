@@ -64,6 +64,12 @@ public:
         strcpy(addr_un.sun_path, path);
         this->attr = attr;
     }
+    CSockParam(const sockaddr_in* addrin, int attr) {
+        this->ip = ip;
+        this->port = port;
+        this->attr = attr;
+        memcpy(&addr_in, addrin, sizeof(addr_in));
+    }
     ~CSockParam() {}
     // 拷贝构造函数
     CSockParam(const CSockParam& param) {
@@ -142,6 +148,8 @@ public:
     };
     virtual operator int(){ return m_socket; }
     virtual operator int() const { return m_socket; }
+    virtual operator const sockaddr_in*() const {return &m_param.addr_in;}
+    virtual operator sockaddr_in*() {return &m_param.addr_in;}
 
 protected:
     //套接字描述符

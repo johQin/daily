@@ -7,10 +7,17 @@
 #include<functional>
 #include<unistd.h>
 #include<sys/types.h>       //类型的定义
+
+class CSocketBase;
+class Buffer;
 class CFunctionBase{
 public:
     virtual ~CFunctionBase(){}
-    virtual int operator()()=0;     //所有子类必须实现()符号重载
+    // 不带参数的func
+    virtual int operator()(){return -1; };
+    // 带参数的func
+    virtual int operator()(CSocketBase*) { return -1; }
+    virtual int operator()(CSocketBase*, const Buffer&) { return -1; }
 };
 
 template<typename _FUNCTION_,typename... _ARGS_>

@@ -1,17 +1,13 @@
 #include <iostream>
 #include "include/MultiProcess.h"
-#include <iostream>
 #include<unistd.h>
-#include<functional>
 #include<memory.h>
-#include<sys/socket.h>  //socket_pair
-#include<sys/types.h>   //类型的定义
-#include<sys/stat.h>    //system的状态值
-#include<fcntl.h>       //文件操作
-#include<signal.h>
 #include<Logger.h>
 #include "ThreadPool.h"
-
+#include "CServer.h"
+#include "EplayerServer.h"
+#define ERR_RETURN(ret, err) if(ret!=0){TRACEE("ret= %d errno = %d msg = [%s]", ret, errno, strerror(errno));return err;}
+#define WARN_CONTINUE(ret) if(ret!=0){TRACEW("ret= %d errno = %d msg = [%s]", ret, errno, strerror(errno));continue;}
 int CreateLogServer(CProcess* proc)
 {
     //printf("%s(%d):<%s> pid=%d\n", __FILE__, __LINE__, __FUNCTION__, getpid());
@@ -33,7 +29,23 @@ int CreateLogServer(CProcess* proc)
     printf("%s(%d):<%s> ret=%d\n", __FILE__, __LINE__, __FUNCTION__, ret);
     return 0;
 }
-int main() {
+// 业务处理进程测试
+int  businessProcess(){
+    int ret = 0;
+    CProcess proclog;
+    ret = proclog.SetEntryFunction(CreateLogServer, &proclog);
+    ERR_RETURN(ret, -1);
+    ret = proclog.CreateSubProcess();
+    ERR_RETURN(ret, -2);
+    CEdoyunPlayerServer business(2);
+    CServer server;
+    ret = server.Init(&business);
+    ERR_RETURN(ret, -3);
+    ret = server.Run();
+    ERR_RETURN(ret, -4);
+    return 0;
+}
+int tpoolTest(){
     CProcess proclog;
     proclog.SetEntryFunction(CreateLogServer, &proclog);
     int ret = proclog.CreateSubProcess();
@@ -51,5 +63,9 @@ int main() {
 
     getchar();
     proclog.SendFD(-1);
+    return 0;
+}
+int main() {
+    businessProcess();
     return 0;
 }

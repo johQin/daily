@@ -331,4 +331,5 @@ private:
 #define DUMPF(data, size) CLoggerServer::Trace(LogInfo(__FILE__, __LINE__, __FUNCTION__, getpid(), pthread_self(), LOG_FATAL, data, size))
 #endif
 
+
 #endif //EPLAYER_LOGGER_H

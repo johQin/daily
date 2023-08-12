@@ -8,9 +8,9 @@
 #include "CServer.h"
 #include <map>
 /*
-* 1. 客户端的地址问题
-* 2. 连接回调的参数问题
-* 3. 接收回调的参数问题
+* 1. 客户端的地址问题，通过server发送的fd，以前是携带冗余，现在是携带地址过来
+* 2. 连接回调的参数问题，传客户端，
+* 3. 接收回调的参数问题，传客户端和数据
 */
 #define ERR_RETURN(ret, err) if(ret!=0){TRACEE("ret= %d errno = %d msg = [%s]", ret, errno, strerror(errno));return err;}
 
@@ -34,6 +34,7 @@ public:
     }
     // 消费来自server进程通过pipe发来的socket，并且将其添加到epoll上，供线程threadFunc去消费
     virtual int BusinessProcess(CProcess* proc) {
+        // 用来占位的
         using namespace std::placeholders;
         int ret = 0;
         ret = setConnectedCallback(&CEdoyunPlayerServer::Connected, this, _1);

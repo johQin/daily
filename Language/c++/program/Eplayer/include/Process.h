@@ -161,7 +161,7 @@ public:
     int SendSocket(int fd, const sockaddr_in* addrin) {//主进程完成
         struct msghdr msg;
         iovec iov[2];
-        char buf[2][10] = { "edoyun","jueding" };
+        char buf[2][10] = { "qqq","kkk" };
         iov[0].iov_base = (void*)addrin;
         iov[0].iov_len = sizeof(sockaddr_in);
         iov[1].iov_base = buf[1];
