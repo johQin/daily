@@ -22,6 +22,18 @@ public:
     Buffer(size_t size) :std::string() { resize(size); }
     Buffer(const std::string& str):std::string(str){}
     Buffer(const char * str):std::string(str){}
+    Buffer(const char* str,size_t length)
+            :std::string() {
+        resize(length);
+        memcpy((char*)c_str(), str, length);
+    }
+    Buffer(const char* begin, const char* end) :std::string() {
+        long int len = end - begin;
+        if (len > 0) {
+            resize(len);
+            memcpy((char*)c_str(), begin, len);
+        }
+    }
     // 继承std::string 转字符常量指针的用法，这就是为什么要继承的原因
     // 可以转换Buffer 为char * 指针
     operator char* () { return (char*)c_str(); }

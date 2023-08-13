@@ -6,4 +6,4 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 
 file(GLOB_RECURSE SRC_CPP "src/*.cpp")
 file(GLOB_RECURSE INCLUDE_CPP "include/*.cpp")
-add_executable(Eplayer main.cpp ${INCLUDE_CPP} ${SRC_CPP} include/ThreadPool.h)
+add_executable(Eplayer main.cpp ${INCLUDE_CPP} ${SRC_CPP} include/ThreadPool.h include/HttpParser.h include/HttpParser.cpp)
