@@ -165,15 +165,17 @@ int UrlParser::Parser()
     const char* target = strstr(pos, "://");
     if (target == NULL)return -1;
     m_protocol = Buffer(pos, target);
+
     //解析域名和端口
-    pos = target + 3;
+    pos = target + 3;   //  多的三个为 “://”
     target = strchr(pos, '/');
     if (target == NULL) {
         if (m_protocol.size() + 3 >= m_url.size())
-            return -2;
+            return -2;      // url不全，
         m_host = pos;
         return 0;
     }
+
     Buffer value = Buffer(pos, target);
     if (value.size() == 0)return -3;
     target = strchr(value, ':');
@@ -185,6 +187,7 @@ int UrlParser::Parser()
         m_host = value;
     }
     pos = strchr(pos, '/');
+
     //解析uri
     target = strchr(pos, '?');
     if (target == NULL) {
@@ -216,9 +219,11 @@ int UrlParser::Parser()
     return 0;
 }
 
+// 重载下标运算符（通过key，找value）
 Buffer UrlParser::operator[](const Buffer& name) const
 {
     auto it = m_values.find(name);
+    // 查找是否存在
     if (it == m_values.end())return Buffer();
     return it->second;
 }

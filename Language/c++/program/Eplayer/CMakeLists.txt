@@ -5,5 +5,5 @@ set(CMAKE_CXX_STANDARD 17)
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
 file(GLOB_RECURSE SRC_CPP "src/*.cpp")
-file(GLOB_RECURSE INCLUDE_CPP "include/*.cpp")
+file(GLOB_RECURSE INCLUDE_CPP "include/*.cpp" "include/*.c")
 add_executable(Eplayer main.cpp ${INCLUDE_CPP} ${SRC_CPP} include/ThreadPool.h include/HttpParser.h include/HttpParser.cpp)

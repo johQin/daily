@@ -60,18 +60,18 @@ public:
     UrlParser(const Buffer& url);
     ~UrlParser() {}
     int Parser();
+    // 重载下标运算符，通过key，返回一个value
     Buffer operator[](const Buffer& name)const;
     Buffer Protocol()const { return m_protocol; }
     Buffer Host()const { return m_host; }
-    //Ä¬ÈÏ·µ»Ø80
-    int Port()const { return m_port; }
-    void SetUrl(const Buffer& url);
+    int Port()const { return m_port; } // 默认返回80
+    void SetUrl(const Buffer& url);     // 有可能解析完一个url后，还要解析另外一个，所以需要允许修改url
 private:
-    Buffer m_url;
-    Buffer m_protocol;
-    Buffer m_host;
-    Buffer m_uri;
-    int m_port;
-    std::map<Buffer, Buffer> m_values;
+    Buffer m_url;       // 原始的url
+    Buffer m_protocol;  // 协议
+    Buffer m_host;      // ip
+    Buffer m_uri;       // 在这里指的是，除开协议，ip，端口，剩下的一长串
+    int m_port;     // 端口
+    std::map<Buffer, Buffer> m_values;      // url上面的参数
 };
 #endif //EPLAYER_HTTPPARSER_H
