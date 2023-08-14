@@ -68,7 +68,7 @@ public:
     //TODO:参数进行优化
     virtual Buffer Modify(const _Table_& values) = 0;
     virtual Buffer Query() = 0;
-    //创建一个基于表的对象。获取表的副本，主要是给数据库客户端的exec
+    //创建一个基于表的对象。获取表的副本，主要是给数据库客户端的exec的查询用的，因为会返回回来一个关于表结构的多条记录
     virtual PTable Copy()const = 0;
     virtual void ClearFieldUsed() = 0;
 public:
