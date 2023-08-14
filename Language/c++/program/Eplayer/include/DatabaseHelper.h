@@ -49,7 +49,7 @@ public:
 //表和列的基类的实现
 class _Field_;
 using PField = std::shared_ptr<_Field_>;
-using FieldArray = std::vector<PField>;
+using FieldArray = std::vector<PField>;         //行，存储查询结果
 using FieldMap = std::map<Buffer, PField>;
 
 
@@ -62,11 +62,9 @@ public:
     //删除表
     virtual Buffer Drop() = 0;
     //增删改查
-    //TODO:参数进行优化
-    virtual Buffer Insert(const _Table_& values) = 0;
+    virtual Buffer Insert(const _Table_& values) = 0;       //TODO:参数进行优化
     virtual Buffer Delete(const _Table_& values) = 0;
-    //TODO:参数进行优化
-    virtual Buffer Modify(const _Table_& values) = 0;
+    virtual Buffer Modify(const _Table_& values) = 0;       //TODO:参数进行优化
     virtual Buffer Query() = 0;
     //创建一个基于表的对象。获取表的副本，主要是给数据库客户端的exec的查询用的，因为会返回回来一个关于表结构的多条记录
     virtual PTable Copy()const = 0;
@@ -75,11 +73,10 @@ public:
     //获取表的全名
     virtual operator const Buffer() const = 0;
 public:
-    //表所属的DB的名称
-    Buffer Database;
-    Buffer Name;
-    FieldArray FieldDefine;//列的定义（存储查询结果）
-    FieldMap Fields;//列的定义映射表
+    Buffer Database;    //表所属的DB的名称
+    Buffer Name;        // 表名
+    FieldArray FieldDefine;     //列的定义（存储查询结果）
+    FieldMap Fields;            //列的定义映射表
 };
 
 enum {
