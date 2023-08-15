@@ -133,7 +133,7 @@ int CSqlite3Client::ExecCallback(Result& result, const _Table_& table, int count
             return -2;
         }
         if (values[i] != NULL)
-            it->second->LoadFromStr(values[i]);
+            it->second->LoadFromStr(values[i]);     //将字符串转为对应的类型
     }
     result.push_back(pTable);
     return 0;
@@ -292,6 +292,10 @@ _sqlite3_table_::operator const Buffer() const
     return Head + '"' + Name + '"';
 }
 
+
+//字段的操作
+
+
 _sqlite3_field_::_sqlite3_field_()
         :_Field_() {
     nType = TYPE_NULL;
@@ -355,6 +359,7 @@ _sqlite3_field_::~_sqlite3_field_()
     }
 }
 
+// 声明字段的约束
 Buffer _sqlite3_field_::Create()
 {	//"名称" 类型 属性
     Buffer sql = '"' + Name + "\" " + Type + " ";
@@ -379,6 +384,7 @@ Buffer _sqlite3_field_::Create()
     return sql;
 }
 
+// 根据字段的类型，将str转换为对应类型的值
 void _sqlite3_field_::LoadFromStr(const Buffer& str)
 {
     switch (nType)
@@ -405,7 +411,7 @@ void _sqlite3_field_::LoadFromStr(const Buffer& str)
             break;
     }
 }
-
+// 用在where子句中
 Buffer _sqlite3_field_::toEqualExp() const
 {
     Buffer sql = (Buffer)*this + " = ";
@@ -472,7 +478,7 @@ _sqlite3_field_::operator const Buffer() const
 {
     return '"' + Name + '"';
 }
-
+// 将字符串转为2进制
 Buffer _sqlite3_field_::Str2Hex(const Buffer& data) const
 {
     const char* hex = "0123456789ABCDEF";

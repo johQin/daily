@@ -85,6 +85,7 @@ enum {
     SQL_CONDITION = 4//查询条件列
 };
 
+// field的描述
 enum {
     NOT_NULL = 1,
     DEFAULT = 2,
@@ -93,13 +94,13 @@ enum {
     CHECK = 16,
     AUTOINCREMENT = 32
 };
-
+// field 的类型
 using SqlType = enum {
     TYPE_NULL = 0,
     TYPE_BOOL = 1,
     TYPE_INT = 2,
     TYPE_DATETIME = 4,
-    TYPE_REAL = 8,
+    TYPE_REAL = 8,          //浮点数
     TYPE_VARCHAR = 16,
     TYPE_TEXT = 32,
     TYPE_BLOB = 64

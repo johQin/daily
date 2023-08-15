@@ -112,6 +112,7 @@ public:
     //列的全名
     virtual operator const Buffer() const;
 private:
+    // 将字符串转化为2进制
     Buffer Str2Hex(const Buffer& data) const;
     union {
         bool Bool;
