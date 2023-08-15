@@ -70,7 +70,7 @@ public:
     virtual PTable Copy()const = 0;
     virtual void ClearFieldUsed() = 0;
 public:
-    //获取表的全名
+    //获取表的全名，数据库名.表名
     virtual operator const Buffer() const = 0;
 public:
     Buffer Database;    //表所属的DB的名称
@@ -128,6 +128,7 @@ public:
     }
     virtual ~_Field_() {}
 public:
+    // 创建表时，定义该字段的语句
     virtual Buffer Create() = 0;
     virtual void LoadFromStr(const Buffer& str) = 0;
     //where 语句使用的
