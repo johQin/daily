@@ -182,6 +182,8 @@ git tag
 # 查看带有标签前缀的标签
 git tag -l "标签前缀"
 
+
+
 # 创建标签
 # 创建轻量标签
 git tag label
@@ -190,6 +192,9 @@ git tag -a label -m "other_comment"
 
 # 追加注释标签，为某个版本version_code追加tag
 git tag -a label version_code
+
+# 删除本地tag
+git tag -d v0.1.2
 
 # 推送标签到远程库
 git push origin [tagname] #有点像推送分支
