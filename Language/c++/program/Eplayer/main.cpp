@@ -127,7 +127,87 @@ int http_test(){
     printf("host:%s port:%d\n", (char*)url2.Host(), url2.Port());
     return 0;
 }
+
+/*class user_test :public _sqlite3_table_
+{
+public:
+	virtual PTable Copy() const {
+		return PTable(new user_test(*this));
+	}
+	user_test() :_sqlite3_table_() {
+		Name = "user_test";
+		{
+			PField field(new _sqlite3_field_(TYPE_INT, "user_id", NOT_NULL | PRIMARY_KEY | AUTOINCREMENT, "INT", "", "", ""));
+			FieldDefine.push_back(field);
+			Fields["user_id"] = field;
+		}
+		{
+			PField field(new _sqlite3_field_(TYPE_VARCHAR, "user_qq", NOT_NULL | PRIMARY_KEY | AUTOINCREMENT, "VARCHAR", "(15)", "", ""));
+			FieldDefine.push_back(field);
+			Fields["user_qq"] = field;
+		}
+	}
+};*/
+#include "Sqlite3Client.h"
+DECLARE_TABLE_CLASS(user_test, _sqlite3_table_)
+        DECLARE_FIELD(TYPE_INT, user_id, NOT_NULL | PRIMARY_KEY | AUTOINCREMENT, "INTEGER", "", "", "")
+        DECLARE_FIELD(TYPE_VARCHAR, user_qq, NOT_NULL, "VARCHAR", "(15)", "", "")
+        DECLARE_FIELD(TYPE_VARCHAR, user_phone, NOT_NULL | DEFAULT, "VARCHAR", "(12)", "18888888888", "")
+        DECLARE_FIELD(TYPE_TEXT, user_name, 0, "TEXT", "", "", "")
+DECLARE_TABLE_CLASS_EDN()
+int sql_test()
+{
+    user_test test, value;
+    // 这些都只返回对应的sql字符串，并不会执行相关东西
+    printf("create:%s\n", (char*)test.Create());
+    printf("Delete:%s\n", (char*)test.Delete(test));
+    value.Fields["user_qq"]->LoadFromStr("1817619619");
+    value.Fields["user_qq"]->Condition = SQL_INSERT;
+    printf("Insert:%s\n", (char*)test.Insert(value));
+    value.Fields["user_qq"]->LoadFromStr("123456789");
+    value.Fields["user_qq"]->Condition = SQL_MODIFY;
+    printf("Modify:%s\n", (char*)test.Modify(value));
+    printf("Query:%s\n", (char*)test.Query());
+    printf("Drop:%s\n", (char*)test.Drop());
+    getchar();
+
+
+    int ret = 0;
+    CDatabaseClient* pClient = new CSqlite3Client();
+    KeyValue args;
+    // 运行后会在可执行文件夹里生成一个test.db文件
+    args["host"] = "test.db";
+    // 连接库
+    ret = pClient->Connect(args);
+    printf("%s(%d):<%s> ret=%d\n", __FILE__, __LINE__, __FUNCTION__, ret);
+
+
+    // 执行对应字符串的sql语句，这里才是真正的操作
+    ret = pClient->Exec(test.Create());
+    printf("%s(%d):<%s> ret=%d\n", __FILE__, __LINE__, __FUNCTION__, ret);
+    ret = pClient->Exec(test.Delete(value));
+    printf("%s(%d):<%s> ret=%d\n", __FILE__, __LINE__, __FUNCTION__, ret);
+    value.Fields["user_qq"]->LoadFromStr("1817619619");
+    value.Fields["user_qq"]->Condition = SQL_INSERT;
+    ret = pClient->Exec(test.Insert(value));
+    printf("%s(%d):<%s> ret=%d\n", __FILE__, __LINE__, __FUNCTION__, ret);
+    value.Fields["user_qq"]->LoadFromStr("123456789");
+    value.Fields["user_qq"]->Condition = SQL_MODIFY;
+    ret = pClient->Exec(test.Modify(value));
+    printf("%s(%d):<%s> ret=%d\n", __FILE__, __LINE__, __FUNCTION__, ret);
+
+
+    Result result;
+    ret = pClient->Exec(test.Query(), result, test);
+    printf("%s(%d):<%s> ret=%d\n", __FILE__, __LINE__, __FUNCTION__, ret);
+    ret = pClient->Exec(test.Drop());
+    printf("%s(%d):<%s> ret=%d\n", __FILE__, __LINE__, __FUNCTION__, ret);
+    ret = pClient->Close();
+    printf("%s(%d):<%s> ret=%d\n", __FILE__, __LINE__, __FUNCTION__, ret);
+    //getchar();
+    return 0;
+}
 int main() {
-    http_test();
+    sql_test();
     return 0;
 }

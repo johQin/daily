@@ -488,5 +488,29 @@ Buffer _sqlite3_field_::Str2Hex(const Buffer& data) const
     return ss.str();
 }
 
+// 基本表的使用，但这样写有些复杂，还需要简化
+/*
+class user_test :public _sqlite3_table_
+{
+public:
+	virtual PTable Copy() const {
+		return PTable(new user_test(*this));
+	}
+	user_test() :_sqlite3_table_() {
+		Name = "user_test";
+		// 加第一个字段
+		{
+			PField field(new _sqlite3_field_(TYPE_INT, "user_id", NOT_NULL | PRIMARY_KEY | AUTOINCREMENT, "INT", "", "", ""));
+			FieldDefine.push_back(field);
+			Fields["user_id"] = field;
+		}
+		// 加第二个字段
+		{
+			PField field(new _sqlite3_field_(TYPE_VARCHAR, "user_qq", NOT_NULL | PRIMARY_KEY | AUTOINCREMENT, "VARCHAR", "(15)", "", ""));
+			FieldDefine.push_back(field);
+			Fields["user_qq"] = field;
+		}
+	}
+};*/
 
 

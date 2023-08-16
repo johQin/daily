@@ -140,7 +140,7 @@ public:
 public:
     Buffer Name;
     Buffer Type;
-    Buffer Size;
+    Buffer Size;    // 例如当Type为Varchar的时候，Size可以为(10)，连接起来就是Varchar(10)
     unsigned Attr;
     Buffer Default;
     Buffer Check;
@@ -148,7 +148,7 @@ public:
     //操作条件
     unsigned Condition;
 };
-
+// 下面宏定义。反斜杠后面不能加空格，表示续行
 #define DECLARE_TABLE_CLASS(name, base) class name:public base { \
 public: \
 virtual PTable Copy() const {return PTable(new name(*this));} \
