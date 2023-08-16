@@ -4978,6 +4978,7 @@ erase(keyElem);//删除容器中 key 为 keyElem 的对组。
 
 //6. 查找操作
 find(key);//查找键 key 是否存在,若存在，返回该键的元素的迭代器；/若不存在，返回 map.end();
+at(key);//如果存在，则返回它的值，如果不存在，则抛出异常。
 count(keyElem);//返回容器中 key 为 keyElem 的对组个数。对 map 来说，要么是 0，要么是 1。对 multimap 来说，值可能大于 1。
 lower_bound(keyElem);//返回第一个 key>=keyElem 元素的迭代器。
 upper_bound(keyElem);//返回第一个 key>keyElem 元素的迭代器。

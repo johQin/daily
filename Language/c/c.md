@@ -2173,6 +2173,51 @@ int main(){
 }
 ```
 
+### [c中的enum可以没有枚举名](https://blog.csdn.net/u013591613/article/details/71215000)
+
+```c
+enum {
+    STATION_IDLE = 0,
+    STATION_CONNECTING,
+    STATION_WRONG_PASSWORD,
+    STATION_NO_AP_FOUND,
+    STATION_CONNECT_FAIL,
+    STATION_GOT_IP
+};
+// 相当于如下
+#define     STATION_IDLE  0
+#define     STATION_CONNECTING  1
+#define     STATION_WRONG_PASSWORD  2
+#define     STATION_NO_AP_FOUND  3
+#define     STATION_CONNECT_FAIL  4
+#define     STATION_GOT_IP  5
+
+
+// c++ 的关键字using
+using SqlType = enum {
+    TYPE_NULL = 0,
+    TYPE_BOOL = 1,
+    TYPE_INT = 2,
+    TYPE_DATETIME = 4,
+    TYPE_REAL = 8,          //浮点数
+    TYPE_VARCHAR = 16,
+    TYPE_TEXT = 32,
+    TYPE_BLOB = 64
+};
+// 相当于
+enum SqlType{
+    TYPE_NULL = 0,
+    TYPE_BOOL = 1,
+    TYPE_INT = 2,
+    TYPE_DATETIME = 4,
+    TYPE_REAL = 8,          //浮点数
+    TYPE_VARCHAR = 16,
+    TYPE_TEXT = 32,
+    TYPE_BLOB = 64
+};
+SqlType field = TYPE_NULL;
+```
+
 
 
 ## 7.4 typedef声明新类型名

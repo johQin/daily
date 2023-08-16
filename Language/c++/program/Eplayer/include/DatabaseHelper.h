@@ -148,15 +148,6 @@ public:
     //操作条件
     unsigned Condition;
 };
-// 下面宏定义。反斜杠后面不能加空格，表示续行
-#define DECLARE_TABLE_CLASS(name, base) class name:public base { \
-public: \
-virtual PTable Copy() const {return PTable(new name(*this));} \
-name():base(){Name=#name;
 
-#define DECLARE_FIELD(ntype,name,attr,type,size,default_,check) \
-{PField field(new _sqlite3_field_(ntype, #name, attr, type, size, default_, check));FieldDefine.push_back(field);Fields[#name] = field; }
-
-#define DECLARE_TABLE_CLASS_EDN() }};
 
 #endif //EPLAYER_DATABASEHELPER_H

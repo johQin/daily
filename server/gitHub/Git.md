@@ -1199,7 +1199,7 @@ git checkout version_SHA-1 filename
 
 ```bash
 # 查看配置项
-git config list
+git config --list
 ```
 
 ## git设置提交模板
