@@ -830,6 +830,49 @@ cout<<endl;
 delete [] arr;
 ```
 
+### [delete 指针变量后还要置为NULL吗](https://blog.csdn.net/yikunbai5708/article/details/102000944)
+
+答案：需要
+
+这个与直觉相悖的。delete就意味着要将资源释放了，那么指向这块资源的变量，自然失去了意义。 置为NULL是个很自然的步骤。但是，**C++为什么没有实现呢？**
+
+原因是，**有时候要置为NULL对象不存在**。考虑**右值**的例子。
+
+```c++
+int* p;
+//...
+delete p+1;
+```
+
+在上面的例子中，delete的操作对象(operand)是右值，右值的特征就是，过了所在行， 就不存在了。所以，直觉里delete的两个操作：
+
+- 释放所指向的资源
+- 将变量置为NULL（对右值无法实现） 第二个是无法实现的。
+
+为了防止[内存](https://so.csdn.net/so/search?q=内存&spm=1001.2101.3001.7020)耗尽，在动态内存使用完毕后，我们必须将其归还给系统。通过delete将动态内存归还给系统：`delete ptr;`。需要注意的是释放一个指针（`delete ptr;`）实际是删除了`ptr`所指的目标（变量或对象），释放了它所占的堆空间，而不是删除指针`ptr`本身（指针`ptr`本身并没有撤销，它自己仍然存在，该指针所占内存空间并未释放，指针`ptr`的真正释放是随着函数调用的结束而消失）。
+
+`delete ptr;`后`ptr`成了"空悬指针"，即指向一块曾经保存数据对象但现在已经无效的内存的指针。此时，`ptr`会在在内存里乱指一通，有可能指到一些重要地址造成出错，因此为了使用的安全，我们一般在`delete ptr`之后还会加上`ptr = nullptr;`这一语句使其不指向任何对象。
+
+### 重复delete
+
+重复delete一个指针（重复释放一段内存），会报错：`free(): double free detected in tcache 2`
+
+[**delete空指针是合法的，没有副作用。**](https://blog.csdn.net/weixin_41866717/article/details/110082750)
+
+```c++
+int main() {
+    int * p = new int(1);
+    delete p;
+    std::cout << "Hello, World!" << std::endl;
+    delete p;										// 会报错：`free(): double free detected in tcache 2`，程序终止执行
+    std::cout << "Hello, World!" << std::endl;		// 如果要继续向下执行，需解决重复delete的问题
+    p = nullptr;		// 也可以是NULL
+    delete p;										// delete空指针是合法的，没有副作用。所以程序可以继续执行
+    std::cout << "Hello, World!" << std::endl;
+    return 0;
+}
+```
+
 
 
 # 2 类和对象
