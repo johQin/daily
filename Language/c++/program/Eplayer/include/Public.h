@@ -28,6 +28,7 @@ public:
             memcpy((char*)c_str(), begin, len);
         }
     }
+    operator void* () { return (char*)c_str(); }
     // 继承std::string 转字符常量指针的用法，这就是为什么要继承的原因
     // 可以转换Buffer 为char * 指针
     operator char* () { return (char*)c_str(); }
@@ -35,5 +36,7 @@ public:
     operator char* () const { return (char*)c_str(); }
     // 可以转换const Buffer 为 const char * 指针
     operator const char* () const { return c_str(); }
+    operator unsigned char* () { return (unsigned char*)c_str(); }
+    operator const void* () const { return c_str(); }
 };
 #endif //EPLAYER_PUBLIC_H

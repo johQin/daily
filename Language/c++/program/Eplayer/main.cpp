@@ -265,12 +265,22 @@ int mysql_test()
     return 0;
 }
 
+#include "Crypto.h"
+int crypto_test()
+{
+    Buffer data = "abcdef";
+    data = Crypto::MD5(data);
+    printf("期望: E80B5017098950FC58AAD83C8C14978E 实际：%s\n", (char*)data);
+    return 0;
+}
+
 int main()
 {
     int ret = 0;
     //int ret = http_test();
     //ret = sql_test();
-    ret = mysql_test();
+//    ret = mysql_test();
+    crypto_test();
     printf("main:ret = %d\n", ret);
     return ret;
 }

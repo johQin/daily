@@ -12,4 +12,4 @@ file(GLOB_RECURSE SRC_CPP "src/*.cpp")
 file(GLOB_RECURSE INCLUDE_CPP "include/*.cpp" "include/*.c" "include/sqlite3/*.c")
 add_executable(Eplayer main.cpp ${INCLUDE_CPP} ${SRC_CPP})
 
-target_link_libraries(${PROJECT_NAME} mysqlclient)
+target_link_libraries(${PROJECT_NAME} mysqlclient crypto)
