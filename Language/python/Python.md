@@ -1655,6 +1655,12 @@ class logger:
 
 # 16 定时器模块
 
+## 16.1 [APScheduler](https://zhuanlan.zhihu.com/p/144506204)
+
+[参考2](https://www.cnblogs.com/can-xue/p/13098395.html)
+
+### 4个基本对象
+
 
 
 # Pycharm骚操作
