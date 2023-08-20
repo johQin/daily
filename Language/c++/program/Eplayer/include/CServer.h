@@ -69,7 +69,7 @@ public:
     CServer(const CServer&) = delete;   // 服务器是不能复制的
     CServer& operator=(const CServer&) = delete;
 public:
-    int Init(CBusiness* business, const Buffer& ip = "127.0.0.1", short port = 9999);
+    int Init(CBusiness* business, const Buffer& ip = "0.0.0.0", short port = 9999);     // 0.0.0.0 在主机的所有ip上监听9999
     int Run();
     int Close();
 private:

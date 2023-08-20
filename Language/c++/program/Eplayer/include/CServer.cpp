@@ -28,7 +28,7 @@ int CServer::Init(CBusiness* business, const Buffer& ip, short port)
     // lfd
     m_server = new CSocket();
     if (m_server == NULL)return -6;
-    ret = m_server->Init(CSockParam(ip, port, SOCK_ISSERVER | SOCK_ISIP));
+    ret = m_server->Init(CSockParam(ip, port, SOCK_ISSERVER | SOCK_ISIP | SOCK_ISREUSE));
     if (ret != 0)return -7;
 
     // 添加lfd到epoll中
@@ -67,12 +67,14 @@ int CServer::Close()
 
 int CServer::ThreadFunc()
 {
+    TRACEI("epoll %d server %p", (int)m_epoll, m_server);
     int ret = 0;
     EPEvents events;
     while ((m_epoll != -1) && (m_server != NULL)) {
-        ssize_t size = m_epoll.WaitEvents(events);
+        ssize_t size = m_epoll.WaitEvents(events, 500);
         if (size < 0)break;
         if (size > 0) {
+            TRACEI("size=%d event %08X", size, events[0].events);
             for (ssize_t i = 0; i < size; i++)
             {
                 // 这里面不会去处理客户端与服务器之间的收发
@@ -86,15 +88,18 @@ int CServer::ThreadFunc()
                         if (ret != 0)continue;
                         // 向子进程发送套接字
                         ret = m_process.SendSocket(*pClient, *pClient);
-                        delete pClient;
+                        TRACEI("SendSocket %d", ret);
                         if (ret != 0) {
                             TRACEE("send client %d failed!", (int)*pClient);
                             continue;
                         }
+                        delete pClient;
+                        pClient = NULL;
                     }
                 }
             }
         }
     }
+    TRACEI("服务器已停止");
     return 0;
 }

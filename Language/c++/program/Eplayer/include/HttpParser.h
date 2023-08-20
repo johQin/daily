@@ -66,6 +66,7 @@ public:
     Buffer Host()const { return m_host; }
     int Port()const { return m_port; } // 默认返回80
     void SetUrl(const Buffer& url);     // 有可能解析完一个url后，还要解析另外一个，所以需要允许修改url
+    const Buffer Uri()const { return m_uri; }
 private:
     Buffer m_url;       // 原始的url
     Buffer m_protocol;  // 协议

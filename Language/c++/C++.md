@@ -696,6 +696,24 @@ int main(){
 }
 ```
 
+默认参数的声明与实现
+
+```c++
+class A{
+public:
+    int hello(std::string start,std::string name="qin");
+};
+
+int A::hello(std::string start, std::string name) {		
+    // name在声明处写了默认值
+    // 在实现这里没写默认值
+    // 但name的默认值仍然为"qin"
+    printf("%s : %s", start.c_str(),name.c_str());
+}
+```
+
+
+
 ### 1.9.2 占位参数
 
 c++在声明函数时，可以设置占位参数。**占位参数只有类型名，没有形参名。**

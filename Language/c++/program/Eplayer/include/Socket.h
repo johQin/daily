@@ -20,6 +20,7 @@ enum SockAttr {
     SOCK_ISNONBLOCK = 2,//是否阻塞 1非阻塞 0阻塞
     SOCK_ISUDP = 4,//是否为UDP 1表示udp 0表示tcp
     SOCK_ISIP = 8,//是否为IP协议 1表示IP协议(网络套接字) 0表示本地套接字
+    SOCK_ISREUSE = 16//是否重用地址,
 };
 
 class CSockParam {
@@ -36,7 +37,7 @@ public:
         this->port = port;
         this->attr = attr;
         addr_in.sin_family = AF_INET;
-        addr_in.sin_port = port;
+        addr_in.sin_port = htons(port);     // h host主机 n net 网络 s short，主机字节序转为网络字节序
         addr_in.sin_addr.s_addr = inet_addr(ip);        // 这里就用上了Buffer的类型转换函数，自动将buffer转换为const char *
     }
     // 本地套接字的构造器，不需要给定port
@@ -182,6 +183,14 @@ public:
         if (m_socket == -1)return -2;
 
         int ret = 0;
+        // 端口复用最常用的用途应该是防止服务器重启时之前绑定的端口还未释放或者程序突然退出而系统没有释放端口。这种情况下如果设定了端口复用，则新启动的服务器进程可以直接绑定端口。如果没有设定端口复用，绑定会失败，提示ADDR已经在使用中——那只好等等再重试了，麻烦！
+        if (m_param.attr & SOCK_ISREUSE) {
+            int option = 1;
+            ret = setsockopt(m_socket, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(option));
+            // SO_REUSEADDR ,不设置很可能会报：Address already in use
+            if (ret == -1)return -7;
+        }
+
         // 判断是不是服务器，如果是客户端这一段什么都不用干
         if (m_param.attr & SOCK_ISSERVER) {
             // 如果是服务器
@@ -301,6 +310,7 @@ public:
 
         if (m_status < 2 || (m_socket == -1))return -1;
 
+        data.resize(1024*1024);
         ssize_t len = read(m_socket, data, data.size());
 
         //接收成功
@@ -309,6 +319,7 @@ public:
             data.resize(len);
             return (int)len;//收到数据
         }
+        data.clear();
         if (len < 0) {
             // 被中断EINTR
             if (errno == EINTR || (errno == EAGAIN)) {

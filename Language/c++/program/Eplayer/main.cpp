@@ -273,15 +273,31 @@ int crypto_test()
     printf("期望: E80B5017098950FC58AAD83C8C14978E 实际：%s\n", (char*)data);
     return 0;
 }
+int Main()
+{
+    int ret = 0;
+    CProcess proclog;
+    ret = proclog.SetEntryFunction(CreateLogServer, &proclog);
+    ERR_RETURN(ret, -1);
+    ret = proclog.CreateSubProcess();
+    ERR_RETURN(ret, -2);
+    CEdoyunPlayerServer business(2);
+    CServer server;
+    ret = server.Init(&business);
+    ERR_RETURN(ret, -3);
+    ret = server.Run();
+    ERR_RETURN(ret, -4);
+    return 0;
+}
 
 int main()
 {
     int ret = 0;
-    //int ret = http_test();
-    //ret = sql_test();
-//    ret = mysql_test();
-    crypto_test();
-    printf("main:ret = %d\n", ret);
+
+
+    Main();
+    // http:127.0.0.1:9999/login?time=1649489265&salt=33250&user=test&sign=d112984d7ec209ce607202bb99e90252
+    printf("hello world");
     return ret;
 }
 

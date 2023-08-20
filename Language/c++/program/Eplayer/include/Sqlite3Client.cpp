@@ -258,7 +258,7 @@ Buffer _sqlite3_table_::Modify(const _Table_& values)
     return sql;
 }
 
-Buffer _sqlite3_table_::Query()
+Buffer _sqlite3_table_::Query(const Buffer& condition)
 // 这里作了一个最简单的全查。Query本来是可以带参数，还可以按条件查询等
 {//SELECT 列名1 ,列名2 ,... ,列名n FROM 表全名;
     Buffer sql = "SELECT ";
@@ -267,8 +267,12 @@ Buffer _sqlite3_table_::Query()
         if (i > 0)sql += ',';
         sql += '"' + FieldDefine[i]->Name + "\" ";
     }
-    sql += " FROM " + (Buffer)*this + ";";
-    TRACEI("sql = %s", (char*)sql);
+    sql += " FROM " + (Buffer)*this + " ";
+    if (condition.size() > 0) {
+        sql += " WHERE " + condition;
+    }
+    sql += ";";
+    printf("sql = %s\n", (char*)sql);
     return sql;
 }
 

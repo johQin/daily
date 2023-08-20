@@ -3,13 +3,14 @@ project(Eplayer)
 
 set(CMAKE_CXX_STANDARD 17)
 include_directories(${PROJECT_SOURCE_DIR}/include/sqlite3)
+include_directories(${PROJECT_SOURCE_DIR}/include/jsoncpp)
 include_directories(${PROJECT_SOURCE_DIR}/include)
 # mysql_client
 include_directories(/usr/include/mysql  /usr/include)
 link_directories(/usr/lib/x86_64-linux-gnu)
 
 file(GLOB_RECURSE SRC_CPP "src/*.cpp")
-file(GLOB_RECURSE INCLUDE_CPP "include/*.cpp" "include/*.c" "include/sqlite3/*.c")
+file(GLOB_RECURSE INCLUDE_CPP "include/*.cpp" "include/*.c" "include/sqlite3/*.c" "include/jsoncpp/*.cpp")
 add_executable(Eplayer main.cpp ${INCLUDE_CPP} ${SRC_CPP})
 
 target_link_libraries(${PROJECT_NAME} mysqlclient crypto)

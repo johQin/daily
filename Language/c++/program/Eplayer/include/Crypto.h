@@ -23,7 +23,7 @@ Buffer Crypto::MD5(const Buffer& text)
     char temp[3] = "";
     for(size_t i=0;i<data.size();i++)
     {
-        snprintf(temp, sizeof(temp), "%02X", data[i] & 0xFF);
+        snprintf(temp, sizeof(temp), "%02x", data[i] & 0xFF);   // %02x，x小写才能转换为小写字母
         result += temp;
     }
     return result;

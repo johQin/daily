@@ -78,7 +78,7 @@ public:
     virtual Buffer Delete(const _Table_& values);
     //TODO:参数进行优化
     virtual Buffer Modify(const _Table_& values);
-    virtual Buffer Query();
+    virtual Buffer Query(const Buffer& condition = "");
     //创建一个基于表的对象
     virtual PTable Copy()const;
     virtual void ClearFieldUsed();
@@ -114,13 +114,6 @@ public:
 private:
     // 将字符串转化为2进制
     Buffer Str2Hex(const Buffer& data) const;
-    union {
-        bool Bool;
-        int Integer;
-        double Double;
-        Buffer* String;
-    }Value;
-    int nType;
 };
 
 // 下面宏定义。反斜杠后面不能加空格，表示续行
