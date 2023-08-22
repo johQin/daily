@@ -2834,6 +2834,68 @@ int main() {
 }
 ```
 
+## 3.8 final和override关键字
+
+### final
+
+C++ 11中，final关键字用于修饰类时，有以下作用：
+
+1. 禁止继承：c++11特性中，将类标记为final，意味着无法继承。
+
+   - ```c++
+     class A final
+     {
+       ......
+     };
+     struct B : A {}; // Error: A is final
+     ```
+
+2. 禁止重写函数：当函数被标记为final时，在子类中无法重写该函数（包括普通函数和虚函数）。
+
+   - ```c++
+     class A
+     {
+       public:
+         void hello() final{
+             std::cout << "hello " << std::endl;
+         };
+     };
+     
+     ```
+
+final是在成员函数声明或类头中使用时具有特殊含义的标识符。在其他上下文中，它不是保留的，可以用来命名对象和函数。
+
+### override
+
+在派生类的成员函数中使用override时，
+
+- 如果基类中无此函数，或基类中的函数并不是虚函数，编译器会给出相关错误信息。
+- **显式的在派生类中声明**，哪些成员函数需要被重写，如果没被重写，则编译器会报错。
+
+```c++
+class Base {
+public:
+    virtual void func()=0;
+    virtual void foo() {
+        cout << "Base class foo" << endl;
+    }
+};
+ 
+class Derived : public Base {
+public:
+    void func() override;	//override修饰在这里，Derived 要么在此实现此函数，要么在类外实现此函数，否则会报错
+    void foo() override { // 重写基类的虚函数 ,override关键字不是必需的
+        cout << "Derived class foo" << endl;
+    }
+};
+void Derived::func()
+{
+	cout << "Son的func函数的调用" << endl;
+}
+```
+
+
+
 # 4 多态
 
 多态性（polymorphism）提供了接口与具体实现之间的另一层隔离，从而将what和how分离开来。
@@ -2990,7 +3052,7 @@ int main() {
 ### 4.1.4 重载，重定义，重写
 
 1. 重载（overload）：
-   - ，函数重载、运算符重载
+   - 函数重载、运算符重载
    - 函数的返回值类型不能作为重载条件
 2. 重定义（overwrite）
    - 有继承，子类 重定义 父类的同名函数（非虚函数）， 参数顺序、个数、类型可以不同。
@@ -6216,6 +6278,19 @@ int main() {
 	TestForward(x);		// 输出 lvalue
 }
 ```
+
+#### [c++成员函数声明()后加&或&&表示什么](https://www.zhihu.com/question/47163104/answer/104708138)
+
+只允许左值/右值类型调用此成员函数
+
+```c++
+class A{
+    void fun1() &;		// func1只允许A的左值对象调用
+    void fun2() &&;		// func1只允许A的右值对象调用
+}
+```
+
+
 
 ## 10.3 [可变参数模板](https://blog.csdn.net/aiyubaobei/article/details/128365319)
 
