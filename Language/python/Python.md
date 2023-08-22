@@ -432,8 +432,11 @@ False、None、0、“ ”、（ ），[ ]、{ }
 <pre>
   assert expression
 </pre>
-
 true程序继续向下执行，false会引发AssertionError错误
+
+### 4.2.3 switch
+
+在python 3.10的版本引入switch case语句
 
 ## 4.3 循环结构
 
@@ -1504,6 +1507,8 @@ Process([group [, target [, name [, args [, kwargs]]]]])
 <table align="center" border="1" cellpadding="1" cellspacing="1"><caption>
    Process属性方法介绍 
  </caption><thead><tr><th>方法/属性</th><th>说明</th></tr></thead><tbody><tr><td>start()</td><td>启动进程，调用进程中的run()方法。</td></tr><tr><td>run()</td><td>进程启动时运行的方法，正是它去调用target指定的函数，我们自定义类的类中一定要实现该方法 。</td></tr><tr><td>terminate()</td><td>强制终止进程，不会进行任何清理操作。如果该进程终止前，创建了子进程，那么该子进程在其强制结束后变为僵尸进程；如果该进程还保存了一个锁那么也将不会被释放，进而导致死锁。使用时，要注意。</td></tr><tr><td>is_alive()</td><td>判断某进程是否存活，存活返回True，否则False。</td></tr><tr><td>join([timeout])</td><td>主线程等待子线程终止。timeout为可选择超时时间；需要强调的是，<b>p.join只能join住start开启的进程，而不能join住run开启的进程 。</b></td></tr><tr><td>daemon</td><td>默认值为False，<b>如果设置为True，代表该进程为后台守护进程；当该进程的父进程终止时，该进程也随之终止；并且设置为True后，该进程不能创建子进程</b>，设置该属性必须在start()之前</td></tr><tr><td>name</td><td>进程名称。</td></tr><tr><td>pid</td><td>进程pid</td></tr><tr><td>exitcode</td><td>进程运行时为None，如果为-N，表示被信号N结束了。</td></tr><tr><td>authkey</td><td>进程身份验证，默认是由os.urandom()随机生成32字符的字符串。这个键的用途是设计涉及网络连接的底层进程间的通信提供安全性，这类连接只有在具有相同身份验证才能成功。</td></tr></tbody></table>
+- **当子进程执行完毕后，会产生一个僵尸进程，其会被join函数回收，或者再有一条进程开启，start函数也会回收僵尸进程，所以不一定需要写join函数。**
+- **windows系统在子进程结束后会立即自动清除子进程的Process对象，而linux系统子进程的Process对象如果没有join函数和start函数的话会在主进程结束后统一清除。**
 
 ## 13.2 进程通信
 
@@ -1570,6 +1575,10 @@ modelProcess.start()
 mainFunc(pipe[0])
 ```
 
+### queue
+
+Queue是多进程安全的队列
+
 ### Manager
 
 
@@ -1580,14 +1589,14 @@ mainFunc(pipe[0])
 # 杀死主进程，也立即关闭子进程
 def terminate(sig_num, addtion):
     print('term current pid is %s, group id is %s' % (os.getpid(), os.getpgrp()))
-    os.killpg(os.getpgid(os.getpid()), signal.SIGKILL)
+    os.killpg(os.getpgid(os.getpid()), signal.SIGKILL)		# 杀死同一个进程组的进程
 signal.signal(signal.SIGTERM, terminate)
 
 
 pipeMain = Pipe(duplex=True)
 pipeModel = Pipe(duplex=True)
 modelProcess = Process(target=modelFunc, args=(pipeModel[0], pipeMain[1]))
-modelProcess.daemon = True
+modelProcess.daemon = True		# 一旦进程的daemon为True，那么modelProcess内部不能在再成子进程
 modelProcess.start()
 ```
 
@@ -1655,9 +1664,11 @@ class logger:
 
 # 16 定时器模块
 
-## 16.1 [APScheduler](https://zhuanlan.zhihu.com/p/144506204)
+## 16.1 [APScheduler](https://www.cnblogs.com/can-xue/p/13098395.html)
 
-[参考2](https://www.cnblogs.com/can-xue/p/13098395.html)
+[参考2](https://zhuanlan.zhihu.com/p/144506204)
+
+
 
 ### 4个基本对象
 
