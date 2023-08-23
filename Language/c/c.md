@@ -3827,6 +3827,44 @@ child_process: pid[77081], parent pid[77080]
 
 父进程没有回收子进程资源，也就是没有执行waitpid(ret_pid, NULL, 0);
 
+### 13.2.3 守护进程
+
+一般的进程在关闭终端后，程序就会退出。而守护进程，当你把终端（会话，每一次ssh连接，就称为一个会话）关闭了，依然在运行。
+
+[守护进程不一定要fork两次，他是可选的](https://blog.csdn.net/bitlxlx/article/details/71544036)
+
+[fork两次的原因](https://segmentfault.com/a/1190000008556669)：`setsid`的进程不能是`session leader`,
+
+```c
+int SwitchDaemon(){
+        //主进程
+        pid_t ret = fork();
+        if(ret<0) return -1;
+        if(ret>0) exit(0);      //主进程退出
+
+        // 父进程继续
+        // 2.创建新会话
+        ret =setsid();
+        if(ret < 0) return -2;          // setsid error
+        ret = fork();
+        if(ret < 0) return -3;
+        if(ret > 0) exit(0);    //父进程退出
+
+        //孙进程如下，
+        //3.设置工作目录
+        chdir("/tmp");
+        //4.重设文件掩码
+        umask(0);
+        //5.关闭从父进程继承下来的文件描述符
+        for(int i=0;i<getdtablesize();i++) close(i);
+        signal(SIGCHLD, SIG_IGN);
+        // 守护进程的执行内容
+        // ....
+        //
+        return 0;
+    }
+```
+
 
 
 ## 13.3 进程间通信
@@ -4848,6 +4886,8 @@ int main()
 
 ### 13.5.5 [信号](https://blog.csdn.net/weixin_44421186/article/details/125696042)
 
+[参考2](https://blog.csdn.net/qq_40477151/article/details/79547943)
+
 **信号的本质是软件层次上对中断的一种模拟（软中断）**。
 
 中断： 硬件/进程发，内核收
@@ -4857,16 +4897,113 @@ int main()
 1. 内核发，进程收；
 2. 进程发，（其他或自己）进程收
 
-
+#### 信号发送函数
 
 ```c
 #include <sys/types.h> 
 #include <signal.h>
-// 信号发送函数
-int kill(pid_t pid,int sig)
-//进程可以通过kill函数向包括它本身在内的其他进程发送一个信号
+
+int raise(int sig);
+// 给当前进程的当前线程发送信号
+
+int kill(pid_t pid,int sig);
+// kill函数：进程可以通过kill函数向包括它本身在内的其他进程或进程组发送一个信号
 //Kill不是杀死(软中断)而是发送 信号给XXX进程。
+// 1.pid大于零时，pid是信号欲送往的进程的标识
+// 2.pid等于零时, 发给同一进程组的信号
+// 3.pid等于-1时，信号将送往所有 能给当前调用进程发送信号 的进程，除了进程1(init)。
+// 4.pid小于-1时，信号将送往以-pid为组标识的进程。
+// 准备发送的信号代码，假如其值为零则没有任何信号送出，但是系统会执行错误检查，通常会利用sig值为零来检验某个进程是否仍在执行。
+
+#include <unistd.h> 
+unsigned int alarm(unsigned int seconds);
+// 在指定的时间seconds秒后，将向进程本身发送SIGALRM信号，又称为闹钟时间。专门为SIGALRM信号而设
+// 进程调用alarm后，任何以前的alarm()调用都将无效。
+// 如果参数seconds为零，那么进程内将不再包含任何闹钟时间。 
+// 返回值，如果调用alarm（）前，进程中已经设置了闹钟时间，则返回上一个闹钟时间的剩余时间，否则返回0。
+
+#include <unistd.h>
+int pause(void);
+// 挂起进程或者线程，直到收到信号，才继续运行后面的代码。这个信号可以是signal()、sigaction()注册绑定的信号处理函数捕获的。
+// https://blog.csdn.net/Dontla/article/details/122640811
 ```
+
+#### 信号捕获函数
+
+linux主要有两个函数实现信号的安装：signal()、sigaction()。
+
+```c
+#include <signal.h> 
+sighandler_t signal(int signum, sighandler_t handler)); 
+// typedef void (*sighandler_t)(int)；
+// 第一个参数指定信号的值，
+// 第二个参数指定针对前面信号值的处理，可以忽略该信号（参数设为SIG_IGN）；可以采用系统默认方式处理信号(参数设为SIG_DFL)；也可以自己实现处理方式(参数指定一个函数地址)。 
+
+int sigaction(int signum,const struct sigaction *act, struct sigaction*oldact));
+struct sigaction {
+    void (*sa_handler)(int);         				// 老类型的信号处理函数指针
+    void (*sa_sigaction)(int, siginfo_t *, void *);	 //新类型的信号处理函数指针
+    sigset_t sa_mask;                 				// 将要被阻塞的信号集合
+    int sa_flags;                         			// 信号处理方式掩码
+    void (*sa_restorer)(void);     					// 保留，不要使用。
+}
+```
+
+#### 信号集与信号集屏蔽
+
+因为当程序没有问题正在运行的时候，忽然有一个程序不认识的信号传进来，会导致程序中止。所以为了避免这种情况的发生需要进行信号的屏蔽。
+
+```c
+#include <signal.h>
+
+// 信号集
+sigset_t set;		//typedef unsigned long sigset_t; 
+// 类型其实本质上是位图。但是在Linux中我们一般不用位操作去处理，而是使用下面的五个函数来处理。
+ 
+int sigemptyset(sigset_t *set);  //将某个信号集清零
+ 
+int sigfillset(sigset_t *set); //所有信号加进去 32 33 是没有的
+ 
+int sigaddset(sigset_t *set, int signum); //将某个信号加入信号集
+ 
+int sigdelset(sigset_t *set, int signum); //将某个信号集清出信号集
+ 
+int sigismember(const sigset_t *set, int signum); //判断某个信号是否在信号集中
+ /* Return 1 if SIGNO is in SET, 0 if not.  */
+
+
+// 信号集屏蔽函数
+int sigprocmask(int how, const sigset_t *set, sigset_t *oldset);  //成功返回0，失败返回-1
+// SIG_BLOCK：当how取此值时，set表示需要屏蔽的信号，相当于mask=mask|set
+// SIG_UNBLOCK：当how取此值时，set表示需要解除屏蔽的信号。相当于mask=mask&~set
+// SIG_SETMASK：当how设置为此，set表示用于替代原来屏蔽集的新屏蔽集。相当于mask=set
+```
+
+
+
+#### 内核信号的类型
+
+1. SIGINT
+   - 产生方式：键盘Ctrl + C（控制字符）
+   - 产生结果: **只对当前前台进程和它所在的进程组的每个进程都发送`SIGINT`信号**，之后这些进程会执行信号处理程序再终止。
+2. SIGTREM
+   - 产生方式：和任何控制字符无关，用`kill`函数发送。
+   - 本质: 相当于在bash上执行kill 不加-9时 pid.
+   - 产生结果: **当前进程会收到信号（即收到：SIGTERM），而其子进程不会收到。**如果当前进程被`kill`，则其子进程将变为孤儿进程，其父进程将变为init,即pid为1的进程。
+3. SIGKILL
+   - 产生方式: 和任何控制字符无关,用`kill`函数发送
+   - 本质: 相当于在bash上执行kill -9 pid.
+   - 产生结果: 当前进程收到该信号,注意**该信号时无法被捕获，也就是说进程无法执行信号处理程序**，会直接发送默认行为，也就是直接退出。这也就是为何`kill -9 pid`一定能杀死程序的原因，故这也造成了进程被结束前无法清理或者关闭资源等行为，这样是不好的。
+
+由于`SIGINT`, `SIGTERM`都是可以被捕获的，也就是会执行信号处理函数的，故按照信号处理函数逻辑，可能进程不会退出，即不一定能终止。
+
+
+
+1. SIGHUP
+   - hang up，挂断。本信号在用户终端连接(正常或非正常)结束时发出, 通常是在终端的控制进程结束时, 通知同一session内的各个作业, 这时它们与控制终端不再关联。
+   - 登录Linux时，系统会分配给登录用户一个终端(Session)。在这个终端运行的所有程序，包括前台进程组和 后台进程组，一般都属于这个 Session。当用户退出Linux登录时，前台进程组和后台有对终端输出的进程将会收到SIGHUP信号。这个信号的默认操作为终止进程，因此前台进 程组和后台有终端输出的进程就会中止。**不过可以捕获这个信号**，比如wget能捕获SIGHUP信号，并忽略它，这样就算退出了Linux登录，wget也 能继续下载。
+         \~~~~~~   此外，对于与终端脱离关系的守护进程，这个信号用于通知它重新读取配置文件。
+2. 
 
 ## 13.6 mmap内存映射文件
 

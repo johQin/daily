@@ -1506,7 +1506,8 @@ Process([group [, target [, name [, args [, kwargs]]]]])
 
 <table align="center" border="1" cellpadding="1" cellspacing="1"><caption>
    Process属性方法介绍 
- </caption><thead><tr><th>方法/属性</th><th>说明</th></tr></thead><tbody><tr><td>start()</td><td>启动进程，调用进程中的run()方法。</td></tr><tr><td>run()</td><td>进程启动时运行的方法，正是它去调用target指定的函数，我们自定义类的类中一定要实现该方法 。</td></tr><tr><td>terminate()</td><td>强制终止进程，不会进行任何清理操作。如果该进程终止前，创建了子进程，那么该子进程在其强制结束后变为僵尸进程；如果该进程还保存了一个锁那么也将不会被释放，进而导致死锁。使用时，要注意。</td></tr><tr><td>is_alive()</td><td>判断某进程是否存活，存活返回True，否则False。</td></tr><tr><td>join([timeout])</td><td>主线程等待子线程终止。timeout为可选择超时时间；需要强调的是，<b>p.join只能join住start开启的进程，而不能join住run开启的进程 。</b></td></tr><tr><td>daemon</td><td>默认值为False，<b>如果设置为True，代表该进程为后台守护进程；当该进程的父进程终止时，该进程也随之终止；并且设置为True后，该进程不能创建子进程</b>，设置该属性必须在start()之前</td></tr><tr><td>name</td><td>进程名称。</td></tr><tr><td>pid</td><td>进程pid</td></tr><tr><td>exitcode</td><td>进程运行时为None，如果为-N，表示被信号N结束了。</td></tr><tr><td>authkey</td><td>进程身份验证，默认是由os.urandom()随机生成32字符的字符串。这个键的用途是设计涉及网络连接的底层进程间的通信提供安全性，这类连接只有在具有相同身份验证才能成功。</td></tr></tbody></table>
+ </caption><thead><tr><th>方法/属性</th><th>说明</th></tr></thead><tbody><tr><td>start()</td><td>启动进程，调用进程中的run()方法。</td></tr><tr><td>run()</td><td>进程启动时运行的方法，正是它去调用target指定的函数，我们自定义类的类中一定要实现该方法 。</td></tr><tr><td>terminate()</td><td>强制终止进程，不会进行任何清理操作。如果该进程终止前，创建了子进程，那么该子进程在其强制结束后变为僵尸进程；如果该进程还保存了一个锁那么也将不会被释放，进而导致死锁。使用时，要注意。<br/><b>terminate()函数在linux系统下的行为是向进程发送SIGTERM</b></td></tr><tr><td>is_alive()</td><td>判断某进程是否存活，存活返回True，否则False。</td></tr><tr><td>join([timeout])</td><td>主线程等待子线程终止。timeout为可选择超时时间；需要强调的是，<b>p.join只能join住start开启的进程，而不能join住run开启的进程 。</b></td></tr><tr><td>daemon</td><td>默认值为False，<b>如果设置为True，代表该进程为后台守护进程；当该进程的父进程终止时，该进程也随之终止；并且设置为True后，该进程不能创建子进程</b>，设置该属性必须在start()之前</td></tr><tr><td>name</td><td>进程名称。默认情况下为Process-1</td></tr><tr><td>pid</td><td>进程pid</td></tr><tr><td>exitcode</td><td>进程运行时为None，如果为-N，表示被信号N结束了。</td></tr><tr><td>authkey</td><td>进程身份验证，默认是由os.urandom()随机生成32字符的字符串。这个键的用途是设计涉及网络连接的底层进程间的通信提供安全性，这类连接只有在具有相同身份验证才能成功。</td></tr></tbody></table>
+
 - **当子进程执行完毕后，会产生一个僵尸进程，其会被join函数回收，或者再有一条进程开启，start函数也会回收僵尸进程，所以不一定需要写join函数。**
 - **windows系统在子进程结束后会立即自动清除子进程的Process对象，而linux系统子进程的Process对象如果没有join函数和start函数的话会在主进程结束后统一清除。**
 
@@ -1596,9 +1597,20 @@ signal.signal(signal.SIGTERM, terminate)
 pipeMain = Pipe(duplex=True)
 pipeModel = Pipe(duplex=True)
 modelProcess = Process(target=modelFunc, args=(pipeModel[0], pipeMain[1]))
-modelProcess.daemon = True		# 一旦进程的daemon为True，那么modelProcess内部不能在再成子进程
+modelProcess.daemon = True		# 一旦进程的daemon为True，那么modelProcess内部不能在再创建子进程
 modelProcess.start()
 ```
+
+## 13.4 进程中执行脚本
+
+在python脚本中，我们需要执行另一个python脚本，或者执行shell命令或者shell脚本，这种情况下就要用到python的多进程方法了。这里仅介绍subprocess.Popen()方法。（当然也可以使用`os.system(command)，os.popen(command)`）
+
+```python
+import subprocess as sp
+p = sp.Popen(['echo','helloword.py'], stdin=sp.PIPE, stdout=sp.PIPE, stderr=sp.PIPE)
+```
+
+
 
 # 14 [错误处理](https://blog.csdn.net/JackMengJin/article/details/107151374)
 
@@ -1666,13 +1678,72 @@ class logger:
 
 ## 16.1 [APScheduler](https://www.cnblogs.com/can-xue/p/13098395.html)
 
-[参考2](https://zhuanlan.zhihu.com/p/144506204)
+[参考2](https://zhuanlan.zhihu.com/p/144506204)，[官网](https://apscheduler.readthedocs.io/en/3.x/)
+
+### 16.1.1 4个基本对象
+
+- 触发器 `triggers` ：用于设定触发任务的条件
+- 任务储存器 `job stores`：用于存放任务，把任务存放在内存或数据库中
+- 执行器 `executors`： 用于执行任务，可以设定执行模式为单线程或线程池
+- 调度器 `schedulers`： 把上方三个组件作为参数，通过创建调度器实例来运行
+
+### 16.1.2 触发器
+
+指定时间点触发任务
+
+APScheduler有三种内置的触发器：
+
+- `date` 日期时间：触发任务运行的具体日期时间
+
+- `interval` 间隔：触发任务运行的时间间隔
+
+- `cron` 周期：触发任务运行的周期
+
+  - | 表达式   | 参数类型 | 描述                                     |
+    | -------- | -------- | ---------------------------------------- |
+    | `*`      | 所有     | 通配符。例：hour='*'即每小时触发         |
+    | `*/a`    | 所有     | 可被a整除的通配符。                      |
+    | `a-b`    | 所有     | 范围a-b触发                              |
+    | `a-b/c`  | 所有     | 范围a-b，且可被c整除时触发               |
+    | `xth y`  | 日       | 第几个星期几触发。x为第几个，y为星期几   |
+    | `last x` | 日       | 一个月中，最后个星期几触发               |
+    | `last`   | 日       | 一个月最后一天触发                       |
+    | `x,y,z`  | 所有     | 组合表达式，可以组合确定值或上方的表达式 |
+
+  - **注意:`month`和`day_of_week`参数分别接受的是英语缩写`jan`– `dec` 和 `mon` – `sun`**
+
+```python
+from apscheduler.schedulers.blocking import BlockingScheduler
+def job_function(s):
+    print("Hello World,{}".format(s))
+
+sched = BlockingScheduler()
+
+# date触发器
+# 将在2020-01-06 08:30:00执行，并代参传给任务函数
+sched.add_job(job_function, trigger='date', run_date='2020-01-06 08:30:00', args=['qqq'])
+sched.add_job(job_function, trigger='date', args=['qqq'])	# 立即触发
+
+# interval触发器
+# 将在2023-08-23 10:00:00执行，也就是在start_date后的2小时执行一次任务
+sched.add_job(job_function, 'interval', hours=2, start_date='2023-08-23 08:00:00')		#trigger
+# interval只支持周，天，时，分，秒的量级
+# 'days', 'weeks',  'hours', 'minutes', 'seconds', 'start_date', 'end_date', 'timezone', 'jitter'
+# start_date, end_date可以用来适用时间范围
+
+# cron触发器
+# 任务会在6月、7月、8月、11月和12月的第三个周五，00:00、01:00、02:00和03:00触发
+sched.add_job(job_function, 'cron', month='6-8,11-12', day='3rd fri', hour='0-3')
+# 在2020-01-01 00:00:00前，每周一到每周五 08:30运行
+sched.add_job(job_function, 'cron', day_of_week='mon-fri', hour=8, minute=30, end_date='2020-01-01')
+# 'year','month', 'day', 'week', 'day_of_week', 'hour', 'minute', 'second', 'start_date', 'end_date', 'timezone', 'jitter'
+
+sched.start()
+```
 
 
 
-### 4个基本对象
-
-
+一个任务也可以设定多种触发器（复合触发器），比如，可以设定同时满足所有触发器条件而触发，或者满足一项即触发。
 
 # Pycharm骚操作
 
