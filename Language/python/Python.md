@@ -1601,7 +1601,7 @@ modelProcess.daemon = True		# 一旦进程的daemon为True，那么modelProcess�
 modelProcess.start()
 ```
 
-## 13.4 进程中执行脚本
+## 13.4 [进程中执行脚本](https://blog.csdn.net/liuyingying0418/article/details/100939697)
 
 在python脚本中，我们需要执行另一个python脚本，或者执行shell命令或者shell脚本，这种情况下就要用到python的多进程方法了。这里仅介绍subprocess.Popen()方法。（当然也可以使用`os.system(command)，os.popen(command)`）
 
@@ -1741,9 +1741,49 @@ sched.add_job(job_function, 'cron', day_of_week='mon-fri', hour=8, minute=30, en
 sched.start()
 ```
 
-
-
 一个任务也可以设定多种触发器（复合触发器），比如，可以设定同时满足所有触发器条件而触发，或者满足一项即触发。
+
+### 16.1.3 调度器
+
+根据开发需求选择相应的组件，以下是不同的调度器组件：
+
+- `BlockingScheduler` 阻塞式调度器：适用于只跑调度器的程序。
+- `BackgroundScheduler` 后台调度器：适用于非阻塞的情况，调度器会在后台独立运行。`
+- `AsyncIOScheduler` AsyncIO调度器，适用于应用使用AsnycIO的情况。`
+- `GeventScheduler` Gevent调度器，适用于应用通过Gevent的情况。`
+- `TornadoScheduler` Tornado调度器，适用于构建Tornado应用。
+- `TwistedScheduler` Twisted调度器，适用于构建Twisted应用。
+- `QtScheduler` Qt调度器，适用于构建Qt应用。
+
+#### 配置调度器
+
+APScheduler 有多种不同的配置方法，你可以选择直接传字典或传参的方式创建调度器；也可以先实例一个调度器对象，再添加配置信息。灵活的配置方式可以满足各种应用场景的需要。
+
+```python
+from pytz import utc
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.jobstores.mongodb import MongoDBJobStore
+from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
+from apscheduler.executors.pool import ThreadPoolExecutor, ProcessPoolExecutor
+
+jobstores = {
+    'mongo': MongoDBJobStore(),
+    'default': SQLAlchemyJobStore(url='sqlite:///jobs.sqlite')
+}
+executors = {
+    'default': ThreadPoolExecutor(20),
+    'processpool': ProcessPoolExecutor(5)
+}
+job_defaults = {
+    'coalesce': False,
+    'max_instances': 3
+}
+# 设置 coalesce为 False：设置这个目的是，比如由于某个原因导致某个任务积攒了很多次没有执行（比如有一个任务是1分钟跑一次，但是系统原因断了5分钟），如果 coalesce=True，那么下次恢复运行的时候，会只执行一次，而如果设置 coalesce=False，那么就不会合并，会5次全部执行。
+# max_instances=5：同一个任务同一时间最多只能有5个实例在运行。比如一个耗时10分钟的job，被指定每分钟运行1次，如果我 max_instance值5，那么在第6~10分钟上，新的运行实例不会被执行，因为已经有5个实例在跑了。
+scheduler = BackgroundScheduler(jobstores=jobstores, executors=executors, job_defaults=job_defaults, timezone=utc)
+```
+
+
 
 # Pycharm骚操作
 
@@ -1891,3 +1931,149 @@ sched.start()
     ```
 
 15. [内存耗用：VSS/RSS/PSS/USS](https://www.jianshu.com/p/3bab26d25d2e)
+
+16. [操作xml](https://www.cnblogs.com/steven223-z/p/11869109.html)
+
+    ```python
+    import xml.etree.ElementTree as ET
+    
+    """
+        ElementTree.write()       将构建的XML文档写入（更新）文件。
+        Element.set(key, value)   添加和修改属性
+        Element.text = ''         直接改变字段内容
+        Element.remove(Element)   删除Element节点
+        Element.append(Element)   为当前的Elment对象添加子对象
+        ET.SubElement(Element,tag)创建子节点 
+    """
+    
+    #  增加自动缩进换行
+    def indent(elem, level=0):
+        i = "\n" + level*"  "
+        if len(elem):
+            if not elem.text or not elem.text.strip():
+                elem.text = i + "  "
+            if not elem.tail or not elem.tail.strip():
+                elem.tail = i
+            for elem in elem:
+                indent(elem, level+1)
+            if not elem.tail or not elem.tail.strip():
+                elem.tail = i
+        else:
+            if level and (not elem.tail or not elem.tail.strip()):
+                elem.tail = i
+                
+    
+    #------------新增XML----------
+    
+    #创建根节点
+    a = ET.Element("student")
+    #创建子节点，并添加属性
+    b = ET.SubElement(a,"name")
+    b.attrib = {"NO.":"001"}
+    #添加数据
+    b.text = "张三"
+    #创建elementtree对象，写文件
+    indent(a,0)
+    tree = ET.ElementTree(a)
+    tree.write("writeXml.xml",encoding="utf-8")
+    
+    #----------编辑XML--------
+    # 读取待修改文件
+    updateTree = ET.parse("writeXml.xml")
+    root = updateTree.getroot()
+    
+    # --新增--
+    
+    # 创建新节点并添加为root的子节点
+    newnode = ET.Element("name")
+    newnode.attrib = {"NO.":"003"}
+    newnode.text = "张三水"
+    root.append(newnode)
+    
+    #---修改---
+    
+    sub1 = root.findall("name")[2]
+    # --修改节点的属性
+    sub1.set("NO.","100")
+    # --修改节点内文本
+    sub1.text="陈真"
+    
+    #----删除---
+    
+    #--删除标签内文本
+    sub1.text = ""
+    #--删除标签的属性
+    del sub1.attrib["NO."]
+    #--删除一个节点
+    root.remove(sub1)
+    
+    
+    # 写回原文件
+    indent(root,0)
+    updateTree.write("writeXml.xml",encoding="utf-8", xml_declaration=True)
+    
+    
+    def change_node_properties(nodelist, kv_map, is_delete=False):
+        '''修改/增加 /删除 节点的属性及属性值
+           nodelist: 节点列表
+           kv_map:属性及属性值map'''
+        for node in nodelist:
+            for key in kv_map:
+                if is_delete:
+                    if key in node.attrib:
+                        del node.attrib[key]
+                else:
+                    node.set(key, kv_map.get(key))
+    
+    def change_node_text(nodelist, text, is_add=False, is_delete=False):
+        '''改变/增加/删除一个节点的文本内容
+           nodelist:节点列表
+           text : 更新后的文本'''
+        for node in nodelist:
+            if is_add:
+                node.text += text
+            elif is_delete:
+                node.text = ""
+            else:
+                node.text = text
+    
+    def create_childnode(node,tag, property_map, content):
+        '''新造一个子节点
+           node:节点
+           tag:子节点标签
+           property_map:属性及属性值map
+           content: 节点闭合标签里的文本内容
+         '''
+        element = ET.Element(tag, property_map)
+        element.text = content
+        node.append(element)
+    
+    def del_node_by_tagkeyvalue(node, tag, kv_map):
+        '''通过属性及属性值定位一个节点，并删除之
+           node: 父节点
+           tag:子节点标签
+           kv_map: 属性及属性值列表'''
+        for child in node:
+            if child.tag == tag and child.attrib==kv_map:
+                node.remove(child)
+    ```
+
+    
+
+17. 字符串转换数字
+
+    ```python
+    def transFormToNumber(, strs):
+        s = str(strs)
+        if s.isdigit():
+            return int(s)
+        try:  # 如果能运行float(s)语句，返回True（字符串s是浮点数）
+            return float(s)
+        except ValueError:  # ValueError为Python的一种标准异常，表示"传入无效的参数"
+            pass  # 如果引发了ValueError这种异常，不做任何事情（pass：不做任何事情，一般用做占位语句）
+        return s
+    ```
+
+    
+
+18. 

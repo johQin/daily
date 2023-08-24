@@ -1795,7 +1795,20 @@ spring.swagger2.enabled=true
    apt install mesa-utils libxinerama-dev libxi6
    ```
 
-3. 
+3. 修改容器时区
+
+   - ```bash
+     # 在容器中创建
+     mkdir -p /usr/share/zoneinfo/Asia
+     # 复制宿主机中的时区文件到容器中
+     docker cp /usr/share/zoneinfo/Asia/Shanghai 容器ID或容器名:/usr/share/zoneinfo/Asia/
+     # 然后在容器中，将localtime 软连接 到 时区文件
+     ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+     ```
+
+   - 
+
+4. 
 
 ## docker图形化界面安装
 
