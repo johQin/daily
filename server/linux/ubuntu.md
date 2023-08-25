@@ -214,9 +214,16 @@
     find -name "*.js" | wc -l
     ```
 
+20. apt-get查看已安装的程序的方法
+
+    ```bash
+    dpkg -l | grep 'program_name'
+    # apt-get也是dpkg的包装，直接使用dpkg -l 来查看已经安装了的软件
+    ```
+
     
 
-20. 
+21. 
 
 # 3 ubuntu软件安装
 

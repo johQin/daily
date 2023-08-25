@@ -42,7 +42,11 @@ yolov5（you only look once，version 5）是基于python环境，在pytorch机�
 
 ├──requirements.txt：这是一个文本文件，里面写着使用yolov5项目的环境依赖包的一些版本，可以利用该文本导入相应版本的包。
 
-## 0.2 coco数据集
+## 0.2 环境搭建
+
+
+
+## 0.3 coco数据集
 
 ```bash
 wget http://images.cocodataset.org/zips/train2017.zip
@@ -50,3 +54,27 @@ wget http://images.cocodataset.org/zips/val2017.zip
 wget http://images.cocodataset.org/zips/test2017.zip
 ```
 
+# log
+
+1. [运行yolov5-5.0出现AttributeError: Can‘t get attribute ‘SPPF‘ 正确解决方法](https://blog.csdn.net/qq_41035097/article/details/122884652)
+
+   - weight预置权重版本和实际yolov5的tag不匹配
+   - 不能用weight 7.0 给yolov5 tagv5.0来训练
+
+2. [AttributeError: module numpy has no attribute int .报错解决方案](https://blog.csdn.net/weixin_46669612/article/details/129624331)
+
+   - 官方给出的numpy的版本要求时>=1.18.5，而[numpy](https://so.csdn.net/so/search?q=numpy&spm=1001.2101.3001.7020).int在[NumPy](https://so.csdn.net/so/search?q=NumPy&spm=1001.2101.3001.7020) 1.20中已弃用，在NumPy 1.24中已删除。
+   - 重装numpy：pip install numpy==1.22
+
+3. [RuntimeError: result type Float can‘t be cast to the desired output type long int](https://blog.csdn.net/bu_fo/article/details/130336910)
+
+   ```python
+   # loss.py出问题
+   indices.append((b, a, gj.clamp_(0, gain[3] - 1), gi.clamp_(0, gain[2] - 1)))  # image, anchor, grid indices
+   # 解决
+   indices.append((b, a, gj.clamp_(0, gain[3].long() - 1), gi.clamp_(0, gain[2].long() - 1)))  # image, anchor, grid indices
+   ```
+
+   
+
+4. 
