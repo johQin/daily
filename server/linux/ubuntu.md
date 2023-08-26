@@ -330,4 +330,17 @@
 
 1. [chkconfig: command not found](https://blog.csdn.net/small_love/article/details/117660838)
    - chkconfig 被 sysv-rc-conf替代
-2. 
+
+2. [Ubuntu下shell执行source命令报source: not found问题处理](https://blog.csdn.net/gengkui9897/article/details/127353001)
+
+   ```bash
+   # 命令解析器指向的是dash
+   $ ls -l /bin/sh
+   lrwxrwxrwx 1 root root 4 10月 15 21:25 /bin/sh -> dash
+   
+   # 执行sudo dpkg-reconfigure dash命令，在弹出信息中选择No，将命令解析器换回bash
+   ```
+
+   
+
+3. 
