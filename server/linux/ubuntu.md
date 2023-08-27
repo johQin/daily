@@ -341,6 +341,6 @@
    # 执行sudo dpkg-reconfigure dash命令，在弹出信息中选择No，将命令解析器换回bash
    ```
 
-   
+3. [ubuntu之制作再生龙(Clonezilla)启动盘](https://blog.csdn.net/u014072827/article/details/114397807)
 
-3. 
+4. 

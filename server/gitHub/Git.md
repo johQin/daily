@@ -1278,7 +1278,22 @@ git config --list
    git rm -r --cached filename
    ```
 
+6. [git怎么删除某一次提交](https://www.zhihu.com/question/324710274)
+
+   ```bash
+   # 像A-B-C这种比较简单的历史，要去掉B的话可以这样
+   git reset A --hard
+   git cherry-pick C
+   # 回退到A上然后把C再cherrypick过来，这样就把B给跳过了。
    
+   # 如果待处理的提交历史比较长，那用rebase -i更方便一些
+   git rebase -i A
+   # 这个命令以A为新的基准（base），将A之后的commit列出来让用户选择如何处理。在出现的编辑界面上，把B前面的pick改成d或者drop，或者把一整行删除掉，保存退出就可以了。
+   ```
+
+   
+
+7. 
 
 
 
