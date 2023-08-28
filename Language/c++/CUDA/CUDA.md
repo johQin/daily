@@ -13,6 +13,8 @@ lspci | grep -i vga
 
 [nvidia 显卡驱动 安装最顺的教程](https://zhuanlan.zhihu.com/p/302692454)，推荐查看
 
+- [配合食用：Ubuntu18.04 显卡驱动安装教程(解决各种疑难杂症)](https://zhuanlan.zhihu.com/p/463656273)
+
 [选择显卡驱动版本和toolkit版本下载，不含安装报错的显卡驱动安装教程](https://blog.csdn.net/weixin_39928010/article/details/131142603)
 
 [ubuntu cudnn 安装](https://blog.csdn.net/shanglianlm/article/details/130219640)
