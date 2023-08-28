@@ -759,6 +759,52 @@ print(B(10))
 #400
 ```
 
+## 5.8 魔术方法
+
+在Python中，所有以双下划线`__`包起来的方法，统称为**Magic Method（魔术方法）**，它是一种的特殊方法，普通方法需要调用，而魔术方法不需要调用就可以自动执行。
+
+魔术方法在类或对象的某些事件出发后会自动执行，让类具有神奇的“魔力”。如果希望根据自己的程序定制自己特殊功能的类，那么就需要对这些方法进行重写。
+
+```python
+class People(object):
+    # 创建对象
+    def __new__(cls, *args, **kwargs):
+        print("触发了构造方法")
+        ret = super().__new__(cls) # 调用父类的__new__()方法创建对象
+        return ret ## 将对象返
+    # 实例化对象
+    def __init__(self, name, age):
+        self.name = name
+        self.age = age
+        print("初始化方法")
+    #  删除对象
+    #   del 对象名或者程序执行结束之后
+    def __del__(self):
+        print("析构方法，删除对象")
+        
+class Fib(object):
+    def __init__(self):
+        pass
+    def __call__(self,num):
+        a,b = 0,1;
+        self.l=[]
+
+        for i in range (num):
+            self.l.append(a)
+            a,b= b,a+b
+        return self.l
+    def __str__(self):
+        return str(self.l)
+    __rept__=__str__
+
+f = Fib()
+print(f(10))
+输出：
+[0, 1, 1, 2, 3, 5, 8, 13, 21, 34]
+```
+
+
+
 # 6 面向对象
 
 ## 6.1 类和对象
@@ -1315,7 +1361,7 @@ __all__=['hello','world']
 
 模块就是python程序，模块文件的文件名就是他的模块名。
 
-<h5>为模块编写说明文档</h5>
+#### 为模块编写说明文档
 
 在模块开始处定义一个字符串直接量即可，即在第一行代码之前
 
@@ -1330,7 +1376,7 @@ import sys as s
 ......
 ```
 
-<h5>为模块编写测试代码</h5>
+#### 为模块编写测试代码
 
 当编写模块完成的时候，需要测试代码是否无误。当模块被其他模块引入时，又无需测试该模块代码。
 
@@ -1342,6 +1388,38 @@ import sys as s
 if __name__ =='__main__' :
     #测试代码块
 ```
+
+[**main可以定义一些变量，这些变量默认为全局变量**](https://blog.csdn.net/TracelessLe/article/details/123691579)，其他方法可在此`if __name__ =='__main__' :`内部调用，从而使用此main中定义的全局变量。
+
+```python
+import argparse
+print(globals())
+# 报错，NameError: name 'opt' is not defined.
+print(opt)
+
+
+def ha():
+    print(opt.weights)
+    print(c)
+
+def wo():
+    print(opt)
+
+# 函数中，可使用，但不能在__name__ == '__main__'之外的地方调用
+wo()	#name 'opt' is not defined
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--weights', nargs='+', type=str, default='runs/train/exp5/weights/best.pt',help='model.pt path(s)')
+    opt = parser.parse_args()
+    c = "nihao"
+    # ha函数中可以获取到这里定义的两个全局变量	
+    ha()
+
+print(globals())
+```
+
+
 
 ### 9.1.3 加载模块
 
@@ -1462,6 +1540,25 @@ time模块主要包含各种提供日期、时间功能的类和函数。该模�
      ```
 
 3. 
+
+## 10.3  os
+
+1. [os.environ 获取环境变量](https://blog.csdn.net/happyjacob/article/details/109279118)
+
+   - **os.environ 是一个字典，是环境变量的字典**。
+
+     ```python
+     >>> os.environ['HOME']
+     '/home/buntu'
+     >>>os.environ['PATH']
+     /opt/anaconda3/bin:/opt/jdk1.8.0_271/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/snap/bin'
+     ```
+
+     
+
+2. 
+
+
 
 # 12 文件I/O
 

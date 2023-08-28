@@ -8,6 +8,8 @@ yolov5（you only look once，version 5）是基于python环境，在pytorch机�
 
 # [0 初识](https://zhuanlan.zhihu.com/p/558477653)
 
+**yolov5 tagv5.0版本代码**
+
 ## 0.1 项目结构
 
 ![](./legend/yolov5项目结构.png)
@@ -42,17 +44,92 @@ yolov5（you only look once，version 5）是基于python环境，在pytorch机�
 
 ├──requirements.txt：这是一个文本文件，里面写着使用yolov5项目的环境依赖包的一些版本，可以利用该文本导入相应版本的包。
 
-## 0.2 环境搭建
+## 0.2 [GPU环境搭建](https://blog.csdn.net/qq_53357019/article/details/125725702)
+
+### 0.2.1 安装nvidia显卡驱动、cuda toolkit、cudnn
+
+
+
+**CUDA Toolkit** 是用于开发和运行基于 CUDA 的应用程序的软件包。它包含了编译器、库、工具和示例等组件，用于编写、构建和优化 CUDA 应用程序。CUDA Toolkit 还提供了与 GPU 相关的驱动程序和运行时库，以便在系统上正确配置和管理 GPU。这个库的主要目的是帮你封装好了很多的操作这个gpu ，也就是操作这个 cuda 驱动的库。
+
+**cuDNN（CUDA Deep Neural Network library）**是 NVIDIA 为深度学习框架提供的加速库。它为深度神经网络的训练和推理提供了高性能的 GPU 加速支持。cuDNN 提供了一系列优化的算法和函数，用于加速卷积、池化、归一化等常用的深度学习操作。它与 CUDA 和 CUDA Toolkit 配合使用，提供了对深度学习框架（如TensorFlow、PyTorch等）的 GPU 加速能力。
+
+[nvidia 显卡驱动 安装最顺的教程](https://zhuanlan.zhihu.com/p/302692454)，推荐查看
+
+[选择显卡驱动版本和toolkit版本下载，不含安装报错的显卡驱动安装教程](https://blog.csdn.net/weixin_39928010/article/details/131142603)
+
+[ubuntu cudnn 安装](https://blog.csdn.net/shanglianlm/article/details/130219640)
+
+### 0.2.2 python 环境安装
+
+```bash
+# 创建一个沙箱，python 大于等于3.8
+conda create -n yolov5 python=3.10
+
+conda activate yolov5
+# 下载yolov5源代码库
+git clone https://github.com/ultralytics/yolov5.git
+
+cd yolov5
+
+# 
+pip install -r requirements.txt		# -U参数不用指定	
+# -U：-U, --upgrade            Upgrade all specified packages to the newest available version. The handling of dependencies depends on the upgrade-strategy used.
+# -r, --requirement <file>    Install from the given requirements file. This option can be used multiple times.
+```
 
 
 
 ## 0.3 coco数据集
 
 ```bash
-wget http://images.cocodataset.org/zips/train2017.zip
-wget http://images.cocodataset.org/zips/val2017.zip
-wget http://images.cocodataset.org/zips/test2017.zip
+# coco
+wget http://images.cocodataset.org/zips/train2017.zip	# 19G, 118k images
+wget http://images.cocodataset.org/zips/val2017.zip		# 1G, 5k images
+wget http://images.cocodataset.org/zips/test2017.zip	# 7G, 41k images
+wget https://github.com/ultralytics/yolov5/releases/download/v1.0/coco2017labels.zip	# 数据的标签，解压上面的图片到此label文件夹内。
+
+# coco128，从train2017随即选取的128张图片
+https://github.com/ultralytics/yolov5/releases/download/v1.0/coco128.zip
+
+# 下载yolov5对应代码的版本tag版本，在这里我们用的时tag v5.0版本
+https://github.com/ultralytics/yolov5/releases/download/v5.0/yolov5s.pt
+https://github.com/ultralytics/yolov5/releases/download/v5.0/yolov5m.pt
+https://github.com/ultralytics/yolov5/releases/download/v5.0/yolov5l.pt
+https://github.com/ultralytics/yolov5/releases/download/v5.0/yolov5x.pt
 ```
+
+
+
+# 术语概念
+
+## [IOU](https://zhuanlan.zhihu.com/p/141719585)
+
+IoU 的全称为交并比（Intersection over Union）
+
+IoU 计算的是 “预测的边框” 和 “真实的边框” 的交集和并集的比值。
+
+![](./legend/IOU.jpg)
+
+## [NMS](https://blog.csdn.net/KANG157/article/details/124649838)
+
+Non-Maximum Suppression（NMS）非极大值抑制。从字面意思理解，抑制那些非极大值的元素，保留极大值元素。其主要用于目标检测，目标跟踪，3D重建，数据挖掘等。
+
+目前NMS常用的有标准NMS, Soft  NMS, DIOU NMS等。后续出现了新的Softer NMS，Weighted NMS等改进版。
+
+以目标检测为例，目标检测推理过程中会产生很多检测框（A,B,C,D,E,F等），其中很多检测框都是检测同一个目标，但最终每个目标只需要一个检测框，NMS选择那个得分最高的检测框（假设是C），再将C与剩余框计算相应的IOU值，当IOU值超过所设定的阈值（普遍设置为0.5，目标检测中常设置为0.7，仅供参考），即对超过阈值的框进行抑制，抑制的做法是将检测框的得分设置为0，如此一轮过后，在剩下检测框中继续寻找得分最高的，再抑制与之IOU超过阈值的框，直到最后会保留几乎没有重叠的框。这样基本可以做到每个目标只剩下一个检测框。
+
+![img](./legend/NMS.png)
+
+## TTA
+
+Test-Time Augmentation（TTA）测试时数据增强。
+
+数据增强是一种在模型训练期间通常使用的方法，它使用训练数据集中修改过的样本副本来扩展训练集。
+
+通常使用图像数据来执行数据增强，其中通过执行一些图像操作技术来创建训练数据集中的图像副本，例如缩放、翻转、移动等等。
+
+人工扩展的训练数据集可以产生一个更熟练的模型，因为深度学习模型的性能通常会随着训练数据集的大小继续扩大。此外，训练数据集中图像的修改或增强版本可以帮助模型以不受位置、光照等影响的方式提取和学习特征。
 
 # log
 
@@ -78,3 +155,6 @@ wget http://images.cocodataset.org/zips/test2017.zip
    
 
 4. 
+
+
+
