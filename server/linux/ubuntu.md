@@ -91,7 +91,15 @@
 
 12. [查看当前文件夹下的树结构](https://blog.csdn.net/answerMack/article/details/90176833)
 
-    - `sudo apt-get install tree`
+    - ```bash
+      sudo apt-get install tree
+      # 指定查看的深度
+      tree -L 2
+      # 只显示文件夹
+      tree -d
+      ```
+
+    - 
 
 13. ssh命令连接另一台linux服务器。
 
