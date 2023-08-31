@@ -176,7 +176,15 @@ Sandboxie(又叫沙箱、沙盘)即是一个虚拟系统程序，它创造了一
 
 ### pip
 
-安装包：`pip install <包名>==版本号`
+安装包：
+
+```bash
+pip install 包名
+pip install 包名==version
+pip install 包名>=version
+# 指定镜像源 下载包
+pip install -i https://pypi.tuna.tsinghua.edu.cn/simple 包名
+```
 
 更新包：`pip install --upgrade package_name`
 

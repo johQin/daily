@@ -62,6 +62,21 @@ yolov5（you only look once，version 5）是基于python环境，在pytorch机�
 
 ### 0.2.2 python 环境安装
 
+[解决torch安装缓慢失败及其他安装包快速下载方法](https://blog.csdn.net/qq_35207086/article/details/123482458)
+
+```bash
+# 安装有些包的时候，很慢，可以通过清华源的方式修改
+pip install -i https://pypi.tuna.tsinghua.edu.cn/simple torch==2.0.1
+
+#（1）阿里云     https://mirrors.aliyun.com/pypi/simple/
+#（2）豆瓣     https://pypi.douban.com/simple/
+#（3）清华大学     https://pypi.tuna.tsinghua.edu.cn/simple/
+#（4）中国科学技术大学     https://pypi.mirrors.ustc.edu.cn/simple/
+#（5）华中科技大学  https://pypi.hustunique.com/
+```
+
+
+
 ```bash
 # 创建一个沙箱，python 大于等于3.8
 conda create -n yolov5 python=3.10
@@ -76,6 +91,7 @@ cd yolov5
 pip install -r requirements.txt		# -U参数不用指定	
 # -U：-U, --upgrade            Upgrade all specified packages to the newest available version. The handling of dependencies depends on the upgrade-strategy used.
 # -r, --requirement <file>    Install from the given requirements file. This option can be used multiple times.
+
 ```
 
 
