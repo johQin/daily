@@ -17,6 +17,8 @@ lspci | grep -i vga
 
 [选择显卡驱动版本和toolkit版本下载，不含安装报错的显卡驱动安装教程](https://blog.csdn.net/weixin_39928010/article/details/131142603)
 
+[Ubuntu22.04安装CUDA、cudnn详细步骤](https://blog.csdn.net/takedachia/article/details/130375718)
+
 [ubuntu cudnn 安装](https://blog.csdn.net/shanglianlm/article/details/130219640)
 
 ```bash

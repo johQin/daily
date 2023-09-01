@@ -355,4 +355,32 @@
 
    - 使用了lightdm 桌面管理器，导致锁屏命令变化；将原来的锁屏快捷键禁止，然后新建快捷键，命令设置为dm-tool lock 即可实现快捷键锁屏
 
-5. 
+5. [Ubuntu 息屏后无法唤醒](https://blog.csdn.net/qq_38429958/article/details/129525720)
+
+   - [参考2](https://blog.csdn.net/LSG_Down/article/details/127637032)
+
+   - ```bash
+     # 查看是否安装过这个工具
+     dpkg -l | grep laptop-mode-tools
+     sudo apt-get install laptop-mode-tools
+     
+     # 为2说明已开启，为0说明未开启
+     cat /proc/sys/vm/laptop_mode
+     
+     # 编辑laptop-mode的配置文件
+     sudo gedit /etc/laptop-mode/laptop-mode.conf
+     # 置以下参数为1
+     ENABLE_LAPTOP_MODE_ON_BATTERY=1
+     ENABLE_LAPTOP_MODE_ON_AC=1
+     ENABLE_LAPTOP_MODE_WHEN_LID_CLOSED=1
+     
+     # 使配置生效
+     sudo laptop_mode start
+     
+     # 为2 就开启了
+     cat  /proc/sys/vm/laptop_mode
+     ```
+
+   - 
+
+6. 
