@@ -48,7 +48,7 @@ ORM对象关系映射，实现了对象和数据库的映射，隐藏了数据�
 
 ```bash
 # 生成数据表
-
+python manage.py makemigrations
 ```
 
 
