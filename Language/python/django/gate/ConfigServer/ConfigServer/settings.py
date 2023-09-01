@@ -37,6 +37,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'example.apps.ExampleConfig',
+    # Config前的app name首字母要大写,如果app名存在下划线，那么下划线隔开的单词也要大写，
+    # eg：appName：first_app，那么就应该为FirstAppConfig
+    # 'Model.apps.ModelConfig'
+    'person_info.apps.PersonInfoConfig',
 ]
 
 MIDDLEWARE = [

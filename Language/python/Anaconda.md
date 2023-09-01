@@ -62,6 +62,20 @@ Sandboxie(又叫沙箱、沙盘)即是一个虚拟系统程序，它创造了一
 
 查看沙箱列表：conda info -e 或conda env list
 
+
+
+在ubuntu系统：
+
+```bash
+# 新建的沙箱存放的地址
+/home/用户名/.conda/envs/沙箱名
+# 各种包的源码
+/home/用户名/.conda/envs/沙箱名/lib/python3.9/site-packages
+# 也可以在pycharm Externel libraies查看路径
+```
+
+
+
 ### 0.2.1 新环境中使用jupyter
 
 **jupyter notebook的默认环境是base(root)**，当新建沙箱环境后，在新环境中安装tensorflow，然后在jupyter中使用（假设你在base(root)中没有安装tensorflow），在引入tensorflow时，是找不到tensorflow的，你必须将新环境注入到内核kernel中。
