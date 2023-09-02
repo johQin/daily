@@ -351,6 +351,8 @@
 
 3. [ubuntu之制作再生龙(Clonezilla)启动盘](https://blog.csdn.net/u014072827/article/details/114397807)
 
+   - [Clonezila备份Linux并恢复](https://blog.csdn.net/weixin_45444325/article/details/126307856)
+
 4. [ubuntu20.04下锁屏快捷键super+L不能用的解决方法](https://blog.csdn.net/chenertao/article/details/121510316)
 
    - 使用了lightdm 桌面管理器，导致锁屏命令变化；将原来的锁屏快捷键禁止，然后新建快捷键，命令设置为dm-tool lock 即可实现快捷键锁屏
