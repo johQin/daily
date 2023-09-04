@@ -138,6 +138,9 @@ __字体加粗__
 
 ~~删除线~~
 # 10.[公式](https://blog.csdn.net/mingzhuo_126/article/details/82722455)
+
+[markdown公式符号大全](https://blog.csdn.net/konglongdanfo1/article/details/85204312)
+
 "$$"+enter
 "{}"——为公式块
 
@@ -147,7 +150,9 @@ __字体加粗__
 
 
 $$
-x^2+y_1+\frac{1}{2}+\sqrt{2}+\log_{2}{8}+\vec{a}+\int_{1}^{2}{x}dx+\lim_{n\rightarrow+\infty}{\frac{1}{n}}+\sum_{n=1}^{100}{a_n}+\prod_{n=1}^{100}{x_n}\\\pi+\alpha+\beta+\gamma
+x^2+y_1+\frac{1}{2}+\sqrt{2}+\log_{2}{8}+\vec{a}+\int_{1}^{2}{x}dx+\lim_{n\rightarrow+\infty}{\frac{1}{n}}+\sum_{n=1}^{100}{a_n}+\prod_{n=1}^{100}{x_n}
+\\ \pi+\alpha+\beta+\gamma
+\\ x \in A
 $$
 $$
 \vec{a}  向量\\
@@ -170,6 +175,46 @@ x_t：&t时刻的特征向量
 h_t：&加softmax即可作为真正的输出，否则作为隐藏层
 \end{align}
 $$
+
+
+
+## [矩阵](https://www.jianshu.com/p/734c742c1331)
+
+$$
+\left[
+\begin{matrix}
+a & b & c & d  \\
+e & f & g & h  \\
+i & j & k & l  \\
+m & n & o & p
+\end{matrix}
+\right]
+\tag{2}
+$$
+
+
+$$
+\left(
+\begin{matrix}
+a & b & c & d  \\
+e & f & g & h  \\
+i & j & k & l  \\
+m & n & o & p
+\end{matrix}
+\right)
+\tag{3.1}
+$$
+
+$$
+A=\begin{pmatrix}
+a & b & \cdots & c  \\
+d & e & \cdots & f  \\
+\vdots & \vdots & \ddots & \vdots  \\
+g & h & \cdots & j
+\end{pmatrix}
+\tag{5.1}
+$$
+
 
 
 
