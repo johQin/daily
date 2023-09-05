@@ -1,4 +1,4 @@
-# 图像滤波
+# 图像低通滤波
 import cv2
 import numpy as np
 
@@ -15,7 +15,16 @@ kernel = np.ones((5, 5), np.float32) / 25     # 对每个5x5的区域，做一�
 
 # 高斯滤波
 # GaussianBlur(src,kernel,sigmaX,sigmaY)，sigma的偏差，高斯分布公式中的sigma
-res = cv2.GaussianBlur(img, (3, 3), sigmaX=1)
+# kernel 的所有权重之和为1，核中心的权重最大。
+# res = cv2.GaussianBlur(img, (3, 3), sigmaX=1)
+
+# 中值滤波
+# medianBlur(src, ksize)
+# res = cv2.medianBlur(img, 5)
+
+# 双边滤波
+# cv2.bilateralFilter(src,d,sigmaColor,sigmaSpace)  sigmaColor像素值域方差, sigmaSpace：空间域方差
+res = cv2.bilateralFilter(img, 7, 20, 50)
 
 cv2.imshow('img', img)
 cv2.imshow('res', res)
