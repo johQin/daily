@@ -62,7 +62,33 @@ OpenCV最重要的数据结构：Mat类表示的是一个n维的 稠密的 单�
 
 # 1 基本图像运算与处理
 
-### [仿射变换](https://blog.csdn.net/u011681952/article/details/98942207)
+## 1.1 矩阵基本运算
+
+```python
+cv2.add(offset,orgin) 
+cv2.subtract(orgin, offset) 
+
+cv2.multiply(a,b)
+cv2.divide(a,b)
+
+# 融合
+cv2.addWeighted(couple, 0.7, girl1, 0.3, 0)
+
+# 位运算
+cv2.bitwise_not(img)
+np.bitwise_and(img,img2)
+np.bitwise_or(img,img2)
+np.bitwise_xor(img,img2)
+
+# 
+cv2.resize(couple,(300,400),interpolation=cv2.INTER_NEAREST)
+cv2.flip(couple, -1)
+cv2.rotate(img, rotateCode)
+```
+
+
+
+## 1.2 [仿射变换](https://blog.csdn.net/u011681952/article/details/98942207)
 
 #### 仿射变换数学表达
 
@@ -139,11 +165,11 @@ getRotationMatrix2D( center, angle, scale )
 getAffineTransform(src,dst)
 ```
 
-### [透视变换](https://blog.csdn.net/bby1987/article/details/106317354)
+## 1.3 [透视变换](https://blog.csdn.net/bby1987/article/details/106317354)
 
 <img src="./legend/perspective.png" style="zoom:50%;" />
 
-### 图像滤波
+## 1.4 图像滤波
 
 一幅图像通过滤波器得到另一幅图像，其中滤波器又称卷积核，滤波的过程称为卷积
 
@@ -200,7 +226,7 @@ filter2D(src, ddepth, kernel, anchor, delta, borderType)
 - 开运算（先腐蚀，后膨胀）
 - 闭运算（先膨胀，后腐蚀）
 - 顶帽 （源图 - 开运算）
-- 黑帽（
+- 黑帽（源图 - 闭运算）
 
 这些是对二进制图像做处理的方法，也是一种卷积的做法。卷积核决定着图像处理后的效果
 
@@ -332,3 +358,25 @@ cv2.morphologyEx(gray, cv2.MORPH_BLACKHAT, kernel)
 # 3 轮廓
 
 具有相同**颜色**或**强度**的**连续点**的曲线
+
+图像轮廓的作用
+
+- 图形分析
+- 物体的识别与检测
+
+[findContours函数分析](https://blog.csdn.net/xfijun/article/details/117694917)
+
+```c++
+cv::findContours(InputOutputArray image, OutputArrayOfArrays contours, OutputArray hierarchy, int mode, int method, Point offset=Point());
+// image 二值图像
+// hierarchy表示轮廓的层次关系，对于第 i i i 条轮廓，hierarchy[i][0] , hierarchy[i][1] , hierarchy[i][2] , hierarchy[i][3]分别表示后一条轮廓、前一条轮廓、（同层次的第一个）子轮廓、父轮廓的索引（如果没有对应的索引，则为负数）。
+// method参数表示轮廓表示方法，一般采用CHAIN_APPROX_SIMPLE。对于矩形轮廓，只需要4个点来保存
+// mode 参数表示“轮廓检索模式（Contour retrieval mode）”，
+// 包含了RETR_LIST，RETR_EXTERNAL，RETR_CCOMP，RETR_TREE(从外到里，从右到左排序)四种模式
+// ApproximationMode 保存轮廓的模式，CHAIN_APPROX_NONE(保存轮廓上所有点)，，CHAIN_APPROX_SIMPLE（只保存角点）
+```
+
+## 3.2 多边形逼近和凸包
+
+<img src="./legend/多边形逼近和凸包.png" style="zoom:67%;" />
+
