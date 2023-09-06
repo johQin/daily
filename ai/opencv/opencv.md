@@ -621,7 +621,7 @@ Shi-Tomasi角点检测
 
 ## 5.2 特征检测
 
-SIFT（Scale-Invariant Featrue Transform，尺度不变特征检测）
+**SIFT**（Scale-Invariant Featrue Transform，尺度不变特征检测）
 
 - 图像在放大后，原来的角点，变得平滑，此时harris就有些拿捏不了
 - SIFT可以探测图像的关键点，并不单单是角点
@@ -629,14 +629,14 @@ SIFT（Scale-Invariant Featrue Transform，尺度不变特征检测）
 - 关键点中包含的信息：位置，大小和方向
 - 关键点描述子：记录了关键点周围对其有贡献的像素点的一组向量值，**其不受仿射变换，光照变换等影响**
 
-SURF（Speed-Up Robust Features，加速稳健特征）
+**SURF**（Speed-Up Robust Features，加速稳健特征）
 
 - SIFT最大的问题是速度慢，SURF保持了SIFT的优点，并且速度快
 - **SURF描述子**不仅具有尺度和旋转不变性，还具有**光照不变性**
 
 [因为版权问题，opencv-contrib-python 3.4以上的版本都不支持SIFT和SURF了，解决方案是切换到3.4的版本](https://blog.csdn.net/Iris6713/article/details/90696213)
 
-[ORB（Oriented FAST and Rotated BRIEF）](https://blog.csdn.net/qq_34493401/article/details/128371741)
+[**ORB**（Oriented FAST and Rotated BRIEF）](https://blog.csdn.net/qq_34493401/article/details/128371741)
 
 - Oriented FAST做特征检测（FAST是没有方向的，在FAST基础上加了Oriented方向）， Rotated BRIEF作描述子（BRIEF加快了特征描述建立速度， Rotated加了图像旋转）
 - 可以做到实时检测，ORB特征提取速度臂SURF快10倍,比SIFT快100倍。
