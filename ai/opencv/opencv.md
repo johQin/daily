@@ -307,6 +307,8 @@ cv2.destroyAllWindows()
 
 膨胀：卷积核的锚点对应的源像素点不为0，那就使源像素点周围的点都不为0
 
+膨胀的作用：将目标物上不连接的像素膨胀，然后去除目标身上的背景噪点。
+
 ```python
 cv2.dilate(gray, kernel, iterations=2)
 ```
@@ -364,6 +366,8 @@ cv2.morphologyEx(gray, cv2.MORPH_BLACKHAT, kernel)
 - 图形分析
 - 物体的识别与检测
 
+## 3.1 轮廓查找和绘制
+
 [findContours函数分析](https://blog.csdn.net/xfijun/article/details/117694917)
 
 ```c++
@@ -380,3 +384,234 @@ cv::findContours(InputOutputArray image, OutputArrayOfArrays contours, OutputArr
 
 <img src="./legend/多边形逼近和凸包.png" style="zoom:67%;" />
 
+```python
+import cv2
+import numpy as np
+
+# img = cv2.imread('../data/contours.png')
+img = cv2.imread('../data/多边形逼近和凸包.jpg')
+fil = cv2.bilateralFilter(img, 7, 20, 50)
+# 将源图转为灰度图
+gray = cv2.cvtColor(fil, cv2.COLOR_BGR2GRAY)
+# 二值化
+ret, binImg = cv2.threshold(gray,180,255,cv2.THRESH_BINARY)
+# 查找轮廓
+contours, hierarchy = cv2.findContours(binImg,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+# 绘制轮廓
+res = cv2.drawContours(img, contours, -1, (0, 0, 255), 1)
+# contourIdx, -1 表示绘制最外层的轮廓
+# thickness，线宽，-1表示填充
+
+# 轮廓面积
+area = cv2.contourArea(contours[0])
+print(area)
+
+# 轮廓周长
+lens = cv2.arcLength(contours[0], True)    # close是否是闭合的轮廓
+print(lens)
+
+def drawShape(src, points):
+    i = 0
+    while i < len(points):
+        x, y = points[i]
+        if i + 1 == len(points):
+            x1,y1 = points[0]
+        else:
+            x1,y1 = points[i+1]
+        cv2.line(src,(x,y),(x1,y1), (0,255,0), 2)
+        i = i + 1
+
+# 多边形逼近
+# approxPolyDP(curve,epsilon,closed)，curve轮廓，closed是否需要闭合
+# epsilon 描点精度
+approx = cv2.approxPolyDP(contours[0], epsilon=20, closed=True)
+approxRSP = approx.reshape(approx.shape[0],approx.shape[2])
+drawShape(img, approxRSP)
+
+# 凸包
+# convexHull(points,clockwise)
+hull = cv2.convexHull(contours[0])
+hullRSP = hull.reshape(hull.shape[0], hull.shape[2])
+drawShape(img, hullRSP)
+
+
+
+cv2.imshow('img', img)
+
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+```
+
+
+
+## 3.3 外接矩形
+
+```python
+import cv2
+import numpy as np
+
+img = cv2.imread('../data/rect.png')
+fil = cv2.bilateralFilter(img, 7, 20, 50)
+# 将源图转为灰度图
+gray = cv2.cvtColor(fil, cv2.COLOR_BGR2GRAY)
+# 二值化
+ret, binImg = cv2.threshold(gray, 180, 255, cv2.THRESH_BINARY)
+contours, hierarchy = cv2.findContours(binImg,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+
+# 最小外接矩形
+# RotatedRect = cv2.minAreaRect(points)
+# RotatedRect：x,y,width,height,angle
+mr = cv2.minAreaRect(contours[1])
+box = cv2.boxPoints(mr)
+box = np.int0(box)
+cv2.drawContours(img,[box], 0, (0,0,255),2)
+
+
+# 最大外接矩形
+# Rect= cv2.boundingRect(array)
+# Rect：x,y,width,height
+x,y,w,h = cv2.boundingRect(contours[1])
+cv2.rectangle(img, (x, y), (x + w, y + h), (255,0,0), 2)
+
+
+
+cv2.imshow('img', img)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+```
+
+# 4 实战车辆统计
+
+1. 加载视频
+2. 形态学识别车辆
+3. 对车辆进行统计
+4. 显示车辆统计信息
+
+```python
+import cv2
+import numpy as np
+
+cv2.namedWindow('video', cv2.WINDOW_NORMAL)
+cap = cv2.VideoCapture('../data/vehicle.mp4')
+
+min_w = 90
+min_h = 90
+# 检测线距离上方的距离
+lineTop = 550   # 视频的分辨率是1280*720
+# 检测线检测高度检测区间（高度偏移量）
+lineOffset = 7
+
+# 车辆统计数
+carcount = 0
+
+# 这个库在扩展包里，pip install opencv-contrib-python，记得先安装opencv，再安装这个扩展包，版本才能匹配
+# 去背景，在时间维度上，多帧图像是静止的事物一般是静止的，有论文可查看
+bgsubmog = cv2.bgsegm.createBackgroundSubtractorMOG()
+
+kernel =  cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
+
+
+def center(x,y,w,h):
+    return x + int(w/2), y + int(h/2)
+while cap.isOpened():
+
+    status, frame = cap.read()
+
+    if status:
+        # 灰度
+        cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
+        # 去噪
+        blur = cv2.GaussianBlur(frame, (3,3), 5)
+        # 去背景
+        mask = bgsubmog.apply(blur)
+        # 腐蚀，去除背景中的白色噪点，比如说晃动的树和草
+        erode = cv2.erode(mask, kernel)
+        # 膨胀，去除目标上的黑色背景噪点
+        dilate = cv2.dilate(erode, kernel, iterations=3)
+        # 闭操作，去掉物体内部的小块，将整个目标连接成一个大目标（内部没有块）
+        close = cv2.morphologyEx(dilate, cv2.MORPH_CLOSE, kernel)
+        close = cv2.morphologyEx(close, cv2.MORPH_CLOSE, kernel)
+
+        # 查找轮廓
+        contours, h = cv2.findContours(close,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+        # 画一条检测线
+        cv2.line(frame, (100, lineTop), (1180, lineTop), (255, 255, 0), 2)
+        # 存放当前帧有效车辆的数组
+        cars = []
+        for (i,c) in enumerate(contours):
+            (x, y, w, h) = cv2.boundingRect(c)
+
+            # 通过宽高判断是否是有效的车辆
+            isValidVehicle = w >= min_w and h >= min_h
+            # 如果不是有效的车辆，直接跳过
+            if not isValidVehicle:
+                continue
+
+            # 绘制车辆的方框
+            cv2.rectangle(frame, (x,y), (x+w,y+h),(0,0,255),2)
+
+            # 求车辆的几何中心点
+            pc = center(x, y, w, h)
+
+            cars.append(pc)
+            #车辆的几何中心在检测线上下lineOffset的范围内将会被统计
+            for (x,y) in cars:
+                if y >= lineTop - lineOffset and y <= lineTop + lineOffset:
+                    carcount += 1
+                    print(carcount)
+
+        cv2.putText(frame, "Cars Count:{}".format(carcount),(500,60),cv2.FONT_HERSHEY_SIMPLEX, 2, (255,0,0), 5)
+        cv2.imshow('video', frame)
+    else:
+        break
+
+    key = cv2.waitKey(10)    # 等待 n ms，这里可以通过ffprobe 去探测视频的帧数，以调整waitkey的时间，让视频不过快或过慢
+    if key & 0xFF == ord('q'):
+        break
+
+
+cap.release()
+cv2.destroyAllWindows()
+```
+
+# 5 特征检测
+
+场景：
+
+1. 图像搜索，以图搜图，提取图的特征点
+2. 拼图游戏
+3. 图像拼接，全景图像
+
+拼图方法
+
+1. 寻找特征
+2. 特征是唯一的
+3. 可追踪的
+4. 能比较的
+
+总结：
+
+1. 平坦部分很难找到它在图中的对应位置
+2. 边缘相对来说要好找一些
+3. 角点可以一下就确定其位置
+
+图像特征是指有意义的图像区域，具有独特性，易于识别性。
+
+在特征中最重要的是**角点**
+
+- 一般是灰度梯度的最大值对应的像素
+- 两条线的交点
+- 极值点（一阶导数,二阶导数）
+
+![](./legend/角点检测原理.png)
+
+harris角点检测
+
+1. 光滑区域，无论向哪里移动，衡量窗口不变
+2. 边缘区域，垂直边缘移动时，衡量窗口变化剧烈
+3. 在交点区域，往哪个方向移动，衡量窗口都变化剧烈
+
+Shi-Tomasi角点检测
+
+- Shi-Tomasi是harris的改进，harris的稳定性和k相关，k值不好设定为最佳值
+- 

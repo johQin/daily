@@ -20,8 +20,8 @@ area = cv2.contourArea(contours[0])
 print(area)
 
 # 轮廓周长
-len = cv2.arcLength(contours[0], True)    # close是否是闭合的轮廓
-print(len)
+lens = cv2.arcLength(contours[0], True)    # close是否是闭合的轮廓
+print(lens)
 
 def drawShape(src, points):
     i = 0
@@ -33,20 +33,23 @@ def drawShape(src, points):
             x1,y1 = points[i+1]
         cv2.line(src,(x,y),(x1,y1), (0,255,0), 2)
         i = i + 1
+
 # 多边形逼近
 # approxPolyDP(curve,epsilon,closed)，curve轮廓，closed是否需要闭合
 # epsilon 描点精度
 approx = cv2.approxPolyDP(contours[0], epsilon=20, closed=True)
-print(approx.shape)
-n = np.array((approx.shape[0],approx.shape[2]))
-print(n)
-# drawShape(img,approx)
-#
-# # 凸包
-# # convexHull(points,clockwise)
-# cv2.convexHull(points,clockwise)
+approxRSP = approx.reshape(approx.shape[0],approx.shape[2])
+drawShape(img, approxRSP)
 
-# cv2.imshow('img', img)
+# 凸包
+# convexHull(points,clockwise)
+hull = cv2.convexHull(contours[0])
+hullRSP = hull.reshape(hull.shape[0], hull.shape[2])
+drawShape(img, hullRSP)
+
+
+
+cv2.imshow('img', img)
 
 cv2.waitKey(0)
 cv2.destroyAllWindows()

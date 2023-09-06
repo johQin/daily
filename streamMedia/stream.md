@@ -665,6 +665,18 @@ http://www.ffmpeg.org/ffmpeg-filters.html
 - ```bash
   ffprobe -h
   ffprobe [OPTIONS] [INPUT_FILE]
+  
+  # 获取以下信息
+  # 命令行：https://blog.csdn.net/Smallwhitestrive/article/details/128145693
+  # python：https://blog.csdn.net/lulongfei172006/article/details/106463526
+  # 帧率
+  ffprobe -v error -select_streams v -show_entries stream=r_frame_rate -of json vehicle.mp4
+  # 总帧数
+  ffprobe -v error -select_streams v -show_entries stream=nb_frames -of json vehicle.mp4
+  # 时长
+  ffprobe -show_entries format=duration -v quiet -of csv="p=0" vehicle.mp4
+  # 分辨率
+  ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of json vehicle.mp4
   ```
 
 
