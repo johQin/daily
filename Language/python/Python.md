@@ -1558,6 +1558,27 @@ time模块主要包含各种提供日期、时间功能的类和函数。该模�
 
 2. 
 
+## 10.4 typing
+
+typing 是在 python 3.5 才有的模块
+
+```python
+from typing import Union
+va: Union[int, str]
+va = 1
+va = '124'
+va = []		# 报错
+
+vars: Union[int, str]
+# 等价于
+vars: [int or str]
+
+
+vars: Union[int]
+# 等价于
+vars: int
+```
+
 
 
 # 12 文件I/O
