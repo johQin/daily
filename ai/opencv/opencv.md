@@ -480,7 +480,7 @@ cv2.waitKey(0)
 cv2.destroyAllWindows()
 ```
 
-# 4 实战车辆统计
+## 3.4 实战车辆统计
 
 1. 加载视频
 2. 形态学识别车辆
@@ -641,3 +641,59 @@ Shi-Tomasi角点检测
 - Oriented FAST做特征检测（FAST是没有方向的，在FAST基础上加了Oriented方向）， Rotated BRIEF作描述子（BRIEF加快了特征描述建立速度， Rotated加了图像旋转）
 - 可以做到实时检测，ORB特征提取速度臂SURF快10倍,比SIFT快100倍。
 - ORF能做到实时性，还是放弃了一些特征点的
+
+## 5.3 特征匹配
+
+BF（Brute-Force，暴力特征匹配）
+
+- 使用第一组中的每个特征描述子与第二组中所有的特征描述子进行匹配
+- 然后将描述子差距最小的一个返回，如此，直到第一组的所有特征描述子都被匹配为止
+
+FLANN（Fast Library for Approximate Nearest Neighbors，最快邻近区特征匹配）
+
+- 优点速度快，但它使用的是邻近近似值，所以精度较差，
+- 如果要做精确匹配的化还是要使用暴力匹配，而如果有批量操作还需要flann
+
+
+
+暴力特征匹配步骤：
+
+1. 创建匹配器，`BFMatcher(normalType, crossCheck)`
+   - normalType：NORM_L1, NORM_L2, HAMMING1
+     - NORM的两个类型，用于SIFT，SURF。HAMMING用于ORB
+     - NORM_L1取描述子的绝对值做加法运算，NORM_L2取欧式距离。
+   - crossCheck，交叉匹配，互换身份：匹配与被匹配项
+2. 特征匹配，`bf.match(desc1, desc2)`
+3. 绘制匹配点, `cv2.drawMatches(img1,kp1,img2,kp2...)`
+
+![](./legend/特征匹配.png)
+
+FLANN特征匹配步骤
+
+1. 创建FLANN匹配器：`FlannBasedMatcher(index_params,...)`
+   - `index_params`：匹配算法KDTREE(用于SIFT，SURF)，LSH（用于ORB）
+   - `search_params`：如果index_params指定的是KDTREE，需要填写该参数，代表遍历树的次数。
+   - 一般：
+     - `index_params = dict(algorithm = FLANN_INDEX_KETREE, trees = 5)`
+     -  `search_params = dict(checks=50) `
+2. 进行特征匹配：`flann.match/knnMatch(...)`
+   - `DMatch dm = knnMatch(desc,k)`，desc描述子，k表示取欧式距离最近的前k个关键点，返回DMatch 对象
+   - DMatch中包含，distance描述子之间的空间距离，queryIdx一个图像的描述子索引值，trainIdx第二个图的描述子索引值，imgIdx第二个图的索引值
+3. 绘制匹配点：`cv2.drawMatches/drawMatchesKnn(...)`
+   - match特征匹配的需要drawMatch来绘制，而knnMatch需要drawMatchesKnn绘制
+   - drawMatchesKnn参数，搜索img，kp。匹配图img，kp，match方法返回的匹配结果
+4. 
+
+## 5.4 单应性矩阵
+
+单应性被定义为图像的两个平面投影之间的映射（这个矩阵就是一个映射关系，映射操作，一种变换）。如下图的H。
+
+如原图经过一个单应性映射，可以将原图转换为一个透视图
+
+![](./legend/单应性矩阵.png)
+
+<img src="./legend/单应性矩阵的应用.png" style="zoom: 67%;" />
+
+**应用场景**：
+
+- 手势识别，对着摄像头作ok手势，然后识别出对应的特征的匹配，然后考生开始作答，考试时间开始计时
