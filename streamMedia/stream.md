@@ -172,19 +172,23 @@ ffmpeg -encoders | findstr x264
 
 ```bash
 主要参数：
-◼ -i 设定输入流
+◼ -i 指定输入流，输入文件
 ◼ -f 设定输出格式(format)
 ◼ -ss 开始时间
 ◼ -t 时间长度
+◼ -y：不经过确认，输出时直接覆盖同名文件
 
 
 ◼ 视频参数：
 ◼ -vframes 设置要输出的视频帧数
 ◼ -b 设定视频码率
 ◼ -b:v 视频码率
+◼ -c codec：指定解码器
+◼ -c:a 指定音频的编码器
+◼ -c:v 指定视频的编码器
 ◼ -r 设定帧速率
 ◼ -s 设定画面的宽与高
-◼ -vn 不处理视频
+◼ -vn 去除视频流
 ◼ -aspect aspect 设置横纵比 4:3 16:9 或 1.3333 1.7777
 ◼ -vcodec 设定视频编解码器，如果用copy表示原始编解码数据必须被拷贝。
 ◼ -vf 视频过滤器
@@ -197,7 +201,7 @@ ffmpeg -i test.mp4 -vframes 300 -b:v 300k -r 30 -s 640x480 -aspect 16:9 -vcodec 
 ◼ -ar 设定采样率
 ◼ -ac 设定声音的Channel数
 ◼ -acodec 设定声音编解码器，如果用copy表示原始编解码数据必须被拷贝。
-◼ -an 不处理音频
+◼ -an 去除音频流
 ◼ -af 音频过滤器
 
 ffmpeg -i test.mp4 -b:a 192k -ar 48000 -ac 2 -acodec libmp3lame -aframes 200 out2.mp3
@@ -2877,7 +2881,8 @@ ffmpeg -re -i "/path/to/test.mp4" -vcodec h265 -acodec aac -f rtp_mpegts rtp://1
 # 点播，先上传文件，再通过http协议拉取
 # 上传文件到
 ZLMediaKit/release/linux/Debug/www/record
-
+# 访问，即可看到点播的内容
+http://127.0.0.1:80/record/transport.mp4
 ```
 
 ## 7.2 RTP协议

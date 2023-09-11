@@ -5,12 +5,12 @@ cv2.resizeWindow('video', 640, 480)
 # 获取捕获对象
 
 # 获取摄像头
-# cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(0)
 # cv2.VideoCapture(camera_id)
 # 其默认值为-1，表示随机选取一个摄像头；如果有多个摄像头，则用数字“0”表示第1个摄像头，用数字“1”表示第2个摄像头，以此类推。
 
 # 获取视频文件
-cap = cv2.VideoCapture('../data/transport.flv')
+# cap = cv2.VideoCapture('../data/transport.flv')
 # cv2.VideoCapture("file_name")
 # 读取视频文件
 

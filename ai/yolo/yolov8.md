@@ -5,6 +5,8 @@
 ## 数据集下载
 
 ```bash
+# 在yolov8 中可以使用yolov5的标记
+
 # coco128，从train2017随即选取的128张图片
 https://github.com/ultralytics/yolov5/releases/download/v1.0/coco128.zip
 
@@ -207,34 +209,31 @@ tracker: botsort.yaml  # (str) tracker type, choices=[botsort.yaml, bytetrack.ya
 
 在项目的根目录创建detect.py，下载官方的预置权重。可以不使用自己训练过后的权重。
 
+### 推理单张图片文件
+
 ```python
 import cv2
 from ultralytics import YOLO
 
 # Load the YOLOv8 model
 model = YOLO('./weights/yolov8m.pt')
-
-# 统计每帧中的对象
-def tongjiFrame(pred_boxes,names):
-    objList = []
-    obj = {}
-    for d in reversed(pred_boxes):
-        c, conf, id = int(d.cls), float(d.conf), None if d.id is None else int(d.id.item())
-        name = ('' if id is None else f'id:{id} ') + names[c]
-        if name not in obj:
-            obj[name] = 0
-        obj[name] += 1
-        objList.append({'name': name, 'poss': f'{conf:.2f}'})
-    # print('你好：', obj)
-    return obj, objList
-
 # 推理图片
-# img = cv2.imread('./dataset/person.png')
-# results = model(img)
-# tongjiFrame(results[0].boxes, results[0].names)
-# annotated_frame = results[0].plot()
-# cv2.imshow("YOLOv8 Inference", annotated_frame)
-# cv2.waitKey(0)
+img = cv2.imread('./dataset/person.png')
+results = model(img)
+annotated_frame = results[0].plot()
+cv2.imshow("YOLOv8 Inference", annotated_frame)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+```
+
+### 推理视频文件
+
+```python
+import cv2
+from ultralytics import YOLO
+
+# Load the YOLOv8 model
+model = YOLO('./weights/yolov8m.pt')
 
 # 推理视频
 video_path = "./datasets/transport.mp4"
@@ -260,6 +259,213 @@ cap.release()
 
 cv2.destroyAllWindows()
 ```
+
+### 推理摄像头
+
+#### 检测摄像头
+
+```bash
+# 插入和拔出usb摄像头设备，查看列表中的项目是否发生变化
+ls /dev/video*
+#eg:/dev/video0  /dev/video1
+
+# 查看通信接口中是否有camera的设备
+lspci | grep -i camera
+lsusb | grep -i camera	# 查看usb接口中是否有camera设备
+# eg: Bus 003 Device 023: ID 0ac8:3330 Z-Star Microelectronics Corp. Sirius USB2.0 Camera
+```
+
+
+
+[yolo推流；将yolo识别的内容传入到前端； opencv拉流推流,rtmp+nginx拉推流,http-flv+nginx拉推流](https://blog.csdn.net/qq_41580422/article/details/116868313)
+
+#### 推RSTP流
+
+```python
+import cv2
+from ultralytics import YOLO
+import subprocess
+
+model = YOLO('/home/buntu/gitRepository/ultralytics/runs/detect/train/weights/best.pt')
+
+# 读取第0个摄像头
+cap = cv2.VideoCapture(0)
+
+rtsp = "rtsp://127.0.0.1/live/test"
+size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+sizeStr = str(size[0]) + 'x' + str(size[1])
+fps = int(cap.get(cv2.CAP_PROP_FPS)) % 100
+
+command = ['ffmpeg',
+           '-y', '-an',
+           '-re',
+           '-f', 'rawvideo',
+           '-pix_fmt', 'bgr24',
+           '-s', sizeStr,
+           '-r', str(fps),
+           '-i', '-',
+           '-c:v','libx264',
+           '-g', '1',
+           '-maxrate:v', '6M',
+           '-minrate:v', '2M',
+           '-bufsize:v', '4M',
+           '-pix_fmt','yuv420p',
+           # '-profile:v','high444',
+           '-preset','fast',#'ultrafast',# 'superfast',
+           '-tune', 'zerolatency',
+           # '-b:v', '4M',
+           '-f', 'rtsp',
+            rtsp]
+pipe = subprocess.Popen(command, shell=False, stdin=subprocess.PIPE)
+
+while cap.isOpened():
+
+    success, frame = cap.read()
+    if success:
+
+        results = model(frame)
+        # 检测，标记
+        annotated_frame, objList = results[0].plot()
+		
+        # 推流
+        pipe.stdin.write(annotated_frame.tobytes())
+        if cv2.waitKey(10) & 0xFF == ord("q"):
+            break
+    else:
+        break
+
+cap.release()
+pipe.terminate()
+cv2.destroyAllWindows()
+```
+
+#### 推RTMP流
+
+```python
+# 把对应的位置替换掉
+rtmp = "rtmp://127.0.0.1/live/test"
+command = ['ffmpeg',
+     '-y', '-an',
+     '-f', 'rawvideo',
+     '-vcodec','rawvideo',
+     '-pix_fmt', 'bgr24',
+     '-s', sizeStr,
+     '-r', '25',
+     '-i', '-',
+     '-c:v', 'libx264',
+     '-pix_fmt', 'yuv420p',
+     '-preset', 'ultrafast',
+     '-f', 'flv',
+     rtmp]
+```
+
+### 推理RTSP流
+
+```python
+...
+rtsp = "rtsp://127.0.0.1/live/test"
+cap = cv2.VideoCapture(rtsp)
+...
+```
+
+### 统计图中的目标
+
+```python
+import cv2
+from ultralytics import YOLO
+
+# Load the YOLOv8 model
+model = YOLO('./weights/yolov8m.pt')
+
+# 统计图中检测到的对象
+def tongjiFrame(pred_boxes,names):
+    objList = []
+    obj = {}
+    for d in reversed(pred_boxes):
+        c, conf, id = int(d.cls), float(d.conf), None if d.id is None else int(d.id.item())
+        name = ('' if id is None else f'id:{id} ') + names[c]
+        if name not in obj:
+            obj[name] = 0
+        obj[name] += 1
+        objList.append({'name': name, 'poss': f'{conf:.2f}'})
+    # print('你好：', obj)
+    return obj, objList
+
+# 推理图片
+img = cv2.imread('./dataset/person.png')
+results = model(img)
+
+# 统计目标
+tongjiFrame(results[0].boxes, results[0].names)
+
+annotated_frame = results[0].plot()
+cv2.imshow("YOLOv8 Inference", annotated_frame)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+```
+
+### 只标记需要标记的目标
+
+修改：`ultralytics/ultralytics/engine/results.py`的`plot()`函数
+
+添加一个参数：`needLabel`
+
+[参考yolov5的修改](https://blog.csdn.net/frcbob/article/details/123440979)
+
+
+
+```python
+    def plot(
+            self,
+            conf=True,
+            line_width=None,
+            font_size=None,
+            font='Arial.ttf',
+            pil=False,
+            img=None,
+            im_gpu=None,
+            kpt_radius=5,
+            kpt_line=True,
+            labels=True,
+            boxes=True,
+            masks=True,
+            probs=True,
+            needLabel=(),     # hello，这里需要加一个needLabel参数
+            **kwargs
+    ):
+    ...
+            if pred_boxes and show_boxes:
+
+                for d in reversed(pred_boxes):
+                    c, conf, id = int(d.cls), float(d.conf) if conf else None, None if d.id is None else int(d.id.item())
+
+                    name = ('' if id is None else f'id:{id} ') + names[c]
+                    label = (f'{name} {conf:.2f}' if conf else name) if labels else None
+                    objList.append({'name': name, 'poss': f'{conf:.2f}'})
+                    
+                    # 在这里做判断
+                    # 当needLabel长度为0时，所有目标都标记
+                    # 当needLabel长度大于0时，就判断当前目标是否在需要标记的数组里
+                    if (len(needLabel) == 0 ) or ((len(needLabel) > 0) and (name in needLabel) ):
+                        annotator.box_label(d.xyxy.squeeze(), label, color=colors(c, True))
+                    # annotator.box_label(d.xyxy.squeeze(), label, color=colors(c, True))       # hello
+    ...
+```
+
+在使用的时候
+
+```python
+...
+results = model(frame)
+annotated_frame, objList = results[0].plot(needLabel=('person'))        # 只标记person这一类
+...
+```
+
+### 只检测特定的类
+
+[yolov5只检测单一类别或者特定的类](https://blog.csdn.net/BruceBorgia/article/details/123103804)
+
+[yolov5 设置只检测某几个固定的类](https://blog.csdn.net/weixin_46034990/article/details/124755321)
 
 # 数据集
 

@@ -385,4 +385,18 @@
 
    - 
 
-6. 
+6. 读取探测电脑摄像头设备
+
+   ```bash
+   # 插入和拔出usb摄像头设备，查看列表中的项目是否发生变化
+   ls /dev/video*
+   /dev/video0  /dev/video1
+   # 查看通信接口中是否有camera的设备
+   lspci | grep -i camera
+   lsusb | grep -i camera	# 查看usb接口中是否有camera设备
+   # eg: Bus 003 Device 023: ID 0ac8:3330 Z-Star Microelectronics Corp. Sirius USB2.0 Camera
+   
+   ```
+
+   - [用vlc进行摄像头捕获](https://blog.csdn.net/yanlong22/article/details/80265138)
+   - [VLC无法打开摄像头](https://superuser.com/questions/1388147/vlc-is-unable-to-open-the-mrl-file-dev-video0-check-the-log-for-details)

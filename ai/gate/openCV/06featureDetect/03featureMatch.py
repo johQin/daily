@@ -30,14 +30,24 @@ good = []
 for i,(m,n) in enumerate(matches):
     if m.distance < 0.7 * n.distance:
         good.append(m)
-img3 = cv2.drawMatchesKnn(img1,kp1,img2,kp2,[good], None)
+# img3 = cv2.drawMatchesKnn(img1,kp1,img2,kp2,[good], None)
 
 
 #
 if len(good)>4:
     srcPts = np.float32([kp1[m.queryIdx].pt for m in good]).reshape(-1,1,2)
     dstPts = np.float32([kp2[m.queryIdx].pt for m in good]).reshape(-1,1,2)
-    H,_ = cv2.findHomography(srcPts,dstPts)
+
+    # 从两张图片中，查找计算单应性矩阵
+    H,_ = cv2.findHomography(srcPts,dstPts,cv2.RANSAC,5.0)
+    h,w = img1.shape[:2]
+    pts = np.float32([[0,0], [0,h-1],[w-1,h-1], [w-1,0]]).reshape(-1,1,2)
+    dst = cv2.perspectiveTransform(pts,H)
+
+    cv2.polylines(img2,[np.int32(dst)],True,(0,0,255))
+
+img3 = cv2.drawMatchesKnn(img1, kp1, img2, kp2, [good], None)
+
 
 cv2.imshow('imge3', img3)
 cv2.waitKey(0)
