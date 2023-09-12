@@ -281,6 +281,8 @@ lsusb | grep -i camera	# 查看usb接口中是否有camera设备
 
 #### 推RSTP流
 
+[使用opencv读取rtsp流的图片帧进行目标检测，并将处理好的图像推到rtsp服务器上](https://blog.csdn.net/weixin_42030297/article/details/119676409)
+
 ```python
 import cv2
 from ultralytics import YOLO
@@ -466,6 +468,71 @@ annotated_frame, objList = results[0].plot(needLabel=('person'))        # 只标
 [yolov5只检测单一类别或者特定的类](https://blog.csdn.net/BruceBorgia/article/details/123103804)
 
 [yolov5 设置只检测某几个固定的类](https://blog.csdn.net/weixin_46034990/article/details/124755321)
+
+### 视频帧抽样推理
+
+[视频帧抽样](https://blog.csdn.net/David_jiahuan/article/details/105550791)
+
+#### 间隔帧数抽样
+
+```python
+import cv2
+from ultralytics import YOLO
+
+# Load the YOLOv8 model
+model = YOLO('./weights/yolov8m.pt')
+
+# 推理视频
+video_path = "./datasets/transport.mp4"
+cap = cv2.VideoCapture(video_path)
+
+frameRate = 100  # 帧数截取间隔（每隔100帧截取一帧）
+c = 1
+
+while cap.isOpened():
+    success, frame = cap.read()
+    if success:
+        if(c % frameRate == 0):
+            results = model(frame)
+            annotated_frame = results[0].plot()
+            cv2.imshow("YOLOv8 Inference", annotated_frame)、
+            c = 0
+    	c += 1
+        if cv2.waitKey(5) & 0xFF == ord("q"):
+            break
+    else:
+        break
+        
+cap.release()
+cv2.destroyAllWindows()
+```
+
+#### 间隔时间抽样
+
+```python
+...
+span = 10 # 间隔10s
+fps = int(cap.get(cv2.CAP_PROP_FPS)) % 100 		# 帧率为30，每秒30帧
+frameRate = fps * span		# 10 * 30，10秒中间隔了300帧
+...
+if success:
+        if(c % frameRate == 0):
+            results = model(frame)
+            annotated_frame = results[0].plot()
+            cv2.imshow("YOLOv8 Inference", annotated_frame)
+    	c += 1
+        if cv2.waitKey(5) & 0xFF == ord("q"):
+            break
+    else:
+        break
+...
+```
+
+
+
+## 部署
+
+**model.export(format='onnx', dynamic=True)**
 
 # 数据集
 

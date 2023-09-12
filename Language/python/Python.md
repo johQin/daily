@@ -785,6 +785,7 @@ class People(object):
 class Fib(object):
     def __init__(self):
         pass
+    # 对象被当作函数一样被调用时，会触发此函数
     def __call__(self,num):
         a,b = 0,1;
         self.l=[]
@@ -1577,6 +1578,12 @@ vars: [int or str]
 vars: Union[int]
 # 等价于
 vars: int
+```
+
+## 10.5 [pathlib](https://www.cnblogs.com/liguanzhen/p/8974505.html)
+
+```python
+from pathlib import Path
 ```
 
 
