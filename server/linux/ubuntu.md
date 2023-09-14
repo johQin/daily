@@ -400,3 +400,44 @@
 
    - [用vlc进行摄像头捕获](https://blog.csdn.net/yanlong22/article/details/80265138)
    - [VLC无法打开摄像头](https://superuser.com/questions/1388147/vlc-is-unable-to-open-the-mrl-file-dev-video0-check-the-log-for-details)
+
+7. 添加环境变量
+
+   ```bash
+   vim ~/.bashrc
+   
+   # 函数
+   pathmunge () {
+       case ":${PATH}:" in
+           *:"$1":*)
+               ;;
+           *)
+               if [ "$2" = "after" ] ; then
+                   PATH=$PATH:$1
+               else
+                   PATH=$1:$PATH
+               fi
+       esac
+   }
+   pathmunge /usr/local/nginx/sbin
+   export PATH
+   
+   # 需要下面的命令使文件生效
+   source ~/.bashrc
+   
+   # 环境变量去重
+   # 添加新的变量数值到原有的 PATH 变量中
+   export PATH=$PATH:$JAVA_HOME/bin:$JRE_HOME/bin
+   # 剔除 PATH 变量中重复的项（值），以下表达式二选一
+   export PATH=$(echo $PATH | sed 's/:/\n/g' | sort -u | sed '/^$/d' | tr -s '\n' ':' | sed 's/:$//g')
+   export PATH=$(echo $PATH | sed 's/:/\n/g' | sort | uniq | sed '/^$/d' | tr -s '\n' ':' | sed 's/:$//g')
+   ```
+
+   
+
+8. 
+
+
+
+
+

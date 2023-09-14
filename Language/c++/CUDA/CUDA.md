@@ -11,9 +11,158 @@ lspci | grep -i vga
 
 ## 0.1 安装问题纪实
 
+### 0.1.1 tensorRT提醒
+
+#### [tar包安装](https://blog.csdn.net/zong596568821xp/article/details/86077553)
+
+选择tar包 [TensorRT 8.6 GA for Linux x86_64 and CUDA 12.0 and 12.1 TAR Package](https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/secure/8.6.1/tars/TensorRT-8.6.1.6.Linux.x86_64-gnu.cuda-12.0.tar.gz) 下载
+
+**推荐**
+
+```bash
+# 解压
+tar xzvf TensorRT-8.6.1.6.Linux.x86_64-gnu.cuda-12.0.tar.gz
+
+cd TensorRT-8.6.1.6.Linux.x86_64-gnu.cuda-12.0/TensorRT-8.6.1.6
+
+# TensorRT路径下，将头文件和库放到指定位置，方便在程序中引入
+sudo cp -r ./lib/* /usr/lib
+sudo cp -r ./include/* /usr/include
+```
+
+
+
+#### deb安装
+
+**最麻烦**
+
+首先考虑需不需要安装**tensorRT**，如果要安装，在官网下载的tensorRT安装包大多是deb的，如果要安装通过deb的方式安装tensorRT，那么cuda也需要通过deb安装。所以尽量通过deb的方式安装所有东西。
+
+由于如果要通过deb安装cuda，而deb的cuda安装方式，不支持剔除nvidia驱动安装，所以此时无需提前安装nvidia驱动。否则来回覆盖安装会有问题。
+
+[tensorRT安装踩坑](https://blog.csdn.net/ws18921818762/article/details/103006076)
+
+[ubuntu 20.04 环境下安装CUDA 11.8, cuDNN v8.6.0和TensorRT 8.6.0（deb方式）](https://blog.csdn.net/shanglianlm/article/details/130219640)
+
+[ubuntu完全卸载CUDA](https://blog.csdn.net/weixin_44711603/article/details/110233047)，[Ubuntu卸载cuda、cudnn的方法](https://blog.csdn.net/Williamcsj/article/details/123514435)
+
+```bash
+sudo dpkg -i nv-tensorrt-local-repo-ubuntu2204-8.6.1-cuda-12.0_1.0-1_amd64.deb
+sudo cp /var/nv-tensorrt-local-repo-ubuntu2204-8.6.1-cuda-12.0/*-keyring.gpg /usr/share/keyrings/
+sudo apt-get update
+# 安装 tensorrt
+sudo apt-get install tensorrt
+# 如果使用 Python
+sudo apt-get install python3-libnvinfer-dev
+# 如果转换 onnx 模型
+sudo apt-get install onnx-graphsurgeon
+# 如果转换 TensorFlow 模型
+sudo apt-get install uff-converter-tf
+
+
+# 安装位置
+# 头文件
+/usr/include/x86_64-linux-gnu
+# 库
+/usr/lib/x86_64-linux-gnu
+# libnvinfer开头的
+```
+
+
+
+### 0.1.2 通过run安装显卡驱动
+
 [nvidia 显卡驱动 安装最顺的教程](https://zhuanlan.zhihu.com/p/302692454)，推荐查看
 
 - [配合食用：Ubuntu18.04 显卡驱动安装教程(解决各种疑难杂症)](https://zhuanlan.zhihu.com/p/463656273)
+
+```bash
+sudo ./NVIDIA-Linux-x86_64-xxx.run -no-x-check -no-nouveau-check -no-opengl-files
+
+# 查看是否安装成功
+nvidia-smi
+
+# 安装过程中的问题
+
+1. Error: the distribution-provided pre-install script failed.
+2. Error: Unable to find the development tool 'cc' in your path.
+3. Error: Unable to find the development tool 'make' in your path.
+4. Error: The kernel module failed to load. Secure boot is enabled on this system.
+5. The signed kernel module failed to load.
+6. Error: Unable to load the kernel module 'nvidia.ko'
+7. Error: An NVIDIA kernel 'nvidia-drm' appears to already be loaded in your kernel.
+8. Error: An NVIDIA kernel module 'nvidia-modeset' appears to already be loaded in your kernel.
+9. WARNING: Unable to find a suitable destination to install 32-bit compatibility libraries.
+10. WARNING: Unable to determine the path to install the libglvnd EGL vendor library config files.
+
+遇到了报错不要担心，正常情况，让我们逐一解决
+
+解决方法
+1. 第一个错误，继续安装即可，这个错误只是确认你是否要安装这个驱动
+
+2. 第二个、第三个错误产生的原因是Ubuntu环境缺少所需要的依赖
+
+解决：
+
+sudo apt-get install gcc
+sudo apt-get install make
+
+3. 第四个错误与第五个错误产生的原因是BIOS没有关闭 Secure boot
+
+解决：
+
+重启电脑在主板信息界面，按F2或Del进入BIOS界面
+按F7进入高级设置菜单
+在菜单栏中点击进入启动分页
+将快速启动设置为 Disabled
+点击 安全启动菜单
+操作系统类型如果是双系统依旧保持UEFI模式，如果不是双系统，设置为其他操作系统
+点击 密钥管理
+点击 清除安全启动密钥，再点击确认清除
+保存设置并退出
+
+4. 第六个错误，证明准备工作没有做好
+
+输入命令reboot重启电脑
+在用户登录界面，按 Alt + Ctrl + F2 进入命令行
+输入命令：sudo systemctl isolate multi-user.target进入无窗口界面
+输入用户名与密码进行登录
+输入命令：sudo modprobe -r nvidia_drm、sudo modprobe -r nvidia_modeset
+重新进入驱动安装
+退出无窗口界面：sudo systemctl start graphical.target
+
+5. 第七个错误和第八个错误，首先要确保关闭了Secure Boot，然后删除已经安装的显卡驱动：
+
+sudo apt-get purge nvidia*
+sudo apt-get autoremove
+sudo reboot
+再到第六个错误的部分解决准备工作的问题
+
+最后两个警告，不影响安装，如果有需要，可以自己安装需要的依赖
+
+
+
+安装时的选项
+不放图了，选择基本如下，自行对号入座：
+
+Q:The distribution-provided pre-install script failed! Are you sure you want to continue?
+>>> yes
+Q:Would you like to register the kernel module souces with DKMS? This will allow DKMS to automatically build a new module, if you install a different kernel later?
+>>> No
+Q:Would you like to sign the NVIDIA kernel module?
+>>> Install without signing
+Q:Nvidia’s 32-bit compatibility libraries? 
+>>> No
+Q:Would you like to run the nvidia-xconfigutility to automatically update your x configuration so that the NVIDIA x driver will be used when you restart x? Any pre-existing x confile will be backed up.
+>>> Yes
+
+```
+
+
+
+
+
+### 0.1.3 安装CUDA
 
 [选择显卡驱动版本和toolkit版本下载，不含安装报错的显卡驱动安装教程](https://blog.csdn.net/weixin_39928010/article/details/131142603)
 
@@ -21,29 +170,34 @@ lspci | grep -i vga
 
 [ubuntu cudnn 安装](https://blog.csdn.net/shanglianlm/article/details/130219640)
 
+#### run文件方式
+
+通过run文件，可剔除显卡驱动而单独安装cuda toolkit
+
 ```bash
-# 1. 安装驱动，下载local(run file)
-
-# Error : your appear to running an x server；please exit x before installing .for further details
-# 解决方案： https://blog.csdn.net/qq_32415217/article/details/123185645
-sudo chmod +x NVIDIA-Linux-x86_64-535.54.03.run
-sudo ./NVIDIA-Linux-x86_64-535.54.03.run -no-x-check
-
-# ERROR: The Nouveau kernel driver is currently in use by your system. This driver is incompatible with the NVIDIA driver……
-sudo vi /etc/modprobe.d/nvidia-installer-disable-nouveau.conf
-# 在文件尾部添加，没有禁用过nouveau，是没有这个文件的。
-blacklist nouveau
-options nouveau modeset=0
-# 更新上述修改
-sudo update-initramfs -u
-# 重启电脑，记得一定要重启电脑
-reboot
-
 # 2. 安装cuda toolkit
 sudo chmod +x cuda_12.0.0_525.60.13_linux.run
 sudo ./cuda_12.0.0_525.60.13_linux.run
 # 提前安装了驱动，在cuda toolkit 中就不要安装gpu驱动
+```
 
+#### deb文件方式
+
+无法剔除显卡驱动而单独安装cuda toolkit
+
+```bash
+sudo wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-ubuntu2204.pin
+sudo mv cuda-ubuntu2204.pin /etc/apt/preferences.d/cuda-repository-pin-600
+sudo wget https://developer.download.nvidia.com/compute/cuda/12.0.0/local_installers/cuda-repo-ubuntu2204-12-0-local_12.0.0-525.60.13-1_amd64.deb
+sudo dpkg -i cuda-repo-ubuntu2204-12-0-local_12.0.0-525.60.13-1_amd64.deb
+sudo cp /var/cuda-repo-ubuntu2204-12-0-local/cuda-*-keyring.gpg /usr/share/keyrings/
+sudo apt-get update
+sudo apt-get -y install cuda
+```
+
+#### 添加环境变量
+
+```bash
 sudo gedit ~/.bashrc
 # 添加两个环境变量
 export PATH=/usr/local/cuda-11.3/bin${PATH:+:${PATH}}
@@ -53,7 +207,11 @@ source ~/.bashrc
 
 # 测试是否安装成功
 nvcc -V
+```
 
+
+
+```bash
 # 3. 跑cuda sample 代码
 # 下载sample代码。cuda toolkit安装包在11.6之后便不再安装sample代码，需要自行在github上下载，https://blog.csdn.net/qq_27273607/article/details/127499808
 git clone -b v12.0 --depth=1 git@github.com:NVIDIA/cuda-samples.git
@@ -159,6 +317,91 @@ nvidia-smi
 |    0   N/A  N/A    199079      G   ...ures=SpareRendererForSitePerProcess        3MiB |
 +---------------------------------------------------------------------------------------+
 
+```
+
+### 0.1.4 查看是否安装成功
+
+[Win10安装cuda、cudnn检测是否安装成功](https://blog.csdn.net/wzk4869/article/details/127540610)
+
+```bash
+# 测试驱动是否安装成功
+nvidia-smi
+# 测试CUDA是否安装成功(前提是添加环境变量)
+nvcc -V
+# 测试cudnn，进入/usr/local/cuda-12.0/extras/demo_suite，执行对应的可执行文件，得到对应的信息，即安装成功
+sudo ./deviceQuery
+
+./deviceQuery Starting...
+
+ CUDA Device Query (Runtime API) version (CUDART static linking)
+
+Detected 1 CUDA Capable device(s)
+
+Device 0: "NVIDIA GeForce RTX 3060 Ti"
+  CUDA Driver Version / Runtime Version          12.2 / 12.0
+  CUDA Capability Major/Minor version number:    8.6
+  Total amount of global memory:                 7972 MBytes (8359641088 bytes)
+  (38) Multiprocessors, (128) CUDA Cores/MP:     4864 CUDA Cores
+  GPU Max Clock rate:                            1695 MHz (1.70 GHz)
+  Memory Clock rate:                             7001 Mhz
+  Memory Bus Width:                              256-bit
+  L2 Cache Size:                                 3145728 bytes
+  Maximum Texture Dimension Size (x,y,z)         1D=(131072), 2D=(131072, 65536), 3D=(16384, 16384, 16384)
+  Maximum Layered 1D Texture Size, (num) layers  1D=(32768), 2048 layers
+  Maximum Layered 2D Texture Size, (num) layers  2D=(32768, 32768), 2048 layers
+  Total amount of constant memory:               65536 bytes
+  Total amount of shared memory per block:       49152 bytes
+  Total number of registers available per block: 65536
+  Warp size:                                     32
+  Maximum number of threads per multiprocessor:  1536
+  Maximum number of threads per block:           1024
+  Max dimension size of a thread block (x,y,z): (1024, 1024, 64)
+  Max dimension size of a grid size    (x,y,z): (2147483647, 65535, 65535)
+  Maximum memory pitch:                          2147483647 bytes
+  Texture alignment:                             512 bytes
+  Concurrent copy and kernel execution:          Yes with 2 copy engine(s)
+  Run time limit on kernels:                     Yes
+  Integrated GPU sharing Host Memory:            No
+  Support host page-locked memory mapping:       Yes
+  Alignment requirement for Surfaces:            Yes
+  Device has ECC support:                        Disabled
+  Device supports Unified Addressing (UVA):      Yes
+  Device supports Compute Preemption:            Yes
+  Supports Cooperative Kernel Launch:            Yes
+  Supports MultiDevice Co-op Kernel Launch:      Yes
+  Device PCI Domain ID / Bus ID / location ID:   0 / 3 / 0
+  Compute Mode:
+     < Default (multiple host threads can use ::cudaSetDevice() with device simultaneously) >
+
+deviceQuery, CUDA Driver = CUDART, CUDA Driver Version = 12.2, CUDA Runtime Version = 12.0, NumDevs = 1, Device0 = NVIDIA GeForce RTX 3060 Ti
+Result = PASS
+
+sudo ./bandwidthTest
+
+[CUDA Bandwidth Test] - Starting...
+Running on...
+
+ Device 0: NVIDIA GeForce RTX 3060 Ti
+ Quick Mode
+
+ Host to Device Bandwidth, 1 Device(s)
+ PINNED Memory Transfers
+   Transfer Size (Bytes)	Bandwidth(MB/s)
+   33554432			12105.5
+
+ Device to Host Bandwidth, 1 Device(s)
+ PINNED Memory Transfers
+   Transfer Size (Bytes)	Bandwidth(MB/s)
+   33554432			12543.2
+
+ Device to Device Bandwidth, 1 Device(s)
+ PINNED Memory Transfers
+   Transfer Size (Bytes)	Bandwidth(MB/s)
+   33554432			373770.4
+
+Result = PASS
+
+NOTE: The CUDA Samples are not meant for performance measurements. Results may vary when GPU Boost is enabled.
 ```
 
 

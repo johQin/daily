@@ -1,5 +1,12 @@
 # OpenCV
 
+```bash
+# 系统中安装opencv，供c语言调用
+sudo apt install libopencv-dev python3-opencv
+```
+
+
+
 # 0 基础
 
 机器视觉与图形学之间的关系
