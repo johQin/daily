@@ -530,9 +530,25 @@ if success:
 
 
 
-## 部署
+# 部署
 
-**model.export(format='onnx', dynamic=True)**
+## TensorRT部署
+
+使用[FeiYull/TensorRT-Alpha仓库](https://github.com/FeiYull/TensorRT-Alpha/)的yolov8的内容
+
+1. 首先安装nvidia显卡驱动，CUDA toolkit，cudnn，tensorRT这些内容在C++的CUDA文件夹中查看。
+   - 切记TensorRT用tar包安装，不要使用deb，它会影响很多东西。
+2. git Clone [FeiYull/TensorRT-Alpha仓库](https://github.com/FeiYull/TensorRT-Alpha/)
+3. 在Clion打开根目录
+4. 打开TensorRT-Alpha/yolov8，右击**`CMakeList.txt->Load Cmake Project`**
+5. 然后在右上角**`Add Configuration`**，可以添加target、executable、可执行文件的命令行运行参数
+6. 然后在setting中修改Cmake options，把cuda的编译器nvcc加上。
+7. 如果要换项目，**`Tools选项卡 -> CMake -->UNLOAD CMAKE PROJECT`**，unload之后重复第四步，在其它项目中Load。
+8. 换之后，要在add configuration中换target和executable，然后才可运行
+
+![](./legend/添加子文件为项目.png)
+
+
 
 # 数据集
 
