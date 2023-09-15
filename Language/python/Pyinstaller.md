@@ -18,6 +18,8 @@ pip install PyInstaller
 # PyInstaller 最简单的运行形式，只需要指定作为程序入口的脚本文件。假定这个文件叫做 main.py
 pyinstaller main.py
 
+# 单独生成spec文件
+pyi-makespec main.py
 ```
 
 运行之后，我们会看到目录中多了这些内容：

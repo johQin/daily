@@ -25,6 +25,11 @@ tar xzvf TensorRT-8.6.1.6.Linux.x86_64-gnu.cuda-12.0.tar.gz
 
 cd TensorRT-8.6.1.6.Linux.x86_64-gnu.cuda-12.0/TensorRT-8.6.1.6
 
+# 要使用trtexec，就要将命令的查找路径加入PATH
+PATH = $PATH:/opt/TensorRT-8.6.1.6/bin
+# 并且要将动态库的链接路径加入到LD_LIBRARY_PATH
+LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/TensorRT-8.6.1.6/lib
+
 # TensorRT路径下，将头文件和库放到指定位置，方便在程序中引入
 sudo cp -r ./lib/* /usr/lib
 sudo cp -r ./include/* /usr/include
@@ -33,6 +38,8 @@ sudo cp -r ./include/* /usr/include
 
 
 #### deb安装
+
+建议不要用deb安装，因为它要求cuda也要通过deb安装。麻烦的很
 
 **最麻烦**
 
@@ -200,8 +207,9 @@ sudo apt-get -y install cuda
 ```bash
 sudo gedit ~/.bashrc
 # 添加两个环境变量
-export PATH=/usr/local/cuda-11.3/bin${PATH:+:${PATH}}
-export LD_LIBRARY_PATH=/usr/local/cuda11.3/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+export PATH=$PATH:/usr/local/cuda-12.0/bin
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda-12.0/lib64
+
 # 更新环境
 source ~/.bashrc
 
