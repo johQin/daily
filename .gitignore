@@ -12,6 +12,8 @@ out
 class
 *.mp4
 *.flv
+*.caffemodel
+*.prototxt
 
 
 #java----------------
