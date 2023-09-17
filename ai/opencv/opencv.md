@@ -968,3 +968,91 @@ cv2.destroyAllWindows()
  cv2.destroyAllWindows()
  ```
 
+# 7 识别
+
+1. 哈尔（Haar）级联方法
+2. 深度学习方法（DNN）
+
+## 7.1 Haar人脸识别
+
+人脸识别
+
+[级联结构文件下载](https://github.com/spmallick/mallick_cascades)，里面还有许多其他的识别，人脸，鼻子，眼睛，嘴巴，身体，车牌等等。
+
+1. 创建Haar级联器
+2. 导入图片并将其灰度化
+3. 调用detectMultiScale方法进行人脸识别 
+
+```python
+import cv2
+import numpy as np
+
+# 创建Haar级联器
+facer = cv2.CascadeClassifier('../data/haarcascades/haarcascade_frontalface_default.xml')
+
+img = cv2.imread('../data/couple.jpg')
+gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+# detectMultiScale(image, scaleFactor, minNeighbors)
+# scaleFactor：缩放因子
+# minNeighbors：最小的邻近像素
+faces = facer.detectMultiScale(gray, 1.1, 5)
+for (x,y,w,h) in faces:
+    cv2.rectangle(img,(x,y),(x+w,y+h), (255,0,0), 2)
+cv2.imshow('face',img)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+```
+
+## 7.2 Haar+tesseract车牌识别
+
+1. 通过Haar定位车牌的大体位置
+2. 对车牌进行**预处理**（二值化，形态学处理，滤波去噪点，缩放）
+3. 调用tesseract进行文字识别
+
+安装tesseract
+
+```bash
+sudo apt-get install tesseract-ocr
+sudo apt-get install libtesseract-dev
+pip3 install pytesseract
+```
+
+```python
+import cv2
+import numpy as np
+import pytesseract
+
+# 创建Haar级联器
+# 车牌
+carer = cv2.CascadeClassifier('../data/haarcascades/haarcascade_russian_plate_number.xml')
+
+img = cv2.imread('../data/car_number.jpeg')
+gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+cars = carer.detectMultiScale(gray, 1.1, 5)
+for (x,y,w,h) in cars:
+    cv2.rectangle(img,(x,y),(x+w,y+h), (255, 0, 0), 2)
+    roi = gray[y:y+h, x:x+w]
+    ret, roi_bin = cv2.threshold(roi,0,255,cv2.THRESH_BINARY+ cv2.THRESH_OTSU)
+    car_num = pytesseract.image_to_string(roi,lang="chi_sim+eng",config='--psm 8 --oem 3')
+    print("车牌号：", car_num)
+
+cv2.imshow('detect',img)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+```
+
+## 7.3 [Opencv中使用DNN](https://mp.weixin.qq.com/s?__biz=MzU0NjgzMDIxMQ==&mid=2247597500&idx=3&sn=95c292015e4d5a744547d60664eb8081)
+
+1. 读取模型，并得到深度神经网络
+   - `readNetFromTensorFlow(model, config)`
+   - `readNetFromCaffe(config, model)`
+   - `readNetDarknet，YOLO`
+   - `readNet(model, [config,[framework]])` 自动识别
+2. 读取图片或视频
+3. 将图片转为张量，送入神经网络
+   - 图片转张量：`blobFromImage(image,scalefactor=1.0, size=Size(), mean=Scalar(), swapRB=false,crop=false...)`
+   - 张量送入网络：`net.setInput(blob)`
+   - 网络分析张量：`net.forward()`
+4. 进行分析，并得到结果
+

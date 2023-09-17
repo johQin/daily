@@ -433,9 +433,21 @@
    export PATH=$(echo $PATH | sed 's/:/\n/g' | sort | uniq | sed '/^$/d' | tr -s '\n' ':' | sed 's/:$//g')
    ```
 
+8. [apt-get使用代理安装软件](https://www.cnblogs.com/dodotititi/articles/3424581.html)
+
+   ```bash
+   # 使用代理的地址
+   export  http_proxy=http://127.0.0.1:7890
+   # 取消代理
+   export  http_proxy="" 
+   # 或者 unset  http_proxy;
+   
+   # 仅当前terminal使用
+   ```
+
    
 
-8. 
+9. 
 
 
 
