@@ -363,10 +363,13 @@ command = ['ffmpeg',
 
 ### 推理RTSP流
 
+[c++读rtsp流](https://blog.csdn.net/qq_42102546/article/details/129413327)
+
 ```python
 ...
 rtsp = "rtsp://127.0.0.1/live/test"
 cap = cv2.VideoCapture(rtsp)
+# c++  cv::VideoCapture(rtsp, cv::CAP_FFMPEG);
 ...
 ```
 

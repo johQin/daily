@@ -702,6 +702,8 @@ int main(){
 class A{
 public:
     int hello(std::string start,std::string name="qin");
+    // 容器的默认初始值
+    int hello(std::string start,std::vector<std::string> name=std::vector<std::string>());
 };
 
 int A::hello(std::string start, std::string name) {		
@@ -709,6 +711,9 @@ int A::hello(std::string start, std::string name) {
     // 在实现这里没写默认值
     // 但name的默认值仍然为"qin"
     printf("%s : %s", start.c_str(),name.c_str());
+}
+int A::hello(std::string start, std::vector<std::string> name) {
+	//解释同上
 }
 ```
 
@@ -1664,6 +1669,7 @@ static修饰的成员，在定义类的时候，必须分配空间。
 
 1. 所有对象共享同一个函数。
 2. 静态成员函数没有 this 指针，只能访问静态成员变量。普通成员函数有 this 指针，可以访问类中的任意成员
+3. **静态成员函数只能在类体里面定义**
 
 静态成员的两种访问方式：
 
@@ -6400,6 +6406,8 @@ int main()
 std::bind函数定义在头文件中，是一个函数模板，他像一个函数包装器（适配器），接受一个可调用对象，生成一个新的可调用对象来“适应”对象的参数列表。一般而言，我们用它可以把一个原本接收N个参数的函数，通过绑定一些参数，返回一个接收M个（M可以大于N）参数的新函数。同时，使用std::bind函数还可以实现参数顺序调整等操作。
 
 bind可以替代适配器中的bind1st，bind2se
+
+### [std::function](https://blog.csdn.net/aiynmimi/article/details/119732176)
 
 ## 10.5 [智能指针](https://blog.csdn.net/liqingbing12/article/details/107395954)
 

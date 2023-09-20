@@ -1,5 +1,9 @@
 # [CMAKE](https://cmake.org)
 
+cmake内置命令是不区分大小写的， 因此`add_subdirectory`与`ADD_SUBDIRECTORY`作用一致。
+
+cmake所有变量是区分大小写的
+
 # 1 基本打包
 
 ## 1.1 [add_executable](https://blog.csdn.net/HandsomeHong/article/details/122402395)：指定可执行文件
@@ -290,6 +294,8 @@ find_file (
 
 ```
 
+#### find_package
+
 
 
 # 2 变量
@@ -540,10 +546,17 @@ endif()
 CMAKE_SOURCE_DIR			# 源码树的最顶层目录(也就是项目CMakeLists.txt文件所在的地方)
 CMAKE_CURRENT_SOURCE_DIR	# CMake正在处理的CMakeLists.txt文件所在的目录。
 							# 每次在add_subdirectory()调用的结果中处理新文件时，它都会更新，并在完成对该目录的处理后再次恢复。
+CMAKE_CURRENT_LIST_DIR		# 自2.8.3开始，代表当前正在处理的列表文件的完整目录，和CMAKE_CURRENT_SOURCE_DIR几乎一样
+							# 只是在CMakeLists.txt里有include(src/CMakeLists.txt)代码时，
+							# CMAKE_CURRENT_SOURCE_DIR指向外部的CMakeLists，而CMAKE_CURRENT_LIST_DIR将指向src
+							# https://blog.csdn.net/jacke121/article/details/106550720
 							
 CMAKE_BINARY_DIR			# 构建树的最顶层目录。
 CMAKE_CURRENT_BINARY_DIR	# 当前CMake正在处理的CMakeLists.txt文件对应的构建目录。
 							# 每次调用add_subdirectory()时它都会改变，并在add_subdirectory()返回时再次恢复。
+
+EXECUTABLE_OUTPUT_PATH		# 指定最终的可执行文件生成的位置
+LIBRARY_OUTPUT_PATH			# 指定库文件的输出目录
 ```
 
 

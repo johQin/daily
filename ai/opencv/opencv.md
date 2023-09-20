@@ -1056,3 +1056,24 @@ cv2.destroyAllWindows()
    - 网络分析张量：`net.forward()`
 4. 进行分析，并得到结果
 
+# OpenCV C++
+
+1. [OpenCV Mat与Base64编码图像数据的相互转换](https://blog.csdn.net/qq_27278957/article/details/119971305)
+
+   - [CV_IMWRITE_JPEG_QUALITY没定义](https://blog.csdn.net/m0_51849183/article/details/124928562)
+
+   ```C++
+   #include<opencv2/opencv.hpp>
+   #include<opencv2/imgcodecs/legacy/constants_c.h>
+   ```
+
+2. 读取rtsp流
+
+   ```c++
+   rtsp = "rtsp://127.0.0.1/live/test";
+   cv::VideoCapture(rtsp1, cv::CAP_FFMPEG);
+   ```
+
+   
+
+3. 
