@@ -294,7 +294,162 @@ find_file (
 
 ```
 
-#### find_package
+#### [find_package](https://blog.csdn.net/zhanghm1995/article/details/105466372)
+
+`find_package`本质上就是一个**搜包的命令**，通过一些特定的规则（路径）找到`<package_name>Config.cmake`或`Find<PackageName>.cmake`包配置文件，通过执行该配置文件，从而定义了一系列的变量（eg：`OpenCV_DIR`、`OpenCV_INCLUDE_DIRS`和`OpenCV_LIBS`），通过这些变量就可以准确定位到**OpenCV库的头文件和库文件**，完成编译。
+
+find_package命令有两种工作模式，这两种工作模式的不同决定了其搜包路径的不同：
+
+- Module模式
+  find_package命令基础工作模式(Basic Signature)，也是默认工作模式。
+
+- Config模式
+  find_package命令高级工作模式(Full Signature)。 只有在find_package()中指定CONFIG、NO_MODULE等关键字，或者**Module模式查找失败后才会进入到Config模式。**
+
+![](./legend/find_package_工作流程.png)
+
+##### module模式
+
+```cmake
+find_package(<package> [version] [EXACT] [QUIET] [MODULE]
+             [REQUIRED] [[COMPONENTS] [components...]]
+             [OPTIONAL_COMPONENTS components...]
+             [NO_POLICY_SCOPE])
+
+```
+
+**Module**模式下是要查找到名为`Find<PackageName>.cmake`的配置文件。
+
+Module模式只有两个查找路径：**CMAKE_MODULE_PATH**和cmake安装路径(**CMAKE_ROOT**)下的**Modules**目录
+
+```cmake
+# 一定记住是在这两个路径的Modules目录下查找Find<PackageName>.cmake
+message(STATUS "CMAKE_MODULE_PATH = ${CMAKE_MODULE_PATH}")		# 默认为空
+message(STATUS "CMAKE_ROOT = ${CMAKE_ROOT}")
+```
+
+
+
+##### config模式
+
+```cmake
+find_package(<package> [version] [EXACT] [QUIET]
+             [REQUIRED] [[COMPONENTS] [components...]]
+             [CONFIG|NO_MODULE]
+             [NO_POLICY_SCOPE]
+             [NAMES name1 [name2 ...]]
+             [CONFIGS config1 [config2 ...]]
+             [HINTS path1 [path2 ... ]]
+             [PATHS path1 [path2 ... ]]
+             [PATH_SUFFIXES suffix1 [suffix2 ...]]
+             [NO_DEFAULT_PATH]
+             [NO_CMAKE_ENVIRONMENT_PATH]
+             [NO_CMAKE_PATH]
+             [NO_SYSTEM_ENVIRONMENT_PATH]
+             [NO_CMAKE_PACKAGE_REGISTRY]
+             [NO_CMAKE_BUILDS_PATH] # Deprecated; does nothing.
+             [NO_CMAKE_SYSTEM_PATH]
+             [NO_CMAKE_SYSTEM_PACKAGE_REGISTRY]
+             [CMAKE_FIND_ROOT_PATH_BOTH |
+              ONLY_CMAKE_FIND_ROOT_PATH |
+              NO_CMAKE_FIND_ROOT_PATH])
+
+```
+
+**CMake默认采取Module模式，如果Module模式未找到库，才会采取Config模式。**
+
+**Config**模式下是要查找名为`<PackageName>Config.cmake`或`<lower-case-package-name>-config.cmake`的模块文件。
+
+**Config**模式需要查找的路径非常多，具体查找顺序为：
+
+1. 名为`<PackageName>_DIR`的CMake变量或环境变量路径
+2. 名为`CMAKE_PREFIX_PATH`、`CMAKE_FRAMEWORK_PATH`、`CMAKE_APPBUNDLE_PATH`的CMake变量或**环境变量**路径
+3. `PATH`环境变量路径
+
+如果没有，CMake会继续**检查或匹配**这些根目录下的以下路径
+
+```cmake
+<prefix>/(lib/<arch>|lib|share)/cmake/<name>*/
+<prefix>/(lib/<arch>|lib|share)/<name>*/ 
+<prefix>/(lib/<arch>|lib|share)/<name>*/(cmake|CMake)/
+```
+
+##### 查找指定位置的.cmake
+
+如果你明确知道想要查找的库`<PackageName>Config.cmake`或`<lower-case-package-name>-config.cmake`文件所在路径，为了能够准确定位到这个包，可以直接设置变量`<PackageName>_DIR`为具体路径，如：
+
+```cmake
+set(OpenCV_DIR "/home/zhanghm/Softwares/enviroment_config/opencv3_4_4/opencv/build")
+```
+
+如果你有多个包的配置文件需要查找，可以将这些配置文件都统一放在一个命名为cmake的文件夹下，然后设置变量CMAKE_PREFIX_PATH变量指向这个cmake文件夹路径，需要注意根据上述的匹配规则，此时每个包的配置文件需要单独放置在命名为包名的文件夹下（文件夹名不区分大小写），否则会提示找不到。
+
+```cmake
+find_package(OpenCV REQUIRED)
+
+message(WARNING "CMAKE_MODULE_PATH=${CMAKE_MODULE_PATH}")
+message(WARNING "CMAKE_ROOT=${CMAKE_ROOT}")
+message(WARNING "CMAKE_APPBUNDLE_PATH=${CMAKE_APPBUNDLE_PATH}")
+message(WARNING "CMAKE_FRAMEWORK_PATH=${CMAKE_FRAMEWORK_PATH}")
+message(WARNING "CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}")
+message(WARNING ${OpenCV_DIR})
+message(WARNING ${OpenCV_INCLUDE_DIRS})
+message(WARNING ${OpenCV_LIBS})
+```
+
+
+
+## 1.7 [.cmake文件](https://blog.csdn.net/qq_38410730/article/details/102677143)
+
+`CmakeLists.txt`才是`cmake`的正统文件，而`.cmake`文件是一个模块文件，可以被`include`到`CMakeLists.txt`中。
+
+.cmake文件里包含了一些cmake命令和一些宏/函数，当CMakeLists.txt包含该.cmake文件时，当编译运行时，该.cmake里的一些命令就会在该包含处得到执行，并且在包含以后的地方能够调用该.cmake里的一些宏和函数。
+
+### include指令
+
+include指令**一般用于语句的复用**，也就是说，如果有一些语句需要在很多CMakeLists.txt文件中使用，为避免重复编写，可以将其写在.cmake文件中，然后在需要的CMakeLists.txt文件中进行include操作就行了。
+
+```cmake
+include(<file|module> [OPTIONAL] [RESULT_VARIABLE <var>]
+                      [NO_POLICY_SCOPE])
+include(file|module)
+
+```
+
+**注意**：为了使`CMakeLists.txt`能够找到该文件，需要指定文件完整路径(绝对路径或相对路径)，当然如果指定了`CMAKE_MODULE_PATH`，就可以直接`include`该目录下的`.cmake`文件了。
+
+**.cmake文件里包含了一些cmake命令和一些宏/函数，当CMakeLists.txt包含该.cmake文件时，当编译运行时，该.cmake里的一些命令就会在该包含处得到执行，并且在包含以后的地方能够调用该.cmake里的一些宏和函数**。
+
+### macro宏和function函数
+
+```cmake
+macro(<name> [arg1 [arg2 [arg3 ...]]])
+  COMMAND1(ARGS ...)            # 命令语句
+  COMMAND2(ARGS ...)
+  ...
+endmacro()
+
+function(<name> [arg1 [arg2 [arg3 ...]]])
+  COMMAND1(ARGS ...)            # 命令语句
+  COMMAND2(ARGS ...)
+  ...
+function()
+
+```
+
+定义一个名称为`name`的宏（函数），`arg1...`是传入的参数。我们除了**可以用`${arg1}`来引用变量**以外，系统为我们提供了一些特殊的变量：
+
+| 变量  | 说明                                                 |
+| ----- | ---------------------------------------------------- |
+| argv# | #是一个下标，0指向第一个参数，累加                   |
+| argv  | 所有的定义时要求传入的参数                           |
+| argn  | 定义时要求传入的参数以外的参数                       |
+| argc  | 传入的实际参数的个数，也就是调用函数是传入的参数个数 |
+
+其实和`C/C++`里面宏和函数之间的区别差不多
+
+- **当宏和函数调用的时候，如果传递的是经`set`设置的变量，必须通过`${}`取出内容**；
+- **在宏的定义过程中，对变量进行的操作必须通过`${}`取出内容，而函数就没有这个必要**。
 
 
 

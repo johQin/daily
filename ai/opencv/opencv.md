@@ -1,10 +1,5 @@
 # OpenCV
 
-```bash
-# 系统中安装opencv，供c语言调用
-sudo apt install libopencv-dev python3-opencv
-```
-
 
 
 # 0 基础
@@ -1058,7 +1053,37 @@ cv2.destroyAllWindows()
 
 # OpenCV C++
 
-1. [OpenCV Mat与Base64编码图像数据的相互转换](https://blog.csdn.net/qq_27278957/article/details/119971305)
+1. cmake中引入opencv
+
+   - 安装opencv
+
+     ```bash
+     # 系统中安装opencv，供c语言调用
+     sudo apt install libopencv-dev python3-opencv
+     ```
+
+   - CMakeLists.txt
+
+   ```cmake
+   cmake_minimum_required(VERSION 3.25)
+   project(OpencvPkgTest)
+   set(CMAKE_CXX_STANDARD 17)
+   
+   # 找包，然后就能获得OpenCV_DIR、OpenCV_INCLUDE_DIRS 和 OpenCV_LIBS
+   find_package(OpenCV REQUIRED)
+   
+   # 头文件
+   include_directories(${OPENCV_INCLUDE_DIRS})
+   
+   add_executable(OpencvPkgTest main.cpp)
+   
+   # 静态库
+   target_link_libraries(OpencvPkgTest ${OpenCV_LIBS})
+   ```
+
+   
+
+2. [OpenCV Mat与Base64编码图像数据的相互转换](https://blog.csdn.net/qq_27278957/article/details/119971305)
 
    - [CV_IMWRITE_JPEG_QUALITY没定义](https://blog.csdn.net/m0_51849183/article/details/124928562)
 
@@ -1067,13 +1092,11 @@ cv2.destroyAllWindows()
    #include<opencv2/imgcodecs/legacy/constants_c.h>
    ```
 
-2. 读取rtsp流
+3. 读取rtsp流
 
    ```c++
    rtsp = "rtsp://127.0.0.1/live/test";
    cv::VideoCapture(rtsp1, cv::CAP_FFMPEG);
    ```
 
-   
-
-3. 
+4. 

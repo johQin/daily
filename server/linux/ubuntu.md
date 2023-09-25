@@ -227,9 +227,12 @@
     ```bash
     dpkg -l | grep 'program_name'
     # apt-get也是dpkg的包装，直接使用dpkg -l 来查看已经安装了的软件
-    ```
-
     
+    # 查询系统中已安装的软件包所安装的位置. (类似于rpm -ql)
+    dpkg -L program_name
+    # 这里的program_name一定要注意一定是apt-get安装时的名字，否则找不到。
+    # eg：dpkg -L libopencv-dev
+    ```
 
 21. 
 
