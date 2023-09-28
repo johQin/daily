@@ -1,5 +1,7 @@
 # CUDA
 
+Compute Unified Device Architecture。
+
 [CUDA 编程教程推荐](https://zhuanlan.zhihu.com/p/346910129)
 
 # 0 环境搭建
@@ -7,6 +9,8 @@
 ```bash
 # 查看电脑的显卡
 lspci | grep -i vga
+# 检查GPU是否支持cuda技术
+https://developer.nvidia.com/cuda-gpus
 ```
 
 ## 0.1 安装问题纪实
@@ -884,4 +888,69 @@ int main()
     return 0;
 }
 ```
+
+# 1 基本模块
+
+- 线程模型
+- 内存模型
+- 流和事件
+- 底层指令优化
+- 调试
+  - Nvidia Nsight
+  - CUDA-GDB
+  - 其他一些图形化的性能分析工具
+
+## 1.1 并行与异构计算
+
+并行计算（parallel computing）：是一种计算形式，它将大的问题分解为许多可以并发执行的小问题
+
+- 任务并行：多个任务同时执行（看视频和聊天）
+- 数据并行：多个数据可以被同时处理，每个数据有独立线程处理。
+  - 数据并行分块方法：块分和循环分块
+  - 块分的数据：在一个线程上处理
+  - 循环分块的数据：一个线程可能处理多个数据块
+
+异构计算：指在多种类型处理器（CPU和GPU）的系统中完成的计算。
+
+CPU擅长逻辑和多任务计算，GPU擅长大数据量的数据处理，CPU和GPU之间是通过pcie总线连接。
+
+## 1.2 GPU性能指标
+
+- GPU核心数
+- GPU内存容量
+- 计算峰值
+  - 每秒单精度或双精度运算能力
+  - FLOPS——float-point Operation per Second，每秒浮点操作次数，GFLOPS——g（billion） FLOPS，TFLOPS—— T（1000g） FLOPS
+- 内存带宽
+  - 每秒钟读入和写入GPU内存的数据量
+
+``` bash
+# 查看电脑的显卡
+lspci | grep -i vga
+# OR
+lspci | grep -i nvidia
+```
+
+
+
+## 1.3 CUDA
+
+Compute Unified Device Architecture，是Nvidia公司推出的，基于GPU的通用高性能计算平台和编程模型
+
+![](./legend/cuda架构.jpg)
+
+**应用场景**：
+
+1. 高性能计算 High Performance Computing
+2. 深度学习 Deep Learning
+3. 机器学习 Machine Learning
+4. 推理 Inference
+5. 自动驾驶 Autonomous Vehicle
+6. 光追 Ray Tracing
+7. 可视化 Design and Visualization
+8. 游戏开发Game Development
+
+CUDA平台提供了驱动层接口（Driver API）和运行时接口（Runtime API）
+
+<img src="./legend/cuda层次.jpg" style="zoom:50%;" />
 
