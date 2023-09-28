@@ -4646,6 +4646,8 @@ void vectorIntSort() {
 
 ## 8.4 deque容器
 
+double-ended queue ，双端队列
+
 Vector 容器是单向开口的连续内存空间，deque 则是一种双向开口的连续线性空间。
 
 deque容器与vector容器的最大差异在于：
@@ -4655,7 +4657,7 @@ deque容器与vector容器的最大差异在于：
 
 deque容器和vector容器一样提供了Random Access Iterator，但是它的迭代器并不是普通指针，复杂程度和vector不是一个量级。
 
-所以除非必要，**我们应该尽可能的使用vector，而不是deque**。对deque的排序操作，为了最高效率，可将deque先完整的复制到一个vector中，对vector排序，在复制会deque。
+所以除非必要，**我们应该尽可能的使用vector，而不是deque**。对deque的排序操作，为了最高效率，可将deque先完整的复制到一个vector中，对vector排序，再复制回deque。
 
 
 

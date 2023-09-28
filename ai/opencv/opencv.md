@@ -1086,6 +1086,8 @@ cv2.destroyAllWindows()
 2. [OpenCV Mat与Base64编码图像数据的相互转换](https://blog.csdn.net/qq_27278957/article/details/119971305)
 
    - [CV_IMWRITE_JPEG_QUALITY没定义](https://blog.csdn.net/m0_51849183/article/details/124928562)
+   - [opencv4中未定义标识符CV_CAP_PROP_FPS；CV_CAP_PROP_FRAME_COUNT；CV_CAP_PROP_POS_FRAMES问题](https://blog.csdn.net/Zhongai0049/article/details/116423037)：
+     - 很多标识符在opecv4中，前面的**CV_**都被去掉了
 
    ```C++
    #include<opencv2/opencv.hpp>
