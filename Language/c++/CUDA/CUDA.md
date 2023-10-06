@@ -965,3 +965,52 @@ CUDA平台提供了驱动层接口（Driver API）和运行时接口（Runtime A
 - GPU 设备端代码
 
 CUDA nvcc编译器会自动分离你代码里面的不同部分，如图中主机代码用C写成，使用本地的C语言编译器编译，设备端代码，也就是核函数，用CUDA C编写，通过nvcc编译，链接阶段，在内核程序调用或者明显的GPU设备操作时，添加运行时库。
+
+## 1.4 CUDA编程模型
+
+编程模型是对底层计算机硬件架构的抽象表达。作为应用程序和底层架构的桥梁，体现在程序开发语言和开发平台中。
+
+1. CUDA平台对线程的管理
+   - CUDA平台提供了线程抽象接口，控制GPU中线程
+2. CUDA平台对内存访问控制
+   - 主机内存和GPU设备内存
+   - CPU和GPU之间内存数据传递
+3. 内核函数（kernel function）
+   - 运行在GPU上的代码，内核代码本身不包含任何并行性，由GPU协调处理线程执行内核。
+   - **CPU和GPU处于异步执行状态**
+
+# 2 线程模型
+
+逻辑层面的线程层次划分：
+
+- 第一层次网格grid：
+  - kernel在device上执行时实际上是启动很多线程，一个kernel所启动的所有线程称为一个**网格**（grid），同一个网格上的线程共享相同的全局内存空间
+- 第二层次线程块block：
+  - 网格又可以分为很多**线程块**（block），线程块又包含许多线程。
+  - 相同的block中的线程可以通过同步机制和**块内共享内存**做数据交互。
+- 第三层次线程thread
+- 一个线程需要两个内置的坐标变量（blockIdx，threadIdx）来唯一标识，它们都是`dim3`类型变量，其中blockIdx指明线程所在grid中的位置，而threaIdx指明线程所在block中的位置
+
+![](./legend/线程的层次结构.png)
+
+```c++
+// Kernel定义
+__global__ void MatAdd(float A[N][N], float B[N][N], float C[N][N]) 
+{ 
+    int i = blockIdx.x * blockDim.x + threadIdx.x; 
+    int j = blockIdx.y * blockDim.y + threadIdx.y; 
+    if (i < N && j < N) 
+        C[i][j] = A[i][j] + B[i][j]; 
+}
+int main() 
+{ 
+    ...
+    // Kernel 线程配置
+    dim3 threadsPerBlock(16, 16); 
+    dim3 numBlocks(N / threadsPerBlock.x, N / threadsPerBlock.y);
+    // kernel调用
+    MatAdd<<<numBlocks, threadsPerBlock>>>(A, B, C); 
+    ...
+}
+```
+
