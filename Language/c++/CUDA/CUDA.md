@@ -981,7 +981,9 @@ CUDA nvcc编译器会自动分离你代码里面的不同部分，如图中主�
 
 # 2 线程模型
 
-逻辑层面的线程层次划分：
+## 2.1 线程模型
+
+**逻辑层面**的线程层次划分：
 
 - 第一层次网格grid：
   - kernel在device上执行时实际上是启动很多线程，一个kernel所启动的所有线程称为一个**网格**（grid），同一个网格上的线程共享相同的全局内存空间
@@ -989,7 +991,24 @@ CUDA nvcc编译器会自动分离你代码里面的不同部分，如图中主�
   - 网格又可以分为很多**线程块**（block），线程块又包含许多线程。
   - 相同的block中的线程可以通过同步机制和**块内共享内存**做数据交互。
 - 第三层次线程thread
-- 一个线程需要两个内置的坐标变量（blockIdx，threadIdx）来唯一标识，它们都是`dim3`类型变量，其中blockIdx指明线程所在grid中的位置，而threaIdx指明线程所在block中的位置
+
+**线程的标识**：
+
+- 一个线程需要两个内置的坐标变量（**blockIdx，threadIdx**）来唯一标识，其中blockIdx指明线程所在grid中的位置，而threaIdx指明线程所在block中的位置
+- 线程标识由cuda平台内置和分配，并且可以在内核程序中访问。
+- 线程标识（blockIdx, threadIdx)，它们都是**`dim3`类型变量**，通过x, y, z访问
+
+**线程模型的维度**：
+
+- 线程模型维度由内置变量**blockDim和gridDim**标识
+- 它们也是三维向量。
+
+**线程管理**：
+
+- 线程id和线程标识符换算关系：
+  * 如果`block维度是(Dx, Dy)，线程标识符(i, j)，thread ID = i + j * Dx`
+  * thread ID是在一个block中，唯一线程的id
+  * 而threadIdx
 
 ![](./legend/线程的层次结构.png)
 
@@ -1013,4 +1032,150 @@ int main()
     ...
 }
 ```
+
+## 2.2 nvcc
+
+nvcc 本质上是编译器驱动程序（compiler driver），它根据传入的命令参数执行一系列命令工具，完成对程序编译的各个阶段。它与真正的编译器工具链（eg：gcc）有联系也有区别。
+
+cuda内核程序可以使用指令集架构（CUDA Instruction Set Architecture, ISA，也叫做PTX），或扩展的C语言编写。
+
+nvcc最终的目的就是将PTX或c语言编写的代码编译为可执行程序。
+
+nvcc封装了CUDA程序复杂的编译、链接过程，使开发人员可以很方便的完成CUDA程序的编译。
+
+注：PTX是一个稳定的编程模型和指令集，是Virtual Architecture的汇编产物，这个ISA能够跨越多种GPU。
+
+### 2.2.1 [nvcc 工作流程](https://zhuanlan.zhihu.com/p/432674688)
+
+cuda程序默认编译模式为全程序编译模式（whole program compilation mode）。指的是在同一程序的文件中，既有主机程序，又有设备程序，那么主机程序运行在cpu上，设备程序运行在GPU上，而对于主机程序和设备程序在nvcc的编译过程中，它是分别由不同编译工具链来完成。
+
+- 分离源文件与GPU相关联的内核代码，并将其编译为cubin（如果是使用c语言程序进行开发，就编译为cubin）或者ptx中间文件（如果使用PTX，就编译为ptx中间文件），并保存在fatbinary中。
+- 分离源文件与主机相关的代码，使用系统中可以使用的编译器进行编译，例如gcc，gcc编译产生中间文件object file后，再将fatbinary嵌入gcc产生的中间产物中。
+- 程序链接时，相关的CUDA运行库（runtime library）会被链接，最后产生可执行程序。
+- 
+
+![](./legend/nvcc工作流程.png)
+
+### 2.2.2 [nvcc 命令行参数](https://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/index.html#command-option-description)
+
+nvcc参数分为长名参数（用--标识，常用在脚本中）和短名参数（用-标识，常用在交互式命令中）
+
+nvcc参数根据其类型分为：bool参数，单值参数和列表参数
+
+参数内容大致分类：
+
+- 指定文件和路径相关参数
+- 指定编译过程相关参数
+- 指定编译、链接行为相关参数
+  - `--debug, -g`，调试主机代码
+  - `--device-debug, -G`，调试设备代码
+- 传递编译过程相关参数
+- 指定nvcc行为相关参数
+- 控制CUDA编译过程相关参数
+- 控制GPU代码生成相关参数
+
+## 2.3 CUDA内核函数
+
+### 2.3.1 定义
+
+内核函数（kernel function），是被GPU上线程并发执行的函数。
+
+- **并发执行并不是从内核函数程序代码本身去实现的，并发执行是GPU设备从硬件层面去实现的。**并不需要从代码层面上考虑并发。
+
+CUDA程序中的函数修饰符
+
+| 修饰符           | 运行         | 调用                                                         | 注意                     |
+| ---------------- | ------------ | ------------------------------------------------------------ | ------------------------ |
+| **`__global__`** | 执行在设备上 | 既可以被host调用。<br />也可以被计算能力三级（compute capability 3）的设备上调用 | **返回值类型必须为void** |
+| **`__device__`** | 执行在设备上 | 只能被设备代码调用                                           |                          |
+| **`__host__`**   | 执行在主机上 | 只能被主机代码调用                                           | 修饰符可省略不写         |
+
+**内核函数的限制**：
+
+- 只能访问GPU内存
+- 只能使用变长参数
+- 不能在函数体中使用static变量
+- 不能使用函数指针
+- 内核函数执行具有异步性
+
+### 2.3.2 内核函数的执行
+
+- 设置GPU线程
+  - 内核执行配置（kernel execution configuration）：**`<<<grid, block>>>`**
+  - 设置线程总数和线程布局
+- 内核调用
+  - **`kernel_name<<<grid, block>>>(args list)`**
+  - **这里的grid指的是网格中包含的block个数，而block指的是每个块中包含的线程个数。**
+- 释放所有与当前进程相关的GPU资源
+  - cudaDeviceReset
+
+```c++
+#include <stdio.h>
+
+__global__ void helloFromGPU(){
+    printf("hello world from GPU\n");
+}
+int main(int argc, char ** argv){
+    printf("hello world from cpu\n");
+
+    // <<<1, 10>>>这里的1指定了网格grid里block的个数为1，10指定了每个block包含的线程数为10
+    helloFromGPU<<<1, 10>>>();
+    
+    // 释放设备资源
+    cudaDeviceReset();
+    return 0;
+}
+```
+
+```bash
+nvcc hello.cu --output-file hello
+```
+
+
+
+# 3 内存模型
+
+## 3.1 内存架构
+
+GPU具有多种不同用途的内存。
+
+block内：
+
+- 寄存器（registers）
+  - 每个线程都有自己专属的寄存器，线程独有
+  - GPU中访问速度最快的内存，内核代码中声明的，没有其它修饰符修饰的自动变量，通常放在寄存器中。
+  - 用于存放经常访问的变量。
+- 线程私有内存（local memory）
+  - 线程独有
+  - 内核函数中，无法存放到寄存器中的变量会被放到本地内存中，比如在编译代码时，无法确定下标的数组，较大的数据结构，不满足内核寄存器限制条件的变量。
+- 共享内存（shared memory）
+  - 内核函数中，由`__shared__` 修饰的变量都保存在共享内存中，共享是片上存储空间（on-chip)，具有低延迟和高带宽的特点。
+  - 可以被线程块中所有线程共享，其生命周期与线程块一致。
+
+block外：可以与主机host交互
+
+- 全局内存（global memory），所有线程均可访问
+  - 全局内存内存数量最大，使用最多，延迟最大。可以作为与主机内存交换的一种途径。
+  - 静态分配全局内存：由`__device__`关键字修饰
+  - 动态分配全局内存：主机中使用内存管理函数进行动态分配。
+- 常量内存（constant memory），只读
+  - 由`__constant__`修饰的变量存放在常量内存中，**常量内存可以被所有内核代码访问**
+- 纹理内存（texture memory），只读
+
+
+
+![](legend/CUDA/内存模型.webp)
+
+## 3.2 内存管理
+
+CUDA内存管理包含GPU内存分配、释放、数据在主机和设备（GPU）间的传递。
+
+标准C内存管理函数和CUDA内存管理函数对应关系：
+
+| STANDARD C FUNCTIONS | CUDA C FUNCTIONS |
+| -------------------- | ---------------- |
+| malloc               | cudaMalloc       |
+| memcpy               | cudaMemcpy       |
+| memset               | cudaMemset       |
+| free                 | cudaFree         |
 
