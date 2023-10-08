@@ -18,7 +18,7 @@ STATA/SCSI硬盘 sd[a-p],同样用数字表示不同硬盘下的不同分区
 
 Linux 只有一个盘符"/"，不像windows有很多个盘符(A-Z)。
 
-![windows的磁盘管理](./legend/disc_partition.png)
+![windows的磁盘管理](./legend/disc_Partition.png)
 
 不同文件系统采用不同的方法来管理磁盘空间，各有优劣；**文件系统是具体到分区的**，所以格式化针对的是分区，**分区格式化**是指采用指定的文件系统类型对分区空间进行登记、索引并建立相应的管理表格的过程。
 

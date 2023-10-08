@@ -1377,6 +1377,41 @@ CUDA程序可以使用PTX相关指令编写，相对于使用C编写程序，PTX
 
 ![](./legend/ptx编译.png)
 
+PTX的作用：
+
+- 为GPU的演化提供了稳定的ISA（Instruction Set Architecture，指令集架构）支持
+- 为上层C程序开发提供了与GPU架构无关的ISA支持
+
+CUDA定义的虚拟机架构
+
+- 作用：去定义真实的物理GPU它所能支持性能特性或运算特性
+
+|                                        |                                                              |
+| -------------------------------------- | ------------------------------------------------------------ |
+| compute_30 and compute_32              | basic features:<br />- 支持kepler 架构<br />- 统一的内存编程 |
+| compute_35                             | Dynamic parallelism support                                  |
+| compute_50， compute_52 and compute_53 | 支持maxwell架构                                              |
+| compute_60， compute_61 and compute_62 | 支持pascal架构                                               |
+| compute_70 and compute_72              | 支持Volta架构                                                |
+| compute_75                             | 支持turing架构                                               |
+
+CUDA定义的物理真实GPU架构
+
+- 数字越大，计算能力越强
+
+|                         |                                                              |
+| ----------------------- | ------------------------------------------------------------ |
+| sm_30 and sm_32         | basic features: <br />- 支持kepler 架构 <br />- 统一的内存编程 |
+| sm_35                   | Dynamic parallelism support                                  |
+| sm_50， sm_52 and sm_53 | 支持maxwell架构                                              |
+| sm_60， sm_61 and sm_62 | 支持pascal架构                                               |
+| sm_70 and sm_72         | 支持Volta架构                                                |
+| sm_75                   | 支持turing架构                                               |
+
+通过ptx的虚拟架构和物理架构就可以完整的定义出基于GPU计算平台的性能和计算能力。
+
+
+
 # 3 内存模型
 
 ## 3.1 内存架构
