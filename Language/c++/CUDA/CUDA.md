@@ -1074,7 +1074,7 @@ nvcc参数根据其类型分为：bool参数，单值参数和列表参数
 - 控制CUDA编译过程相关参数
 - 控制GPU代码生成相关参数
 
-## 2.3 CUDA内核函数
+## 2.3 内核函数
 
 ### 2.3.1 定义
 
@@ -1133,7 +1133,249 @@ int main(int argc, char ** argv){
 nvcc hello.cu --output-file hello
 ```
 
+## 2.4 线程索引
 
+通过线程索引可以为线程分配数据。
+
+CUDA平台线程索引包含blockIdx和threadIdx
+
+- 数据类型都是uint3，通过x，y，z下标访问
+
+- blockIdx指明线程所在grid中的位置，
+- threaIdx指明线程所在block中的位置。
+
+线程维度包括网格维度gridDim，块维度blockDim。
+
+- 数据类型都是dim3，各维度通过x， y， z下标访问
+
+```c++
+#include <stdio.h>
+
+__global__ void helloFromGPU(){
+    printf("gridDim:x= %d, y=%d, z=%d, lockDim: x= %d, y=%d, z=%d, Current threadIdx: x=%d, y=%d, z=%d\n",
+           gridDim.x, gridDim.y, gridDim.z,
+           blockDim.x, blockDim.y, blockDim.z,
+           threadIdx.x, threadIdx.y, threadIdx.z);
+}
+int main(int argc, char ** argv){
+    printf("hello world from cpu\n");
+    // grid 里面包含2 x 2的4个block
+    dim3 grid;
+    grid.x = 2;
+    grid.y = 2;
+    // 每个block里面又包含了2 x 2的4个thread
+    dim3 block;
+    block.x = 2;
+    block.y = 2;
+    // <<<1, 10>>>这里的1指定了网格grid里block的个数为1，10指定了每个block包含的线程数为10
+    helloFromGPU<<<grid, block>>>();
+    // 释放设备资源
+    cudaDeviceReset();
+    return 0;
+}
+```
+
+## 2.5 错误处理
+
+CUDA中大部分函数执行完成后会返回执行结果，执行成功则返回cudaSuccess（ =0 ），如果失败则返回对应的枚举值
+
+[错误代码枚举值](https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html#group__CUDART__TYPES_1g3f51e3575c2178246db0a94a430e0038)：在此页面中搜索cudaSuccess即可查看这些错误枚举值
+
+- `cudaError_t status`：错误变量
+- `cudaGetErrorName(status)`：获取错误的名称
+- `cudaGetErrorString(status)`：获取错误的描述
+
+```c++
+// common/common.h
+#include<sys/time.h>
+#include<cuda_runtime.h>
+#include<stdio.h>
+
+cudaError_t ErrorCheck(cudaError_t status, const char * filename, int lineNumber){
+    if(status != cudaSuccess){
+        printf("CUDA RUNTIME API ERROR: \r\n code=%d, name=%s, decription=%s\r\n file=%s, line=%d\r\n", status,
+               cudaGetErrorName(status), cudaGetErrorString(status), filename, lineNumber);
+    }
+    return status;
+}
+
+
+// main
+#include "common/common.h"
+int main(){
+    float * gpuMemory = NULL;
+    ErrorCheck(cudaMalloc(&gpuMemory,sizeof(float)), __FILE__, __LINE__);
+    ErrorCheck(cudaFree(gpuMemory), __FILE__, __LINE__);
+    ErrorCheck(cudaFree(gpuMemory), __FILE__, __LINE__);		// 内存重复释放
+    ErrorCheck(cudaDeviceReset(), __FILE__, __LINE__);
+
+    return 1;
+}
+
+//CUDA RUNTIME API ERROR: 
+//code=1, name=cudaErrorInvalidValue, decription=invalid argument
+//file=/home/buntu/gitRepository/daily/Language/c++/CUDA/gate/cudaDemo/2_05_errorHandle.cu, line=6
+
+```
+
+## 2.6 运行时GPU信息查询
+
+```c++
+struct __device_builtin__ cudaDeviceProp
+{
+    char         name[256];                  /**< ASCII string identifying device */
+    cudaUUID_t   uuid;                       /**< 16-byte unique identifier */
+    char         luid[8];                    /**< 8-byte locally unique identifier. Value is undefined on TCC and non-Windows platforms */
+    unsigned int luidDeviceNodeMask;         /**< LUID device node mask. Value is undefined on TCC and non-Windows platforms */
+    size_t       totalGlobalMem;             /**< Global memory available on device in bytes */
+    size_t       sharedMemPerBlock;          /**< Shared memory available per block in bytes */
+    int          regsPerBlock;               /**< 32-bit registers available per block */
+    int          warpSize;                   /**< Warp size in threads */
+    size_t       memPitch;                   /**< Maximum pitch in bytes allowed by memory copies */
+    int          maxThreadsPerBlock;         /**< Maximum number of threads per block */
+    int          maxThreadsDim[3];           /**< Maximum size of each dimension of a block */
+    int          maxGridSize[3];             /**< Maximum size of each dimension of a grid */
+    int          clockRate;                  /**< Clock frequency in kilohertz */
+    size_t       totalConstMem;              /**< Constant memory available on device in bytes */
+    int          major;                      /**< Major compute capability */
+    ......
+}
+
+cudaDeviceProp deviceProp;
+cudaGetDeviceProperties(&deviceProp,dev);
+
+
+int main()
+{
+    int deviceCount;
+    cudaGetDeviceCount(&deviceCount);
+    for(int i=0;i<deviceCount;i++)
+    {
+        cudaDeviceProp devProp;
+        cudaGetDeviceProperties(&devProp, i);
+        std::cout << "使用GPU device " << i << ": " << devProp.name << std::endl;
+        std::cout << "设备全局内存总量： " << devProp.totalGlobalMem / 1024 / 1024 << "MB" << std::endl;
+        std::cout << "SM的数量：" << devProp.multiProcessorCount << std::endl;
+        std::cout << "每个线程块的共享内存大小：" << devProp.sharedMemPerBlock / 1024.0 << " KB" << std::endl;
+        std::cout << "每个线程块的最大线程数：" << devProp.maxThreadsPerBlock << std::endl;
+        std::cout << "设备上一个线程块（Block）种可用的32位寄存器数量： " << devProp.regsPerBlock << std::endl;
+        std::cout << "每个EM的最大线程数：" << devProp.maxThreadsPerMultiProcessor << std::endl;
+        std::cout << "每个EM的最大线程束数：" << devProp.maxThreadsPerMultiProcessor / 32 << std::endl;
+        std::cout << "设备上多处理器的数量： " << devProp.multiProcessorCount << std::endl;
+        std::cout << "======================================================" << std::endl;     
+        
+    }
+    return 0;
+}
+```
+
+```C++
+#include<cuda_runtime.h>
+#include<stdio.h>
+
+int main(int argc, char **argv){
+    int deviceCount = 0;
+    // 查询设备个数
+    cudaGetDeviceCount(&deviceCount);
+    if(deviceCount == 0){
+        printf("there ard no available device(s) that support CUDA \n");
+        return 1;
+    }else{
+        printf("Detect %d CUDA Capable device(s)\n", deviceCount);
+    }
+    int dev = 0,driverVersion = 0, runtimeVersion = 0;
+    // 默认查询第0个设备信息
+    cudaSetDevice(dev);
+    // 获取设备的属性
+    cudaDeviceProp deviceProp;
+    cudaGetDeviceProperties(&deviceProp,dev);
+    printf("Using Device %d: \"%s\"\n", dev, deviceProp.name);
+
+    cudaDriverGetVersion(&driverVersion);
+    cudaRuntimeGetVersion(&runtimeVersion);
+    printf("CUDA Driver Version / Runtime Version %d.%d / %d.%d \n",
+           driverVersion/1000, (driverVersion % 100)/10,
+           runtimeVersion/1000, (runtimeVersion % 100)/10
+           );
+
+    //avail可使用的GPU显存大小，total显存总的大小
+    size_t avail;
+    size_t total;
+    cudaMemGetInfo( &avail, &total );
+    //全部显存大小
+    printf("Amount of global memory: %g GB\n", deviceProp.totalGlobalMem / (1024.0 * 1024.0 * 1024.0));
+    //全部显存及剩余可用显存
+    printf("Amount of total memory: %g GB avail memory: %g \n", total / (1024.0 * 1024.0 * 1024.0), avail / (1024.0 * 1024.0 * 1024.0));
+    //计算能力：标识设备的核心架构、gpu硬件支持的功能和指令，有时也被称为“SM version”
+    printf("Compute capability:     %d.%d\n", deviceProp.major, deviceProp.minor);
+    //常量大小
+    printf("Amount of constant memory:      %g KB\n", deviceProp.totalConstMem / 1024.0);
+    //网格最大大小
+    printf("Maximum grid size:  %d %d %d\n", deviceProp.maxGridSize[0], deviceProp.maxGridSize[1], deviceProp.maxGridSize[2]);
+    //block最大
+    printf("maximum block size:     %d %d %d\n", deviceProp.maxThreadsDim[0], deviceProp.maxThreadsDim[1], deviceProp.maxThreadsDim[2]);
+    //SM个数
+    printf("Number of SMs:      %d\n", deviceProp.multiProcessorCount);
+    //每个block的共享内存大小
+    printf("Maximum amount of shared memory per block: %g KB\n", deviceProp.sharedMemPerBlock / 1024.0);
+    //每个SM 共享内存大小
+    printf("Maximum amount of shared memory per SM:    %g KB\n", deviceProp.sharedMemPerMultiprocessor / 1024.0);
+    //每个block中寄存器个数
+    printf("Maximum number of registers per block:     %d K\n", deviceProp.regsPerBlock / 1024);
+    //每个SM中寄存器个数
+    printf("Maximum number of registers per SM:        %d K\n", deviceProp.regsPerMultiprocessor / 1024);
+    //每个block最大的线程数
+    printf("Maximum number of threads per block:       %d\n", deviceProp.maxThreadsPerBlock);
+    //每个SM最大的线程数
+    printf("Maximum number of threads per SM:          %d\n", deviceProp.maxThreadsPerMultiProcessor);
+
+    return 1;
+}
+```
+
+
+
+## 2.7 线程分割和执行
+
+### 2.7.1 GPU硬件结构
+
+在费米16 SM处理器中，SM 以 32 个并行线程为一组（称为 warps，线程束）来调度线程。 每个 SM 有两个warp调度器（一个warp 包括 16个cuda core）和两个指令调度（instruction dispatch）单元，在这种dual结构下，大多数指令可以dual处理（而double精度指令无法被dual处理）。
+
+两个warp相互独立的并发执行，指令在16个一组的cuda core上计算，或在16个存取LD/ST单元运行，或4个SFU上运行。
+
+![](./legend/fermi_16sm硬件结构图.png)
+
+### 2.7.2 线程束Warps
+
+![](legend/CUDA/cuda的硬件结构.png)
+
+
+
+逻辑层面GPU可以执行成千上万的线程，而在硬件层面上这成千上万的线程并不是同时执行。
+
+- grid中的所有block被分配到GPU中的SM上执行
+- 每个block只能在同一个SM中执行，每个SM可执行多个线程块。
+- 当block被分配到SM时，会再次以32个线程为一组分割为一个线程束warps。当一个block包含64个thread的时候，该block在SM上就会被分割为两个warps。
+
+SM基本的执行单元是线程束（**warps**)，线程束包含32个线程，**这些线程同时执行相同的指令(物理层面)（kernel函数的多个代码行，经过编译翻译为多个指令）**，但是每个线程都包含自己的指令地址计数器和寄存器状态，也有自己独立的执行路径。
+
+所以尽管线程束中的线程同时从同一程序地址执行，但是可能具有不同的行为，比如遇到了分支结构，一些线程可能进入这个分支，但是另外一些有可能不执行，它们只能死等（一人死干，多人围观），因为**GPU规定线程束中所有线程在同一周期执行相同的指令（因为条件结构造成分化，所以一个线程执行某个条件分支，其它线程只有等着该线程跳出该条件分支，才能继续向下执行相同的指令）**，线程束分化会导致性能下降。
+
+当线程块被划分到某个SM上时，它将进一步划分为多个线程束，因为这才是SM的基本执行单元，但是一个SM同时并发的线程束数是有限的。这是因为资源限制，SM要为每个线程块分配共享内存，而也要为每个线程束中的线程分配独立的寄存器。所以SM的配置会影响其所支持的线程块和线程束并发数量。
+
+**一个kernel的grid、block都是逻辑并发，而SM内的线程束才是物理并发。**一个kernel的所有线程其实在物理层是不一定同时并发的。所以kernel的grid和block的配置不同，性能会出现差异，这点是要特别注意的。
+
+由于SM的基本执行单元是包含32个线程的线程束，所以block大小一般要设置为32的倍数，如果不是就会使用`ceil(block中的thread数量 / 32)`。
+
+## 2.8 PTX
+
+PTX（parallel thread execution）是CUDA平台为基于GPU的通用计算而定义的虚拟机和指令集。
+
+CUDA程序可以使用PTX相关指令编写，相对于使用C编写程序，PTX更偏向底层，可以将PTX类比为CUDA平台的汇编语言。
+
+使用C语言编写的CUDA程序首先被转换为PTX指令集，PTX指令再经过优化后再转换为特定GPU架构对应的指令集，nvcc在编译程序时，通常需要指定目标虚拟机架构和真实GPU架构
+
+![](./legend/ptx编译.png)
 
 # 3 内存模型
 
