@@ -14,7 +14,6 @@ int initialData(float *head, int nElem){
     }
     printf("\n");
     return 1;
-
 }
 
 // 矩阵加法计算

@@ -1372,7 +1372,7 @@ int main(int argc, char **argv){
 
 
 
-## 2.7 线程分割和执行
+## 2.7 逻辑线程和物理线程
 
 ### 2.7.1 GPU硬件结构
 
@@ -1748,11 +1748,188 @@ nsys nvprof ./2_11_cputimer
 
 ## 2.12 索引数据
 
+索引原理：数据再内存中以线性、以行为主的方式存储。
+
+![](./legend/索引原理.png)
+
+### 2.12.1 二维网格二维块
+
+线程用二维矩阵形式逻辑表达处理，每个线程它的二维坐标`(col, row)`用线程索引表示出来：
+
+```c++
+int iy = blockIdx.y * blockDim.y + threadIdx.y; 
+int ix = blockIdx.x * blockDim.x + threadIdx.x; 
+```
+
+线程矩阵的二维表示对应的一维数据的索引index：
+
+```c++
+// nx是数据在逻辑上每一行的宽度
+int idx = iy * nx + ix;
+```
 
 
 
+![](./legend/2D_grid_2D_block.png)
+
+![](./legend/2dgrid_2dblock.png)
+
+```c++
+__global__ void sumArrayOnGpu2D(int *A,int *B,int *C,const int nx, const int ny){
+
+    int ix = threadIdx.x + blockIdx.x * blockDim.x;
+    int iy = threadIdx.y + blockIdx.y * blockDim.y;
+    unsigned int idx = iy * nx + ix;
+    if(ix<nx && iy<ny) C[idx] = A[idx] + B[idx];
+}
+```
 
 
+
+### 2.12.2 一维网格一维块
+
+```c++
+ ix = threadIdx.x + blockIdx.x * blockDim.x;
+```
+
+
+
+![](./legend/1dgrid_1dblock.png)
+
+```c++
+__global__ void sumArrayOnGpu1D(int *A,int *B,int *C,const int nx, const int ny){
+
+    unsigned int ix = threadIdx.x + blockIdx.x * blockDim.x;
+    if(ix < nx){
+        for(int iy =0;iy<ny;iy++){
+            int idx = iy*nx + ix;
+            C[idx] = A[idx]+ B[idx];
+        }
+    }
+}
+```
+
+### 2.12.3 二维网格一维块
+
+```c++
+ix = threadIdx.x + blockIdx.x * blockDim.x;
+iy = blockIdx.y;		//一个线程块处理的是同一行上的数据
+idx = iy*nx + ix;
+```
+
+### 2.12.4 数据量大于线程数
+
+当数据过大，超过线程数的时候
+
+```c++
+// 一维网格一维块
+__global__ add(const double *x, const double *y, double *z, int n)
+{
+	int index = blockDim.x * blockIdx.x + threadIdx.x;
+	int stride = blockDim.x * gridDim.x;
+	for(; index <n; index +=stride)		// stride为总线程数
+		z[index] = x[index] + y[index];
+}
+```
+
+
+
+## 2.13 线程束
+
+### 2.13.1 线程束分支
+
+- GPU设备代码支持与C语言类似的分支代码
+- 在一个GPU时钟周期内，线程束中的所有线程必须执行相同的指令。
+- 线程束中的线程执行不同分支指令称为**线程束分支（warps divergence）**
+
+这样的现象就会导致某些线程在某些时间间隙处于悬置状态（一方有难，八方围观）
+
+- 线程束分支会降低GPU实际的计算能力，这就需要一个**分支效率（branch efficiency）**衡量
+
+![](./legend/线程束分支.png)
+
+```c++
+// 一维网格一维块
+__global__ void mathkernel(float *c){
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+    float ia,ib;
+    ia=ib=0.0f;
+    if(tid % 2 ==0) {
+        ia = 100.0f;
+    }else{
+        ib = 200.0f;
+    }
+    c[tid] = ia + ib;
+}
+```
+
+```bash
+# 必须使用-G，否则你会看到branch efficiency是100%
+nvcc -g -G cudaDemo.cu		# -g 去除对主机程序的优化，-G 去除对Gpu设备程序代码的优化
+# 分析
+nvprof --metrics branch_efficiency ./cudaDemo
+```
+
+#### 线程束分支优化
+
+编译器优化原理：
+
+- 将分支指令替换为预测指令
+- 根据运行状态将预测变量设置为0 or 1
+- 优化后所有分支代码都会执行，但是只有预测变量值为1的分支下的代码才会被线程执行
+
+局限：
+
+- 编译器对线程分支的优化能力，只有当分支下的代码量很少时，优化才会起作用
+
+```c++
+// 模拟编译器优化
+
+// 一维网格一维块
+__global__ void mathkernel(float *c){
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+    float ia,ib;
+    ia=ib=0.0f;
+    bool pred = (tid % 2 ==0);
+    // 这样就没有分支了，虽然仍然有两个if，但没有else
+    if(pred) {
+        ia = 100.0f;
+    }
+    if(!pred) {
+        ib = 200.0f;
+    }
+    c[tid] = ia + ib;
+}
+```
+
+#### 线程束分支特点
+
+**特点：分支只会发生在同一个线程束内，不同线程束中的条件判断值，不会造成线程束分支**
+
+```c++
+__global__ void mathkernel(float *c){
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+    float ia,ib;
+    ia=ib=0.0f;
+    // 将同一个线程束中的所有线程设定成同样的行为，这样就不会再由线程束分支
+	if((tid / warpSize) % 2 == 0){		// 奇数线程束执行
+        ia = 100.0f;
+    }else{								// 偶数线程束执行
+        ib = 200.0f;
+    }
+    c[tid] = ia + ib;
+}
+```
+
+### 2.13.2 线程束资源
+
+线程束资源包括：
+
+1. 程序计数器
+2. 寄存器
+3. 共享内存
+
+线程束所需的计算资源属于片上（on-chip）资源，
 
 # 3 内存模型
 
