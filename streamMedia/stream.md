@@ -2398,6 +2398,8 @@ int main(int argc, char **argv)
 
 - 支持多种协议(RTSP/RTMP/HLS/HTTP-FLV/WebSocket-FLV/GB28181/HTTP-TS/WebSocket-TS/HTTP-fMP4/WebSocket-fMP4/MP4/WebRTC),支持协议互转。
 
+[新手使用wvp-pro和ZLMediaKit的菜鸟说明](https://blog.csdn.net/houge101/article/details/128259947)
+
 ### 7.1.1 [搭建步骤](https://github.com/ZLMediaKit/ZLMediaKit/wiki/%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B)
 
 ```bash

@@ -288,12 +288,14 @@ gcc -shared -o libcal.so add.o sub.o
 ### 2.2.3 如何使用
 
 ```bash
+# 编译
 gcc test.c -I mlib/include/ -L mlib/lib/ -l cal -o mytest
 # -I，指定头文件位置
 # -L，指定库文件位置（函数实现位置）
 # -l，指定库名cal
 # 生成可执行程序mytest.out
 
+# 指定动态库查找位置
 # 因为是动态库，所以可执行程序中并没有包含要执行的函数，需要告诉环境，动态库在哪找
 # 这里有三种方法：
 # 1.将这个 libcal.so 这个库拷贝到系统路径下(不推荐)
@@ -304,6 +306,23 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/mylib/lib/
 # 然后就可以运行了
 ./mytest 
 ```
+
+#### [/etc/ld.so.conf.d](https://zhuanlan.zhihu.com/p/569404946)
+
+[原文](https://www.cnblogs.com/chris-cp/p/3591306.html)
+
+/etc/ld.so.conf 此文件记录了编译时使用的动态库的路径，也就是加载so库的路径。
+
+默认情况下，编译器只会使用/lib和/usr/lib这两个目录下的库文件，而通常通过源码包进行安装时，如果不指定--prefix，就会将库安装在/usr/local目录下。在此情况下，如果又没有在文件/etc/ld.so.conf中添加/usr/local/lib这个目录，这样虽然安装了源码包，但是使用时仍然找不到相关的.so库，就会报错。也就是说系统不知道安装了源码包。
+
+对于此情况有2种解决办法：
+
+- 在用源码安装时，用--prefix指定安装路径为/usr/lib。这样的话也就不用配置PKG_CONFIG_PATH
+- 直接将路径/usr/local/lib路径加入到文件/etc/ld.so.conf文件的中。在文件/etc/ld.so.conf中末尾直接添加：/usr/local/lib（这个方法给力！），然后执行ldconfig命令，将动态库
+
+**ldconfig**
+
+ldconfig这个程序，位于/sbin下，它的作用是将文件/etc/ld.so.conf列出的路径下的库文件缓存到/etc/ld.so.cache以供使用，因此当安装完一些库文件，或者修改/etc/ld.so.conf增加了库的新的搜索路径，需要运>行一下ldconfig，使所有的库文件都被缓存到文件/etc/ld.so.cache中，如果没做，可能会找不到刚安装的库。
 
 ## 2.3 总结
 
@@ -740,7 +759,116 @@ bar.o : bar.c
 
 
 
+## 其他
 
+1. [linux 源码编译 ./configure 的配置和用法](https://blog.csdn.net/mayue_web/article/details/103988629)
+
+   - configure是一个脚本（shell脚本），一般由autotool工具生成，它会检验当前的系统环境，看是否满足安装软件所必需的条件：比如当前系统是否支持待安装软件，是否已经安装软件依赖等。configure脚本最后会生成一个Makefile文件。
+   - 比如他检查某个内核函数可不可用的时候，他就会 先写一个test.c 然后通过cat命令追加到这个test.c文件当中。然后编译运行，看看gcc是否报错。如果不报错说明该系统支持该内核函数。
+   - [参考2](https://blog.csdn.net/shenyanasop/article/details/9788145)
+
+2. [configure、 make、 make install 背后的原理](https://zhuanlan.zhihu.com/p/77813702)
+
+   - [原文（英）](https://thoughtbot.com/blog/the-magic-behind-configure-make-make-install)
+
+   ```mermaid
+   graph LR
+   	configure.ac--autoconf-->configure-->file[Makefile]
+   	Makefile.am--automake-->Makefile.in-->file[Makefile]
+   	
+   ```
+
+   
+
+3. makefile制作静态库动态库
+
+   - 静态库
+
+   ```makefile
+   a.out: main.c libmath.a
+   	gcc main.c -L . -l math -o a.out 
+   #上边这一行: -L参数:指定目录; -l参数:要链接的库,"-l math"可以连写成"-lmath";
+   #这里注意,math库不要写"labmath.a"
+    
+   libmath.a: add.o mul.o
+   	ar -r libmath.a add.o mul.o
+   #上边这一行:将两个.o文件加入math库中
+    
+   add.o: add.c
+   	gcc add.c -c
+   mul.o: mul.c
+   	gcc mul.c -c
+    
+   #.PHONY:clear表示clear是一个伪目标.
+   #如果不加.PHONY,当前目录下由clear的文件就会执行不了,且提示该文件是最新的.
+   #rm前边多减号表示:不管出现什么问题,都要做后边多事情
+   .PHONY:clear
+   clear:
+   	rm *.o a.out libmath.a
+   ```
+
+   - 动态库
+
+   ```makefile
+   a.out: main.c libmath.so
+   	gcc main.c -L . -l math -o a.out 
+   #上边这一行: -L参数:指定目录; -l参数:要链接的库,"-l math"可以连写成"-lmath";
+   #这里注意,math库不要写"labmath.so"
+    
+   libmath.so: add.o mul.o
+   	gcc -shared add.o mul.o -o libmath.so
+   #	ar -r libmath.a add.o mul.o  对比一下静态库的方法.
+   #	-shared:表示输出结果是共享库类型
+    
+   add.o: add.c
+   	gcc -c -fpic add.c
+   mul.o: mul.c
+   	gcc -c -fpic mul.c
+   #上边这几行,添加了参数"-fpic",表示将源文件编译成带有PIC标志的目标文件.
+    
+    
+   .PHONY:clear
+   clear:
+   	rm *.o a.out libmath.so
+    
+    
+   #注意,动态库执行时,要把生成多动态库文件移动到/lib目录下!
+   ```
+
+   
+
+4. 
+
+## [make](https://cloud.tencent.com/developer/article/2288359?areaId=106001)
+
+- make
+  - 根据Makefile文件编译源代码、连接、生成目标文件、可执行文件。
+-  make check
+  - 测试刚刚编译的软件（某些程序可能不支持）
+  - 如果Makefile 里有check的话，会执行测试，也就是检查下编译出来的东西能不能用。
+-  make clean
+  - 清除上次的make命令所产生的object文件（后缀为“.o”的文件）及可执行文件。
+-  make install
+  - 将编译成功的可执行文件安装到系统目录中，一般为/usr/local/bin目录。
+  - [修改文件安装位置](https://blog.csdn.net/cnjhk2012/article/details/126812461)，[参考2](https://geek-docs.com/linux/linux-basic/change-the-install-directory-with-make-install.html)，[参考3](https://blog.csdn.net/weixin_42732867/article/details/104789431)
+- make uninstall
+  - uninstall命令用于卸载已安装的文件。在安装完成后，我们可能需要卸载已安装的文件（删除刚刚放到/usr/local/bin里的文件）
+- make dist
+  - 产生发布软件包文件（即distributi on package）。这个命令将会将可执行文件及相关文件打包成一个tar.gz压缩的文件用来作为发布软件的软件包。
+     它会在当前目录下生成一个名字类似“PACKAGE-VERSION.tar.gz”的文件。PACKAGE和VERSION,是我们在configure.in中定义的AM_INIT_AUTOMAKE（PACKAGE, VERSION）。
+-  make distcheck
+  - 生成发布软件包并对其进行测试检查，以确定发布包的正确性。这个操作将自动把压缩包文件解开，然后执行configure命令，并且执行make,来确认编译不出现错误，最后提示你软件包已经准备好，可以发布了。
+-  make distclean
+  - 类似make clean,但同时也将configure生成的文件全部删除掉，包括Makefile文件。
+- make depend
+  - depend命令用于自动更新源文件的依赖关系
+- make 参数 
+  - -B，make 命令不会编译那些自从上次编译之后就没有更改的文件，-B 会强制重新编译所有的目标文件以及最终的执行文件。
+  -  -C 选项改变目录，指定寻找makefile的目录
+  - -d ，如果想知道 make 执行时实际做了什么，使用 -d选项
+  - -f 将指定的文件名，当成Makefile
+  - 
+- 
 
 # 4 GDB
 

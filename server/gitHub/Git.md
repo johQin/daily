@@ -1291,9 +1291,13 @@ git config --list
    # 这个命令以A为新的基准（base），将A之后的commit列出来让用户选择如何处理。在出现的编辑界面上，把B前面的pick改成d或者drop，或者把一整行删除掉，保存退出就可以了。
    ```
 
-   
+7. [git回滚后，修改代码，处于detach状态](https://blog.csdn.net/u011240877/article/details/76273335)
 
-7. 
+   - [no branch](https://blog.csdn.net/zheng5229875/article/details/45064077)：即游离状态,HEAD指针没有指向任何分支，而是直接指向一个commit对象。[参考2](https://blog.csdn.net/guoguo295/article/details/8205875)
+
+   - ![](./legend/git_游离状态.png)
+
+8. 
 
 
 

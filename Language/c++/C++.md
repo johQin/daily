@@ -6909,6 +6909,8 @@ struct asd6{
 #pragma pack()
 ```
 
+### 3.4 [依赖注入](https://blog.csdn.net/weixin_43862847/article/details/122341510)
+
 
 
 # visual studio
