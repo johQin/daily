@@ -1901,3 +1901,25 @@ docker load --input fedora.tar
 docker import  tar包名字.tar 镜像名称：版本id
 ```
 
+## 修改docker的国内镜像源
+
+```bash
+# 修改配置文件
+sudo gedit /etc/docker/daemon.json	#如果没有这个文件就创建一个
+# 找到registry-mirrors，添加一个源 中科大：https://docker.mirrors.ustc.edu.cn，网易：http://hub-mirror.c.163.com
+{
+...
+"registry-mirrors": ["https://docker.mirrors.ustc.edu.cn"] 
+}
+
+# 重启docker服务
+systemctl restart  docker
+service docker status
+
+# 查看是否生效 
+sudo docker info
+#在结果中查看是否有如下结果：
+Registry Mirrors:
+https://docker.mirrors.ustc.edu.cn
+```
+

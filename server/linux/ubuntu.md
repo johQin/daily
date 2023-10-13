@@ -232,6 +232,9 @@
     dpkg -L program_name
     # 这里的program_name一定要注意一定是apt-get安装时的名字，否则找不到。
     # eg：dpkg -L libopencv-dev
+    
+    #  查看包安装的位置
+    dpkg-query -L <package-name>
     ```
 
 21. 
@@ -448,9 +451,13 @@
    # 仅当前terminal使用
    ```
 
-   
+9. [使用 apt-get update 命令提示 ...中被配置了多次](https://blog.csdn.net/dideng8675/article/details/102227406)
 
-9. 
+   - 要切实解决这个问题，才能解决安装其他的keyring（密钥环、钥匙链）,并配置软件源
+   - [密钥环概念](https://zhuanlan.zhihu.com/p/128133025)
+   - [密钥存储在过时的 trusted.gpg密钥环中 ](https://blog.csdn.net/m0_67517854/article/details/133034521)
+
+10. 
 
 
 

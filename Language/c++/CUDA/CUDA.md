@@ -2003,3 +2003,65 @@ CUDA内存管理包含GPU内存分配、释放、数据在主机和设备（GPU�
 | memset               | cudaMemset       |
 | free                 | cudaFree         |
 
+# docker中搭建cuda环境
+
+1. 首先要在宿主机上安装GPU driver
+
+2. 再安装用于连接docker和宿主机GPU driver的官方插件
+
+   - 这里有些疑点，网上[github](https://github.com/NVIDIA/nvidia-docker) 仓库说[ nvidia-container-toolkit已经代替了nvidia-docker2](https://blog.csdn.net/yjy420/article/details/132305356)了，所以可以不安装nvidia-dcoker2，但这一点我不确定，因为我安装完nvidia-container-toolkit之后，忘了重启docker服务了，而直接去运行gpu在一般镜像，导致它报`Error response from daemon: could not select device driver ““ with capabilities: [[gpu]]`，然后我就开启了一系列安装之路，又安装了`nvidia-container-runtime`，然后继续运行一般镜像，一样的又报了同样的错误，然后又安装了`nvidia-docker2`，运行一般镜像然后报同样的错误，最后才想起重启docker服务，然后运行一般镜像，最后成功了。所以我无法确认到底是安装到哪一步之后，重启docker服务就可以运行一般镜像，所以在后面的部署环境的过程中，需要再去确认。
+
+   - 安装过程如下：
+
+   - ```bash
+     # 安装nvidia-container-toolkit
+     # 参考：https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html
+     # 1. 配置安装源
+     curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg \
+       && curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+         sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+         sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list \
+       && \
+         sudo apt-get update
+     # 要记得解决，安装源重复配置的警告，在ubuntu文档里可以看到解决方案关于“使用 apt-get update 命令提示 ...中被配置了多次”
+     # 2. 安装nvidia-container-toolkit
+     sudo apt-get install -y nvidia-container-toolkit
+     # 这一步就安装了 libnvidia-container-tools libnvidia-container1 nvidia-container-toolkit nvidia-container-toolkit-base
+     # 3. 这里就应该去重启docker 服务
+     systemctl restart  docker
+     service docker status
+     # 4. 然后去尝试是否可以在一般镜像中调用nvidia-smi命令
+     sudo docker run -it --gpus all 9d28ccdc
+     # 5. 如果不行，报Error response from daemon: could not select device driver ““ with capabilities: [[gpu]]，继续安装其他插件
+     
+     
+     # 安装nvidia-container-runtime
+     # 参考https://blog.csdn.net/weixin_44966641/article/details/123760614
+     # 1. 配置安装源
+     sudo curl -s -L https://nvidia.github.io/nvidia-container-runtime/gpgkey | \
+       sudo apt-key add -
+     distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
+     sudo curl -s -L https://nvidia.github.io/nvidia-container-runtime/$distribution/nvidia-container-runtime.list | \
+       sudo tee /etc/apt/sources.list.d/nvidia-container-runtime.list
+     sudo apt-get update
+     #2. 安装nvidia-container-runtime
+     sudo apt-get install nvidia-container-runtime
+     # 3. 再重启docker服务，并且运行一般镜像，看是否可以调用nvidia-smi，如果还不行安装nvidia-docker2
+     
+     
+     # 安装nvidia-docker
+     sudo apt-get install -y nvidia-docker2
+     ```
+
+3. 下载nvidia官方的dockerhub镜像库：[nvidia/cuda](https://registry.hub.docker.com/r/nvidia/cuda)，[按照系统和相关版本信息下载](https://gitlab.com/nvidia/container-images/cuda/blob/master/doc/supported-tags.md)
+
+4.  在容器内安装tensorRT
+
+参考链接：
+
+1. [nvidia docker, nvidia docker2, nvidia container toolkits三者的区别](https://blog.csdn.net/yjy420/article/details/132305356)
+2. [安装nvidia-container-toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
+3. [`安装nvidia-container-runtime 和docker: Error response from daemon: could not select device driver “” with capabilities: \[[gpu\]]`](https://blog.csdn.net/weixin_44966641/article/details/123760614)
+4. [Docker 搭建深度学习环境镜像，一次搭建，无限部署](https://blog.csdn.net/hxj0323/article/details/109405492)
+5. [nvidia/cuda下载](https://gitlab.com/nvidia/container-images/cuda/blob/master/doc/supported-tags.md)
+6. [Docker 快速搭建 TensorRT 环境(超详细)](https://blog.csdn.net/hxj0323/article/details/115859174)
