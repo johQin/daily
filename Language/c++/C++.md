@@ -553,6 +553,12 @@ int main() {
 }
 ```
 
+### [类中成员变量是引用](https://blog.csdn.net/lazyq7/article/details/48186291)
+
+- 不能有默认构造函数必须提供构造函数
+- 构造函数的形参必须为引用类型
+- 初始化必须在成员初始化链表内完成
+
 ## 1.7 [内联函数](https://blog.csdn.net/nyist_zxp/article/details/119697882)
 
 如果函数是内联的，编译器在编译时，会把内联函数的实现（函数体）替换到每个调用内联函数的地方（函数调用处），避免函数开销。
@@ -6289,6 +6295,8 @@ int main() {
 
 #### [c++成员函数声明()后加&或&&表示什么](https://www.zhihu.com/question/47163104/answer/104708138)
 
+[参考2](https://zhuanlan.zhihu.com/p/385875584)
+
 只允许左值/右值类型调用此成员函数
 
 ```c++
@@ -6297,6 +6305,8 @@ class A{
     void fun2() &&;		// func1只允许A的右值对象调用
 }
 ```
+
+
 
 
 
@@ -6909,7 +6919,7 @@ struct asd6{
 #pragma pack()
 ```
 
-### 3.4 [依赖注入](https://blog.csdn.net/weixin_43862847/article/details/122341510)
+## 4 [依赖注入](https://blog.csdn.net/weixin_43862847/article/details/122341510)
 
 
 
