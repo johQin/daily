@@ -129,6 +129,10 @@
       ```bash
       # 将本地文件，上传到服务器指定目录下
       scp local_file remote_username@remote_ip:remote_folder
+      # 将本地的时区文件上传到docker容器中，docker容器的ssh对外暴露的端口为11022，当前本地的pwd为/usr/share/zoneinfo/Asia/
+      # 需要在docker中创建/usr/share/zoneinfo/Asia/
+      sudo scp -P 11022 ./Shanghai root@192.168.101.163:/usr/share/zoneinfo/Asia/
+      
       # 将本地文件夹，上传到服务器指定目录下
       scp -r local_folder remote_username@remote_ip:remote_folder
       

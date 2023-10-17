@@ -2201,4 +2201,6 @@ scheduler = BackgroundScheduler(jobstores=jobstores, executors=executors, job_de
 
     
 
-18. 
+18. [paramiko AttributeError: 'NoneType' object has no attribute 'time'](https://blog.csdn.net/beikewz/article/details/133047246)
+
+19. [Python中，如何让多个py文件的logging输出到同一个日志log文件](https://blog.csdn.net/feng98ren/article/details/80044019)

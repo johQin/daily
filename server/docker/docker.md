@@ -1802,10 +1802,12 @@ spring.swagger2.enabled=true
      mkdir -p /usr/share/zoneinfo/Asia
      # 复制宿主机中的时区文件到容器中
      docker cp /usr/share/zoneinfo/Asia/Shanghai 容器ID或容器名:/usr/share/zoneinfo/Asia/
+     # or 从本地宿主机直接拷贝时区文件到容器中，前提：容器中需要ssh服务，并将22端口在11022上映射
+     sudo scp -P 11022 ./Shanghai root@192.168.101.163:/usr/share/zoneinfo/Asia/
      # 然后在容器中，将localtime 软连接 到 时区文件
      ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
      ```
-
+     
    - 
 
 4. 
