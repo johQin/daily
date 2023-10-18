@@ -1376,6 +1376,10 @@ int main(int argc, char **argv){
 
 ### 2.7.1 GPU硬件结构
 
+- SP（Stream Processor）流处理器，也就是一个CUDA CORE
+- SM（Stream Multiprocessor）流多处理器，包含多个CUDA CORE
+- 单一的SP单元只能用来计算，相当于CPU里的各种ALU（arithmetic and logic unit 算术逻辑单元）。所因此，若要对比CPU的核心数，不应该用SP，而是用一整个SM（或者是[warp](https://www.zhihu.com/search?q=warp&search_source=Entity&hybrid_search_source=Entity&hybrid_search_extra={"sourceType"%3A"answer"%2C"sourceId"%3A2869890178})）作为衡量基准。
+
 在费米16 SM处理器中，SM 以 32 个并行线程为一组（称为 warps，线程束）来调度线程。 每个 SM 有两个warp调度器（一个warp 包括 16个cuda core）和两个指令调度（instruction dispatch）单元，在这种dual结构下，大多数指令可以dual处理（而double精度指令无法被dual处理）。
 
 两个warp相互独立的并发执行，指令在16个一组的cuda core上计算，或在16个存取LD/ST单元运行，或4个SFU上运行。
@@ -1944,7 +1948,7 @@ __global__ void mathkernel(float *c){
   - 闲置（stalled）线程束，表示：某些资源不满足或其他原因，不能被执行。
   - 就绪（eligible）线程束，表示：当前指令所需资源满足，32个cuda核处于可用状态，等待下一个时钟被执行。
 
-
+`流处理器占用率 = 活动线程束 / 最大线程束`
 
 ## 2.14 延迟隐藏
 
@@ -1961,11 +1965,45 @@ __global__ void mathkernel(float *c){
 
 **指令延迟**指计算指令从调度到指令完成所需的时钟周期。如果每个时钟周期都有就绪的线程束可以被执行，此时GPU处于**满负荷状态**。**指令延迟被GPU满负荷计算状态所掩盖的现象称为延迟隐藏**。
 
-`所需线程数量 = 延迟（指令延迟的周期） X 吞吐量（操作per周期）`。
+`所需操作数 = 延迟（指令延迟的周期） X 吞吐量（操作per周期）`。
+
+[最大的指令吞吐量](https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#maximize-instruction-throughput)
 
 例如：在一个内核中一条指令的平均延迟是5个周期，吞吐量是每个周期执行6个线程束，那么至少需要30个线程束才能达到延迟隐藏。
 
-要使GPU最大程度的去发挥它的计算能力，保持一个满负荷状态，就必须要在每一个时钟周期提供足够的指令（足够的线程束）让它去执行，
+要使GPU最大程度的去发挥它的计算能力，保持一个满负荷状态，就必须要在每一个时钟周期提供足够的指令（足够的线程束）让它去执行。
+
+### 算术指令并行性需求计算
+
+| GPU 架构 | 算术指令延迟（单位：时钟周期） | 吞吐量 | 操作数 |
+| -------- | ------------------------------ | ------ | ------ |
+| Fermi    | 20                             | 32     | 640    |
+| Kepler   | 20                             | 192    | 3840   |
+
+- 在Fermi架构中，一个线程束中线程所有线程执行相同的指令，也就是说一个线程束一次性就执行了32个指令。
+
+- 满负荷操作数640/每个线程束一次性执行32个指令 = 20个线程束，20个线程束才能满足算术运算指令的并行性需求
+- 提升并行性方法：线程更多的独立指令，更多的并发线程
+
+### 内存指令并行性需求计算
+
+- 每个时钟周期吞吐量 = 内存带宽(B/s) / 内存频率
+- 每个时钟周期所需操作 = 内存指令延迟(时钟周期) * 每个时钟周期吞吐量
+
+```bash
+# 获取内存频率
+nvidia-smi -a -q -d CLOCK | fgrep -A 3 "Max Clocks" | fgrep "Memory"
+```
+
+
+
+## 2.15 两种并行计算
+
+### 2.15.1 邻域并行计算
+
+邻域计算适合于任何满足结合律和交换律的计算过程。
+
+![](./legend/领域并行加法计算.png)
 
 # 3 内存模型
 

@@ -65,7 +65,7 @@ int main()
     dim3 gridSize((width + blockSize.x - 1) / blockSize.x,
                   (height + blockSize.y - 1) / blockSize.y);
     // 执行kernel
-    matMulKernel << < gridSize, blockSize >> >(A, B, C);
+    matMulKernel <<< gridSize, blockSize >>>(A, B, C);
 
 
     // 同步device 保证结果能正确访问
