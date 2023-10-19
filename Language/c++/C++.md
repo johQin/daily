@@ -7299,9 +7299,9 @@ struct asd6{
     在C++中也可以使用#include <stdlib.h>，因为C++兼容了C语言中的操作。不过一般更推荐使用C++风格的头文件，即#include <cstdlib>。cstdlib实现了stdlib.h中的所有功能，不过是按照C++的方式写的，所以与C++语言可以更好的配合。
     ```
 
-    
+19. [C++设计模式之单例模式Singleton 模式与全局变量区别](https://blog.csdn.net/yangxueyangxue/article/details/122945326)
 
-19. 
+    - 我认为一个比较关键的点在于，这个实例必须是这个类的静态成员变量（static），而非这个类对象的实例变量
 
 
 
