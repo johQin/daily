@@ -1,17 +1,27 @@
 #include<stdio.h>
 #include<unistd.h>
 #include<cuda_runtime.h>
-#include<device_functions.h>
+#include<cuda_runtime_api.h>
 #include"common/common.h"
-__global__ void reduceInterleave(int *g_idata, int *g_odata,unsigned int n){
+//相较于间域并行计算的blockDim.x，在循环展开的核函数中blockDim.x是之前的一半。因为从核函数调用那里就可以看到网格的布局减半了
+// 现在的2*blockDim.x，才是之前一个线程块的长度
+// 线程块和数组块的数量比为1:2
+__global__ void reduceUnrolling(int *g_idata, int *g_odata,unsigned int n){
     unsigned int tid = threadIdx.x;
-    unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    int *idata = g_idata + blockIdx.x * blockDim.x;
+    unsigned int idx = blockIdx.x * blockDim.x * 2 + threadIdx.x;
 
+    int *idata = g_idata + blockIdx.x * blockDim.x * 2;
+
+    // 块间对应数相加
+    // 现在idx + blockDim.x 等于在原来的间域的一个线程块，前一半与后一半相加。但现在是两个相邻线程块相加
+    // 后面的循环长度得到减半
+    if(idx + blockDim.x < n) g_idata[idx] += g_idata[idx + blockDim.x];
+    __syncthreads();
     //边界检查
     if(idx > n) return;
 
+    // 块内执行间域计算
     for(int stride = blockIdx.x /2; stride > 0;stride >>=1){
         if(tid < stride){
             idata[tid] += idata[tid + stride];
@@ -66,15 +76,18 @@ int main(){
 
     cudaMemcpy(d_idata,h_idata,bytes,cudaMemcpyHostToDevice);
     iStart = GetCPUSecond();
-    reduceInterleave<<<grid, block>>>(d_idata,d_odata,size);
+
+    // block的数量减半
+    reduceUnrolling<<<grid.x/2, block>>>(d_idata,d_odata,size);
     cudaDeviceSynchronize();
     iElaps = GetCPUSecond() - iStart;
 
-    cudaMemcpy(h_odata, d_odata, grid.x * sizeof(int), cudaMemcpyDeviceToHost);
+    // 输出结果的数组长度减半
+    cudaMemcpy(h_odata, d_odata, grid.x/2* sizeof(int), cudaMemcpyDeviceToHost);
     gpu_sum = 0;
 
-    for(int i =0;i<grid.x;i++) gpu_sum += h_odata[i];
-    printf("gpu interleave add Elapse is: %.5f sec, gpu_sum: %d <<<grid %d, block %d>>>\n", iElaps, gpu_sum, grid.x, block.x);
+    for(int i =0;i<grid.x/2;i++) gpu_sum += h_odata[i];
+    printf("gpu interleave add Elapse is: %.5f sec, gpu_sum: %d <<<grid %d, block %d>>>\n", iElaps, gpu_sum, grid.x/2, block.x);
 
     free(h_idata);
     free(h_odata);
