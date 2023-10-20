@@ -1,5 +1,7 @@
 # django
 
+[在pycharm专业版中打开django项目](https://blog.csdn.net/weixin_41924879/article/details/109602645)
+
 ```bash
 # 全局管理app
 django-admin startproject ConfigServer
