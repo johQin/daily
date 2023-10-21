@@ -69,3 +69,8 @@ python manage.py makemigrations
 | 查：ListView，DetailView | 是                                        | 否                                          |
 | 模板视图：TemplateView   |                                           |                                             |
 
+# log
+
+1. [关于settings.py被执行了两次](https://blog.csdn.net/weixin_42539198/article/details/88841550)
+2. [You have 18 unapplied migration(s). Your project may not work properly until you apply](https://blog.csdn.net/yuan2019035055/article/details/126721102)：程序初始运行时，报这个错。
+3. [django中读取settings中的相关参数](https://blog.csdn.net/liukai6/article/details/100113928)

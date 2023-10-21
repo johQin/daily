@@ -1341,6 +1341,8 @@ print(v[0])
 
 - 使用from module import member导入模块的本质：将module中的全部代码加载到内存并执行，然后只导入指定成员，并不会将整个模块导入
 
+**Python解释器对于单例模式有原生的支持，主要体现在其import机制。Python的模块、类、实例在一个程序的某个模块被导入了一次以后，在其他模块便不再重复导入。如果需要重新导入，则需要使用importlib的reload方法。**
+
 <h5><pre>模块的__all__变量</pre></h5>
 
 模块的\_\_all\_\_变量，将变量的值设置成为一个列表，只有该列表的程序单元或成员变量才会被暴露到模块之外
@@ -1356,7 +1358,7 @@ __all__=['hello','world']
 #引入的模块无法from module import * 引入所有成员，使用test会报错
 ```
 
-使用\_\_all\_\_列表之外的成员，可以通过import module 前缀加成员名调用，也可以通过from module import specialmember 调用程序单元
+使用\_\_all\_\_列表之外的成员，可以通过import module 前缀加成员名调用，也可以通过from module import specialmember 调用程序单元。
 
 ### 9.1.2 定义模块
 
