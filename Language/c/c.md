@@ -873,19 +873,6 @@ int fac(int n) {
    - 如果出于某种考虑，在**定义点之前的函数**需要引用该外部变量，则应该在引用之前用**extern**对该变量进行**声明**
    - 用extern声明外部变量时，**类型名可以省略**，因为它不是定义变量，可以不指定类型
 
-2. 将外部变量的作用域**扩展到其他文件**
-
-   - 如果出于某种考虑，多个文件间需要共用一个变量，而不会出现重复定义的情况
-   - 做法：在任一一个文件中定义外部变量，而在另一文件中用extern对变量进行"外部变量的声明"
-   - 实际上，在编译时遇到extern时，先在本文件找，如果找到，就在本文件扩展作用域，如果找不到，就在连接时其他文件找，依次向外找，找到就扩展作用域到本文件，如果再找不到就报错。
-
-3. 将外部变量限制在本文件
-
-   - 如果出于某种考虑，希望某些外部变量只限于本文件引用，这时可以加static声明
-   - 加static声明，只能用于本文件的外部变量称为**静态外部变量**
-
-   
-
    ```c
    // 扩展外部变量作用域到定义变量之前
    #include<stdio.h>
@@ -902,33 +889,192 @@ int fac(int n) {
        if(m<C) m=C;
        return m;
    }
-   
-   //扩展变量作用域到其他文件
-   // file1.c
-   int A;
-   int main() {
-       
-   }
-   // file2.c
-   extern A;
-   int power() {
-       int y;
-       y = A;
-   }
-   
-   //限制变量作用域在本文件内
-   //file1.c
-   static int A;
-   int main(){
-       ...
-   }
-   //file2.c
-   extern A;
-   void power() {
-       int y;
-       y = A;//将报错
-   }
    ```
+
+   
+
+2. 将外部变量的作用域**扩展到其他文件（普通全局变量）**
+
+   - 如果出于某种考虑，多个文件间需要共用一个变量，而不会出现重复定义的情况
+   - 做法：在任一一个文件中定义外部变量，而在另一文件中用extern对变量进行"外部变量的声明"
+   - 实际上，在编译时遇到extern时，先在本文件找，如果找到，就在本文件扩展作用域，如果找不到，就在连接时其他文件找，依次向外找，找到就扩展作用域到本文件，如果再找不到就报错。
+   - [参考](https://blog.csdn.net/mmyaoduli/article/details/51122326)
+
+   ```
+   场景：多个文件想共享一个全局变量
+   
+   头文件：state.h 源文件：state.cpp
+   其它源文件：t1.cpp t2.cpp t3.cpp, 这些源文件都包含头文件state.h。
+   
+   需要定义一个全局变量供这些源文件中使用：方法如下
+   1、在 state.h声明全局变量： extern int a;
+   2、在state.cpp中定义该全局变量：int a = 10;
+   
+   这样其它源文件就可以使用该变量啦
+   
+   这里需要的是“声明”，不是“定义”！根据C++标准的规定，一个全局变量声明必须同时满足两个条件，否则就是定义：
+   (1)声明必须使用extern关键字；(2)不能给变量赋初值
+   extern int a; //声明
+   int a; //定义
+   int a = 0; //定义
+   extern int a =0; //定义
+   ```
+
+   
+
+   ```cmake
+   cmake_minimum_required(VERSION 3.25)
+   project(hello)
+   set(CMAKE_CXX_STANDARD 17)
+   add_executable(hello main.cpp state.cpp A.cpp)
+   ```
+
+   ```c++
+   // state.h 通过extern 声明全局变量a
+   // state.cpp  include state.h，定义a
+   // main里面访问全局变量a，修改变量a，并调用A的sayA
+   // A里面访问全局变量a，修改变量a
+   // 这些值都可以同步变化。
+   
+   // state.h
+   #ifndef HELLO_STATE_H
+   #define HELLO_STATE_H
+   extern int a;
+   #endif //HELLO_STATE_H
+   
+   // state.cpp
+   #include "state.h"
+   int a = 10;
+   
+   
+   // A.h
+   #ifndef HELLO_A_H
+   #define HELLO_A_H
+   void sayA();
+   #endif //HELLO_A_H
+   
+   // A.cpp
+   #include "state.h"
+   #include "A.h"
+   #include <stdio.h>
+   void sayA(){
+       printf("A:a=%d\n", a);
+       a=100;
+   }
+   
+   
+   // main.cpp
+   #include <iostream>
+   #include "state.h"
+   #include<stdio.h>
+   #include"A.h"
+   int main() {
+       printf("main:a=%d\n", a);
+       a= 5;
+       printf("main mod:a=%d\n", a);
+       sayA();
+       printf("main after A mod:a=%d\n",a);
+       return 0;
+   }
+   
+   /*
+   执行结果：
+   main:a=10
+   main mod:a=5
+   A:a=5
+   main after A mod:a=100
+   */
+   ```
+
+   
+
+3. 将外部变量**限制在本文件（静态全局变量）**
+
+   - 如果出于某种考虑，希望某些外部变量只限于本文件引用，这时可以加static声明
+   - 加static声明，只能用于本文件的外部变量称为**静态外部变量**
+   - static修饰的全局变量的作用域只是其本身所在的编译单元（在本编译单元内更改生效），在其他单元中使用时，该变量会有新的内存地址，也就是说，每一个使用它的编译单元都给它开辟了单独的空间，并把它的初始值复制过来，这样如果某个单元中对它进行了修改，那么多个编译单元中它的值就可能不一样了；
+   - static修饰的全局变量声明与定义是一体的，在头文件中声明了static全局变量，同时也是定义了它，不像普通的全局变量是分开的；
+
+     多个编译单元都包含static全局变量所在的头文件，不会引起重定义错误，因为每个编译单元都开辟了新的空间存储它；
+   
+   ```cmake
+   cmake_minimum_required(VERSION 3.25)
+   project(hello)
+   
+   set(CMAKE_CXX_STANDARD 17)
+   
+   add_executable(hello main.cpp staticVar.cpp visitVar.cpp)
+   ```
+   
+   ```c++
+   // staticVar.h 声明并定义静态全局变量
+   // staticVar.cpp 实现相关的函数
+   // visitVar.cpp 实现对静态全局变量的访问
+   // main.cpp 访问静态全局变量，并调用visitVar的函数
+   
+   // staticVar.h
+   #ifndef HELLO_STATICVAR_H
+   #define HELLO_STATICVAR_H
+   static int var1 = 22;
+   static int var2;
+   void printVar();
+   #endif //HELLO_STATICVAR_H
+   
+   // staticVar.cpp
+   #include "staticVar.h"
+   #include <stdio.h>
+   void printVar()
+   {
+       printf("staticVar.cpp var1: %d，var2: %d\n", var1,var2);
+       var1=33;
+       var2=3;
+       printf("staticVar.cpp mod var1: %d，var2: %d\n", var1,var2);
+   }
+   
+   // visitVar.h
+   #ifndef HELLO_VISITVAR_H
+   #define HELLO_VISITVAR_H
+   #include <stdio.h>
+   #include "staticVar.h"
+   void visitVar();
+   #endif //HELLO_VISITVAR_H
+   
+   // visitVar.cpp
+   #include "visitVar.h"
+   void visitVar(){
+       printf("visitVar.cpp fun var1: %d，var2: %d\n", var1,var2);
+   }
+   
+   // main.cpp
+   #include<stdio.h>
+   #include "staticVar.h"
+   #include "visitVar.h"
+   int main() {
+       printf("main.cpp var1: %d，var2: %d\n", var1,var2);
+       var1=23;
+       var2= 1;
+       printf("main.cpp mod var1: %d，var2: %d\n", var1,var2);
+       printVar();
+       visitVar();
+       return 0;
+   }
+   
+   /*
+   运行结果：
+   main.cpp var1: 22，var2: 0
+   main.cpp mod var1: 23，var2: 1
+   staticVar.cpp var1: 22，var2: 0
+   staticVar.cpp mod var1: 33，var2: 3
+   visitVar.cpp fun var1: 22，var2: 0
+   */
+   
+   // 这里发现了一个很有趣的现象供思考
+   // 如果不再visitVar.cpp中实现visitVar函数，而直接在.h中实现，那么打印的最后一行将变为
+   // visitVar.cpp fun var1: 23，var2: 1，和main中保持了一致。
+   ```
+   
+   
+
 
 
 ## 5.7 声明和定义
