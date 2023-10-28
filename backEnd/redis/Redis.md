@@ -1,5 +1,7 @@
 # Redis
 
+[全文参考](https://zhangc233.github.io/2021/05/02/Redis/#Redis%E6%A6%82%E8%BF%B0)
+
 # 0 NOSQL
 
 NoSQL（Not only sql，泛指非关系型数据）
