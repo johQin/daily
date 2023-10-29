@@ -78,6 +78,7 @@ git add filepath/file
 ```bash
 # 比较本地库中某个版本与工作区文件的差别，不加文件名比较所有文件
 git diff version [file]
+git diff HEAD [file] 		# 「工作目录」与「当前分支的最新版」进行比对
 # 比较暂存区与本地库比较，staged与cached同义
 git diff --staged [file]
 git diff --cached [file]
