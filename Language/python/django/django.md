@@ -224,6 +224,10 @@ def downloadModel(request):
 
 13. [seting.py 中的INSTALLED_APPS](https://geek-docs.com/django/django-questions/457_django_what_does_installed_apps_setting_in_django_actually_do.html?action=all)
 
+14. [断点下载](https://blog.csdn.net/wsfsp_4/article/details/127019804)
+
+15. [Django+Celery+Flower实现异步和定时任务及其监控告警](https://xiejava.blog.csdn.net/article/details/128500555)
+
 # Celery
 
 用Django框架进行web开发非常的快捷方便，但Django框架请求/响应是同步的。但我们在实际项目中经常会碰到一些耗时的不能立即返回请求结果任务如：数据爬取、发邮件，下载大文件等，如果常时间等待对用户体验不是很好，在这种情况下就需要实现异步实现，马上返回响应请求，但真正的耗时任务在后台异步执行。Django框架本身无法实现异步响应但可以通过Celery很快的实现异步和定时任务。
@@ -232,4 +236,8 @@ def downloadModel(request):
 
 - 异步任务，将耗时的操作任务提交给Celery去异步执行，比如发送短信/邮件、消息推送、音频处理等等
 - 定时任务（定时执行或按一定周期执行）。
+
+
+
+
 
