@@ -20,7 +20,7 @@
 
      ![](./legend/ubuntu文件管理器复制地址.png)
 
-8. 
+8. [将前台程序转为后台](https://www.bkqs.com.cn/content/xpmvywjpe.html)：【Ctrl + Z】
 
 # 2 常用命令
 1. 查看文件或文件夹大小：ls -hl
