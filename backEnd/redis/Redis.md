@@ -539,6 +539,198 @@ publish channel hello
 # 在第一个客户端可以看到发送的消息
 ```
 
+# 5 事务与锁
+
+## 5.1 事务定义
+
+Redis 事务是一个单独的隔离操作：事务中的所有命令都会序列化、按顺序地执行。事务在执行的过程中，不会被其他客户端发送来的命令请求所打断。
+
+**Redis 事务的主要作用就是串联多个命令防止别的命令插队。**
+
+## 5.2 事务的命令
+
+Redis 事务中有 Multi（命令组队）、Exec（执行命令组） 和 discard（放弃当前组队） 三个指令。
+
+- 从输入 Multi 命令开始，输入的命令都会依次进入命令队列中，但不会执行。
+- 直到输入 Exec 后，Redis 会将之前的命令队列中的命令依次执行。
+- 而组队的过程中可以通过 discard 来放弃组队。
+
+![image-20210619093306171](legend/image-20210619093306171.png)
+
+## 5.3 事务的错误处理
+
+- 组队中某个命令出现了报告错误，执行时整个的所有队列都会被取消。
+- 如果执行阶段某个命令报出了错误，则只有报错的命令不会被执行，而其他的命令都会执行，不会回滚。
+
+![](./legend/事务的错误处理.png)
+
+## 5.4 事务的冲突问题
+
+- 悲观锁 (Pessimistic Lock)，顾名思义，就是很悲观，每次去拿数据的时候都认为别人会修改，所以每次在拿数据的时候都会上锁，这样别人想拿这个数据就会 block 直到它拿到锁。传统的关系型数据库里边就用到了很多这种锁机制，比如行锁，表锁等，读锁，写锁等，都是在做操作之前先上锁。
+
+- 乐观锁 (Optimistic Lock)，顾名思义，就是很乐观，每次去拿数据的时候都认为别人不会修改，所以不会上锁，但是在更新的时候会判断一下在此期间别人有没有去更新这个数据，可以使用版本号等机制。乐观锁适用于多读的应用类型，这样可以提高吞吐量。
+
+Redis 就是利用这种 check-and-set 机制实现事务的。
+
+### redis中使用乐观锁
+
+#### watch
+
+在执行 multi 之前，先执行 watch key1 [key2]，可以监视一个 (或多个) key ，如果在事务执行之前这个 (或这些) key 被其他命令所改动，那么事务将被打断。
+
+#### unwatch
+
+取消 WATCH 命令对所有 key 的监视。如果在执行 WATCH 命令之后，EXEC 命令或 DISCARD 命令先被执行了的话，那么就不需要再执行 UNWATCH 了。
+
+```bash
+watch k1 k2 k3 ...
+
+unwatch
+```
+
+## 5.5 事务三特性
+
+- 单独的隔离操作 ：事务中的所有命令都会序列化、按顺序地执行。事务在执行的过程中，不会被其他客户端发送来的命令请求所打断。
+
+- 没有隔离级别的概念 ：队列中的命令没有提交之前都不会实际被执行，因为事务提交前任何指令都不会被实际执行。**需要配合乐观锁**
+
+- 不保证原子性 ：事务中如果有一条命令执行失败，其后的命令仍然会被执行，没有回滚 
+
+## 5.6 秒杀案例
+
+![image-20210619095633057](legend/image-20210619095633057.png)
+
+步骤：
+
+1. 判断userid和productid是否为空
+2. 连接redis
+3. 拼接key
+4. 获取库存，如果库存为null，表示秒杀还未开始
+5. 判断用户是否重复秒杀
+6. 判断如果库存数量小于1了，秒杀结束
+7. 秒杀过程：库存减1，用户id添加到成功者清单
+
+```java
+	//秒杀过程
+	public static boolean doSecKill(String uid,String prodid) throws IOException {
+		//1 uid和prodid非空判断
+		if(uid == null || prodid == null) {
+			return false;
+		}
+
+		//2 连接redis
+		//Jedis jedis = new Jedis("192.168.44.168",6379);
+		//通过连接池得到jedis对象
+		JedisPool jedisPoolInstance = JedisPoolUtil.getJedisPoolInstance();
+		Jedis jedis = jedisPoolInstance.getResource();
+
+		//3 拼接key
+		// 3.1 库存key
+		String kcKey = "sk:"+prodid+":qt";
+		// 3.2 秒杀成功用户key
+		String userKey = "sk:"+prodid+":user";
+
+		//监视库存
+		jedis.watch(kcKey);
+
+		//4 获取库存，如果库存null，秒杀还没有开始
+		String kc = jedis.get(kcKey);
+		if(kc == null) {
+			System.out.println("秒杀还没有开始，请等待");
+			jedis.close();
+			return false;
+		}
+
+		// 5 判断用户是否重复秒杀操作
+		if(jedis.sismember(userKey, uid)) {
+			System.out.println("已经秒杀成功了，不能重复秒杀");
+			jedis.close();
+			return false;
+		}
+
+		//6 判断如果商品数量，库存数量小于1，秒杀结束
+		if(Integer.parseInt(kc)<=0) {
+			System.out.println("秒杀已经结束了");
+			jedis.close();
+			return false;
+		}
+
+		//7 秒杀过程
+		//使用事务
+		Transaction multi = jedis.multi();
+
+		//组队操作
+		multi.decr(kcKey);
+		multi.sadd(userKey,uid);
+
+		//执行
+		List<Object> results = multi.exec();
+
+		if(results == null || results.size()==0) {
+			System.out.println("秒杀失败了....");
+			jedis.close();
+			return false;
+		}
+
+		//7.1 库存-1
+		//jedis.decr(kcKey);
+		//7.2 把秒杀成功用户添加清单里面
+		//jedis.sadd(userKey,uid);
+
+		System.out.println("秒杀成功了..");
+		jedis.close();
+		return true;
+	}
+```
+
+### 并发模拟
+
+```bash
+ab -n 1000 -c 100 -p ~/postfile -T application/x-www-form-urlencoded http://127.0.0.1:8000/seckill
+# -n 指定请求次数，-c 指定同时并发的请求数
+# -T content-type eg:'application/x-www-form-urlencoded'
+# -p postfile post请求的请求参数放置的文件，前提需要指定-T;
+```
+
+### 连接超时问题
+
+通过连接池使用
+
+连接池参数：
+
+- MaxTotal：控制一个 pool 可分配多少个 jedis 实例，通过 pool.getResource () 来获取；如果赋值为 - 1，则表示不限制；如果 pool 已经分配了 MaxTotal 个 jedis 实例，则此时 pool 的状态为 exhausted。
+
+- maxIdle：控制一个 pool 最多有多少个状态为 idle (空闲) 的 jedis 实例；
+
+- MaxWaitMillis：表示当 borrow 一个 jedis 实例时，最大的等待毫秒数，如果超过等待时间，则直接抛 JedisConnectionException；
+
+- testOnBorrow：获得一个 jedis 实例的时候是否检查连接可用性（ping ()）；如果为 true，则得到的 jedis 实例均是可用的。
+
+
+
+
+### 库存为负数问题（超卖）
+
+用乐观锁解决超卖问题
+
+### 库存为正数问题（库存遗留）
+
+客观锁虽然可以解决超卖问题，但同时可能造成库存遗留问题。
+
+可以通过lua脚本解决
+
+将复杂的或者多步的redis操作，写为一个脚本，一次性提交给redis执行，减少反复连接，提高性能。
+
+lua脚本类似于redis事务，有一定的原子性，不会被其它命令插队。
+
+通过lua脚本解决争抢问题，实际上是利用的时redis的单线程特性，用任务队列的方式解决多任务并发问题。
+
+# 6 持久化
+
+# 7 主从复制
+
+# 8 集群
+
 
 
 # log
