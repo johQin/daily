@@ -23,7 +23,7 @@
 8. [将前台程序转为后台](https://www.bkqs.com.cn/content/xpmvywjpe.html)：【Ctrl + Z】
 
 # 2 常用命令
-1. 查看文件或文件夹大小：ls -hl
+1. 查看文件或文件夹大小：**ls -hl    or    ls -hl filename**
 
 2. ubuntu最小系统通过apt-get安装包前，需要县apt-get update更新一下源，然后才可查找包并安装相关包
 
