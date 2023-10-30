@@ -807,13 +807,140 @@ rdbchecksum yes
 
 Append Of File
 
+以日志的形式来记录每个写操作（增量保存），将 Redis 执行过的所有写指令记录下来 (读操作不记录)， 只许追加文件但不可以改写文件，redis 启动之初会读取该文件重新构建数据，换言之，redis 重启的话就根据日志文件的内容将写指令从前到后执行一次以完成数据的恢复工作。
+
+### 6.2.1 持久化流程
+
+- 客户端的请求写命令会被 append 追加到 AOF 缓冲区内；
+
+- AOF 缓冲区根据 AOF 持久化策略 [always,everysec,no] 将操作 sync 同步到磁盘的 AOF 文件中；
+
+- AOF 文件大小超过重写策略或手动重写时，会对 AOF 文件 rewrite 重写，压缩 AOF 文件容量；
+
+- Redis 服务重启时，会重新 load 加载 AOF 文件中的写操作达到数据恢复的目的。
+
+### 6.2.2 配置
+
+```bash
+# 开启aof，默认时关闭的。
+# AOF 和 RDB 同时开启，系统默认取 AOF 的数据（数据不会存在丢失）。
+appendonly no
+
+# 存储文件的名字
+appendfilename "appendonly.aof"
+# AOF 文件的保存路径，同 RDB 的路径一致。
+
+# AOF同步频率配置
+# appendfsync always	# 总是同步，每次写入都会立刻写入日志
+appendfsync everysec	# 每秒同步，如果服务器在秒内挂掉
+# appendfsync no		# 不主动进行同步，把同步时机交给操作系统。
+
+# 是否开启重写机制
+aof-rewrite-incremental-fsync yes
+# 写入方式
+no-appendfsync-on-rewrite no
+
+# 如果 no-appendfsync-on-rewrite=yes ，不写入 aof 文件只写入缓存，用户请求不会阻塞，但是在这段时间如果宕机会丢失这段时间的缓存数据。（降低数据安全性，提高性能）
+#如果 no-appendfsync-on-rewrite=no，还是会把数据往磁盘里刷，但是遇到重写操作，可能会发生阻塞。（数据安全，但是性能降低）
+```
+
+如果aof文件被破坏，可以通过`redis-check-aof --fix appendonly.aof`进行简单恢复。
+
+#### 重写机制
+
+AOF 采用文件追加方式，文件会越来越大为避免出现此种情况，新增了重写机制。
+
+- 内容压缩：保留可以恢复数据的最小指令集（对一个key的多次操作，只保留可以恢复最后value的操作），可以使用命令 bgrewriteaof
+
+重写原理：
+
+- AOF 文件持续增长而过大时，会 fork 出一条新进程来将文件重写 (也是先写临时文件最后再 rename)
+- redis4.0 版本后的重写，是指把 rdb 的快照，以二进制的形式附在新的 aof 头部，作为已有的历史数据，替换掉原来的流水账操作。
+
+#### 何时重写
+
+- auto-aof-rewrite-percentage：设置重写的基准值，文件达到 100% 时开始重写（基准值的 2 倍时触发）。
+
+- auto-aof-rewrite-min-size：设置重写的基准值（base_size），最小文件 64MB。达到这个值开始重写。
+
+- 如果 Redis 的 AOF 当前大小 >= base_size +base_size*100% (默认) 且当前大小 >=64mb (默认) 的情况下，Redis 会对 AOF 进行重写。
+
+### 6.2.3 优缺点
+
+优点：
+
+- 备份机制更稳健，丢失数据概率更低。
+- 可读的日志文本，通过操作 AOF 稳健，可以处理误操作。
+
+缺点：
+
+- 比起 RDB 占用更多的磁盘空间。
+- 恢复备份速度要慢。
+- 每次读写都同步的话，有一定的性能压力。
+- 存在个别 Bug，造成恢复不能。
+
+官方推荐两个都启用：
+
+- 如果对数据不敏感，可以选单独用 RDB。
+- 不建议单独用 AOF，因为可能会出现 Bug。
+- 如果只是做纯内存缓存，可以都不用。
+
 # 7 主从复制
 
+主机数据更新后根据配置和策略， 自动同步到备机的 master/slaver 机制，**Master 以写为主，Slave 以读为主，主从复制节点间数据是全量的。**
+
+- 读写分离
+- 容灾的快速恢复
+
+
+
+![image-20210619111652745](legend/image-20210619111652745.png)
+
+
+
+
+
+## 7.1 搭建一主多从
+
+1. 拷贝源redis.conf，到myredis文件夹，作为多个conf文件的公共配置
+2. 创建多个conf文件，eg：redis6379.conf，redis6380.conf，redis6381.conf
+3. 在上面的多个conf中，include 公共配置，修改各自的pidfile、port、dbfilename等等。
+4. 启动三个redis服务，通过：`redis-server redis6379.conf`
+   - 然后可以在各自服务器的客户端命令行，通过**info replication，**查看服务器信息（role:master）。
+   - 在命令行中，键入`slaveof  主机ip 主机端口号`（如果有密码，可能需要其它信息），成功后，再执行info replication，就可以看到自己的角色变为slave，以及主机的ip和端口号信息
+   - 这之后，从机就不能再进行set写操作了
+
+![image-20231030145930821](legend/image-20231030145930821.png)
+
+## 7.2 复制原理
+
+- Slave 启动成功连接到 master 后会发送一个 sync 命令；
+
+- Master 接到命令启动后台的存盘进程（fork，存rdb），同时收集所有接收到的用于修改数据集命令，在后台进程执行完毕之后，master 将传送整个数据文件（rdb）到 slave，以完成一次完全同步。
+  - 全量复制：slave 服务器在接收到数据库文件数据后，将其存盘并加载到内存中。
+  - 增量复制：Master 继续将新的所有收集到的修改命令依次传给 slave，完成同步。
+
+- 但是只要是重新连接 master，一次完全同步（全量复制) 将被自动执行。
+
+
+
+
+## 7.3 问题
+
+1. **如果从机在停掉服务后，需要重设slave操作，如果想永久生效需要在配置文件中设置**
+2. 当主机挂掉，从机依然是从机，大哥依然是大哥
+3. **薪火相传**：从机下面还可以挂从机，同步机制是主到从，从到从从，依次传递下去。
+4. **反客为主**：如果主机挂掉，从机变为主机
+   - 方式一，手动：在从机命令行中执行`slaveof no one`，它就可以反客为主。
+   - 方式二，自动（**哨兵模式**）：当一个 master 宕机后，后面的 slave 可以立刻升为 master，其后面的 slave 不用做任何修改。哨兵模式是反客为主的自动版，能够后台监控主机是否故障，如果故障了根据投票数自动将从库转换为主库。这个具体细节后面再考虑。自己安装的redis没有redis-sentinel，需要`redis-server /path/to/sentinel.conf --sentinel`，你可以用下面的命令来启动一个运行在Sentinel模式下的Redis服务器，这需要一个sentinel.conf配置文件。
 
 
 # 8 集群
 
+问题：
 
+- 容量不够，redis如何进行扩容？
+- 并发写操作，redis如何均摊？
 
 # log
 
