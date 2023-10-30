@@ -228,6 +228,20 @@ def downloadModel(request):
 
 15. [Django+Celery+Flower实现异步和定时任务及其监控告警](https://xiejava.blog.csdn.net/article/details/128500555)
 
+16. [django中出现Forbidden (CSRF cookie not set.)](https://blog.csdn.net/g1655/article/details/117772715)
+
+    ```python
+    # 法一：在setting中注释下面这一行
+    'django.middleware.csrf.CsrfViewMiddleware'
+    # 法二：在view的方法上使用@csrf_exempt
+    from django.views.decorators.csrf import csrf_exempt
+    @csrf_exempt
+    def demo():
+        pass
+    ```
+
+    
+
 # Celery
 
 用Django框架进行web开发非常的快捷方便，但Django框架请求/响应是同步的。但我们在实际项目中经常会碰到一些耗时的不能立即返回请求结果任务如：数据爬取、发邮件，下载大文件等，如果常时间等待对用户体验不是很好，在这种情况下就需要实现异步实现，马上返回响应请求，但真正的耗时任务在后台异步执行。Django框架本身无法实现异步响应但可以通过Celery很快的实现异步和定时任务。
