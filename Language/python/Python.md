@@ -505,15 +505,32 @@ print(keys_list[1])
 
 ### 4.3.3 for表达式
 
-for表达式用于利用其它区间、元组、列表等可迭代对象创建新的列表
+for表达式用于利用其它区间、元组、列表，字典等可迭代对象创建新的列表
 
 <pre>
     [ 表达式 for 变量  in 可迭代对象 [ if cond_expression ] ]
 </pre>
 
-如果将**方括号[]换为圆括号()**，这样表达式不会再生成列表，而生成一个生成器（generator），他也可以for-in循环。
+如果将**方括号[]换为圆括号()**，这样表达式不会再生成列表，而生成一个**生成器（generator）**，他也可以for-in循环。
 
 for表达式也可**嵌套循环**
+
+```python
+#for语句
+b_list=[x*x for x in a_range if x % 2 == 0]
+print(b)#[0,4,16,36,64]
+
+#for语句的嵌套循环
+c_list=[(x,y) for x in range(3) for y in range(4) if x <=1 and y <=3 ]
+print(c_list)#[(0,0),(0,1),(0,2),(0,3),(1,0),(1,1),(1,2),(1,3),(2,0),(2,1),(2,2),(2,3)]
+
+# 生成字典
+d = {'modelName': 'personGather', 'version': '', 'url': 'http://192.168.100.51/soft/yolov5l.pt'}
+e = {k: v for k, v in d.items() if d[k]}
+# {'modelName': 'personGather', 'url': 'http://192.168.100.51/soft/yolov5l.pt'}
+```
+
+
 
 ### 4.3.4 常用工具函数
 
@@ -528,14 +545,6 @@ for key,val in target.items():
 else :
 	print('循环结束');
 a_range=range(10)
-
-#for语句
-b_list=[x*x for x in a_range if x % 2 == 0]
-print(b)#[0,4,16,36,64]
-
-#for语句的嵌套循环
-c_list=[(x,y) for x in range(3) for y range(4)]
-print(c_list)#[(0,0),(0,1),(0,2),(0,3),(1,0),(1,1),(1,2),(1,3),(2,0),(2,1),(2,2),(2,3)]
 
 #zip()
 a=['a','b','c']

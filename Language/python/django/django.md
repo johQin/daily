@@ -157,6 +157,14 @@ def downloadModel(request):
 
 3. [django中读取settings中的相关参数](https://blog.csdn.net/liukai6/article/details/100113928)
 
+   ```python
+   # settings.py
+   IP_LOCAL = ["192.168.66.55", "169.254.111.198"]
+   # views.py
+   from django.conf import settings
+   print(settings.IP_LOCAL)
+   ```
+
 4. [Django中返回json数据](https://www.fengnayun.com/news/content/125642.html)
 
 5. [【Django】中间件详解](https://blog.csdn.net/al6nlee/article/details/129510694)
@@ -252,6 +260,74 @@ def downloadModel(request):
 - 定时任务（定时执行或按一定周期执行）。
 
 
+
+# Mysql
+
+1. 安装依赖包，官方建议使用mysqlclient
+
+   ```bash
+   pip install mysqlclient
+   ```
+
+2. 配置文件
+
+   ```python
+   # settings.py
+   DATABASES = {
+       'default': {
+           'ENGINE': 'django.db.backends.mysql',  # 数据库引擎
+           'NAME': 'ModelDeployment',  # 数据库名称
+           'HOST': '127.0.0.1',  # 数据库地址，本机 ip 地址 127.0.0.1
+           'PORT': 3306,  # 端口
+           'USER': 'root',  # 数据库用户名
+           'PASSWORD': 'root',  # 数据库密码
+       }
+   }
+   ```
+
+   
+
+3. models orm的类
+
+   ```python
+   # app的models.py
+   from django.db import models
+   class Entity(models.Model):
+       model_name= models.CharField(max_length=32,verbose_name='模型名称',help_text='帮助信息')
+       model_version = models.CharField(max_length=10)
+       start_cmd = models.CharField(max_length=512)
+       common_json = models.TextField()
+       entity_json = models.TextField()
+   
+       def __str__(self):
+           return f"{self.id} {self.model_name} {self.model_version}"
+   ```
+
+4. 同步到数据库
+
+   ```bash
+   # 这里的python一定要写绝对地址，如果只写python或者使用django-admin那么会报，因为命令行中的命令有可能会连接到其它python解释器上去
+   # raise ImproperlyConfigured(django.core.exceptions.ImproperlyConfigured: Requested setting LANGUAGES, but settings are not configured. You must either define the environment variable DJANGO_SETTINGS_MODULE or call settings.configure() before accessing settings.
+   
+   /home/buntu/.conda/envs/djg_conf_server/bin/python manage.py makemigrations
+   # 如果你的app下没有migrations包，你需要指定app的名字
+   /home/buntu/.conda/envs/djg_conf_server/bin/python manage.py makemigrations ModelEntity
+   
+   # 在app下生成migrations包后
+   # 再执行migrate，就会将类的变化同步到数据库中
+   /home/buntu/.conda/envs/djg_conf_server/bin/python manage.py migrate
+   ```
+
+   - 注意
+
+   - ```
+     在进行迁移时，Django会遍历INSTALLED_APPS中列出的所有应用程序，查看现有迁移以构建迁移状态，然后将其与应用程序models模块中可用模型的当前状态进行比较。
+     为了让它们被识别出来，你需要将它们都放在models.py中，或者，如果你使用一个包（models/目录中有多个文件），你需要将它们都导入到models/__init__.py文件中。
+     当应用程序的目录中已经存在migrations/包时，makemigrations将只拾取模型并生成新的迁移。但是，如果你没有migrations包，Django不会自动拾取它，你必须显式指定应用程序的名称。
+     例如，如果您安装了API.Peak应用程序，但没有API/Peak/migrations/文件夹，则必须明确提供该文件夹，即：python manage.py makemigrations Peak（注意，当应用程序中有点时，您只需指定最后一部分，因此API.Peak和API.Waterfall将仅指定为Peak或Waterfall）
+     ```
+
+5. 
 
 
 
