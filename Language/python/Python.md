@@ -287,8 +287,11 @@ python的常见序列类型包括字符串（不可变）、元组（不可变�
 
    ```python
    a_list=[1,2,3]
-   a_tuple=(5,6,7)
+   # 引用
+   a_list[0]#1
+   a_list[-1]#3
    #元组转列表
+   a_tuple=(5,6,7)
    b_list=list(a_tuple)
    #增,原列表发生变化
    a_list.append(4)#[1,2,3,4]
@@ -302,6 +305,14 @@ python的常见序列类型包括字符串（不可变）、元组（不可变�
    #插
    a_list[1:1]=['a','b']
    print(a_list)#[2,'a','b',4]
+   
+   # 数组合并
+   array1 = [1, 2, 3]
+   array2 = [4, 5, 6]
+   
+   # 使用extend()方法合并数组
+   array1.extend(array2)	# array1 [1, 2, 3, 4, 5, 6]
+   merged_array = array1 + array2 #merged_array [1, 2, 3, 4, 5, 6]
    ```
 
 
@@ -2217,3 +2228,5 @@ scheduler = BackgroundScheduler(jobstores=jobstores, executors=executors, job_de
 19. [Python中，如何让多个py文件的logging输出到同一个日志log文件](https://blog.csdn.net/feng98ren/article/details/80044019)
 
 20. [python全局变量（模块法和global）](https://blog.csdn.net/qq_41659872/article/details/99702235)
+
+21. [python动态生成类&动态生成方法](https://blog.csdn.net/qq_39208536/article/details/132298474)

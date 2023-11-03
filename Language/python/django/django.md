@@ -248,7 +248,91 @@ def downloadModel(request):
         pass
     ```
 
+17. 如果报这个警告：[UnorderedObjectListWarning: Pagination may yield inconsistent results with an unordered object_list](https://blog.csdn.net/time_money/article/details/122197913)
+
+    ```python
+    Entity.objects.filter(**filterParams).order_by("id")
+    ```
+
+18. 查询列表返回的部分字段并且列表里的对象要是字典
+
+    - [values()返回对象为字典](https://www.cnblogs.com/regit/p/16825159.html)
+    - [querySet转list](https://blog.51cto.com/u_16175486/6880227)
+
+    ```python
+    MyModel.objects.values()
     
+    查询部分列的数据并返回，等同于select 列1，列2 from table
+    返回值：QuerySet容器对象，内部存放字典， 每个字典代表一条数据；格式为{‘列1’:值1,‘列2’:值2}
+    
+    MyModel.objects.values_list()
+    
+    作用：返回元组形式的查询结果，等同于select 列1，列2 from xxx
+    返回值：QuerySet容器对象，内部存放元组， 会将查询出来的数据封装到元组中，再封装到查询集合QuerySet中， 如果需要将查询结果取出，需要使用索引的方式取值
+    ```
+
+    ```python
+    querySet = Entity.objects.filter(**filterParams).values('modelVersion','modelName').order_by("id")
+    # values如果不填字段名，就查询表中所有字段，并且它将列表中的所有对象，转化字典的形式存储。
+    # 返回的是QuerySet容器对象。
+    
+    # 转换QuerySet容器对象为list对象
+    # 步骤1: 获取查询集
+    queryset = Model.objects.all()
+    
+    # 步骤2: 将查询集转换为字典列表
+    list_data = list(queryset.values())
+    
+    # 步骤3: 将查询集转换为对象列表
+    # list_data = list(queryset)  # 如果你希望得到一个对象列表
+    ```
+
+19. django在使用mysql的时候，原来的字段为"textField"，并且已经有记录里放的是字符串，后面又修改为"jsonField", 这时候在使用migrate就会报错
+
+    - `django.db.utils.OperationalError: (3140, 'Invalid JSON text: "Invalid value." at position 0 in value for column \'#sql-7f5a7_79.entityJson\'.')`
+    - 这是因为原有记录里的字符串不是json格式的，所以导致数据库历史记录，无法转换为json而报错
+
+20.  [django中使用mysql，在model中指定表名](https://deepinout.com/mysql/mysql-questions/427_mysql_database_table_names_with_django.html)
+
+    ```python
+    # 在Django中，我们可以通过设置模型的db_table属性来控制表名
+    # models.py
+    class Article(models.Model):
+        title = models.CharField(max_length=200)
+        content = models.TextField()
+    
+        class Meta:
+            db_table = 'article_table'
+    ```
+
+21. [在mysql中使用uuid做主键](https://deepinout.com/django/django-questions/418_django_implementing_uuid_as_primary_key.html)
+
+    - [参考2](https://www.jianshu.com/p/62336d9a39ed)
+
+    ```python
+    from django.db import models
+    import uuid
+    
+    class Author(models.Model):
+        id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+        name = models.CharField(max_length=100)
+        # 其他字段...
+    
+    class BlogPost(models.Model):
+        id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+        title = models.CharField(max_length=200)
+        content = models.TextField()
+        created_at = models.DateTimeField(auto_now_add=True)
+        author = models.ForeignKey(Author, on_delete=models.CASCADE)
+    
+        def __str__(self):
+            return self.title
+    # 在关联查询的时候
+    在关联模型中使用 UUID 进行查询时，我们需要使用双下划线 __。
+    author = Author.objects.get(blogpost__id='UUID值')
+    ```
+
+22. 
 
 # Celery
 
@@ -283,6 +367,10 @@ def downloadModel(request):
            'PASSWORD': 'root',  # 数据库密码
        }
    }
+   
+   INSTALL_APPS = [
+       ...
+   ]
    ```
 
    

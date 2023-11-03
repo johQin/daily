@@ -337,10 +337,16 @@ git checkout -b local_branch_name origin/new_branch_name
 跟踪方式：
 
 ```bash
+# git remote add [shortname] [remote_address]
+# 这里的origin是 git remote add origin git_address 添加的远程库的short_name，它代表了远程库
+
 # 创建与远程分支同名的本地分支，会自动建立跟踪关系
 git checkout local_branch_name_same_with_remote_branch_name
-# 创建分支，并指定与远程分支的跟踪关系
+# 创建分支时，并指定与远程分支的跟踪关系
 git checkout -b local_branch_name origin/remote_branch_name
+
+# 在推送时，设定当前工作分支，在远程库的上游分支，以此建立跟踪关系。
+git push --set-upstream origin dev
 ```
 
 修改跟踪关系：
@@ -1298,7 +1304,25 @@ git config --list
 
    - ![](./legend/git_游离状态.png)
 
-8. 
+8. 先建本地库和本地分支，然后再推送到远程库的对应分支，并建立分支的跟踪关系
+
+   ```bash
+   # 初始化本地库，并记得设定.gitignore，不然你很多的不想添加到库中的文件将会被跟踪
+   git init
+   # 为本地库绑定（添加）对应的远程库名，和远程库地址
+   git remote add origin ssh://git@xxx.com:9022/algorithm/others/models.git
+   # 切换创建工作分支
+   git checkout -b dev
+   
+   git add .
+   git commit -m 'dev init'
+   
+   git push --set-upstream origin dev		
+   # --set-upstream remote_short_name remote_branch_name 
+   # 将远程库origin的dev设定为当前工作分支的跟踪分支，远程库可以没有dev分支，推送的时候，它会自动创建
+   ```
+
+9. 
 
 
 
