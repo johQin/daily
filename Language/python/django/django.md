@@ -415,7 +415,7 @@ def downloadModel(request):
      例如，如果您安装了API.Peak应用程序，但没有API/Peak/migrations/文件夹，则必须明确提供该文件夹，即：python manage.py makemigrations Peak（注意，当应用程序中有点时，您只需指定最后一部分，因此API.Peak和API.Waterfall将仅指定为Peak或Waterfall）
      ```
 
-5. 
+5. [操作数据库](https://blog.csdn.net/m0_64599482/article/details/128100516)
 
 
 
