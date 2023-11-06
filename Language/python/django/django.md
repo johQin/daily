@@ -332,7 +332,109 @@ def downloadModel(request):
     author = Author.objects.get(blogpost__id='UUID值')
     ```
 
-22. 
+22. [多表连接查询](https://blog.51cto.com/u_16213452/7783350)
+
+    ```python
+    # models.py
+    from django.db import models
+    
+    class Customer(models.Model):
+        customer_name = models.CharField(max_length=100)
+    
+    class Order(models.Model):
+        order_date = models.DateField()
+        customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
+       
+    # views.py
+    orders = Order.objects.select_related('customer')
+    for order in orders:
+        print(f"Order ID: {order.id}, Order Date: {order.order_date}, Customer Name: {order.customer.customer_name}")
+    ```
+
+23. [在view中使用事务](https://blog.csdn.net/CSDN1csdn1/article/details/133840978)
+
+    - [参考2](https://blog.csdn.net/momoda118/article/details/128177420)
+
+    ```python
+    # 如果为了图省事而场景也较为通用，我们可以设置全局事务配置来让每个请求view都使用事务：
+    # 在settings.py配置文件中增加下面配置：
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': 'testdb', 
+            'USER': 'root',  
+            'PASSWORD': '123', 
+            'HOST': '127.0.0.1',     
+            'PORT': 3306,  
+            'ATOMIC_REQUESTS': True  # 全局开启事务，和http请求的整个过程绑定在一起
+        }
+    }
+    
+    ```
+
+    
+
+24. [django 批量新增和修改](https://www.cnblogs.com/luck-pig/p/17407847.html)
+
+    ```python
+    # 批量新增
+    # 1. 定义一个 model对象的列表，
+    tmpList=[]
+    # 2. 用循环将需要创建的model对象，添加到此列表，
+    tmpList.append(obj)
+    # 3. 使用django提供的bulk_create方法将此对象列表填充，即可实现sql中的批量添加
+    Obj.objects.bulk_create(tmpList)
+    
+    # 批量修改
+    # 1. 定义一个 model对象的列表，
+    tmpList=[]
+    # 2. 用循环将需要创建的model对象，添加到此列表，
+    tmpList.append(obj)
+    # 3. 使用django提供的bulk_update方法将此对象列表填充，并且需要显示定义fields字段，更新的字段都要显示体现，即可实现sql中的批量添加
+    Obj.objects.bulk_update(tmpList，fields=["xx"])
+    ```
+
+    
+
+25. [外键](https://blog.51cto.com/u_16213452/7783350)
+
+    ```python
+    # 使用ForeignKey的字段所在的表定义为从表，把ForeignKey中to参数连接的表称为主表。
+    
+    class TargetModel(models.Model):
+        tid = models.AutoField(primary_key=True)
+        entity = models.ForeignKey(EntityModel, on_delete=models.CASCADE)		# EntityModel是主表
+        gid = models.CharField(max_length=10)
+        targetJson = models.JSONField("模型分析目标的参数配置")
+    @require_POST
+    def queryTargetListView(request):
+        requestData = TargetQueryForm(json.loads(request.body))
+        if requestData.is_valid():
+            queryData = {k: v for k, v in requestData.cleaned_data.items() if requestData.cleaned_data[k]}
+            filterRes = TargetModel.objects.filter(entity_id=queryData['modelId']).select_related('entity').order_by('tid')
+            res = []
+            if not filterRes.exists():
+                return JsonResponse({'code': 200, 'success': True, 'message': '查询成功', 'data':res})
+            entityJson = filterRes[0].entity.entityJson			# 依据外键获取主表对象的数据
+            res['commonParams'] = entityJson['commonParams']
+            modelType = filterRes[0].entity.modelType
+            modelTypeParams = f'{modelType}Params'
+            if modelTypeParams in entityJson:
+                res[modelTypeParams] = entityJson[modelTypeParams]
+            targets = []
+            for t in filterRes.values():					# 将QuerySet转为dict 数组
+                targets.append(t['targetJson'])
+            res['list'] = targets
+            return JsonResponse({'code': 200, 'success': True, 'message': '查询成功', 'data': res})
+    
+        else:
+            error = requestData.errors.get_json_data()
+            return JsonResponse({'code': -1, 'success': False, 'message': error})
+    ```
+
+    
+
+26. 
 
 # Celery
 
@@ -417,5 +519,5 @@ def downloadModel(request):
 
 5. [操作数据库](https://blog.csdn.net/m0_64599482/article/details/128100516)
 
-
+s
 
