@@ -976,7 +976,7 @@ redis-server redis6379.conf
 在将6个节点合成一个集群前，确保在/myredis下生成了6个nodes-xxxx.conf文件
 
 ```bash
-# 要在/opt/redis-6.2.1/src 下执行以下命令，这下面有一个redis-trib.rb文件，它集成了ruby环境，就不需要额外安装ruby了。
+# 要在/opt/redis-6.2.1/src 下执行以下命令，这下面有一个redis-trib.rb文件，它集成了ruby环境，就不需要额外安装ruby了。(redis5以上的版本)
 redis-cli 
 --cluster create					# 表示创建集群
 --cluster-replicas 1 				# 每台redis服务，有一个从机，下面有6台，就是3主3从，共3组。
