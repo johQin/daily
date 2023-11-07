@@ -445,6 +445,10 @@ def downloadModel(request):
 - 异步任务，将耗时的操作任务提交给Celery去异步执行，比如发送短信/邮件、消息推送、音频处理等等
 - 定时任务（定时执行或按一定周期执行）。
 
+```bash
+celery -A ModelDeployment worker -l debug -P eventlet
+```
+
 
 
 # Mysql
