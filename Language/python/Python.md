@@ -1606,6 +1606,13 @@ vars: int
 
 ```python
 from pathlib import Path
+he = Path("./hello.txt")
+# 创建文件
+he.touch(mode=0o666, exist_ok=True)
+# 追加内容模式
+f = he.open("a")
+f.write("123")
+f.write("\n")
 ```
 
 ## 10.6 argparse
@@ -1975,6 +1982,7 @@ scheduler = BackgroundScheduler(jobstores=jobstores, executors=executors, job_de
 
    - 编译工具传递json字符串需要对json体内的双引号加转译字符
    - 如果命令行直接运行则无需加转译字符
+   - [参考1](https://cloud.tencent.com/developer/ask/sof/945081)
 
    ```python
    import json
@@ -1984,6 +1992,7 @@ scheduler = BackgroundScheduler(jobstores=jobstores, executors=executors, job_de
    print(cmdParams)
    cmdParamsJson = json.dumps(cmdParams)
    print(cmdParamsJson)
+   
    ['/home/buntu/gitRepository/axxt/ModelDeployment/tes.py', '{"modelName":"personGather"}']
    {'modelName': 'personGather'}
    {"modelName": "personGather"}
