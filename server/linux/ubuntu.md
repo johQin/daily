@@ -466,7 +466,39 @@
     - 命令用于修复系统中已安装的软件包之间的依赖关系问题。当安装或卸载软件包时，可能会出现依赖关系错误，这可能导致其他软件包无法正常工作或安装。使用该命令可以尝试解决这些依赖关系问题，并尽可能安装所需的软件包。它会自动处理依赖关系冲突，安装缺失的依赖项或删除不需要的依赖项。 
     - 
 
-11. 
+11. 在pycharm中使用root身份运行脚本
+
+    - [参考1](https://www.coder.work/article/167100)，[参考2](https://blog.csdn.net/weixin_44387411/article/details/132958610)
+
+    ```bash
+    # 1. 禁用sudo 运行 Python 时需要密码:
+    
+    # 这将通过编辑 /etc/sudoers.d/python 文件来实现。我们需要做的是在该文件中添加一个条目，如下所示:
+    user host = (root) NOPASSWD: full_path_to_python 
+    #例如:
+    guya ubuntu = (root) NOPASSWD: /usr/bin/python
+    
+    # 注意事项:
+    # user可以通过命令检测到:whoami
+    # host可以通过命令检测到:hostname
+    
+    # 2. 创建一个“sudo 脚本”:这个脚本的目的是赋予 python 以 root 用户身份运行的权限。
+    # 创建一个名为 python-sudo.sh 的脚本，并将以下内容添加到其中:
+    
+    !#/bin/bash
+    sudo /usr/bin/python "$@"
+    #请再次注意，该路径是您上一阶段的 Python 路径。
+    
+    # 不要忘记使用命令授予此脚本的执行权限:chmod，即-
+    chmod +x python-sudo.sh
+    
+    # 3. 使用 python-sudo.sh 脚本作为您的 PyCharm 解释器:
+    
+    ```
+
+    ![](./legend/pycharm中以root身份运行脚本.png)
+
+12. 
 
 
 

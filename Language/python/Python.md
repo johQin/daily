@@ -1608,6 +1608,36 @@ vars: int
 from pathlib import Path
 ```
 
+## 10.6 argparse
+
+将命令行参数转为json
+
+```python
+import json
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--param1", type=str, default="test")
+parser.add_argument("--param2", type=int, default=100)
+parser.add_argument("--param3", type=float, nargs="+", default=[0.1, 0.2, 0.3])
+args = parser.parse_args()
+
+with open("./params.json", mode="w") as f:
+    json.dump(args.__dict__, f, indent=4)
+```
+
+```json
+{
+    "param1": "test",
+    "param2": 100,
+    "param3": [
+        0.1,
+        0.2,
+        0.3
+    ]
+}
+```
+
 
 
 # 12 文件I/O
@@ -1937,9 +1967,35 @@ scheduler = BackgroundScheduler(jobstores=jobstores, executors=executors, job_de
 1. 对比文件：
    - 在右侧文件栏，Ctrl选中两个文件，右击选中Compare Files
    - ![](./legend/pycharm对比文件.png)
+
 2. 在pycharm 的debug模式下，查看对象包含哪些方法
    - Evaluate Expression-> dir(my_object)
-3. 
+
+3. pycharm关于命令行中传递json字符串
+
+   - 编译工具传递json字符串需要对json体内的双引号加转译字符
+   - 如果命令行直接运行则无需加转译字符
+
+   ```python
+   import json
+   import sys
+   print(sys.argv)
+   cmdParams = json.loads(sys.argv[1])
+   print(cmdParams)
+   cmdParamsJson = json.dumps(cmdParams)
+   print(cmdParamsJson)
+   ['/home/buntu/gitRepository/axxt/ModelDeployment/tes.py', '{"modelName":"personGather"}']
+   {'modelName': 'personGather'}
+   {"modelName": "personGather"}
+   ```
+
+   
+
+   ![](./legend/命令行和pycharm编译工具运行脚本传递json的区别.png)
+
+   
+
+4. 
 
 # 常用函数
 
