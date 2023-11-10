@@ -98,11 +98,13 @@ div[class=female]{
 label,#id,.class,[attr]{
 同时匹配，labal元素选择器选中的，id选择器选中的，，，选择器匹配到的元素之间求并集，而不是交集
 }
+</pre>
 2. 后代元素选择器
 <pre>
 fatherLabel offspringLabel{
 }
 </pre>
+
 
 3. 子元素选择器
 <pre>
