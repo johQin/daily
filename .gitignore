@@ -40,6 +40,7 @@ spring_gate
 *.idb
 *.pdb
 *.swp
+nohup.out
 #CMake----------------
 cmake-build-*/
 

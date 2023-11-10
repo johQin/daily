@@ -1969,7 +1969,7 @@ scheduler = BackgroundScheduler(jobstores=jobstores, executors=executors, job_de
 
 
 
-# Pycharm骚操作
+# Pycharm
 
 1. 对比文件：
    - 在右侧文件栏，Ctrl选中两个文件，右击选中Compare Files
