@@ -14,4 +14,13 @@
 
    - 
 
-2. 
+2. [定位网页元素](https://blog.csdn.net/m0_54510474/article/details/121090473)
+
+   ```python
+   # find_element_by_css_selector() 被替换为find_element(“css selector”,"")
+   driver.find_element("css selector",'#key')
+   ```
+
+   
+
+3. 

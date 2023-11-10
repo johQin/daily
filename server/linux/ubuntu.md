@@ -257,6 +257,14 @@
 
 3. [安装docker](https://blog.csdn.net/u012563853/article/details/125295985)
 
+   - [普通用户执行docker无需sudo办法]()
+
+   - ```bash
+     # docker 命令只能由 root 用户或 docker 组中的用户运行，该组是在 Docker 安装过程中自动创建的。如果您想避免在运行 docker 命令时输入 sudo，请将您的用户名添加到 docker 组
+     sudo usermod -aG docker $USER
+     # 添加之后，需要重启电脑然后才能生效
+     ```
+
 4. [创建桌面快捷方式](https://blog.csdn.net/weixin_43031313/article/details/129385915)
 
 5. [安装finalshell](https://blog.csdn.net/zhao001101/article/details/128002640)
@@ -498,7 +506,20 @@
 
     ![](./legend/pycharm中以root身份运行脚本.png)
 
-12. 
+12. [sudoers文件说明 - sudo免密码 - 限制sudo执行特殊命令](https://zhuanlan.zhihu.com/p/632737024?utm_id=0)
+
+    ```bash
+    # /etc/sudoers
+    # User privilege specification
+    root    ALL=(ALL:ALL) ALL
+    jim     ALL=(ALL:ALL) ALL
+    
+    buntu  ALL=(ALL) NOPASSWD:ALL
+    ```
+
+    ![img](legend/v2-0ed918b6d0907ae0f4fb258e3ba9a668_720w.webp)
+
+13. 
 
 
 

@@ -217,7 +217,15 @@ https://docs.docker.com/engine/install/centos/
    systemctl start docker
    ```
 
-8.  测试
+8. docker 非root用户执行，无需sudo
+
+   ```bash
+   # docker 命令只能由 root 用户或 docker 组中的用户运行，该组是在 Docker 安装过程中自动创建的。如果您想避免在运行 docker 命令时输入 sudo，请将您的用户名添加到 docker 组
+   sudo usermod -aG docker $USER
+   # 添加之后，需要重启电脑然后才能生效
+   ```
+
+9. 测试
 
    ```bash
    docker version
@@ -282,7 +290,7 @@ https://docs.docker.com/engine/install/centos/
    
    ```
 
-9.  卸载docker
+10. 卸载docker
 
    ```bash
    systemctl stop docker
@@ -293,7 +301,7 @@ https://docs.docker.com/engine/install/centos/
 
    
 
-10. 阿里云镜像加速器
+11. 阿里云镜像加速器
 
     ![](./figure/阿里云镜像加速器.png)
 
@@ -318,7 +326,7 @@ https://docs.docker.com/engine/install/centos/
 
     
 
-11. 
+12. 
 
 # 2 docker 常用命令
 
@@ -853,6 +861,9 @@ docker容器产生的数据，如果不备份，那么当容器实例删除后�
 docker run -it --privileged=true -v host_path:container_path image_name
 # -v volume 数据卷，v参数可以有多个，用于不同地址间的映射
 # docker 会默认在对应的path创建相应的文件夹，所以不需要事先创建文件夹
+
+# 两个容器使用同一个容器卷，u1是已有容器的名称，u2是需要新启动容器的名称，u2继承和共享u1的容器卷，和宿主机三者共享同一个位置
+docker run -it  --privileged=true --volumes-from u1  --name u2 ubuntu
 ```
 
 **关于privileged的错误**
@@ -1925,3 +1936,4 @@ Registry Mirrors:
 https://docker.mirrors.ustc.edu.cn
 ```
 
+## [docker-py](https://blog.csdn.net/qq_42730750/article/details/128903132)
