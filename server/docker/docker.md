@@ -453,6 +453,7 @@ docker run -it ubuntu /bin/bash
 # 命令执行成功以后，出现的端口就是ubuntu的终端了
 # 输入exit 退出container，同时容器也关闭了
 
+
 [root:11:49@~]docker run -it --name=ubuntu1 ubuntu
 root@1ee74ac3f7e9:/ ls
 bin  boot  dev  etc  home  lib  lib32  lib64  libx32  media  mnt  opt  proc  root  run  sbin  srv  sys  tmp  usr  var
@@ -516,6 +517,12 @@ docker ps -a
 # docker 容器后台运行必须要一个前台进程
 # 容器运行的如果不是那些一直挂起的命令（例如top，tail），就是会自动退出的，这是docker机制决定的。
 # 所以如果要启动守护式容器，那么就必须run 一些具备前台进程的镜像，例如redis，
+# 运行镜像，不以交互式命令进入，并且以守护的方式启动，而且容器还不退出
+# docker容器运行必须有一个前台进程， 如果没有前台进程执行，容器认为空闲，容器运行的命令如果不是那些一直挂起的命令（eg. 运行top，tail等），就会自行退出
+# docker-py 接口的方式启动。这种方式在删除容器的时候需要docker rm -f才能删除
+docker run -d ubuntu tail -f /dev/null
+# 命令行的方式
+docker run -itd ubuntu /bin/bash
 
 # 所以最佳的解决方式是：将你要运行的程序以前台进程的形式运行。
 # 常见的就是交互命令行模式（-it），然后ctrl + p + q退出
@@ -1937,3 +1944,23 @@ https://docker.mirrors.ustc.edu.cn
 ```
 
 ## [docker-py](https://blog.csdn.net/qq_42730750/article/details/128903132)
+
+1. [docker run -d 一启动就退出的解决方法分享（启动守护式容器）](https://huaweicloud.csdn.net/6356173ed3efff3090b59c33.html)
+
+   ```bash
+   # docker-py 接口的方式启动。这种方式在删除容器的时候需要docker rm -f才能删除
+   docker run -d ubuntu tail -f /dev/null
+   # 命令行的方式
+   docker run -itd ubuntu /bin/bash
+   ```
+
+   ```python
+   client.containers.run(image="22507484428a",command='tail -f /dev/null', detach=True)
+   ```
+
+   
+
+2. 
+
+
+

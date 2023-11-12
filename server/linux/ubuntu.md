@@ -23,13 +23,15 @@
 8. [将前台程序转为后台](https://www.bkqs.com.cn/content/xpmvywjpe.html)：【Ctrl + Z】
 
 # 2 常用命令
-1. 查看文件或文件夹大小：**ls -hl    or    ls -hl filename**
+1. 查看操作系统版本：`lsb_release -a 或 cat /proc/version`
 
-2. ubuntu最小系统通过apt-get安装包前，需要县apt-get update更新一下源，然后才可查找包并安装相关包
+2. 查看文件或文件夹大小：**ls -hl    or    ls -hl filename**
 
-3. [apt-get详细](https://blog.csdn.net/qq_44885775/article/details/124278721)
+3. ubuntu最小系统通过apt-get安装包前，需要县apt-get update更新一下源，然后才可查找包并安装相关包
 
-4. [tar](https://www.runoob.com/w3cnote/linux-tar-gz.html)
+4. [apt-get详细](https://blog.csdn.net/qq_44885775/article/details/124278721)
+
+5. [tar](https://www.runoob.com/w3cnote/linux-tar-gz.html)
 
    ```bash
    # 将所有 .jpg 的文件打成一个 tar 包，并且将其用 gzip 压缩，生成一个 gzip 压缩过的包，包名为 all.tar.gz。
@@ -39,16 +41,16 @@
    tar -xzf all.tar.gz
    ```
 
-5. [linux查询文件名 或 文件内容中 包含特定字符串的所有文件](https://blog.csdn.net/weixin_40482816/article/details/121425903)
+6. [linux查询文件名 或 文件内容中 包含特定字符串的所有文件](https://blog.csdn.net/weixin_40482816/article/details/121425903)
 
    - `find ./ -name '*2021-11-01*'`，查看当前文件夹（及子目录中）下，文件名包含2021-11-01的文件
    - `find ./ -name '*2021-11-01*' -maxdepth 1 `，查看当前文件夹下
 
-6. [xargs](https://www.runoob.com/linux/linux-comm-xargs.html)：是给命令传递参数的一个过滤器，也是组合多个命令的一个工具。
+7. [xargs](https://www.runoob.com/linux/linux-comm-xargs.html)：是给命令传递参数的一个过滤器，也是组合多个命令的一个工具。
 
    `find /sbin -perm +700 |xargs ls -l`，将前一个命令find的std ，通过xargs，输出给ls作参数。
 
-7. 查找运行的进程中是否包含某个进程
+8. 查找运行的进程中是否包含某个进程
 
    ```bash
    # 查看父进程ID，进程ID，进程组ID，会话ID
@@ -64,14 +66,14 @@
    root          19  0.0  0.0 180268 24552 ?        Sl   Aug02   2:41 ./shangDong_Model_position
    ```
 
-8. [service和systemctl的区别](https://blog.csdn.net/juanxiaseng0838/article/details/124123822)
+9. [service和systemctl的区别](https://blog.csdn.net/juanxiaseng0838/article/details/124123822)
 
    - service命令其实是去/etc/init.d目录下，去执行相关程序
    - systemctl是一个systemd工具，主要负责控制systemd系统和服务管理器。在/lib/systemd/system
 
-9. `mkdir-p test/test1/test2` 自行创建多层目录
+10. `mkdir-p test/test1/test2` 自行创建多层目录
 
-10. vim 设置行号：
+11. vim 设置行号：
 
    ```bash
    /etc/vim/vimrc
@@ -112,6 +114,8 @@
     service sshd start
     # 3. 连接指定ip的服务器
     ssh zhilan@192.168.0.125
+    # 4. ssh设为自启动
+    systemctl enable ssh
     
     # 连接指定服务器中docker的ssh，将docker容器的22端口，和宿主机的端口8022进行映射
     docker run -dit -p 8022:22 --name test1 ubuntu:16.04
