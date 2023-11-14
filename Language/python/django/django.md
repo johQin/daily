@@ -292,7 +292,7 @@ def downloadModel(request):
     - `django.db.utils.OperationalError: (3140, 'Invalid JSON text: "Invalid value." at position 0 in value for column \'#sql-7f5a7_79.entityJson\'.')`
     - 这是因为原有记录里的字符串不是json格式的，所以导致数据库历史记录，无法转换为json而报错
 
-20.  [django中使用mysql，在model中指定表名](https://deepinout.com/mysql/mysql-questions/427_mysql_database_table_names_with_django.html)
+20. [django中使用mysql，在model中指定表名](https://deepinout.com/mysql/mysql-questions/427_mysql_database_table_names_with_django.html)
 
     ```python
     # 在Django中，我们可以通过设置模型的db_table属性来控制表名
@@ -432,9 +432,19 @@ def downloadModel(request):
             return JsonResponse({'code': -1, 'success': False, 'message': error})
     ```
 
+26. [django.core.exceptions.AppRegistryNotReady: Apps aren‘t loaded yet.](https://blog.csdn.net/seanyang_/article/details/132632165)
+
+    ```python
+    # django.core.exceptions.AppRegistryNotReady: Apps aren‘t loaded yet.
+    import django
+    django.setup()
+    # django.setup()`是Django框架中的一个函数。它用于在非Django环境下使用Django的各种功能、模型和设置。
+    # 在常规的Django应用程序中，不需要手动调用`django.setup()`。Django在启动应用程序时会自动调用它来设置所需的环境和配置。
+    ```
+
     
 
-26. 
+27. 
 
 # 部署
 
@@ -558,7 +568,11 @@ pip install docker
 
    - [参考1](https://blog.csdn.net/m0_57236802/article/details/131642832)
 
-   - 
+2. 在docker中使用container exec_run如果要后台运行，命令字符串里就不能使用nohup &，转而使用`detach=True`
 
-2. 
+   ```python
+   container.exec_run("command", detach=True)
+   ```
+
+3. 
 
