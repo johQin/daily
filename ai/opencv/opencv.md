@@ -1,5 +1,9 @@
 # OpenCV
 
+```python
+pip install opencv-python
+```
+
 
 
 # 0 基础
@@ -1102,3 +1106,45 @@ cv2.destroyAllWindows()
    ```
 
 4. 
+
+# log
+
+1. [python 视频帧转base64](https://www.cnblogs.com/wangsongbai/p/13369337.html)
+
+   ```python
+   import cv2
+   import base64
+   from PIL import Image					# pip install pillow
+   										# pip install -i https://pypi.tuna.tsinghua.edu.cn/simple pillow
+       									# Python 中的 PIL 库: https://blog.csdn.net/qq_62789540/article/details/123755727
+   from io import BytesIO
+   
+   def frame2base64(frame):
+       img = Image.fromarray(frame) 									# 将帧转为Image
+       output_buffer = BytesIO() 										# 创建一个BytesIO
+       img.save(output_buffer, format='JPEG') 							# 写入output_buffer
+       byte_data = output_buffer.getvalue() 							# 在内存中读取
+       base64_data = base64.b64encode(byte_data).decode('utf-8') 		# 转为BASE64
+       return base64_data 												# 转码成功 返回base64编码
+   
+   
+   cap = cv2.VideoCapture(url)
+   tryCount = 0
+   base64_data = None
+   while cap.isOpened():
+       success, frame = cap.read()
+       tryCount += 1
+       if tryCount > 5:
+           break
+       if success:
+           base64_data = frame2base64(frame)
+           break
+       else:
+           continue
+   cap.release()
+   return base64_data
+   ```
+
+   
+
+2. 
