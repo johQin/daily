@@ -19,5 +19,13 @@ pip install Twisted-21.7.0-py3-none-any.whl
 
 # 查看版本
 scrapy version
+
+# 创建爬虫项目
+scrapy startproject Example4399
+
+cd Example4399/Example4399/spiders
+
+# 新建爬虫
+scrapy genspider spi4399
 ```
 
