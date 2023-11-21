@@ -26,6 +26,12 @@ scrapy startproject Example4399
 cd Example4399/Example4399/spiders
 
 # 新建爬虫
-scrapy genspider spi4399
+scrapy genspider spi4399 4399.com
+
+#
+scrapy crawl spi4399
 ```
 
+# log
+
+1. [xpath表达式](https://blog.csdn.net/kongsuhongbaby/article/details/83020721)
