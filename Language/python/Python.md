@@ -1967,7 +1967,102 @@ job_defaults = {
 scheduler = BackgroundScheduler(jobstores=jobstores, executors=executors, job_defaults=job_defaults, timezone=utc)
 ```
 
+# 17 协程
 
+协程（Coroutine），是一种用户态的轻量级线程。
+
+**async/await关键字**：**python3.5用于定义协程的关键字**，**async定义一个协程，await用于挂起阻塞的异步调用接口。**
+
+优点：
+
+1. 无需线程上下文切换的开销，协程避免了无意义的调度，由此可以提高性能（但也因此，程序员必须自己承担调度的责任，同时，协程也失去了标准线程使用多CPU的能力）
+2. 无需原子操作锁定及同步的开销
+3. 方便切换控制流，简化编程模型
+4. 高并发+高扩展性+低成本：一个CPU支持上万的协程都不是问题。所以很适合用于高并发处理。
+
+缺点：
+
+1. 无法利用多核资源：协程的本质是个单线程,它不能同时将单个CPU的多个核用上,协程需要和进程配合才能运行在多CPU上.当然我们日常所编写的绝大部分应用都没有这个必要，除非是cpu密集型应用。
+2. 进行阻塞（Blocking）操作（如IO时）会阻塞掉整个程序。
+
+
+
+协程有两种，一种**无栈协程**，python中以 **asyncio** 为代表， 一种**有栈协程**，python 中 以 **gevent** 为代表
+
+<table align="center" border="1" cellpadding="1" cellspacing="1" style="width:690px;"><thead><tr><th style="width:94px;"> <p></p> </th><th style="width:208px;"> <p>有栈线程</p> </th><th style="width:229px;"> <p>无栈线程</p> </th><th style="width:168px;"> <p>备注</p> </th></tr></thead><tbody><tr><td style="width:94px;"> <p><strong>例子：</strong></p> </td><td style="width:208px;"> <p>lua&nbsp;thread</p> <p><strong>python&nbsp;gevent</strong></p> </td><td style="width:229px;">C# yield return <p>C# async\await</p> <p><strong>python asyncio</strong></p> </td><td style="width:168px;">无</td></tr><tr><td style="width:94px;"> <p><strong>是否拥有单独的上下文：</strong></p> </td><td style="width:208px;">是</td><td style="width:229px;">否</td><td style="width:168px;">上下文包括寄存器、栈帧</td></tr><tr><td style="width:94px;"> <p><strong>局部变量保存位置：</strong></p> </td><td style="width:208px;">栈</td><td style="width:229px;">堆</td><td style="width:168px;">无栈协程的局部变量保存在堆上，比如generator的数据成员。</td></tr><tr><td style="width:94px;"> <p><strong>优点：</strong></p> </td><td style="width:208px;">1. 每个协程有单独的上下文，可以在任意的嵌套函数中任何地方挂起此协程。 <p></p> <p>2. 不需要编译器做语法支持，通过汇编指令即可实现</p> </td><td style="width:229px;">1. 不需要为每个协程保存单独的上下文，内存占用低。 <p></p> <p>2. 切换成本低，性能更高。</p> </td><td style="width:168px;">无</td></tr><tr><td style="width:94px;"> <p><strong>缺点：</strong></p> </td><td style="width:208px;"> <p>1. 需要提前分配一定大小的堆内存保存每个协程上下文，所以会出现内存浪费或者栈溢出。</p> <p></p> <p>2. 上下文拷贝和切换成本高，性能低于无栈协程。</p> </td><td style="width:229px;"> <p>1. 需要编译器提供语义支持，比如C# yield return语法糖。</p> <p></p> <p>2. 只能在这个生成器内挂起此协程，无法在嵌套函数中挂起此协程。</p> <p></p> <p>3. 关键字有一定传染性，异步代码必须都有对应的关键字。作为对比，有栈协程只需要做对应的函数调用。</p> </td><td style="width:168px;">无栈协程无法<b>在嵌套函数中</b>挂起此协程，有栈协程由于是通过保存和切换上下文包括寄存器和执行栈实现，可以在协程函数的嵌套函数内部yield这个协程并唤醒。</td></tr></tbody></table>
+
+## 17.1 yield next send
+
+Python 对 协 程 的 支 持 是 通 过 generator 实 现 的 。
+
+在 generator 中 ， 不 但 可 以 通 过 for 循 环 来 迭 代 ， 还 可 以 不 断 调 用 next()函 数 获 取 由 yield 语 句 返 回 的 下 一 个 值 。send 是 发 送 一 个 参 数 给 yield所在语句赋值。
+
+- yield，用于中断执行和返回数据（return）
+- next，用于启动执行和恢复中断
+- send，用于向中断点发送数据和恢复中断的作用
+
+```python
+def foo():
+    print("starting...")
+    while True:
+        res = yield 4
+        print("res:",res)
+
+g = foo()				# 程序开始执行以后，因为foo函数中有yield关键字，所以foo函数并不会真的执行，而是先得到一个生成器g(相当于一个对象)
+print(next(g))			# 直到调用next方法，foo函数正式开始执行，先执行foo函数中的print方法，然后进入while循环
+						# 程序遇到yield关键字，然后把yield想成return,return了一个4之后，程序停止
+    					# 并没有执行赋值给res操作，此时next(g)语句执行完成，所以输出的前两行（第一个是while上面的print的结果,第二个是return出的结果）是执行print(next(g))的结果，
+print("*"*20)
+print(next(g))
+
+# 结果
+starting...
+4
+********************
+res: None
+4
+
+
+
+def foo():
+    print("starting...")
+    while True:
+        res = yield 4
+        print("res:",res)
+
+g = foo()
+print(next(g))
+print("*"*20)
+print(g.send(10))
+
+# 结果
+starting…
+4
+********************
+res: 10
+4
+```
+
+## 17.2 异步io协程
+
+使用异步IO，无非是提高我们写的软件系统的并发。
+
+并发的方式有多种，多线程，多进程，异步IO等。多线程和多进程更多应用于CPU密集型的场景，比如科学计算的时间都耗费在CPU上，利用多核CPU来分担计算任务。多线程和多进程之间的场景切换和通讯代价很高，不适合IO密集型的场景。而异步IO就是非常适合IO密集型的场景，比如网络爬虫和Web服务。
+
+IO就是读写磁盘、读写网络的操作，这种读写速度比读写内存、CPU缓存慢得多，前者的耗时是后者的成千上万倍甚至更多。这就导致，IO密集型的场景99%以上的时间都花费在IO等待的时间上。异步IO就是把CPU从漫长的等待中解放出来的方法。
+
+**asyncio**是Python3.4版本引入的标准库，直接内置了对异步IO的支持。asyncio的编程模型就是一个消息循环。我们从asyncio模块中直接获取一个EventLoop的引用，然后把需要执行的协程扔到EventLoop中执行，就实现了异步IO。
+
+
+
+1. event_loop事件循环：程序开启一个无限的循环，程序员会把一些函数注册到事件循环上。当满足事件发生的时候，调用相应的协程函数。
+2. coroutine协程：协程对象，指一个使用async关键字定义的函数，它的调用不会立即执行函数，而是会返回一个协程对象。协程对象需要注册到事件循环，由事件循环调用。
+3. task任务：一个协程对象就是一个原生可以挂起的函数，任务则是对协程进一步封装，其中包含任务的各种状态。
+4. future：代表将来执行或没有执行的任务的结果。它和task上没有本质的区别
+
+## 17.3 gevent
+
+libevent 是一个事件分发引擎，greenlet 提供了轻量级线程的支持，gevent 就是基于这两个的一个专门处理网络逻辑的并行库。
 
 # Pycharm
 

@@ -430,6 +430,7 @@ def downloadModel(request):
         else:
             error = requestData.errors.get_json_data()
             return JsonResponse({'code': -1, 'success': False, 'message': error})
+       
     ```
 
 26. [django.core.exceptions.AppRegistryNotReady: Apps aren‘t loaded yet.](https://blog.csdn.net/seanyang_/article/details/132632165)
@@ -442,9 +443,69 @@ def downloadModel(request):
     # 在常规的Django应用程序中，不需要手动调用`django.setup()`。Django在启动应用程序时会自动调用它来设置所需的环境和配置。
     ```
 
+27. django.db.utils.OperationalError: (1054, "Unknown column 'model_entity.modelChineseName' in 'field list'")
+
+    - 在新增字段的时候出现这样的问题，即使删除migrations，问题同样存在，这时，你就在mysql数据库中手动添加，然后再通过命令行去makemigrations和migrate
+
+28. [django环境移植，安装mysqlclient包](https://blog.csdn.net/qwe1314225/article/details/132150159)
+
+    ```bash
+    # mysqlclient，主机缺少mysqlclient，
+    # 在安装mysqlclient pip包，它依赖主机上的mysqlclient，所以如果如果主机上没有mysqlclient，那么就会报错，报错如下
+    Pip subprocess error:
+      error: subprocess-exited-with-error
+      
+      × Getting requirements to build wheel did not run successfully.
+      │ exit code: 1
+      ╰─> [22 lines of output]
+          Trying pkg-config --exists mysqlclient
+          Command 'pkg-config --exists mysqlclient' returned non-zero exit status 1.
+          Trying pkg-config --exists mariadb
+          Command 'pkg-config --exists mariadb' returned non-zero exit status 1.
+          Traceback (most recent call last):
+            File "/root/anaconda3/envs/djg_conf_server/lib/python3.9/site-packages/pip/_vendor/pyproject_hooks/_in_process/_in_process.py", line 353, in <module>
+              main()
+            File "/root/anaconda3/envs/djg_conf_server/lib/python3.9/site-packages/pip/_vendor/pyproject_hooks/_in_process/_in_process.py", line 335, in main
+              json_out['return_val'] = hook(**hook_input['kwargs'])
+            File "/root/anaconda3/envs/djg_conf_server/lib/python3.9/site-packages/pip/_vendor/pyproject_hooks/_in_process/_in_process.py", line 118, in get_requires_for_build_wheel
+              return hook(config_settings)
+            File "/tmp/pip-build-env-ttcgnh3w/overlay/lib/python3.9/site-packages/setuptools/build_meta.py", line 325, in get_requires_for_build_wheel
+              return self._get_build_requires(config_settings, requirements=['wheel'])
+            File "/tmp/pip-build-env-ttcgnh3w/overlay/lib/python3.9/site-packages/setuptools/build_meta.py", line 295, in _get_build_requires
+              self.run_setup()
+            File "/tmp/pip-build-env-ttcgnh3w/overlay/lib/python3.9/site-packages/setuptools/build_meta.py", line 311, in run_setup
+              exec(code, locals())
+            File "<string>", line 154, in <module>
+            File "<string>", line 48, in get_config_posix
+            File "<string>", line 27, in find_package_name
+          Exception: Can not find valid pkg-config name.
+          Specify MYSQLCLIENT_CFLAGS and MYSQLCLIENT_LDFLAGS env vars manually
+          [end of output]
+      
+      note: This error originates from a subprocess, and is likely not a problem with pip.
+    error: subprocess-exited-with-error
+    
+    × Getting requirements to build wheel did not run successfully.
+    │ exit code: 1
+    ╰─> See above for output.
+    
+    note: This error originates from a subprocess, and is likely not a problem with pip.
+    
+    failed
+    
+    CondaEnvException: Pip failed
+    
+    
+    # 解决
+    apt-get install libmysqlclient-dev
+    apt-get install python3-dev
+    ```
+
     
 
-27. 
+29. [通过中间件记录view的日志信息](https://blog.csdn.net/qq_42717671/article/details/132082232)
+
+30. 
 
 # 部署
 
