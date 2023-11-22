@@ -2,7 +2,7 @@
 
 # 1 helloworld
 
-## 数据集下载
+## 1.1 数据集下载
 
 ```bash
 # 在yolov8 中可以使用yolov5的标记
@@ -15,15 +15,15 @@ wget https://github.com/ultralytics/yolov5/releases/download/v1.0/coco2017labels
 
 
 
-## 权重下载
+## 1.2 预训练权重下载
 
 在ultralytics github的readme.md下方找到Models栏目，那里的表格直接点击对应的权重即可下载
 
 ![](./legend/weight_download.png)
 
-## [制作数据集](https://blog.csdn.net/qq_26696715/article/details/130118379)
+## 1.3 [制作数据集](https://blog.csdn.net/qq_26696715/article/details/130118379)
 
-### [labelme使用](https://zhuanlan.zhihu.com/p/639923908)
+### 1.3.1 [labelme使用](https://zhuanlan.zhihu.com/p/639923908)
 
 ```bash
 # 创建sandbox
@@ -81,7 +81,7 @@ labelme
 
 
 
-### [处理json文件](https://blog.csdn.net/qq_26696715/article/details/130118379)
+### 1.3.2 [处理json文件](https://blog.csdn.net/qq_26696715/article/details/130118379)
 
 处理json，到yolo可以使用
 
@@ -207,7 +207,7 @@ labels文件夹下的每个txt文件，存放的是每张图片标记的多个�
 
 
 
-## [训练](https://blog.csdn.net/weixin_42166222/article/details/129391260)
+## 1.4 [训练](https://blog.csdn.net/weixin_42166222/article/details/129391260)
 
 在data下，新建一个配置例如animal.yaml
 
@@ -403,7 +403,7 @@ tracker: botsort.yaml  # (str) tracker type, choices=[botsort.yaml, bytetrack.ya
 
 
 
-## [推理](https://blog.csdn.net/qq_37553692/article/details/130910432)
+## 1.5 [推理](https://blog.csdn.net/qq_37553692/article/details/130910432)
 
 [YOLOv8预测参数详解](https://blog.csdn.net/qq_37553692/article/details/130910432)
 
@@ -733,7 +733,7 @@ if success:
 
 
 
-# 部署
+# 2 部署
 
 ## TensorRT部署
 
