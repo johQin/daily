@@ -21,9 +21,207 @@ wget https://github.com/ultralytics/yolov5/releases/download/v1.0/coco2017labels
 
 ![](./legend/weight_download.png)
 
+## [制作数据集](https://blog.csdn.net/qq_26696715/article/details/130118379)
+
+### [labelme使用](https://zhuanlan.zhihu.com/p/639923908)
+
+```bash
+# 创建sandbox
+conda create -n labelSet python=3.9
+# 创建一个文件夹data,
+# 再创建data/images，images下存放需要打标签的所有图片
+
+# /home/buntu/.conda/envs/labelSet/bin，使用如下命令打开labelme
+labelme
+
+# openDir，打开data/images，
+# file->save automatically
+# 右击图片选择形状
+```
+
+
+
+![image-20231122111433140](legend/image-20231122111433140.png)
+
+每张图片标记后生成一个json文件：
+
+```json
+{
+  "version": "5.3.1",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "wolf",
+      "points": [
+        [
+          47.2040816326531,
+          23.89795918367347
+        ],
+        [
+          274.14285714285717,
+          336.14285714285717
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {}
+    }
+  ],
+  "imagePath": "./eagle-0.json",
+  "imageData": "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRof",		//图片的base64
+  "imageHeight": 338,
+  "imageWidth": 474
+}
+```
+
+
+
+![image-20231122175303773](legend/image-20231122175303773.png)
+
+
+
+### [处理json文件](https://blog.csdn.net/qq_26696715/article/details/130118379)
+
+处理json，到yolo可以使用
+
+```python
+import json
+import numpy as np
+import glob
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent
+def split_by_ratio(arr, *ratios):
+    """
+    按比例拆分数组
+    :param arr:
+    :param ratios: 该参数的个数即为子数组的个数 eg: 0.5,0.5即为拆分两个各占50%的子数组
+    :return:
+    """
+    # permutation将一个数组中的元素随机打乱，返回一个打乱后的新数组。https://blog.csdn.net/weixin_42608318/article/details/129568564
+    arr = np.random.permutation(arr)
+    # ratios= (0.9, 0.1)
+    # np.array(ratios) = [0.9, 0.1]
+    # np.array(ratios) * len(arr)(100) = [90.9, 10.1]
+    # np.add.accumulate(np.array(ratios) * len(arr)) = [90.9, 101.]
+    ind = np.add.accumulate(np.array(ratios) * len(arr)).astype(int)    # [90, 101]
+    # def split(ary, indices_or_sections, axis=0):
+    # ary的类型为ndarray（n维数组），表示待分割的原始数组
+    # indices_or_sections的类型为int或者一维数组，表示一个索引，也就是切的位置所在。indices_or_sections的值如果是一个整数的话，就用这个数平均分割原数组。indices_or_sections的值如果是一个数组的话，就以数组中的数字为索引切开
+    # axis表示的是沿哪个维度切
+    tmp = [x.tolist() for x in np.split(arr, ind)][:len(ratios)]
+    return tmp
+
+
+def convert_json(t):
+    ishas = False
+
+    basename = t.split("/")[-1].split("\\")[-1].split(".")[0]
+    with open(t, 'r', encoding='utf-8') as ft:
+        data = json.load(ft)
+
+        for shape in data['shapes']:
+            if shape['label'] in class_names:
+                ishas = True
+        if not ishas: return ishas
+
+        height = data["imageHeight"]
+        width = data["imageWidth"]
+        with open(str(BASE_DIR / ("data/labels/" + basename + ".txt")), 'w') as fa:
+            for shape in data['shapes']:
+                assert shape['label'] in class_names, f"Error: {shape['label']} not found in {class_names}"
+                class_id = class_names.index(shape['label'])
+
+                x1, y1 = shape['points'][0]
+                x2, y2 = shape['points'][1]
+                x_center = (x1 + x2) / 2 / width
+                y_center = (y1 + y2) / 2 / height
+                width = abs(x2 - x1) / width
+                height = abs(y2 - y1) / height
+
+                fa.write(f"{class_id} {x_center} {y_center} {width} {height}\n")
+
+    return ishas
+
+
+# 类别
+class_names = ['wolf', 'eagle']
+# label json，需要以
+if __name__ == "__main__":
+    # 文件列表
+    json_list = glob.glob(str(BASE_DIR / "data/images/*.json"))
+    np.random.shuffle(json_list)
+    trains, vals = split_by_ratio(json_list, 0.9, 0.1)
+
+    # 训练文件夹
+    labelDir = BASE_DIR / "data/labels"
+    if not labelDir.exists():
+        labelDir.mkdir(parents=True, exist_ok=True)
+
+
+    with open(str(BASE_DIR / 'data/train.txt'), 'w') as f:
+        for t in trains:
+            basename = t.split("/")[-1].split("\\")[-1].split(".")[0]
+
+            # ishas表示json里面是否包含class_names里面的类（也就是说对应的图片里面是否包含我们需要的类）
+            ishas = convert_json(t)
+            if ishas:
+                # yololabels
+                out_txt_file = "./images/" + basename + ".jpg\n"
+                f.write(out_txt_file)
+
+    with open(str(BASE_DIR / 'data/val.txt'), 'w') as f:
+        for t in vals:
+            basename = t.split("/")[-1].split("\\")[-1].split(".")[0]
+            ishas = convert_json(t)
+            if ishas:
+                out_txt_file = "./images/" + basename + ".jpg\n"
+                f.write(out_txt_file)
+
+```
+
+![](./legend/制作数据集.png)
+
+
+
+labels文件夹下的每个txt文件，存放的是每张图片标记的多个目标
+
+```bash
+# f"{class_id} {x_center} {y_center} {width} {height}\n"
+# 可能有多个，但我这里的素材每个图片里只有一个目标标记
+0 0.338973564109188 0.5326047578794832 0.4787737879962111 0.9238014732520227
+```
+
+在生成的train.txt和val.txt中
+
+```bash
+./images/eagle-10.jpg
+./images/eagle-38.jpg
+./images/eagle-24.jpg
+./images/wolf-3.jpg
+./images/wolf-47.jpg
+./images/eagle-49.jpg
+./images/wolf-5.jpg
+```
+
+
+
 ## [训练](https://blog.csdn.net/weixin_42166222/article/details/129391260)
 
-新建一个配置.yaml
+在data下，新建一个配置例如animal.yaml
+
+```yaml
+task: detect
+train: /home/buntu/gitRepository/ultralytics/data/train.txt
+val: /home/buntu/gitRepository/ultralytics/data/val.txt
+# number of classes
+nc: 2
+# class names
+names: ['wolf', 'eagle']
+```
+
+复制一个默认配置yaml
 
 ```bash
 # 在项目根目录下
@@ -35,12 +233,14 @@ yolo copy-cfg
 # 在default_copy.yaml文件的基础上，按需修改配置
 # eg：
 ...
-model:  weights/yolo8m.pt # (str, optional) path to model file, i.e. yolov8n.pt, yolov8n.yaml
-data:  datasets/coco128/coco128.yaml			# 这里修改为自己的yaml，
+model:  weights/yolo8m.pt # (str, optional) path to model file, i.e. yolov8n.pt, yolov8n.yaml		# 这里需要写绝对路径否则找不到
+data:  /home/buntu/gitRepository/ultralytics/data/animal.yaml			# 这里修改为自己的yaml，
 epochs: 20  # number of epochs to train for
 batch: 8  # number of images per batch (-1 for AutoBatch)
 ...
 ```
+
+
 
 修改：`gitRepository/ultralytics/ultralytics/engine/model.py`
 
