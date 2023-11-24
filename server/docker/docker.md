@@ -1958,9 +1958,18 @@ https://docker.mirrors.ustc.edu.cn
    client.containers.run(image="22507484428a",command='tail -f /dev/null', detach=True)
    ```
 
+2. docker container.exec_run
+
+   ```python
+   # 如果在host里面直接执行命令行脱机程序， 就需要加nohup ... &
+   subprocess.Popen([f"nohup {compiler} {paramsBetweenCompilerAndEntry} {entry} {paramsAfterEntry} {config} &"], shell=True)
+   # 如果在docker的容器里面执行命令行脱机程序，不需要加nohup ... &，而只需要使用detach=True
+   container.exec_run(exec_cmd, workdir=workDir, detach=True)
+   ```
+
    
 
-2. 
+3. 
 
 
 

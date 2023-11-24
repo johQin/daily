@@ -2390,3 +2390,55 @@ libevent 是一个事件分发引擎，greenlet 提供了轻量级线程的支�
 20. [python全局变量（模块法和global）](https://blog.csdn.net/qq_41659872/article/details/99702235)
 
 21. [python动态生成类&动态生成方法](https://blog.csdn.net/qq_39208536/article/details/132298474)
+
+22. [java调用python程序获取返回值](https://blog.51cto.com/u_16213301/7882562)
+
+    - python文件里面通过标准输出返回脚本运行结果
+
+    ```python
+    def add(a, b):
+        return a + b
+    
+    result = add(1, 2)
+    print(result)
+    # or
+    # sys.stdout.write(result)
+    ```
+
+    - java文件
+
+    ```java
+    import java.io.BufferedReader;
+    import java.io.IOException;
+    import java.io.InputStreamReader;
+    
+    public class Example {
+        public static void main(String[] args) {
+            try {
+                // 创建一个ProcessBuilder对象，并指定要执行的命令
+                ProcessBuilder pb = new ProcessBuilder("python", "example.py");
+    
+                // 启动进程并获取其输入流
+                Process process = pb.start();
+                BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+    
+                // 读取进程的输出
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    // 输出每一行
+                    System.out.println(line);
+                }
+    
+                // 等待进程执行完毕
+                int exitCode = process.waitFor();
+                System.out.println("Exit Code: " + exitCode);
+            } catch (IOException | InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+    ```
+
+    
+
+23. 
