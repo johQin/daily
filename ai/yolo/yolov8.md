@@ -23,6 +23,8 @@ wget https://github.com/ultralytics/yolov5/releases/download/v1.0/coco2017labels
 
 ## 1.3 [制作数据集](https://blog.csdn.net/qq_26696715/article/details/130118379)
 
+[参考2](https://blog.csdn.net/liang_baikai/article/details/132082292)
+
 ### 1.3.1 [labelme使用](https://zhuanlan.zhihu.com/p/639923908)
 
 ```bash

@@ -505,7 +505,104 @@ def downloadModel(request):
 
 29. [通过中间件记录view的日志信息](https://blog.csdn.net/qq_42717671/article/details/132082232)
 
-30. 
+    - 前提要嵌入logging模块
+
+    ```python
+    # 新建一个MiddleWare/ViewLogMiddle.py，里面创建一个LogMiddle类
+    import logging
+    logger = logging.getLogger('ModelDeployment')
+    class LogMiddle(MiddlewareMixin):
+        # 日志处理中间件
+        def process_request(self, request):
+            # 存放请求过来时的时间
+            request.init_time = time.time()
+            return None
+    
+        def process_response(self, request, response):
+            """响应完成后触发"""
+            try:
+                # 耗时
+                localtime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+                # 请求路径
+                path = request.path
+                # 请求方式
+                method = request.method
+                # 响应状态码
+                status_code = response.status_code
+                # 响应内容
+                content = response.content
+                # 记录信息
+                # 用户信息
+                # try:
+                #     access_token = request.headers.get('Authorization')
+                #     if access_token:
+                #         # breakpoint()
+                #         access_token = access_token.split(' ')[-1]
+                #         try:
+                #             user_obj = AccessToken.objects.get(token=access_token)
+                #             name = user_obj.user.username
+                #         except:
+                #             name = '游客'
+                #
+                # except AttributeError:
+                #     name = '游客'
+                name = "any"
+                content = str(content.decode('utf-8'))
+                content = urllib.parse.unquote(content)
+                content = (json.loads(content))
+                message = '%s %s %s %s %s %s' % (localtime, name, path, method, status_code, content)
+                logger.info(message)
+            except:
+                logger.critical('系统错误')
+            return response
+    
+        def process_exception(self, request, exception):
+            """捕获异常"""
+            localtime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+            # 请求路径
+            path = request.path
+            # 请求方式
+            method = request.method
+    
+            # 记录信息
+            # try:
+            #     access_token = request.headers.get('Authorization')  # 获取token信息 并根据token信息获取用户登录信息
+            #     if access_token:
+            #         # breakpoint()
+            #         access_token = access_token.split(' ')[-1]
+            #         try:
+            #             user_obj = AccessToken.objects.get(token=access_token)
+            #             name = user_obj.user.username
+            #         except:
+            #             name = '游客'
+            # except AttributeError:
+            #     name = '游客'
+            name = "any"
+            message = '%s %s %s %s %s' % (localtime, name, path, method, exception)
+            logger.error(message)
+            # print("这是错误处理。。。%s" % exception)
+    
+    
+    # 再settings.py里面添加中间件
+    MIDDLEWARE = [
+    	...
+        'MiddleWare.ViewLogMiddle.LogMiddle'
+        ...
+    ]
+    ```
+
+    
+
+30. [django model order_by](https://blog.csdn.net/qq_43520820/article/details/118326732)
+
+    ```python
+    User.objects.all().order_by('pk')  # 升序，即从小到大
+    User.objects.all().order_by('-pk')  # 降序，即从大到小，字段前面多个一个减号'-'
+    ```
+
+    
+
+31. 
 
 # 部署
 
