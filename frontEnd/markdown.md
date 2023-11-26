@@ -150,9 +150,12 @@ __字体加粗__
 
 
 $$
-x^2+y_1+\frac{1}{2}+\sqrt{2}+\log_{2}{8}+\vec{a}+\int_{1}^{2}{x}dx+\lim_{n\rightarrow+\infty}{\frac{1}{n}}+\sum_{n=1}^{100}{a_n}+\prod_{n=1}^{100}{x_n}
+x^2+y_1+\frac{1}{2}+\sqrt{2}+\log_{2}{8}+\vec{a}+\int_{1}^{2}{x}dx+\lim_{n\rightarrow+\infty}{\frac{1}{n}}+\sum_{n=1}^{100}{a_n}+\prod_{n=1}^{100}{x_n} 
 \\ \pi+\alpha+\beta+\gamma
 \\ x \in A
+\\
+\frac{\partial f}{\partial w_1} = \frac{\partial f_3}{\partial f_2} w_3 \times \frac{\partial f_2}{\partial f_1} w_2 \times
+\frac{\partial f_1}{\partial w_1}
 $$
 $$
 \vec{a}  向量\\
