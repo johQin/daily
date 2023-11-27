@@ -2441,4 +2441,13 @@ libevent 是一个事件分发引擎，greenlet 提供了轻量级线程的支�
 
     
 
-23. 
+23. 查看python
+
+    ```bash
+    whereis python  # 查看所有python的路径
+    which python    # 查看当前使用的python路径
+    ```
+
+    
+
+24. 

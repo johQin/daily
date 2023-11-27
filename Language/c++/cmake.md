@@ -718,6 +718,76 @@ LIBRARY_OUTPUT_PATH			# 指定库文件的输出目录
 
 # 工具函数
 
+## [工程声明project](https://www.jianshu.com/p/cdd6e56c2422)
+
+project命令用于指定cmake工程的名称，实际上，它还可以指定cmake工程的版本号（`VERSION`关键字）、简短的描述（`DESCRIPTION`关键字）、主页URL（`HOMEPAGE_URL`关键字）和编译工程使用的语言（`LANGUAGES`关键字）。
+
+```cmake
+PROJECT(yolov8 VERSION 1.0.0 LANGUAGES C CXX CUDA DESCRIPTION “This istest project.”)
+# 实际上在调用project命令指定当前工程名字的同时，cmake内部会为如下变量赋值
+# 1. PROJECT_NAME：工程名，在此为yolov8
+# 2. PROJECT_SOURCE_DIR：当前工程的源码路径
+# 3. <PROJECT-NAME>_SOURCE_DIR：指定工程的源码路径， 若<PROJECT-NAME>就是当前工程，则该变量和PROJECT_SOURCE_DIR相等。
+# 4. PROJECT_BINARY_DIR：当前工程的二进制路径
+# 5. <PROJECT-NAME>_BINARY_DIR：指定工程的二进制路径， 若<PROJECT-NAME>就是当前工程，则该变量和PROJECT_BINARY_DIR相等。
+# 6. CMAKE_PROJECT_NAME：顶层工程的名称。
+
+# 在调用project命令指定VERSION，LANGUAGES等项时，cmake内部也会生成相关变量
+
+# 有如下结构
+/test
+/test/CMakeLists.txt
+/test/subtest
+/test/subtest/CMakeLists.txt
+
+
+# test/CMakeLists.txt
+cmake_minimum_required (VERSION 3.10.2)
+set (TOP_PROJECT_NAME "mytest") # 定义了变量TOP_PROJECT_NAME为"mytest"
+project (${TOP_PROJECT_NAME}) 
+
+message (">>> top PROJECT_NAME: ${PROJECT_NAME}")
+message (">>> top PROJECT_SOURCE_DIR: ${PROJECT_SOURCE_DIR}")
+message (">>> top <PROJECT_NAME>_SOURCE_DIR: ${${TOP_PROJECT_NAME}_SOURCE_DIR}") 
+message (">>> top PROJECT_BINARY_DIR: ${PROJECT_BINARY_DIR}")
+message (">>> top <PROJECT_NAME>_BINARY_DIR: ${${TOP_PROJECT_NAME}_BINARY_DIR}")
+message (">>> top CMAKE_PROJECT_NAME: ${CMAKE_PROJECT_NAME}")
+
+add_subdirectory (sub_test) # 调用sub_test下的CMakeList.txt进行构建
+
+# test/sub_test/CMakeLists.txt
+cmake_minimum_required (VERSION 3.10.2)
+set (SUB_LEVEL_PROJECT_NAME "mysubtest") # 定义了变量SUB_LEVEL_PROJECT_NAME为"mysubtest"
+project (${SUB_LEVEL_PROJECT_NAME}) 
+
+message (">>>>>> sub PROJECT_NAME: ${PROJECT_NAME}")
+message (">>>>>> sub PROJECT_SOURCE_DIR: ${PROJECT_SOURCE_DIR}")
+message (">>>>>> sub <PROJECT_NAME>_SOURCE_DIR: ${${SUB_LEVEL_PROJECT_NAME}_SOURCE_DIR}") 
+message (">>>>>> sub <PROJECT_NAME>_SOURCE_DIR(top level): ${${TOP_PROJECT_NAME}_SOURCE_DIR}") 
+message (">>>>>> sub PROJECT_BINARY_DIR: ${PROJECT_BINARY_DIR}")
+message (">>>>>> sub <PROJECT_NAME>_BINARY_DIR: ${${SUB_LEVEL_PROJECT_NAME}_BINARY_DIR}")
+message (">>>>>> sub <PROJECT_NAME>_BINARY_DIR(top level): ${${TOP_PROJECT_NAME}_BINARY_DIR}")
+message (">>>>>> sub CMAKE_PROJECT_NAME: ${CMAKE_PROJECT_NAME}")
+
+# 在test/下执行cmake .
+>>> top PROJECT_NAME: mytest
+>>> top PROJECT_SOURCE_DIR: test/
+>>> top <PROJECT_NAME>_SOURCE_DIR: test/
+>>> top PROJECT_BINARY_DIR: test/ 
+>>> top <PROJECT_NAME>_BINARY_DIR: test/
+>>> top CMAKE_PROJECT_NAME: mytest
+>>>>>> sub PROJECT_NAME: mysubtest
+>>>>>> sub PROJECT_SOURCE_DIR: test/sub_test
+>>>>>> sub <PROJECT_NAME>_SOURCE_DIR: test/sub_test
+>>>>>> sub <PROJECT_NAME>_SOURCE_DIR(top level): test/
+>>>>>> sub PROJECT_BINARY_DIR: test/sub_test
+>>>>>> sub <PROJECT_NAME>_BINARY_DIR: test/sub_test
+>>>>>> sub <PROJECT_NAME>_BINARY_DIR(top level): test/
+>>>>>> sub CMAKE_PROJECT_NAME: mytest
+```
+
+
+
 ## [获取目录下所有文件：`aux_source_directory，file`](https://blog.csdn.net/a2886015/article/details/126830638)
 
 ```cmake
@@ -752,43 +822,43 @@ set( SOUR7 mat/add.cpp mat/sub.cpp)			# SOUR7：mat/add.cpp;mat/sub.cpp
 add_executable(${PROJECT_NAME}  ${SOURCES})
 ```
 
-1. 打印message
+## 打印message
 
-   ```cmake
-   message([<mode>] "message text" ...)
-   # mode 的值包括 FATAL_ERROR、STATUS、WARNING、AUTHOR_WARNING、VERBOSE等。
-   # FATAL_ERROR：产生 CMake Error，会停止编译系统的构建过程；
-   # STATUS：project用户可能感兴趣的主要信息。理想情况下，这些信息应该简明扼要，不超过一行，但仍然信息丰富。
-   # WARNING：显示警告信息。
-   # VERBOSE：针对project用户的详细信息消息。这些消息应提供在大多数情况下不感兴趣的额外详细信息。
-   # "message text"为显示在终端的内容。
-   message(">>> git location: ${git_location}, ${git_imported}")
-   
-   # 如果想在clion看到cmake编译信息，可以在底部Messages栏查看
-   ```
+```cmake
+message([<mode>] "message text" ...)
+# mode 的值包括 FATAL_ERROR、STATUS、WARNING、AUTHOR_WARNING、VERBOSE等。
+# FATAL_ERROR：产生 CMake Error，会停止编译系统的构建过程；
+# STATUS：project用户可能感兴趣的主要信息。理想情况下，这些信息应该简明扼要，不超过一行，但仍然信息丰富。
+# WARNING：显示警告信息。
+# VERBOSE：针对project用户的详细信息消息。这些消息应提供在大多数情况下不感兴趣的额外详细信息。
+# "message text"为显示在终端的内容。
+message(">>> git location: ${git_location}, ${git_imported}")
 
-   ![](./legend/cmake_message.png)
+# 如果想在clion看到cmake编译信息，可以在底部Messages栏查看
+```
 
-2. [configure_file](https://www.jianshu.com/p/2946eeec2489)
+![](./legend/cmake_message.png)
 
-   - 将一个文件(由`input`参数指定)拷贝到指定位置(由`output`参数指定)，并根据`options`修改其内容。
+## [configure_file](https://www.jianshu.com/p/2946eeec2489)
 
-   - **configure_file命令一般用于自定义编译选项或者自定义宏的场景。**
+- 将一个文件(由`input`参数指定)拷贝到指定位置(由`output`参数指定)，并根据`options`修改其内容。
 
-   - `configure_file(<input> <output> [options])`
+- **configure_file命令一般用于自定义编译选项或者自定义宏的场景。**
 
-   - configure_file命令会根据`options`指定的规则，自动对`input`文件中`cmakedefine`关键字及其内容进行转换。
+- `configure_file(<input> <output> [options])`
 
-   - 具体来说，会做如下几个替换：
+- configure_file命令会根据`options`指定的规则，自动对`input`文件中`cmakedefine`关键字及其内容进行转换。
 
-     - 将input文件中的`@var@`或者`${var}`替换成cmake中指定的值。
-     -  将input文件中的`#cmakedefine var`关键字替换成`#define var`或者`#undef var`，取决于cmake是否定义了var。
+- 具体来说，会做如下几个替换：
 
-   - c++获取项目路径的两种方式中有应用
+  - 将input文件中的`@var@`或者`${var}`替换成cmake中指定的值。
+  -  将input文件中的`#cmakedefine var`关键字替换成`#define var`或者`#undef var`，取决于cmake是否定义了var。
 
-3. [file](https://www.jianshu.com/p/ed151fdcf473)
+- c++获取项目路径的两种方式中有应用
 
-   - **使用cmake 文件操作时不可避免需要操作相关文件，比如读取文件内容，创建新文件，返回文件地址等等**
+## [file](https://www.jianshu.com/p/ed151fdcf473)
+
+- **使用cmake 文件操作时不可避免需要操作相关文件，比如读取文件内容，创建新文件，返回文件地址等等**
 
 # 最佳实践
 
@@ -833,6 +903,16 @@ char *getenv(const char *name);
 
 // 以 "var_name=value"的形式设置环境变量
 int putenv(char *string);
+```
+
+## 2 [camke发布release版本](https://blog.csdn.net/weixin_39766005/article/details/122439200)
+
+```bash
+# cmake构建的项目默认是debug,可以通过下面命令构建release版本：
+
+cmake --build . --config Release
+
+# 在构建的最后加上 --config Release即可。
 ```
 
 
