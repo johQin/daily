@@ -1055,7 +1055,7 @@ cv2.destroyAllWindows()
    - 网络分析张量：`net.forward()`
 4. 进行分析，并得到结果
 
-# OpenCV C++
+# 8 OpenCV C++
 
 1. cmake中引入opencv
 
@@ -1106,6 +1106,113 @@ cv2.destroyAllWindows()
    ```
 
 4. 
+
+## 8.1 [opencv 硬件加速解码](https://blog.csdn.net/weicao1990/article/details/128969734)
+
+[参考2](https://blog.csdn.net/xhamigua/article/details/108855835)
+
+因为CPU是通用计算单元，没有集成视频编解码的ASIC，因此用CPU对视频进行编解码需要由软件主导进行，效率不高。
+
+用GPU跑硬解是因为现代GPU核心里都集成了视频编解码模块，例如Intel的QuickSync，NVIDIA的NVENC这些，因此在做视频编解码的时候可以用这些ASIC去跑，效率很高，很省电。如果你要用CUDA/ROCm/OneAPI手动写一个实现，那也是软解
+
+在现代意义上的GPU流行之前，以前还有MPEG卡，也是干这个活的
+
+### 8.1.1 安装Video_Codec_SDK
+
+最新版本在[在开发者社区里面找sdk](https://developer.nvidia.cn/)，建议安装12.0.16
+
+老版本：https://developer.nvidia.com/video-codec-sdk-archive
+
+![](./legend/nvidia查找sdk.png)
+
+
+
+Video_Codec_SDK12.1的版本环境要求：
+
+1. linux的nvidia driver version > 530.41
+2. cuda 11.0 或者更高
+
+download now下载下来，解压：
+
+- 其实在GPU驱动安装过程中，已经将nvidai-video-codec-sdk的库文件（.so）进行了安装，一般安装在/usr/lib/x86_64-linux-gnu/目录下，比如525.89.02版本的GPU驱动安装后，在/usr/lib/x86_64-linux-gnu/目录下存在libnvcuvid.so.525.89.02、libnvidia-encode.so.525.89.02的库文件，所以无需将Video_Codec_SDK_12.1.14/Lib/linux/stubs/x86_64/下面的动态库copy到/usr/local/cuda/lib64，只需要安装头文件即可，如下命令将头文件拷贝至cuda/目录。但如果/usr/lib/x86_64-linux-gnu/里面没有对应的动态库，那么需要复制对应的动态库到/usr/local/cuda/lib64
+  ```bash
+  cp Video_Codec_SDK_12.0.16/Interface/* /usr/local/cuda/include/
+  # 如果在/usr/lib/x86_64-linux-gnu/里面没有对应的动态库，则需要将库添加到此
+  cp Video_Codec_SDK_12.0.16/Lib/linux/stubs/x86_64/* /usr/local/cuda/lib64
+  ```
+
+  注：上述只用了nvidia-video-codec-sdk中的头文件，而没有使用nvidia-video-codec-sdk中的libnvcuvid.so、libnvidia-encode.so库，原因是在安装显卡驱动的时候会默认安装与驱动版本兼容的libnvcuvid.so、libnvidia-encode.so，而nvidia-video-codec-sdk中的库很可能与我们安装的显卡驱动版本不一致，如果使用了nvidia-video-codec-sdk中的libnvcuvid.so、ibnvidia-encode.so编译的时候，可能不会有问题，但是运行时很可能会因为与驱动版本不兼容而报错，因为，拒绝使用nvidia-video-codec-sdk中的libnvcuvid.so、ibnvidia-encode.so库。这个可谓是Nvidia的天坑，一定要注意。
+
+
+
+### 8.1.2 ffnvcodec
+
+ffnvcodec是ffmpeg英伟达硬解码的头文件，需要下载
+
+```bash
+git clone https://git.videolan.org/git/ffmpeg/nv-codec-headers.git
+cd nv-codec-headers
+
+# 查看注意事项，驱动和其它要求
+cat README 
+FFmpeg version of headers required to interface with Nvidias codec APIs.
+
+Corresponds to Video Codec SDK version 12.0.16.
+
+Minimum required driver versions:
+Linux: 530.41.03 or newer
+Windows: 531.61 or newer
+
+# 安装
+make install
+# sed 's#@@PREFIX@@#/usr/local#' ffnvcodec.pc.in > ffnvcodec.pc
+# install -m 0755 -d '/usr/local/include/ffnvcodec'
+# install -m 0644 include/ffnvcodec/*.h '/usr/local/include/ffnvcodec'
+# install -m 0755 -d '/usr/local/lib/pkgconfig'
+# install -m 0644 ffnvcodec.pc '/usr/local/lib/pkgconfig'
+```
+
+
+
+### 8.1.2 安装ffmpeg
+
+opencv硬解码依赖nvidia-video-codec-sdk，如果不安装ffmpeg也不会影响opencv的硬解码，但是opencv软解码依赖ffmpeg，如果未安装ffmpeg的话，opencv无法进行软解码，因此为了保证opencv既能硬解码也能软件，接下来也安装ffmpeg，并且提供了ffmpeg英伟达硬解码的编译方式进行安装，这样ffmpeg也可通过Nvidia GPU进行硬解码。
+
+```bash
+git clone https://github.com/FFmpeg/FFmpeg.git -b release/5.1
+```
+
+**如果要在docker中编译ffmpeg nvidia硬解码**，需要将在安装显卡驱动的时候安装的libnvcuvid.so、libnvidia-encode.so库，从宿主机拷贝到docker中，这两个库在宿主机的路径一般在/usr/lib/x86_64-linux-gnu/目录下，可提前将上述两个库拷贝至docker中，然后拷贝到docker的/lib64目录下，（一定要从宿主机目录进行拷贝，不要使用Video_Codec_SDK中的库，因为Video_Codec_SDK中的库很可能与本机安装的驱动不匹配，即便编译通过，但是运行时会出现驱动不兼容的问题）比如两个库是libnvcuvid.so.525.89.02、libnvidia-encode.so.525.89.02。
+
+安装依赖：
+
+```bash
+sudo apt update
+
+sudo apt install autoconf \
+automake \
+build-essential \
+cmake \
+git-core \
+libass-dev \
+libfreetype6-dev \
+libgnutls28-dev \
+libsdl2-dev \
+libtool \
+libva-dev \
+libvdpau-dev \
+libvorbis-dev \
+libxcb1-dev \
+libxcb-shm0-dev \
+libxcb-xfixes0-dev \
+pkg-config \
+texinfo \
+wget \
+yasm \
+zlib1g-dev
+```
+
+
 
 # log
 

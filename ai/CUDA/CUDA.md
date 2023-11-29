@@ -209,6 +209,13 @@ sudo apt-get -y install cuda
 #### 添加环境变量
 
 ```bash
+# 配置 CUDA ,注意安装CUDA后，会在您的 /usr/local/文件夹下多一个 /usr/local/cuda 的文件夹，该文件夹其实是 /usr/local/cuda-12.0 文件夹的一个链接，两者本质上是相同的，所以配置的时候，可以直接按照 /usr/local/cuda 进行配置就行，会自动链接到 /usr/local/cuda-12.0。
+lrwxrwxrwx  1 root root   21  9月 14 11:36 cuda -> /usr/local/cuda-12.0//
+drwxr-xr-x 17 root root 4096  9月 14 11:37 cuda-12.0/
+# 【再说一遍】：cuda安装目录为/usr/local/cuda-xxx，xxx为版本号，同时，cuda还会建立一个/usr/local/cuda同步链接，所以可以直接将该路径添加至环境变量，之后更换cuda版本，也不需要修改环境变量。
+
+# 下面的配置没有按照上面的说法弄，而直接用的是cuda-12.0
+
 sudo gedit ~/.bashrc
 # 添加两个环境变量
 export PATH=$PATH:/usr/local/cuda-12.0/bin
@@ -2253,7 +2260,9 @@ CUDA内存管理包含GPU内存分配、释放、数据在主机和设备（GPU�
 
 3. 下载nvidia官方的dockerhub镜像库：[nvidia/cuda](https://registry.hub.docker.com/r/nvidia/cuda)，[按照系统和相关版本信息下载](https://gitlab.com/nvidia/container-images/cuda/blob/master/doc/supported-tags.md)
 
-4.  在容器内安装tensorRT
+   - https://hub.docker.com/r/nvidia/cuda/tags?page=1&name=12.0.1-cudnn8-devel-ubuntu22.04
+
+4. 在容器内安装tensorRT
 
 参考链接：
 

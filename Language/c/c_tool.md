@@ -868,7 +868,23 @@ bar.o : bar.c
   - -d ，如果想知道 make 执行时实际做了什么，使用 -d选项
   - -f 将指定的文件名，当成Makefile
   - 
-- 
+
+### [make -j 参数加快编译效率](https://blog.csdn.net/KingOfMyHeart/article/details/105438151)
+
+对于大型项目，在使用cmake控制编译时，仅仅执行make指令效率较低，使用make -j后面跟一个数字，比如make -j4 make -j6 make -j14等。
+
+含义是 让make最多允许n个编译命令同时执行，这样可以更有效的利用CPU资源。
+
+假设我们的系统是cpu是12核，在不影响其他工作的情况下，我们可以make -j12
+将cpu资源充分利用起来，一般来说，最大并行任务数为cpu_num * 2
+
+```bash
+cpu_num=`cat /proc/stat | grep cpu[0-9] -c`
+echo "make -j${cpu_num}"
+make -j${cpu_num}
+```
+
+
 
 # 4 GDB
 

@@ -2370,7 +2370,15 @@ int main(int argc, char **argv)
 
 ## 5.3  ffmpeg 编码 + 封装
 
+## 5.4 [ffmpeg使用gpu硬解码](https://blog.csdn.net/u013241583/article/details/105078650)
 
+```bash
+
+# 检查硬件加速，有输出即正常
+ffmpeg -hwaccels
+# 检查编码器和解码器, 含有 h264_cuvid和h264_nvenc即可硬件加速
+ffmpeg -codecs | grep cuvid
+```
 
 
 

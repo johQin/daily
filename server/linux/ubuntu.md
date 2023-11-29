@@ -109,9 +109,10 @@
 
     ```bash
     # 1. linux 服务器安装ssh服务
-    sudo apt-get install sshd
+    sudo apt-get install openssh-server
     # 2. # 开启ssh服务
-    service sshd start
+    service ssh status
+    service ssh start
     # 3. 连接指定ip的服务器
     ssh zhilan@192.168.0.125
     # 4. ssh设为自启动
