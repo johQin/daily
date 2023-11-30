@@ -2370,7 +2370,7 @@ int main(int argc, char **argv)
 
 ## 5.3  ffmpeg 编码 + 封装
 
-## 5.4 [ffmpeg使用gpu硬解码](https://blog.csdn.net/u013241583/article/details/105078650)
+## 5.4 [ffmpeg使用gpu硬解码](https://blog.csdn.net/weicao1990/article/details/128969734)
 
 ```bash
 

@@ -1107,7 +1107,11 @@ cv2.destroyAllWindows()
 
 4. 
 
+
+
 ## 8.1 [opencv 硬件加速解码](https://blog.csdn.net/weicao1990/article/details/128969734)
+
+
 
 [参考2](https://blog.csdn.net/xhamigua/article/details/108855835)
 
@@ -1119,6 +1123,8 @@ cv2.destroyAllWindows()
 
 ### 8.1.1 安装Video_Codec_SDK
 
+**要求：nvidia 驱动安装530及以上。下面的例子不是530以上请注意**
+
 最新版本在[在开发者社区里面找sdk](https://developer.nvidia.cn/)，建议安装12.0.16
 
 老版本：https://developer.nvidia.com/video-codec-sdk-archive
@@ -1127,9 +1133,9 @@ cv2.destroyAllWindows()
 
 
 
-Video_Codec_SDK12.1的版本环境要求：
+Video_Codec_SDK12.0.16的版本环境要求：
 
-1. linux的nvidia driver version > 530.41
+1. linux的nvidia driver version >= 520.56.06 
 2. cuda 11.0 或者更高
 
 download now下载下来，解压：
@@ -1137,11 +1143,11 @@ download now下载下来，解压：
 - 其实在GPU驱动安装过程中，已经将nvidai-video-codec-sdk的库文件（.so）进行了安装，一般安装在/usr/lib/x86_64-linux-gnu/目录下，比如525.89.02版本的GPU驱动安装后，在/usr/lib/x86_64-linux-gnu/目录下存在libnvcuvid.so.525.89.02、libnvidia-encode.so.525.89.02的库文件，所以无需将Video_Codec_SDK_12.1.14/Lib/linux/stubs/x86_64/下面的动态库copy到/usr/local/cuda/lib64，只需要安装头文件即可，如下命令将头文件拷贝至cuda/目录。但如果/usr/lib/x86_64-linux-gnu/里面没有对应的动态库，那么需要复制对应的动态库到/usr/local/cuda/lib64
   ```bash
   cp Video_Codec_SDK_12.0.16/Interface/* /usr/local/cuda/include/
-  # 如果在/usr/lib/x86_64-linux-gnu/里面没有对应的动态库，则需要将库添加到此
-  cp Video_Codec_SDK_12.0.16/Lib/linux/stubs/x86_64/* /usr/local/cuda/lib64
+  
+  # 尽量使用宿主机的libnvcuvid.so.525.89.02、libnvidia-encode.so.525.89.02，copy到对应的位置/usr/local/cuda/lib64
   ```
 
-  注：上述只用了nvidia-video-codec-sdk中的头文件，而没有使用nvidia-video-codec-sdk中的libnvcuvid.so、libnvidia-encode.so库，原因是在安装显卡驱动的时候会默认安装与驱动版本兼容的libnvcuvid.so、libnvidia-encode.so，而nvidia-video-codec-sdk中的库很可能与我们安装的显卡驱动版本不一致，如果使用了nvidia-video-codec-sdk中的libnvcuvid.so、ibnvidia-encode.so编译的时候，可能不会有问题，但是运行时很可能会因为与驱动版本不兼容而报错，因为，拒绝使用nvidia-video-codec-sdk中的libnvcuvid.so、ibnvidia-encode.so库。这个可谓是Nvidia的天坑，一定要注意。
+  注：上述只用了nvidia-video-codec-sdk中的头文件，而没有使用nvidia-video-codec-sdk中的libnvcuvid.so、libnvidia-encode.so库，原因是在安装显卡驱动的时候会默认安装与驱动版本兼容的libnvcuvid.so、libnvidia-encode.so，而nvidia-video-codec-sdk中的库很可能与我们安装的显卡驱动版本不一致，**如果使用了nvidia-video-codec-sdk中的libnvcuvid.so、ibnvidia-encode.so编译的时候，可能不会有问题，但是运行时很可能会因为与驱动版本不兼容而报错，因为，拒绝使用nvidia-video-codec-sdk中的libnvcuvid.so、ibnvidia-encode.so库。这个可谓是Nvidia的天坑，一定要注意。**
 
 
 
@@ -1184,6 +1190,19 @@ git clone https://github.com/FFmpeg/FFmpeg.git -b release/5.1
 
 **如果要在docker中编译ffmpeg nvidia硬解码**，需要将在安装显卡驱动的时候安装的libnvcuvid.so、libnvidia-encode.so库，从宿主机拷贝到docker中，这两个库在宿主机的路径一般在/usr/lib/x86_64-linux-gnu/目录下，可提前将上述两个库拷贝至docker中，然后拷贝到docker的/lib64目录下，（一定要从宿主机目录进行拷贝，不要使用Video_Codec_SDK中的库，因为Video_Codec_SDK中的库很可能与本机安装的驱动不匹配，即便编译通过，但是运行时会出现驱动不兼容的问题）比如两个库是libnvcuvid.so.525.89.02、libnvidia-encode.so.525.89.02。
 
+```bash
+cp libnvcuvid.so.525.89.02 /lib64/
+cp libnvidia-encode.so.525.89.02 /lib64/
+ln -s /lib64/libnvcuvid.so.525.89.02 /lib64/libnvcuvid.so.1
+ln -s /lib64/libnvidia-encode.so.525.89.02 /lib64/libnvidia-encode.so.1
+
+# 一定要注意这里，如果不把这个位置，告知给动态库查找位置，否则编译不出ffmpeg的硬件加速，因为它是自动探测的，找不到这几个动态库，那么它就没有这几个硬件加速功能
+echo '/lib64' >> /etc/ld.so.conf
+ldconfig
+```
+
+
+
 安装依赖：
 
 ```bash
@@ -1211,6 +1230,98 @@ wget \
 yasm \
 zlib1g-dev
 ```
+
+[ffmpeg 编译选项详解](https://blog.csdn.net/Mr_Tony/article/details/131052939)
+
+```bash
+  # 也可以通过configure --help查看编译选项
+  ./configure --help
+  
+  The following libraries provide various hardware acceleration features:
+  --disable-amf            disable AMF video encoding code [autodetect]
+  --disable-audiotoolbox   disable Apple AudioToolbox code [autodetect]
+  --enable-cuda-nvcc       enable Nvidia CUDA compiler [no]
+  --disable-cuda-llvm      disable CUDA compilation using clang [autodetect]
+  --disable-cuvid          disable Nvidia CUVID support [autodetect]
+  --disable-d3d11va        disable Microsoft Direct3D 11 video acceleration code [autodetect]
+  --disable-dxva2          disable Microsoft DirectX 9 video acceleration code [autodetect]
+  --disable-ffnvcodec      disable dynamically linked Nvidia code [autodetect]
+  --enable-libdrm          enable DRM code (Linux) [no]
+  --enable-libmfx          enable Intel MediaSDK (AKA Quick Sync Video) code via libmfx [no]
+  --enable-libnpp          enable Nvidia Performance Primitives-based code [no]
+  --enable-mmal            enable Broadcom Multi-Media Abstraction Layer (Raspberry Pi) via MMAL [no]
+  --disable-nvdec          disable Nvidia video decoding acceleration (via hwaccel) [autodetect]		# autodetect，探测有没有对应的动态库，有则，可以做硬件解码
+  --disable-nvenc          disable Nvidia video encoding code [autodetect]								# autodetect
+  --enable-omx             enable OpenMAX IL code [no]
+  --enable-omx-rpi         enable OpenMAX IL code for Raspberry Pi [no]
+  --enable-rkmpp           enable Rockchip Media Process Platform code [no]
+  --disable-v4l2-m2m       disable V4L2 mem2mem code [autodetect]
+  --disable-vaapi          disable Video Acceleration API (mainly Unix/Intel) code [autodetect]
+  --disable-vdpau          disable Nvidia Video Decode and Presentation API for Unix code [autodetect]
+  --disable-videotoolbox   disable VideoToolbox code [autodetect]
+```
+
+如果下面的编译通不过，直接通过apt安装吧，因为编译太难了
+
+```bash
+sudo apt install ffmpeg
+ffmpeg -version
+```
+
+编译：
+
+```bash
+./configure --enable-nonfree --enable-cuda-nvcc --enable-libnpp --extra-cflags=-I/usr/local/cuda/include --extra-ldflags=-L/usr/local/cuda/lib64 --disable-static --enable-shared --enable-cuda --enable-cuvid --enable-nvenc
+
+# 从编译选项上来看，并没有enable-nvenc选项，这里加了它，说明需要找到nvenc，否则环境检查通不过
+# 其实如果一切配置正常的话 configure 即使不加 --enable-nvenc 选项也会自动找到并编译 nvenc 相关编码器的。但是，如果不加 --enable-nvenc 且由于某些问题它没能找到 nvenc 则它并不会报错而是不编译 nvenc 相关支持；若是加了 --enable-nvenc 选项且没有找到 nvenc 则会报错，给出明显提示以便知道有问题。
+
+# 20个线程加速编译
+make -j20 
+# 将编译的产物，安装到系统的正确位置，会到/usr/local/include，/usr/local/lib，/usr/local/bin
+make install
+# 将动态库，告知系统的动态库查找位置
+echo 'usr/local/lib' >> /etc/ld.so.conf
+```
+
+查看是否支持硬编：
+
+```bash
+# 检查硬件加速，有输出即正常
+ffmpeg -hwaccels
+# 检查编码器和解码器, 含有 h264_cuvid和h264_nvenc即可硬件加速
+ffmpeg -codecs | grep cuvid
+```
+
+### 8.1.3 安装opencv
+
+直接通过apt安装吧
+
+依赖环境安装：
+
+```bash
+# 
+sudo apt install libopenexr-dev libgtk2.0-dev libavcodec-dev libavformat-dev libjpeg-dev libtiff-dev libswscale-dev libpng-dev
+# software-properties-common 的作用是安装软件包管理器的常用工具，包括add-apt-repository
+apt install software-properties-common
+# 紧接着就使用了software-properties-common 带来的add-apt-repository 命令工具
+add-apt-repository "deb http://security.ubuntu.com/ubuntu xenial-security main"
+apt update
+apt install libjasper1 libjasper-dev
+```
+
+下载并解压opencv
+
+```bash
+wget https://github.com/opencv/opencv/archive/4.5.0.zip
+wget https://github.com/opencv/opencv_contrib/archive/4.5.0.zip
+unzip opencv-4.5.0.zip
+unzip opencv_contrib-4.5.0.zip
+```
+
+
+
+
 
 
 

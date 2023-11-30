@@ -1813,7 +1813,7 @@ spring.swagger2.enabled=true
    apt install mesa-utils libxinerama-dev libxi6
    ```
 
-3. 修改容器时区
+3. 修改容器时区（比宿主机时间晚8小时）
 
    - ```bash
      # 在容器中创建
@@ -1824,6 +1824,9 @@ spring.swagger2.enabled=true
      sudo scp -P 11022 ./Shanghai root@192.168.101.163:/usr/share/zoneinfo/Asia/
      # 然后在容器中，将localtime 软连接 到 时区文件
      ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+     # 在容器中查看时间，恢复正常
+     date
+     # Wed Nov 29 17:46:04 CST 2023
      ```
      
    - 
@@ -1971,5 +1974,43 @@ https://docker.mirrors.ustc.edu.cn
 
 3. 
 
+## [修改端口映射](https://zhuanlan.zhihu.com/p/583479364)
 
+```bash
+# 1.关闭容器
+docker stop fb2f614a6861275
+# 2.修改容器的hostconfig.json
+# 法一：使用容器的短id
+cd /var/lib/docker/containers/fb2f614a6861275*
+vim hostconfig.json
+# 法二：得到容器的完整id
+docker inspect {容器的名称或者 id } | grep Id
+"Id": "fb2f614a6861275a6cd5e6b3221d29f909e5d1f894fa5a22fcd4213a96253ded"
+vim /var/lib/docker/containers/fb2f614a6861275a6cd5e6b3221d29f909e5d1f894fa5a22fcd4213a96253ded/hostconfig.json
+
+# 修改配置文件中的PortBindings，这里是将容器的22端口，映射到了宿主机的8522端口
+"PortBindings":{
+	"22/tcp": [
+            {
+                "HostIp": "",
+                "HostPort": "8522"
+            }
+        ]
+}
+
+# 3. 如果在/var/lib/docker/containers/fb2f614a6861275...下的config.v2.json 配置文件或者 config.json 配置文件中也记录了端口，也需要进行修改，如果没有，就不需要改。
+"ExposedPorts": {
+            "22/tcp": {},
+        },
+        
+# 4. 重启docker服务
+service docker restart
+
+# 5. 查看修改是否到位
+docker inspect fb2f614a6861275
+# 6. 重启容器
+docker start fb2f614a6861275
+```
+
+不知道容器卷是否也可以通过如此修改，后面再试吧
 

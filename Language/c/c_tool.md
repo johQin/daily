@@ -132,6 +132,66 @@ $ ./test
 - g++ 可以直接编译 C++ 程序， gcc 编译 C++ 程序需要添加额外参数 -lstdc++
 - 不管是 gcc 还是 g++ 都可以定义 __cplusplus 宏
 
+
+
+## [pkg-config](https://blog.csdn.net/chen_jianjian/article/details/123890413)
+
+```bash
+pkg-config <options> <library-name>
+```
+
+
+
+大家应该都知道一般用第三方库的时候，就少不了要使用到第三方的头文件和库文件。我们在编译、链接的时候，必须要指定这些头文件和库文件的位置。对于一个比较大的第三方库，其头文件和库文件的数量是比较多的，如果我们一个个手动地写，那将是相当的麻烦的。因此，pkg-config就应运而生了。pkg-config能够把这些头文件和库文件的位置指出来，给编译器使用。pkg-config主要提供了下面几个功能：
+
+- 检查库的版本号。 如果所需要的库的版本不满足要求，它会打印出错误信息，避免链接错误版本的库文件
+- 获得编译预处理参数，如宏定义、头文件的位置
+- 获得链接参数，如库及依赖的其他库的位置，文件名及其他一些链接参数
+- 自动加入所依赖的其他库的设置
+
+pkg-config 的原理：
+
+- 默认去/usr/lib/pkconfig/下去找.pc，如果你还有其它路径存放.pc文件，可以添加PKG_CONFIG_PATH环境变量，以告知pkg-config 那些.pc文件的位置
+- .pc文件中包含有包的相关信息
+
+```bash
+# $PKG_CONFIG_PATH 默认为 /usr/lib/pkconfig/
+echo $PKG_CONFIG_PATH
+
+# 修改它的环境变量/etc/profile
+vim /etc/profile
+# 尾部插入一行
+export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/usr/lib/x86_64-linux-gnu/pkgconfig/:/usr/local/lib/pkgconfig/
+source /etc/profile
+
+# 可以在/usr/lib/x86_64-linux-gnu/pkgconfig路径下查看大量的.pc
+/usr/lib/x86_64-linux-gnu/pkgconfig# ls
+IlmBase.pc       glesv1_cm.pc              gthread-2.0.pc       libbrotlicommon.pc  libglvnd.pc         libpcrecpp.pc              libtirpc.pc       pciaccess.pc       wayland-scanner.pc  xi.pc
+OpenEXR.pc       glesv2.pc                 harfbuzz-gobject.pc  libbrotlidec.pc     libgphoto2.pc       libpcreposix.pc            libudev.pc        pthread-stubs.pc   wayland-server.pc   xinerama.pc
+alsa.pc          glib-2.0.pc               harfbuzz-icu.pc      libbrotlienc.pc     libgphoto2_port.pc  libpng.pc                  libva-drm.pc      sdl2.pc            x11.pc              xkbcommon.pc
+blkid.pc         glu.pc                    harfbuzz.pc          libcrypt.pc         libidn2.pc          libpng16.pc                libva-glx.pc      sm.pc              x264.pc             xrandr.pc
+dbus-1.pc        glx.pc                    hogweed.pc           libdc1394-2.pc      libjpeg.pc          libpulse-mainloop-glib.pc  libva-wayland.pc  sndio.pc           xau.pc              xrender.pc
+egl.pc           gmodule-2.0.pc            ibus-1.0.pc          libdecor-0.pc       liblzma.pc          libpulse-simple.pc         libva-x11.pc      tbb.pc             xcb-render.pc       xscrnsaver.pc
+expat.pc         gmodule-export-2.0.pc     ice.pc               libdeflate.pc       libnsl.pc           libpulse.pc                libva.pc          uuid.pc            xcb-shape.pc        xt.pc
+fontconfig.pc    gmodule-no-export-2.0.pc  icu-i18n.pc          libdrm.pc           libpcre.pc          libraw1394.pc              libxcrypt.pc      vdpau.pc           xcb-shm.pc          xv.pc
+freetype2.pc     gmp.pc                    icu-io.pc            libdrm_amdgpu.pc    libpcre16.pc        libselinux.pc              mount.pc          vorbis.pc          xcb-xfixes.pc       xxf86vm.pc
+fribidi.pc       gmpxx.pc                  icu-uc.pc            libdrm_intel.pc     libpcre2-16.pc      libsepol.pc                nettle.pc         vorbisenc.pc       xcb.pc              zlib.pc
+gbm.pc           gnutls-dane.pc            libass.pc            libdrm_nouveau.pc   libpcre2-32.pc      libswresample.pc           ogg.pc            vorbisfile.pc      xcursor.pc
+gio-2.0.pc       gnutls.pc                 libavcodec.pc        libdrm_radeon.pc    libpcre2-8.pc       libswscale.pc              opencv4.pc        wayland-client.pc  xdmcp.pc
+gio-unix-2.0.pc  gobject-2.0.pc            libavformat.pc       libexif.pc          libpcre2-posix.pc   libtasn1.pc                opengl.pc         wayland-cursor.pc  xext.pc
+gl.pc            graphite2.pc              libavutil.pc         libffi.pc           libpcre32.pc        libtiff-4.pc               p11-kit-1.pc      wayland-egl.pc     xfixes.pc
+
+
+# 查看opencv所依赖的头文件和库文件
+pkg-config --libs --cflags opencv4
+-I/usr/include/opencv4 -lopencv_stitching -lopencv_alphamat -lopencv_aruco -lopencv_barcode -lopencv_bgsegm -lopencv_bioinspired -lopencv_ccalib -lopencv_dnn_objdetect -lopencv_dnn_superres -lopencv_dpm -lopencv_face -lopencv_freetype -lopencv_fuzzy -lopencv_hdf -lopencv_hfs -lopencv_img_hash -lopencv_intensity_transform -lopencv_line_descriptor -lopencv_mcc -lopencv_quality -lopencv_rapid -lopencv_reg -lopencv_rgbd -lopencv_saliency -lopencv_shape -lopencv_stereo -lopencv_structured_light -lopencv_phase_unwrapping -lopencv_superres -lopencv_optflow -lopencv_surface_matching -lopencv_tracking -lopencv_highgui -lopencv_datasets -lopencv_text -lopencv_plot -lopencv_ml -lopencv_videostab -lopencv_videoio -lopencv_viz -lopencv_wechat_qrcode -lopencv_ximgproc -lopencv_video -lopencv_xobjdetect -lopencv_objdetect -lopencv_calib3d -lopencv_imgcodecs -lopencv_features2d -lopencv_dnn -lopencv_flann -lopencv_xphoto -lopencv_photo -lopencv_imgproc -lopencv_core
+```
+
+
+
+- pkg-config: 编译时、 链接时
+- LD_LIBRARY_PATH: 链接时、 运行时
+
 # 2 [动静态库](https://blog.csdn.net/weixin_69725192/article/details/125986479)
 
 [参考地址1](https://blog.csdn.net/qq_45489600/article/details/124640807)
@@ -1055,4 +1115,63 @@ gdb book -p 21495
 
 1. [Centos RPM安装包制作](https://blog.csdn.net/q1009020096/article/details/110953465)，[参考2](https://blog.csdn.net/u012373815/article/details/73257754)
 2. 
+
+# 6 [pkg-config](https://zhuanlan.zhihu.com/p/661282452)
+
+`pkg-config`是一个命令行工具，用于提供库（libraries）的编译和链接信息。当你在项目中使用外部库时，通常需要知道这些库的头文件（header files）和库文件（library files）的位置。`pkg-config`通过读取特定的`.pc`（Package Config）文件来提供这些信息。
+
+## 6.1 原理
+
+### 6.1.1 工作流程
+
+1. **查询库信息**: 当你执行`pkg-config`命令时，它首先会在预定义的目录（通常是`/usr/lib/pkgconfig/`或`/usr/share/pkgconfig/`）中查找与指定库相关的`.pc`文件。
+2. **读取`.pc`文件**: 找到`.pc`文件后，`pkg-config`会解析其中的字段，这些字段包括但不限于`Cflags`（编译选项）和`Libs`（链接选项）。
+3. **输出信息**: 根据你的命令选项（如`--cflags`或`--libs`），`pkg-config`会输出相应的信息，这些信息可以直接用于编译和链接。
+
+### 6.1.2 作用和目的
+
+- **简化编译和链接**: 通过自动提供正确的编译和链接选项，`pkg-config`减少了手动管理这些选项的复杂性。
+- **统一接口**: 不同的库可能有不同的配置方式，`pkg-config`提供了一个统一的接口，使得处理多个库变得更加简单。
+- **便于自动化**: 在构建系统和脚本中，`pkg-config`可以自动化地解决依赖问题，无需人工干预。
+
+### 6.1.3 相关命令
+
+```bash
+# 获取库的编译选项（Compile Flags）。它会输出一系列的编译器选项，这些选项通常包括头文件的路径。
+pkg-config --cflags opencv4
+# 用于获取库的链接选项（Link Flags）。它会输出一系列用于链接的库文件路径和其他链接选项。
+pkg-config --libs
+# 列出所有已安装的库，以及pkg-config能够找到的.pc文件。
+pkg-config --list-all
+# 用于查询指定库的版本信息。
+pkg-config --modversion
+# 检查指定的库是否存在
+pkg-config --exists
+```
+
+### 6.1.4 环境变量
+
+`pkg-config`的行为受到几个关键环境变量的影响。这些环境变量允许你自定义`pkg-config`的行为，使其更加灵活和适应不同的项目需求。
+
+- `PKG_CONFIG_PATH`：用于指定`.pc`文件的搜索路径
+- `PKG_CONFIG_LIBDIR`：这个环境变量用于覆盖默认的`.pc`文件搜索路径。、
+  - 与`PKG_CONFIG_PATH`不同，设置这个变量会完全替换默认路径，而不是在默认路径的基础上添加。
+
+
+
+### 6.1.5 `.pc`文件解析
+
+## 6.2 CMake中集成pkg-config
+
+```cmake
+# CMake提供了一个名为PkgConfig的模块，用于查找和使用pkg-config。
+# CMakeLists.txt 示例
+find_package(PkgConfig REQUIRED)
+# 查找名为 'mylib' 的库
+pkg_search_module(MYLIB REQUIRED mylib)
+
+# 设置编译和链接选项
+target_include_directories(my_target PUBLIC ${MYLIB_INCLUDE_DIRS})
+target_link_libraries(my_target ${MYLIB_LIBRARIES})
+```
 

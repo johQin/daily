@@ -1262,6 +1262,8 @@ p = a;
    - `++(*p)，表示p所指向的元素值加1，而不是指针值加1`
 4. `fun(int arr[], int n)等价于fun(int *arr,int n)`
 
+
+
 ### 6.3.1 指针引用多维数组
 
 ```c
@@ -1406,6 +1408,21 @@ void search(float (*p)[4], int n) {
     printf("\n");
 }
 ```
+
+
+
+### 6.3.5 [对数组名取地址](https://blog.csdn.net/m0_74324890/article/details/128651716)
+
+```c
+int arr[10];
+// arr 和 &arr有什么区别
+```
+
+![img](legend/b1201f0edcb9d18cea0f4952e66cc76e.png)
+
+实际上&arr取的是数组的地址，而不是数组首元素的地址；
+
+arr+1指的是加一个元素内存大小（加4），&arr+1指跳过整个数组，即加40，存在本质区别；
 
 ## 6.4 指针引用字符串
 

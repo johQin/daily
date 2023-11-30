@@ -246,7 +246,26 @@
     dpkg-query -L <package-name>
     ```
 
-21. 
+21. [ubuntu搜索可用安装包`apt search`](https://zhuanlan.zhihu.com/p/661310752)
+
+    ```bash
+    # 模糊匹配
+    apt search opencv
+    ...
+    libopencv-contrib-dev/jammy 4.5.4+dfsg-9ubuntu4 amd64
+      development files for libopencv-contrib4.5d
+      
+    libopencv-dev/jammy 4.5.4+dfsg-9ubuntu4 amd64
+      development files for opencv
+    ...
+    
+    # 精确匹配
+    apt search -e <package-name>
+    # 正则匹配
+    apt search -r <regex-pattern>
+    ```
+
+22. 
 
 # 3 ubuntu软件安装
 
