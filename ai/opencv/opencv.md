@@ -1295,8 +1295,6 @@ ffmpeg -codecs | grep cuvid
 
 ### 8.1.3 安装opencv
 
-直接通过apt安装吧
-
 依赖环境安装：
 
 ```bash
@@ -1306,6 +1304,9 @@ sudo apt install libopenexr-dev libgtk2.0-dev libavcodec-dev libavformat-dev lib
 apt install software-properties-common
 # 紧接着就使用了software-properties-common 带来的add-apt-repository 命令工具
 add-apt-repository "deb http://security.ubuntu.com/ubuntu xenial-security main"
+# 报错 GPG 错误：http://security.ubuntu.com/ubuntu xenial-security InRelease: 由于没有公钥，无法验证下列签名： NO_PUBKEY 40976EAF437D05B5 NO_PUBKEY 3B4FE6ACC0B21F32
+# 下面可以解决报错
+sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 3B4FE6ACC0B21F32
 apt update
 apt install libjasper1 libjasper-dev
 ```
@@ -1319,9 +1320,101 @@ unzip opencv-4.5.0.zip
 unzip opencv_contrib-4.5.0.zip
 ```
 
+安装qt5依赖：
 
+```bash
+# 理论上直接
+apt install qt5-default
+# 但是报找不到该包，从Ubuntu 21.04 存储库中就缺少了该软件包，后续会不会添加暂时未知
+# https://yanchenyu.blog.csdn.net/article/details/124396759
+E: Package 'qt5-default' has no installation candidate
 
+apt install qtbase5-dev qt5-qmake
+# 下面这三个可以选择性安装，因为是涉及的qt5开发的东西
+# apt install qtchooser（qt的版本选择） qtbase5-dev-tools（开发工具包such as moc,qdbuscpp2xml,qdbusxml2cpp,rcc,syncq） qtcreator（ide）
+#
+```
 
+[编译opencv](https://www.zhihu.com/question/66737103/answer/3116735050)
+
+```bash
+mkdir build
+# 如果不删除CMakeCache.txt，那么就会报错 FATAL: In-source builds are not allowed. You should create a separate directory for build files
+# https://blog.csdn.net/rong11417/article/details/102873624/
+rm CMakeCache.txt
+cd build
+# 注意不要忘了末尾的“..”，
+# OPENCV_EXTRA_MODULES_PATH 需要按照你的路径指定，
+# CUDA_ARCH_BIN需要按照你的GPU的计算能力来指定，查计算能力：https://developer.nvidia.com/zh-cn/cuda-gpus#compute
+cmake -D CMAKE_BUILD_TYPE=RELEASE \
+      -D CMAKE_INSTALL_PREFIX=install \
+      -D WITH_TBB=ON \
+      -D BUILD_TBB=ON  \
+      -D ENABLE_FAST_MATH=1 \
+      -D CUDA_FAST_MATH=1 \
+      -D WITH_CUBLAS=1 \
+      -D WITH_V4L=ON \
+      -D WITH_LIBV4L=ON \
+      -D WITH_CUDA=ON \
+      -D WITH_CUDNN=ON \
+      -D WITH_CUDEV=ON \
+      -D WITH_GTK_2_X=ON \
+      -D WITH_NVCUVID=ON \
+      -D CUDA_ARCH_BIN=8.6 \
+      -D OPENCV_EXTRA_MODULES_PATH=../opencv_contrib-4.5.0/modules \
+      -D WITH_QT=ON \
+      -D WITH_OPENGL=ON \
+      -D WITH_FFMPEG=ON \
+      ..
+ 
+ # 在编译的时候会出现以下下载ippicv_2020_lnx_intel64_20191018_general.tgz很慢的问题
+ # https://blog.csdn.net/Graceying/article/details/126993279
+ # 需要将下载的文件的名称ippicv_2020_lnx_intel64_general_20191018_general.tgz改为ippicv_2020_lnx_intel64_20191018_general.tgz
+ # 再进入var/docker/opencv-4.5.0/3rdparty/ippicv，修改ippicv.cmake，修改到指定位置
+ ocv_download(FILENAME ${OPENCV_ICV_NAME}
+               HASH ${OPENCV_ICV_HASH}
+               URL
+                 "${OPENCV_IPPICV_URL}"
+                 "$ENV{OPENCV_IPPICV_URL}"
+		 # "https://raw.githubusercontent.com/opencv/opencv_3rdparty/${IPPICV_COMMIT}/ippicv/"
+		 "file:///var/docker/opencv-4.5.0/3rdparty/ippicv/"
+               DESTINATION_DIR "${THE_ROOT}"
+               ID IPPICV
+               STATUS res
+               UNPACK RELATIVE_URL)
+               
+
+# 在opencv_contrib-4.5.0/modules/xfeatures2d/src/目录下添加如下文件
+boostdesc_bgm.i
+boostdesc_bgm_bi.i
+boostdesc_lbgm.i
+boostdesc_bgm_hd.i
+boostdesc_binboost_064.i
+boostdesc_binboost_128.i
+boostdesc_binboost_256.i
+vgg_generated_120.i
+vgg_generated_80.i
+vgg_generated_64.i
+vgg_generated_48.i
+# 编译opencv的时候，xfeatures2d模块下载boostdesc_bgm.i等文件超时问题的解决办法        
+# 然后修改opencv_contrib/modules/xfeatures2d/cmake 文件夹里download_boostdesc.cmake的下载路径
+foreach(id ${ids})
+    ocv_download(FILENAME ${name_${id}}
+                 HASH ${hash_${id}}
+                 URL
+                   "${OPENCV_BOOSTDESC_URL}"
+                   "$ENV{OPENCV_BOOSTDESC_URL}"
+		   # "https://raw.githubusercontent.com/opencv/opencv_3rdparty/${OPENCV_3RDPARTY_COMMIT}/"
+		   "file:///var/docker/opencv-4.5.0/opencv_contrib-4.5.0/modules/xfeatures2d/src/"
+                 DESTINATION_DIR ${dst_dir}
+                 ID "xfeatures2d/boostdesc"
+                 RELATIVE_URL
+                 STATUS res)
+
+# 同样修改download_vgg.cmake
+```
+
+![](./legend/opencv编译后能支持GPU编解码的效果.png)
 
 
 

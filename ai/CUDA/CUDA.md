@@ -31,7 +31,7 @@ cd TensorRT-8.6.1.6.Linux.x86_64-gnu.cuda-12.0/TensorRT-8.6.1.6
 
 # 要使用trtexec，就要将命令的查找路径加入PATH
 PATH = $PATH:/opt/TensorRT-8.6.1.6/bin
-# 并且要将动态库的链接路径加入到LD_LIBRARY_PATH
+# 并且要将动态库的链接路径加入到_LIBRARY_PATH
 LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/TensorRT-8.6.1.6/lib
 
 # TensorRT路径下，将头文件和库放到指定位置，方便在程序中引入
@@ -169,9 +169,11 @@ Q:Would you like to run the nvidia-xconfigutility to automatically update your x
 
 ```
 
+#### 后期出现mismatch问题
 
+有时候驱动因为自动升级而导致在输入nvidia-smi的时候会出现：[Failed to initialize NVML: Driver/library version mismatch](https://blog.csdn.net/qq_41076797/article/details/124909408)这样的问题
 
-
+注意在解决后，一定要重启一次，否则重装之后，立即nvidia-smi还是会出现mismatch
 
 ### 0.1.3 安装CUDA
 
@@ -2258,7 +2260,7 @@ CUDA内存管理包含GPU内存分配、释放、数据在主机和设备（GPU�
      sudo apt-get install -y nvidia-docker2
      ```
 
-3. 下载nvidia官方的dockerhub镜像库：[nvidia/cuda](https://registry.hub.docker.com/r/nvidia/cuda)，[按照系统和相关版本信息下载](https://gitlab.com/nvidia/container-images/cuda/blob/master/doc/supported-tags.md)
+3. 下载nvidia官方的dockerhub镜像库：[nvidia/cuda](https://hub.docker.com/r/nvidia/cuda/tags)，[按照系统和相关版本信息下载](https://gitlab.com/nvidia/container-images/cuda/blob/master/doc/supported-tags.md)
 
    - https://hub.docker.com/r/nvidia/cuda/tags?page=1&name=12.0.1-cudnn8-devel-ubuntu22.04
 
