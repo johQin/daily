@@ -191,215 +191,9 @@ target_include_directories(
 # target_include_directories的影响范围可以自定义。如加关键子PRIVATE或这PUBLIC。
 ```
 
-## 1.6 依赖
-
-### 1.6.1 [add_dependencies](https://blog.csdn.net/BeanGuohui/article/details/120217097) 指定依赖
-
-给目标指定依赖项，依赖项可被先行编译。如此就不会报undefined reference
-
-```cmake
-add_dependencies(<target> [<target-dependency>]...)
-```
-
-在项目中通常会遇见这样的情况：（例如一个项目中有：main，libhello.a， libworld.a），当项目过小的时候，编译顺序是*.a，然后是main，但是当一个项目的文件过于庞大，就会导致编译的顺序不会按照主CMAKE的add_subdirectory引入的先后顺序，为了解决这一问题，就需要使用add_dependencies进行依赖指定。
-```cmake
-├── CMakeLists.txt// 下面用主CMAKE表示
-├── hello
-│   ├── CMakeLists.txt		// 下面用HELLOCMAKE表示
-│   ├── hello.c
-│   └── hello.h
-├── main
-│   ├── CMakeLists.txt		// 下面用MAINCMAKE表示
-│   └── main.c
-└── world
-    ├── CMakeLists.txt		// 下面用WORLDCMAKE表示
-    ├── world.c
-    └── world.h
-```
-
-```cmake
-# hellocmake
-cmake_minimum_required(VERSION 3.5.1)
-set(CMAKE_C_STANDARD 99)
-add_library(hello STATIC world.c hello.h)
-
-# worldcmake
-cmake_minimum_required(VERSION 3.5.1)
-set(CMAKE_C_STANDARD 99)
-add_library(world STATIC world.c world.h)
-
-# maincmake 
-cmake_minimum_required(VERSION 3.5.1)
-project(CmakeDemo C)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY /home/lib)
-set(CMAKE_C_STANDARD 99)
-
-add_executable(CmakeDemo main.c)
-link_directories(/home/lib)			# 依赖hello.a 和 world.a
-target_link_libraries(
-        CmakeDemo
-        hello
-        world
-)
-
-# 主cmake 最外层CMakeLists.txt
-cmake_minimum_required(VERSION 3.5)
-
-add_subdirectory(main)	# main是依赖后二者的，而这里add_subdirectory却写在后二者的前面
-						# 所以这里应该让hello和world先编译，故有了add_dependencies
-add_subdirectory(hello)
-add_subdirectory(world)
-
-add_dependencies(CmakeDemo hello world)
-# add_dependencies中所填写的名字应该是其他CMAKE生成目标的名字。
-# 该示例中如果写成add_dependencies（CmakeDemo libhello.a libworld.a）则会报错。
-
-# 这样写的好处在于，当一个项目构建的时候，由于依赖关系的存在，所以被依赖的项目总是最先构建，这样就不会出现找不到库而报错。
-```
 
 
-
-[参考1](https://blog.csdn.net/KingOfMyHeart/article/details/112983922)
-
-### 1.6.2 [查找依赖](https://blog.csdn.net/zhizhengguan/article/details/118396145)
-
-#### find_file
-
-- **该命令用于查找指定文件的完整路径**。
-- 创建一个名为< VAR >的缓存条目(如果指定了NO_CACHE，则是一个普通变量)来存储此命令的结果。
-  - 如果找到文件的完整路径，则结果存储在变量中，**并且搜索不会重复，除非该变量被清除。**
-  - 如果没有找到，结果将是< VAR >-NOTFOUND。
-
-```cmake
-find_file (<VAR> name1 [path1 path2 ...])
-find_file (
-          <VAR>
-          name | NAMES name1 [name2 ...]
-          [HINTS [path | ENV var]... ]
-          [PATHS [path | ENV var]... ]
-          [PATH_SUFFIXES suffix1 [suffix2 ...]]
-          [DOC "cache documentation string"]
-          [NO_CACHE]
-          [REQUIRED]
-          [NO_DEFAULT_PATH]
-          [NO_PACKAGE_ROOT_PATH]
-          [NO_CMAKE_PATH]
-          [NO_CMAKE_ENVIRONMENT_PATH]
-          [NO_SYSTEM_ENVIRONMENT_PATH]
-          [NO_CMAKE_SYSTEM_PATH]
-          [CMAKE_FIND_ROOT_PATH_BOTH |
-           ONLY_CMAKE_FIND_ROOT_PATH |
-           NO_CMAKE_FIND_ROOT_PATH]
-         )
-
-```
-
-#### [find_package](https://blog.csdn.net/zhanghm1995/article/details/105466372)
-
-`find_package`本质上就是一个**搜包的命令**，通过一些特定的规则（路径）找到`<package_name>Config.cmake`或`Find<PackageName>.cmake`包配置文件，通过执行该配置文件，从而定义了一系列的变量（eg：`OpenCV_DIR`、`OpenCV_INCLUDE_DIRS`和`OpenCV_LIBS`），通过这些变量就可以准确定位到**OpenCV库的头文件和库文件**，完成编译。
-
-find_package命令有两种工作模式，这两种工作模式的不同决定了其搜包路径的不同：
-
-- Module模式
-  find_package命令基础工作模式(Basic Signature)，也是默认工作模式。
-
-- Config模式
-  find_package命令高级工作模式(Full Signature)。 只有在find_package()中指定CONFIG、NO_MODULE等关键字，或者**Module模式查找失败后才会进入到Config模式。**
-
-![](./legend/find_package_工作流程.png)
-
-##### module模式
-
-```cmake
-find_package(<package> [version] [EXACT] [QUIET] [MODULE]
-             [REQUIRED] [[COMPONENTS] [components...]]
-             [OPTIONAL_COMPONENTS components...]
-             [NO_POLICY_SCOPE])
-
-```
-
-**Module**模式下是要查找到名为`Find<PackageName>.cmake`的配置文件。
-
-Module模式只有两个查找路径：**CMAKE_MODULE_PATH**和cmake安装路径(**CMAKE_ROOT**)下的**Modules**目录
-
-```cmake
-# 一定记住是在这两个路径的Modules目录下查找Find<PackageName>.cmake
-message(STATUS "CMAKE_MODULE_PATH = ${CMAKE_MODULE_PATH}")		# 默认为空
-message(STATUS "CMAKE_ROOT = ${CMAKE_ROOT}")
-```
-
-
-
-##### config模式
-
-```cmake
-find_package(<package> [version] [EXACT] [QUIET]
-             [REQUIRED] [[COMPONENTS] [components...]]
-             [CONFIG|NO_MODULE]
-             [NO_POLICY_SCOPE]
-             [NAMES name1 [name2 ...]]
-             [CONFIGS config1 [config2 ...]]
-             [HINTS path1 [path2 ... ]]
-             [PATHS path1 [path2 ... ]]
-             [PATH_SUFFIXES suffix1 [suffix2 ...]]
-             [NO_DEFAULT_PATH]
-             [NO_CMAKE_ENVIRONMENT_PATH]
-             [NO_CMAKE_PATH]
-             [NO_SYSTEM_ENVIRONMENT_PATH]
-             [NO_CMAKE_PACKAGE_REGISTRY]
-             [NO_CMAKE_BUILDS_PATH] # Deprecated; does nothing.
-             [NO_CMAKE_SYSTEM_PATH]
-             [NO_CMAKE_SYSTEM_PACKAGE_REGISTRY]
-             [CMAKE_FIND_ROOT_PATH_BOTH |
-              ONLY_CMAKE_FIND_ROOT_PATH |
-              NO_CMAKE_FIND_ROOT_PATH])
-
-```
-
-**CMake默认采取Module模式，如果Module模式未找到库，才会采取Config模式。**
-
-**Config**模式下是要查找名为`<PackageName>Config.cmake`或`<lower-case-package-name>-config.cmake`的模块文件。
-
-**Config**模式需要查找的路径非常多，具体查找顺序为：
-
-1. 名为`<PackageName>_DIR`的CMake变量或环境变量路径
-2. 名为`CMAKE_PREFIX_PATH`、`CMAKE_FRAMEWORK_PATH`、`CMAKE_APPBUNDLE_PATH`的CMake变量或**环境变量**路径
-3. `PATH`环境变量路径
-
-如果没有，CMake会继续**检查或匹配**这些根目录下的以下路径
-
-```cmake
-<prefix>/(lib/<arch>|lib|share)/cmake/<name>*/
-<prefix>/(lib/<arch>|lib|share)/<name>*/ 
-<prefix>/(lib/<arch>|lib|share)/<name>*/(cmake|CMake)/
-```
-
-##### 查找指定位置的.cmake
-
-如果你明确知道想要查找的库`<PackageName>Config.cmake`或`<lower-case-package-name>-config.cmake`文件所在路径，为了能够准确定位到这个包，可以直接设置变量`<PackageName>_DIR`为具体路径，如：
-
-```cmake
-set(OpenCV_DIR "/home/zhanghm/Softwares/enviroment_config/opencv3_4_4/opencv/build")
-```
-
-如果你有多个包的配置文件需要查找，可以将这些配置文件都统一放在一个命名为cmake的文件夹下，然后设置变量CMAKE_PREFIX_PATH变量指向这个cmake文件夹路径，需要注意根据上述的匹配规则，此时每个包的配置文件需要单独放置在命名为包名的文件夹下（文件夹名不区分大小写），否则会提示找不到。
-
-```cmake
-find_package(OpenCV REQUIRED)
-
-message(WARNING "CMAKE_MODULE_PATH=${CMAKE_MODULE_PATH}")
-message(WARNING "CMAKE_ROOT=${CMAKE_ROOT}")
-message(WARNING "CMAKE_APPBUNDLE_PATH=${CMAKE_APPBUNDLE_PATH}")
-message(WARNING "CMAKE_FRAMEWORK_PATH=${CMAKE_FRAMEWORK_PATH}")
-message(WARNING "CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}")
-message(WARNING ${OpenCV_DIR})
-message(WARNING ${OpenCV_INCLUDE_DIRS})
-message(WARNING ${OpenCV_LIBS})
-```
-
-
-
-## 1.7 [.cmake文件](https://blog.csdn.net/qq_38410730/article/details/102677143)
+## 1.6 [.cmake文件](https://blog.csdn.net/qq_38410730/article/details/102677143)
 
 `CmakeLists.txt`才是`cmake`的正统文件，而`.cmake`文件是一个模块文件，可以被`include`到`CMakeLists.txt`中。
 
@@ -458,17 +252,96 @@ function()
 ## 2.1 set
 
 ```cmake
+set(hello "good")
+include(CMakePrintHelpers)		# 这是一个打印帮助工具
+cmake_print_variables(hello)
+set(hello)
+cmake_print_variables(hello)
+set(world "morning")
+cmake_print_variables(world)
+unset(world)
+cmake_print_variables(world)
+# 结果
+-- hello="good"
+-- hello=""
+-- world="morning"
+-- world=""
+
+# 如果设置多个值，将会连接起来(用";"分隔)作为一个整体赋值给变量。
+set(VAR0 1 2 3 4)
+set(VAR1 "hello" "good" "evening")
+message(STATUS "var0 is: ${VAR0}, var1 is: ${VAR1}")
+# 结果
+-- var0 is: 1;2;3;4, var1 is: hello;good;evening
+```
+
+### 2.1.1 普通变量
+
+```cmake
 #设置普通变量
-set(<variable> <value>... [PARENT_SCOPE]) # 不指定PARENT_SCOPE，变量是函数作用域和目录作用域（作用域解释请find），加了PARENT_SCOPE就在父作用域
+set(<variable> <value>... [PARENT_SCOPE]) # 不指定PARENT_SCOPE，变量是函数作用域和目录作用域，加了PARENT_SCOPE就在父作用域
+```
 
+### 2.1.2 缓存变量
+
+```cmake
 #设置缓存条目
-set(<variable> <value>... CACHE <type> <docstring> [FORCE]) 	# 整个编译生命周期都有效。缓存作用域Persistent Cache（cache变量）
+set(<variable> <value>... CACHE <type> <docstring> [FORCE])
+# 默认不会覆盖已存在的缓存变量，通过可选参数FORCE可以强制重写。
+# 整个编译生命周期都有效。缓存作用域Persistent Cache（cache变量）
+# type值并没有强制作用，只作为给读者的提示。
+# type必须是以下之一：
+#	BOOL：值为ON/OFF
+#	FILEPATH：文件路径
+#	PATH：文件所在目录的路径
+#	STRING：一行文本
+#	INTERNAL：文本，主要在运行过程中存储变量，不对外展示。
 
+set(VAR2 "hello" CACHE BOOL "it is my set BOOL test" FORCE)
+set(VAR3 "good" CACHE FILEPATH "it is my set FILEPATH test" FORCE)
+set(VAR4 "study" CACHE PATH "it is my set PATH test" FORCE)
+set(VAR5 "beautiful" CACHE STRING "it is my set STRING test" FORCE)
+set(VAR6 "perfect" CACHE INTERNAL "it is my set INTERNAL test" FORCE)
+
+foreach(var VAR2 VAR3 VAR4 VAR5 VAR6)
+    message(STATUS "var is ${${var}}")
+endforeach()
+# 结果
+-- var is hello
+-- var is good
+-- var is study
+-- var is beautiful
+-- var is perfect
+
+# 在CMakeCache.txt中会有
+//it is my set BOOL test
+VAR2:BOOL=hello
+
+//it is my set FILEPATH test
+VAR3:FILEPATH=good
+
+//it is my set PATH test
+VAR4:PATH=study
+
+//it is my set STRING test
+VAR5:STRING=beautiful
+
+//it is my set INTERNAL test
+VAR6:INTERNAL=perfect
+```
+
+### 2.1.3 环境变量
+
+```cmake
 #设置环境变量
 set(ENV{<variable>} [<value>])		# 环境变量仅用于cmake编译过程，不能用于目标程序，也不会修改操作系统的操作环境变量
+$ENV{<variable>}		# 读取环境变量
+
 # 在cmake中查看linux操作系统的环境变量
 message(WARNING "PATH=$ENV{PATH}")
 ```
+
+
 
 ### [set变量作用域](https://blog.csdn.net/weixin_43708622/article/details/108315184)
 
@@ -713,6 +586,364 @@ CMAKE_CURRENT_BINARY_DIR	# 当前CMake正在处理的CMakeLists.txt文件对应�
 EXECUTABLE_OUTPUT_PATH		# 指定最终的可执行文件生成的位置
 LIBRARY_OUTPUT_PATH			# 指定库文件的输出目录
 ```
+
+# 3 [依赖](https://blog.csdn.net/zhizhengguan/article/details/118396145)
+
+## 3.1 [add_dependencies](https://blog.csdn.net/BeanGuohui/article/details/120217097) 指定依赖
+
+给目标指定依赖项，依赖项可被先行编译。如此就不会报undefined reference
+
+```cmake
+add_dependencies(<target> [<target-dependency>]...)
+```
+
+在项目中通常会遇见这样的情况：（例如一个项目中有：main，libhello.a， libworld.a），当项目过小的时候，编译顺序是*.a，然后是main，但是当一个项目的文件过于庞大，就会导致编译的顺序不会按照主CMAKE的add_subdirectory引入的先后顺序，为了解决这一问题，就需要使用add_dependencies进行依赖指定。
+
+```cmake
+├── CMakeLists.txt// 下面用主CMAKE表示
+├── hello
+│   ├── CMakeLists.txt		// 下面用HELLOCMAKE表示
+│   ├── hello.c
+│   └── hello.h
+├── main
+│   ├── CMakeLists.txt		// 下面用MAINCMAKE表示
+│   └── main.c
+└── world
+    ├── CMakeLists.txt		// 下面用WORLDCMAKE表示
+    ├── world.c
+    └── world.h
+```
+
+```cmake
+# hellocmake
+cmake_minimum_required(VERSION 3.5.1)
+set(CMAKE_C_STANDARD 99)
+add_library(hello STATIC world.c hello.h)
+
+# worldcmake
+cmake_minimum_required(VERSION 3.5.1)
+set(CMAKE_C_STANDARD 99)
+add_library(world STATIC world.c world.h)
+
+# maincmake 
+cmake_minimum_required(VERSION 3.5.1)
+project(CmakeDemo C)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY /home/lib)
+set(CMAKE_C_STANDARD 99)
+
+add_executable(CmakeDemo main.c)
+link_directories(/home/lib)			# 依赖hello.a 和 world.a
+target_link_libraries(
+        CmakeDemo
+        hello
+        world
+)
+
+# 主cmake 最外层CMakeLists.txt
+cmake_minimum_required(VERSION 3.5)
+
+add_subdirectory(main)	# main是依赖后二者的，而这里add_subdirectory却写在后二者的前面
+						# 所以这里应该让hello和world先编译，故有了add_dependencies
+add_subdirectory(hello)
+add_subdirectory(world)
+
+add_dependencies(CmakeDemo hello world)
+# add_dependencies中所填写的名字应该是其他CMAKE生成目标的名字。
+# 该示例中如果写成add_dependencies（CmakeDemo libhello.a libworld.a）则会报错。
+
+# 这样写的好处在于，当一个项目构建的时候，由于依赖关系的存在，所以被依赖的项目总是最先构建，这样就不会出现找不到库而报错。
+```
+
+
+
+[参考1](https://blog.csdn.net/KingOfMyHeart/article/details/112983922)
+
+
+
+## 3.2 查找文件find_file
+
+- **该命令用于查找指定文件的完整路径**。
+- 创建一个名为< VAR >的缓存条目(如果指定了NO_CACHE，则是一个普通变量)来存储此命令的结果。
+  - 如果找到文件的完整路径，则结果存储在变量中，**并且搜索不会重复，除非该变量被清除。**
+  - 如果没有找到，结果将是< VAR >-NOTFOUND。
+
+```cmake
+find_file (<VAR> name1 [path1 path2 ...])
+find_file (
+          <VAR>
+          name | NAMES name1 [name2 ...]
+          [HINTS [path | ENV var]... ]
+          [PATHS [path | ENV var]... ]
+          [PATH_SUFFIXES suffix1 [suffix2 ...]]
+          [DOC "cache documentation string"]
+          [NO_CACHE]
+          [REQUIRED]
+          [NO_DEFAULT_PATH]
+          [NO_PACKAGE_ROOT_PATH]
+          [NO_CMAKE_PATH]
+          [NO_CMAKE_ENVIRONMENT_PATH]
+          [NO_SYSTEM_ENVIRONMENT_PATH]
+          [NO_CMAKE_SYSTEM_PATH]
+          [CMAKE_FIND_ROOT_PATH_BOTH |
+           ONLY_CMAKE_FIND_ROOT_PATH |
+           NO_CMAKE_FIND_ROOT_PATH]
+         )
+
+```
+
+## 3.3 查找包[find_package](https://blog.csdn.net/zhanghm1995/article/details/105466372)
+
+`find_package`本质上就是一个**搜包的命令**，通过一些特定的规则（路径）找到`<package_name>Config.cmake`或`Find<PackageName>.cmake`包配置文件，通过执行该配置文件，从而定义了一系列的变量（eg：`OpenCV_DIR`、`OpenCV_INCLUDE_DIRS`和`OpenCV_LIBS`），通过这些变量就可以准确定位到**OpenCV库的头文件和库文件**，完成编译。
+
+find_package命令有两种工作模式，这两种工作模式的不同决定了其搜包路径的不同：
+
+- Module模式
+  find_package命令基础工作模式(Basic Signature)，也是默认工作模式。
+
+- Config模式
+  find_package命令高级工作模式(Full Signature)。 只有在find_package()中指定CONFIG、NO_MODULE等关键字，或者**Module模式查找失败后才会进入到Config模式。**
+
+![](./legend/find_package_工作流程.png)
+
+### module模式
+
+```cmake
+find_package(<package> [version] [EXACT] [QUIET] [MODULE]
+             [REQUIRED] [[COMPONENTS] [components...]]
+             [OPTIONAL_COMPONENTS components...]
+             [NO_POLICY_SCOPE])
+
+```
+
+**Module**模式下是要查找到名为`Find<PackageName>.cmake`的配置文件。
+
+Module模式只有两个查找路径：**CMAKE_MODULE_PATH**和cmake安装路径(**CMAKE_ROOT**)下的**Modules**目录
+
+```cmake
+# 一定记住是在这两个路径的Modules目录下查找Find<PackageName>.cmake
+message(STATUS "CMAKE_MODULE_PATH = ${CMAKE_MODULE_PATH}")		# 默认为空
+message(STATUS "CMAKE_ROOT = ${CMAKE_ROOT}")
+```
+
+
+
+### config模式
+
+```cmake
+find_package(<package> [version] [EXACT] [QUIET]
+             [REQUIRED] [[COMPONENTS] [components...]]
+             [CONFIG|NO_MODULE]
+             [NO_POLICY_SCOPE]
+             [NAMES name1 [name2 ...]]
+             [CONFIGS config1 [config2 ...]]
+             [HINTS path1 [path2 ... ]]
+             [PATHS path1 [path2 ... ]]
+             [PATH_SUFFIXES suffix1 [suffix2 ...]]
+             [NO_DEFAULT_PATH]
+             [NO_CMAKE_ENVIRONMENT_PATH]
+             [NO_CMAKE_PATH]
+             [NO_SYSTEM_ENVIRONMENT_PATH]
+             [NO_CMAKE_PACKAGE_REGISTRY]
+             [NO_CMAKE_BUILDS_PATH] # Deprecated; does nothing.
+             [NO_CMAKE_SYSTEM_PATH]
+             [NO_CMAKE_SYSTEM_PACKAGE_REGISTRY]
+             [CMAKE_FIND_ROOT_PATH_BOTH |
+              ONLY_CMAKE_FIND_ROOT_PATH |
+              NO_CMAKE_FIND_ROOT_PATH])
+
+```
+
+**CMake默认采取Module模式，如果Module模式未找到库，才会采取Config模式。**
+
+**Config**模式下是要查找名为`<PackageName>Config.cmake`或`<lower-case-package-name>-config.cmake`的模块文件。
+
+**Config**模式需要查找的路径非常多，具体查找顺序为：
+
+1. 名为`<PackageName>_DIR`的CMake变量或环境变量路径
+2. 名为`CMAKE_PREFIX_PATH`、`CMAKE_FRAMEWORK_PATH`、`CMAKE_APPBUNDLE_PATH`的CMake变量或**环境变量**路径
+3. `PATH`环境变量路径
+
+如果没有，CMake会继续**检查或匹配**这些根目录下的以下路径
+
+```cmake
+<prefix>/(lib/<arch>|lib|share)/cmake/<name>*/
+<prefix>/(lib/<arch>|lib|share)/<name>*/ 
+<prefix>/(lib/<arch>|lib|share)/<name>*/(cmake|CMake)/
+```
+
+### 查找指定位置的.cmake
+
+如果你明确知道想要查找的库`<PackageName>Config.cmake`或`<lower-case-package-name>-config.cmake`文件所在路径，为了能够准确定位到这个包，可以直接设置变量`<PackageName>_DIR`为具体路径，如：
+
+```cmake
+set(OpenCV_DIR "/home/zhanghm/Softwares/enviroment_config/opencv3_4_4/opencv/build")
+```
+
+如果你有多个包的配置文件需要查找，可以将这些配置文件都统一放在一个命名为cmake的文件夹下，然后设置变量CMAKE_PREFIX_PATH变量指向这个cmake文件夹路径，需要注意根据上述的匹配规则，此时每个包的配置文件需要单独放置在命名为包名的文件夹下（文件夹名不区分大小写），否则会提示找不到。
+
+```cmake
+find_package(OpenCV REQUIRED)
+
+message(WARNING "CMAKE_MODULE_PATH=${CMAKE_MODULE_PATH}")
+message(WARNING "CMAKE_ROOT=${CMAKE_ROOT}")
+message(WARNING "CMAKE_APPBUNDLE_PATH=${CMAKE_APPBUNDLE_PATH}")
+message(WARNING "CMAKE_FRAMEWORK_PATH=${CMAKE_FRAMEWORK_PATH}")
+message(WARNING "CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}")
+message(WARNING ${OpenCV_DIR})
+message(WARNING ${OpenCV_INCLUDE_DIRS})
+message(WARNING ${OpenCV_LIBS})
+```
+
+
+
+其它例子：
+
+```cmake
+find_package(CUDA REQUIRED)
+list(APPEND ALL_LIBS 
+  ${CUDA_LIBRARIES} 
+  ${CUDA_cublas_LIBRARY} 
+  ${CUDA_nppc_LIBRARY} ${CUDA_nppig_LIBRARY} ${CUDA_nppidei_LIBRARY} ${CUDA_nppial_LIBRARY})
+message(${CUDA_INCLUDE_DIRS})
+```
+
+
+
+## 3.4 查找库find_library
+
+该命令用于查找库（动态库或者静态库，**默认查找动态库**），当构建依赖于第三方库/系统库，可以使用该命令来查找并使用库。
+
+[每个参数的讲解](https://blog.csdn.net/fengbingchun/article/details/127232175)，[搜索路径和优先级](https://blog.csdn.net/u013250861/article/details/127935842)
+
+```cmake
+find_library(
+          <VAR>
+          name | NAMES name1 [name2 ...] [NAMES_PER_DIR]
+          [HINTS [path | ENV var]... ]
+          [PATHS [path | ENV var]... ]
+          [REGISTRY_VIEW (64|32|64_32|32_64|HOST|TARGET|BOTH)]
+          [PATH_SUFFIXES suffix1 [suffix2 ...]]
+          [DOC "cache documentation string"]
+          [NO_CACHE]
+          [REQUIRED]
+          [NO_DEFAULT_PATH]
+          [NO_PACKAGE_ROOT_PATH]
+          [NO_CMAKE_PATH]
+          [NO_CMAKE_ENVIRONMENT_PATH]
+          [NO_SYSTEM_ENVIRONMENT_PATH]
+          [NO_CMAKE_SYSTEM_PATH]
+          [NO_CMAKE_INSTALL_PREFIX]
+          [CMAKE_FIND_ROOT_PATH_BOTH |
+           ONLY_CMAKE_FIND_ROOT_PATH |
+           NO_CMAKE_FIND_ROOT_PATH]
+)
+# NO_CACHE：该选项将<var>变量当成一个普通变量而不是一个缓存条目
+# REQUIRED：指定该选项后，当找不到库，会输出一条错误信息并终止cmake处理过程；未指定REQUIRED选项，当find_library未找到库时，后续find_library有针对<var>的调用会继续查找。
+```
+
+
+
+- `<VAR>`
+
+  - `<VAR>`可以是普通变量（需要指定`NO_CACHE`选项），也可以是缓存条目（意味着会存放在`CMakeCache.txt`中，不删除该文件或者用`set`重新设置该变量，其存储的值不会再刷新）；
+
+  - 当库能被找到，`<var>`会被存放正常的库路径，当库未被找到，`<var>`中存放的值为`"<var>-NOTFOUND"`。只要`<var>`中的值`不是"<var>-NOTFOUND"`，那么即使多次调用`find_library`，`<var>`也不会再刷新;
+
+- name
+
+  - `name`用于指定待查找的库名称，库名称可以使用全称，例如`libmymath.a`（优先会当成全名搜索），**全称必须前后缀都在，不然查找不到**；
+  - 也可以不带前缀（例如前缀`lib`）和后缀（例如`Linux`中的`.so`、`.a`，`Mac`中的`.dylib`等），直接使用`mymath`（**前后缀都不在**）；、
+
+- NAMES：为要查找的库指定一个或多个可能的名字
+
+  - 默认情况下此命令将一次考虑一个name并在每个目录中搜索它。（外循环多个name，内循环多个目录）
+  - NAMES_PER_DIR选项告诉此命令一次考虑一个目录并搜索其中的所有名称。（外循环多个目录，内循环多个name）
+
+- HINTS, PATHS：指定除默认位置外要搜索的目录。下面会有介绍搜索路径
+
+- PATH_SUFFIXES：若在PATHS或HINTS指定的路径中没有找到，则继续会在PATHS/PATH_SUFFIXES或HINTS/PATH_SUFFIXES指定的路径中搜索。
+
+```cmake
+# 
+unset(var CACHE) # 清除变量,带有CACHE也从缓存文件CMakeCache.txt中清除,若不带CACHE则缓存文件CMakeCache.txt中仍然存在var的值
+find_library(var NAMES opencv_core) # 查找默认路径,默认查找动态库?在/usr/lib/x86_64-linux-gnu/目录下既有libopencv_core.so也有libopencv_core.a
+message("var: ${var}") # var: /usr/lib/x86_64-linux-gnu/libopencv_core.so
+ 
+# 如果找到库，则结果将存储在变量中，除非清除变量，否则不会重复搜索
+find_library(var NAMES opencv_highgui) # 注意:未清除变量，不会重复搜索，最终结果是不对的，并没有查找opencv_highgui
+message("var: ${var}") # var: /usr/lib/x86_64-linux-gnu/libopencv_core.so
+ 
+unset(var CACHE) # 若不带CACHE,var是/usr/local/lib/libopencv_core.so而不是/usr/lib/x86_64-linux-gnu/libopencv_highgui.so
+find_library(var NAMES opencv_highgui)
+message("var: ${var}") # var: /usr/lib/x86_64-linux-gnu/libopencv_highgui.so
+ 
+unset(var CACHE)
+find_library(var opencv_highgui) # 最简格式：find_library(<VAR> name)
+message("var: ${var}") # var: /usr/lib/x86_64-linux-gnu/libopencv_highgui.so
+ 
+unset(var CACHE)
+find_library(var NAMES opencv_xxxx) # 如果没找到库，结果将为<VAR>-NOTFOUND
+message("var: ${var}") # var: var-NOTFOUND
+if(${var} STREQUAL "var-NOTFOUND")
+    message(WARNING "the specified library was not found")
+endif()
+if(NOT var) # 注意这里是var不是${var}
+    message(WARNING "the specified library was not found")
+endif()
+unset(var) # 不带CACHE则缓存文件CMakeCache.txt中仍然存在var的值
+```
+
+库的搜索路径分为两大类： 默认搜索路径 和 附加搜索路径 。
+
+- 默认搜索 路径包含 cmake 定义的以 CMAKE 开头的一些变量、标准的系统环境变量（例如系统环境变量 LIB 和 PATH 定义的路径）、系统的默认的库安装路径（例如 /usr 、 /usr/lib 等）；
+  - 通过命令行使用 -D 指定的 CMAKE_XXX_PATH 变量，也就是形如 cmake . -DCMAKE_XXX_PATH=paths 的格式。其中 CMAKE_XXX_PATH （例如 CMAKE_LIBRARY_ARCHITECTURE 、 CMAKE_PREFIX_PATH 、 CMAKE_LIBRARY_PATH 、 CMAKE_FRAMEWORK_PATH ）
+- 附加搜索路径 即 find_library 命令中通过 HINTS 或 PATHS 指定的路径；
+
+路径搜索优先级（由高到低）：
+
+- 通过命令行使用`-D`指定的`CMAKE_XXX_PATH`变量
+- 通过在**环境变量**中指定`CMAKE_XXX_PATH`变量
+-  `HINTS`选项指定的路径
+- 系统环境变量指定的目录，默认是`LIB`和`PATH`指定的路径
+- 跟当前系统相关的平台文件路径，一般来说指的是当前系统安装软件的标准目录，不同的操作系统对应的路径有所不同
+- `PATHS`选项指定的路径。
+
+HINTS与PATHS区别：**HINTS是在搜索系统路径之前先搜索HINTS指定的路径。PATHS是先搜索系统路径，然后再搜索PATHS指定的路径**。
+
+## 3.5 查找头文件find_path
+
+find_path 一般用于在某个目录下查找一个或者多个头文件，命令的执行结果会保存到 `<VAR>` 中。同时命令的执行结果也会默认缓存到 CMakeCache.txt 中。
+
+```cmake
+find_path (
+          <VAR>
+          NAMES name1 [name2 ...] 
+          [HINTS [path | ENV var]... ]
+          [PATHS [path | ENV var]... ]
+          [NO_CACHE]
+          [REQUIRED]
+)
+```
+
+- `<VAR>`：用于保存命令的执行结果
+- NAMES：要查找的头文件
+- HINTS | PATHS
+  - HINTS：先搜索指定路径，后搜索系统路径
+  - PATHS：先搜索系统路径，后搜索指定路径
+- NO_CACHE：搜索结果将存储在普通变量中而不是缓存条目（即CMakeCache.txt）中
+- REQUIRED：如果没有找到指定头文件，就出发错误提示，变量会设为` <VAR>-NOTFOUND`
+
+## 3.6 [find_package和find_library的区别](https://juejin.cn/post/7213575951114977341)
+
+在CMake中，`find_package`和`find_library`都是用来找到和链接库的方法，但它们的用法和适用场景略有不同。
+
+- `find_package`主要用于寻找具有CMake配置文件的库，这些库通常遵循CMake的规范，提供了用于导入目标、库路径、头文件路径等的配置文件。这使得使用`find_package`更加简洁，只需指定需要的组件即可自动处理头文件路径、库路径等。`find_package`更适合于较大、更复杂的库，如Boost。在找到库后，`find_package`会生成相关的导入目标（如`Boost::filesystem`）供你在`target_link_libraries`中使用。
+
+- `find_library`则是一个更基本的方法，用于在系统中搜索特定的库文件。它不依赖于库提供的CMake配置文件，而是直接查找库文件。使用`find_library`时，需要手动指定库文件路径、头文件路径等。`find_library`更适合于较小或没有CMake配置文件的库，如Crypto++。比如实际应用中，我们使用`find_library`来找到Crypto++库，因为Crypto++库没有提供CMake配置文件。而对于Boost，我们使用`find_package`，因为Boost库提供了CMake配置文件，使得库的查找和链接更简便。
+
+总之，`find_package`和`find_library`都可以用于在CMake中查找和链接库，但**`find_package`更适用于具有CMake配置文件的库，而`find_library`则适用于没有CMake配置文件的库。**
+
+# 4 cmake命令行参数
 
 
 

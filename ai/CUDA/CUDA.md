@@ -2264,6 +2264,12 @@ CUDA内存管理包含GPU内存分配、释放、数据在主机和设备（GPU�
 
    - https://hub.docker.com/r/nvidia/cuda/tags?page=1&name=12.0.1-cudnn8-devel-ubuntu22.04
 
+   ```bash
+   docker run -it --gpus all -v /home/buntu/docker:/var/docker -p 8522:22 08cff1be5c71 /bin/bash
+   ```
+
+   
+
 4. 在容器内安装tensorRT
 
 参考链接：

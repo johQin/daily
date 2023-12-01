@@ -401,6 +401,30 @@ dynamic linking library
   - 所需文件：dll文件。
   - 利用LoadLibrary（）函数进行加载。
 
+## 2.5 [ubuntu动态库加载优先级](https://blog.csdn.net/weixin_35804181/article/details/131652982)
+
+加载的路径：
+
+- 默认库加载路径，如：/lib 和/usr/lib
+- ldconfig指定加载路径：通过配置文件 /etc/ld.so.conf 中指定动态库搜索路径
+- 编译指定加载路径：在编译目标代码时指定该程序的动态库搜索路径，通过 gcc 的参数 “-Wl,-rpath,”
+- 环境变量指定加载路径：通过环境变量 LD_LIBRARY_PATH 指定动态库搜索路径
+
+
+
+加载顺序：
+
+动态库的加载搜索优先级，由高到低：
+
+- 编译指定加载路径
+- 环境变量指定加载路径（LD_LIBRARY_PATH）
+- ldconfig指定加载路径
+- 默认库加载路径
+
+说明：
+
+ “/usr/local/lib”和“/usr/local/lib/x86_64-linux-gnu、/lib/x86_64-linux-gnu和/usr/lib/x86_64-linux-gnu都是是ldconfig指定加载路径，位置分别在/etc/ld.so.conf.d/libc.conf和/etc/ld.so.conf.d/x86_64-linux-gnu.conf。
+
 # 3 [makefile](https://blog.csdn.net/weixin_38391755/article/details/80380786)
 
 gcc在编译单个文件是比较方便的，而在工程结构下拥有大量文件，此时gcc变得力不从心。
