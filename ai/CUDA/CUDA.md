@@ -31,7 +31,7 @@ cd TensorRT-8.6.1.6.Linux.x86_64-gnu.cuda-12.0/TensorRT-8.6.1.6
 
 # 要使用trtexec，就要将命令的查找路径加入PATH
 PATH = $PATH:/opt/TensorRT-8.6.1.6/bin
-# 并且要将动态库的链接路径加入到_LIBRARY_PATH
+# 并且要将动态库的链接路径加入到LD_LIBRARY_PATH
 LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/TensorRT-8.6.1.6/lib
 
 # TensorRT路径下，将头文件和库放到指定位置，方便在程序中引入
@@ -181,7 +181,7 @@ Q:Would you like to run the nvidia-xconfigutility to automatically update your x
 
 [Ubuntu22.04安装CUDA、cudnn详细步骤](https://blog.csdn.net/takedachia/article/details/130375718)
 
-[ubuntu cudnn 安装](https://blog.csdn.net/shanglianlm/article/details/130219640)
+
 
 #### run文件方式
 
@@ -340,7 +340,34 @@ nvidia-smi
 
 ```
 
-### 0.1.4 查看是否安装成功
+### 0.1.4 安装cudnn
+
+[ubuntu cudnn 安装](https://blog.csdn.net/shanglianlm/article/details/130219640)
+
+下载cudnn-local-repo-ubuntu2204-8.9.5.30_1.0-1_amd64.deb
+
+需要适配cuda的版本这个版本适合12.x
+
+```bash
+sudo dpkg -i cudnn-local-repo-ubuntu2204-8.9.5.30_1.0-1_amd64.deb
+
+sudo cp /var/cudnn-local-repo-ubuntu2204-8.9.5.30/cudnn-local-FB167084-keyring.gpg /usr/share/keyrings/
+
+cd /var/cudnn-local-repo-ubuntu2204-8.9.5.30/
+
+sudo apt-get install libcudnn8_8.9.5.30-1+cuda12.2
+sudo apt-get install libcudnn8-dev_8.9.5.30-1+cuda12.2
+sudo apt-get install libcudnn8-samples_8.9.5.30-1+cuda12.2
+```
+
+```bash
+# 查看是否安装成功
+# 查看cuDNN版本，旧版本指令为cat /usr/include/cudnn.h | grep CUDNN_MAJOR -A2，新版本有更新，将cuDNN版本信息单拉了一个文件名为cudnn_version.h，所以新版本查看cuDNN版本的命令为cat /usr/include/cudnn_version.h | grep CUDNN_MAJOR -A 2
+```
+
+
+
+### 0.1.5 查看是否安装成功
 
 [Win10安装cuda、cudnn检测是否安装成功](https://blog.csdn.net/wzk4869/article/details/127540610)
 
