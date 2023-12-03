@@ -169,6 +169,40 @@ Q:Would you like to run the nvidia-xconfigutility to automatically update your x
 
 ```
 
+```bash
+# 查看驱动是否安装成功
+nvidia-smi
+# 下面的cuda VERSION是此驱动支持的cuda的最高版本
++---------------------------------------------------------------------------------------+
+| NVIDIA-SMI 535.54.03              Driver Version: 535.54.03    CUDA Version: 12.2     |
+|-----------------------------------------+----------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |         Memory-Usage | GPU-Util  Compute M. |
+|                                         |                      |               MIG M. |
+|=========================================+======================+======================|
+|   0  NVIDIA GeForce RTX 3060 Ti     Off | 00000000:03:00.0  On |                  N/A |
+|  0%   59C    P8              23W / 200W |   1109MiB /  8192MiB |      3%      Default |
+|                                         |                      |                  N/A |
++-----------------------------------------+----------------------+----------------------+
+                                                                                         
++---------------------------------------------------------------------------------------+
+| Processes:                                                                            |
+|  GPU   GI   CI        PID   Type   Process name                            GPU Memory |
+|        ID   ID                                                             Usage      |
+|=======================================================================================|
+|    0   N/A  N/A      2317      G   /usr/lib/xorg/Xorg                          597MiB |
+|    0   N/A  N/A      2439      G   ...libexec/gnome-remote-desktop-daemon        2MiB |
+|    0   N/A  N/A     10182      G   /usr/bin/gnome-shell                         98MiB |
+|    0   N/A  N/A     11550      G   ...ures=TFLiteLanguageDetectionEnabled      131MiB |
+|    0   N/A  N/A     13633      G   ...ures=SpareRendererForSitePerProcess      109MiB |
+|    0   N/A  N/A     23125      G   ...sion,SpareRendererForSitePerProcess       33MiB |
+|    0   N/A  N/A    169621      G   ...irefox/3026/usr/lib/firefox/firefox      112MiB |
+|    0   N/A  N/A    199079      G   ...ures=SpareRendererForSitePerProcess        3MiB |
++---------------------------------------------------------------------------------------+
+```
+
+
+
 #### 后期出现mismatch问题
 
 有时候驱动因为自动升级而导致在输入nvidia-smi的时候会出现：[Failed to initialize NVML: Driver/library version mismatch](https://blog.csdn.net/qq_41076797/article/details/124909408)这样的问题
@@ -304,41 +338,6 @@ Result = PASS
 
 
 FLOPS——float-point Operation per Second，每秒浮点操作次数，GFLOPS——g（billion） FLOPS，TFLOPS—— T（1000g） FLOPS
-
-
-
-```bash
-# 查看cuda版本
-nvidia-smi
-
-+---------------------------------------------------------------------------------------+
-| NVIDIA-SMI 535.54.03              Driver Version: 535.54.03    CUDA Version: 12.2     |
-|-----------------------------------------+----------------------+----------------------+
-| GPU  Name                 Persistence-M | Bus-Id        Disp.A | Volatile Uncorr. ECC |
-| Fan  Temp   Perf          Pwr:Usage/Cap |         Memory-Usage | GPU-Util  Compute M. |
-|                                         |                      |               MIG M. |
-|=========================================+======================+======================|
-|   0  NVIDIA GeForce RTX 3060 Ti     Off | 00000000:03:00.0  On |                  N/A |
-|  0%   59C    P8              23W / 200W |   1109MiB /  8192MiB |      3%      Default |
-|                                         |                      |                  N/A |
-+-----------------------------------------+----------------------+----------------------+
-                                                                                         
-+---------------------------------------------------------------------------------------+
-| Processes:                                                                            |
-|  GPU   GI   CI        PID   Type   Process name                            GPU Memory |
-|        ID   ID                                                             Usage      |
-|=======================================================================================|
-|    0   N/A  N/A      2317      G   /usr/lib/xorg/Xorg                          597MiB |
-|    0   N/A  N/A      2439      G   ...libexec/gnome-remote-desktop-daemon        2MiB |
-|    0   N/A  N/A     10182      G   /usr/bin/gnome-shell                         98MiB |
-|    0   N/A  N/A     11550      G   ...ures=TFLiteLanguageDetectionEnabled      131MiB |
-|    0   N/A  N/A     13633      G   ...ures=SpareRendererForSitePerProcess      109MiB |
-|    0   N/A  N/A     23125      G   ...sion,SpareRendererForSitePerProcess       33MiB |
-|    0   N/A  N/A    169621      G   ...irefox/3026/usr/lib/firefox/firefox      112MiB |
-|    0   N/A  N/A    199079      G   ...ures=SpareRendererForSitePerProcess        3MiB |
-+---------------------------------------------------------------------------------------+
-
-```
 
 ### 0.1.4 安装cudnn
 

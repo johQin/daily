@@ -123,7 +123,7 @@ add_subdirectory (source_dir [binary_dir] [EXCLUDE_FROM_ALL])
 
 链接一个库：link_directories,  LINK_LIBRARIES,  target_link_libraries
 
-- link_libraries已被废弃了，建议使用target_link_libraries替代，存疑
+- link_libraries已被废弃（失效）了，建议使用target_link_libraries替代，存疑
 
 - 如果不指定库后缀，默认优先链接动态库。
 
