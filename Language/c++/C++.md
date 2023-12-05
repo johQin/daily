@@ -6843,6 +6843,13 @@ int main(){
 async和future作为多线程的高级接口
 
 - async()提供一个接口，让一个可调用对象：函数，成员函数，函数对象，或lambda，后台运行，成为一个独立的线程
+
+  ```c++
+  // 返回一个future对象
+  template<class Fn, class... Args>
+  future<typename result_of<Fn(Args...)>::type> async(launch policy, Fn&& fn, Args&&...args);
+  ```
+
 - Class future<>允许你等待线程结束，并获取其结果（一个返回值，或一个异常）
 
 ```c++
@@ -7197,7 +7204,7 @@ promise object是future object的配对兄弟，二者都能暂时持有一个sh
 void doSomething (std::promise<std::string>& p)
 {
     try {
-        // read character and throw exception if 'x'
+        // 当输入x的时候，抛出错误
         std::cout << "read char ('x' for exception): ";
         char c = std::cin.get();
         if (c == 'x') {
@@ -7205,6 +7212,7 @@ void doSomething (std::promise<std::string>& p)
         }
         //...
         std::string s = std::string("char ") + c + " processed";
+        // 输入其他值的时候，设置给promise设置值，并退出
         p.set_value_at_thread_exit(std::move(s));    // store result
     }
     catch (...) {
@@ -7215,17 +7223,18 @@ void doSomething (std::promise<std::string>& p)
 int main()
 {
     try {
-        // create a promise to store the outcome
+        // 创建一个promise去存储outcome值
         std::promise<std::string> p;
-        // create a future to process the outcome
+        // 由promise对象，创建一个future，用于获取promise的outcome
         std::future<std::string> f(p.get_future());
-        // start a thread using the promise to store the outcome
-        std::thread t(doSomething,std::ref(p));
+        // 开启线程，并使用promise去存储outcome
+        std::thread t(doSomething,std::ref(p));		// 这里的p只能通过引用传递
         t.detach();
         //...
 
-        // process the outcome
+        // 通过future获取promise的outcome值
         std::cout << "result: " << f.get() << std::endl;
+        
     }
     catch (const std::exception& e) {
         std::cerr << "EXCEPTION: " << e.what() << std::endl;
@@ -7236,7 +7245,60 @@ int main()
 }
 ```
 
+```c++
+void doSomething (std::promise<std::string>& p)
+{
+    try {
+        // 输入其他值的时候，设置给promise设置值，并退出
+        p.set_value(std::move(s));    // store result
+        // 这里的get会停滞，知道p的shared state成为ready
+        // 当任务函数里promise被set_value,或被set_exception，p的state就会变为ready。
+        // 但这并非意味着任务函数已经结束，该函数仍可能执行着其他语句。
+    }
+    catch (...) {
+        p.set_exception(std::current_exception());  // store exception
+    }
+}
+```
 
+如果想令shared state在线程结束时变为ready，那么需使用`set_value_at_thread_exit，set_exception_at_thread_exit`而不是`set_value, set_exception`
+
+### 12.2.3 packaged_task
+
+有时候，虽然你需要处理一个后台task的成果，你其实不需要立刻启动该task。
+
+```c++
+double compute(int x, int y);
+std::packaged_task<double(int, int)> task(compute);	//创建任务
+std::future<double> f = task.get_future();		//获取任务的future
+...
+task(7, 5);			// 开启线程
+...
+double res = f.get();
+```
+
+## 12.3 总结前两节
+
+![image-20231205205713580](./legend/image-20231205205713580.png)
+
+### 12.3.1 async
+
+```c++
+// 尝试启动func并给予实参args，并形成异步任务（asynchronous task）
+future async(std::launch::async, F func, args...);
+
+// 传递func并夹带args，形成一个推迟任务（deferred task）
+future async(std::launch::deferred, F func, args...);
+
+// 系统根据当前形势选择其中一个发射策略
+future async(F func, args...);
+```
+
+### 12.3.2 future
+
+用来表现某一任务的成果：可能是返回值，也可能是一个异常。
+
+get
 
 # 其他
 
