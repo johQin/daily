@@ -6145,7 +6145,7 @@ int&& rr2=i*42;		// 正确：将 rr2 绑定到乘法结果上，这个乘法结�
 
 #### 3 移动构造函数
 
-右值引用的作用是用于移动构造函数（Move Constructors）和移动赋值运算符（ Move Assignment Operator）。
+右值引用的作用是用于**移动构造函数（Move Constructors）和移动赋值运算符（ Move Assignment Operator）**。
 
 为了让我们自己**定义的类型支持移动操作**，我们需要为其定义移动构造函数和移动赋值运算符。
 
@@ -6178,7 +6178,7 @@ public:
         value = new T(*other.value);
 		cout<<"in constructor"<<endl;
     }
-	// 移动构造函数
+	// 移动构造函数，当一个临时对象传递给构造函数时
     Container(Container&& other) {
 		if(value!=other.value){
 			value = other.value;
@@ -6195,7 +6195,7 @@ public:
 		cout<<"in assignment operator"<<endl;
         return *this;
     }
-	// 移动赋值运算符
+	// 移动赋值运算符，当一个临时对象复制给此类对象时
     const Container& operator = (Container&& rhs) {
 		if(value!=rhs.value) {
 			delete value;
@@ -6254,6 +6254,8 @@ int&& rr1=42;
 int&&　rr2=rr1;				//error，表达式rr1是左值,右值引用本身是一个左值
 int&&　rr2=std::move(rr1);	//ok
 ```
+
+**当一个右值引用复制给一个左值时，会调用该对象的 重载的移动赋值运算符。**
 
 #### 5 std::forward 实现完美转发
 
@@ -6809,6 +6811,430 @@ void click() {
 
 
 ## 11.2 [log4cpp](https://log4cpp.sourceforge.net/)
+
+## 11.3 string
+
+```c++
+#include<string>
+#include<iostream>
+int main(){
+    std::string s = {
+            "aefd"
+            "b"
+            "c"
+    };
+    std::cout<<s<<std::endl;
+    return 0;
+}
+
+// 结果：aefdbc
+```
+
+## 11.4 [rapidjson](https://rapidjson.org/zh-cn/md_doc_tutorial_8zh-cn.html)
+
+
+
+# 12 多线程
+
+## 12.1 async和future
+
+### 12.1.1 初次使用
+
+async和future作为多线程的高级接口
+
+- async()提供一个接口，让一个可调用对象：函数，成员函数，函数对象，或lambda，后台运行，成为一个独立的线程
+- Class future<>允许你等待线程结束，并获取其结果（一个返回值，或一个异常）
+
+```c++
+// async和future的头文件
+#include <future>
+
+#include <thread>
+#include <chrono>
+#include <random>
+#include <iostream>
+#include <exception>
+using namespace std;
+
+int doSomething (char c)
+{
+    // random-number generator (use c as seed to get different sequences)
+    std::default_random_engine dre(c);
+    std::uniform_int_distribution<int> id(10,1000);
+ 
+    // loop to print character after a random period of time
+    for (int i=0; i<10; ++i) {
+        this_thread::sleep_for(chrono::milliseconds(id(dre)));
+        cout.put(c).flush();		// 标准输出：打印符号c
+    }
+
+    return c;
+}
+
+int func1 ()
+{
+    return doSomething('.');
+}
+
+int func2 ()
+{
+    return doSomething('+');
+}
+
+int main()
+{
+    std::cout << "starting func1() in background"
+              << " and func2() in foreground:" << std::endl;
+	// 当具备多线程条件，会被立即执行，如果没有，则稍后执行，或永不执行，即使主线程即将结束
+    std::future<int> result1(std::async(func1));
+    
+
+    int result2 = func2();    // call func2() synchronously (here and now)
+
+    // get方法要求future对象的代理的函数启动（也许，函数已提前启动，这里时确保启动），并等待其执行完成，获取函数返回的结果。
+    // future只能使用一次get，第二次调用get会导致不可预期的行为。
+    // 可以使用future的valid()检查共享状态是否有效，当调用完get接口后，该函数返回false
+    int result = result1.get() + result2;
+
+    std::cout << "\nresult of func1()+func2(): " << result
+              << std::endl;
+}
+
+// 执行结果：
+// starting func1() in background and func2() in foreground:
+// +..+..+...+..+.+++++
+// result of func1()+func2(): 89
+```
+
+注意：**调用async并不能保证传入的函数一定会被启动和结束，当你需要确保函数被启动，确保该函数结束，就需要使用`future<ReturnType>`的get方法。**
+
+#### launch发射策略
+
+- 异步启动策略：`std::launch::async`
+- 延缓策略：`std::launch::deferred`
+
+```c++
+	// 异步启动策略，
+    // 立即启动独立线程去执行func1，这就不必飞得调用get，当future Object作用域时（主线程），主线程会等待后台任务func1结束。
+    // 如果无法异步则抛出一个std::system_error异常
+    // 这里必须将std::async(std::launch::async, func1);的值付给future对象，否则主线程调用者会在此停滞知道func1执行结束，这就相当于一个同步调用。
+    std::future<int> future1 = std::async(std::launch::async, func1);
+    // 延缓策略
+    // 延缓func的异步执行，直到调用的future的get方法
+    std::future<int> future2 = std::async(std::launch::deferred, func1);
+```
+
+#### 错误处理
+
+当get被调用，且后台操作已经（或随后由于异常）而终止，该异常不会在此后台线程中被处理，而是会再次被传播出去，因此欲处理后台操作产生的异常，你需要对get使用try catch
+
+```c++
+try {
+       f1.get();  // wait for task1() to finish (raises exception if any)
+   }
+catch (const exception& e) {
+   cerr << "EXCEPTION: " << e.what() << endl;
+}
+```
+
+#### 等待和轮询
+
+future也提供一个接口，允许我们等待后台操作完成，而**不需要处理其结果**
+
+- wait：等待结果
+- [wait_for](https://blog.csdn.net/weixin_55491446/article/details/129975772)：等待结果，等待一个时间间隔
+- wait_until：等待结果，等待一个绝对时间点
+- valid：    检查共享状态是否有效，当调用完get接口后，该函数返回false
+
+```c++
+std::future<int> future1(std::async(func1));
+...;
+// 强制启动future代理的线程，并等待后台操作终止
+future1.wait();
+
+// 等待一个时间间隔
+std::future_status status = future1.wait_for(std::chrono::seconds(10));
+// 等待一个绝对时间点
+std::future_status status = future1.wait_until(std::system_clock::now() + std::chrono::minutes(1));
+// status有三个状态，
+status == std::future_status::timeout		//在指定时间没有结束，就会超时timeout
+status == std::future_status::ready			//在指定时间结束，就会就绪ready
+status == std::future_status::deferred		//如果在async中设置的launch策略为deferred，则status为deferred
+
+```
+
+轮询任务状态
+
+```c++
+while(future1.wait_for(std::chrono::seconds(0) != std::future_status::ready)){
+    time.sleep(1);
+}
+
+if (f1.wait_for(chrono::seconds(0)) != future_status::deferred) {
+        while (future1.wait_for(chrono::seconds(0)) != future_status::ready) {
+            //...;
+            this_thread::yield();  // hint to reschedule to the next thread
+        }
+    }
+```
+
+#### 传递实参
+
+```c++
+char c = '@';
+// 采用值传递by value方式
+auto f = std::async([=]{	//lambda的捕获列表为“=”符号，因此传递给lambda的是c的拷贝，及所有其它 visible object
+    doSomething(c);
+});
+std::async(doSomething, c);
+
+// 也可以采用by reference方式传递实参，但这么做的风险是，被传递甚至可能在后台任务启动前就变得无效
+auto f = std::async([&]{	
+    doSomething(c);
+});
+std::async(doSomething, std::ref(c));
+
+// 但如果控制实参寿命，使它超越后台任务的生命
+f.get();
+
+```
+
+如果你使用async，就应该使用by alue的方式传递所有“用来处理的目标函数”的必要object，使async()只需使用局部拷贝（local copy），如果复制成本太高，请让那些object以const reference形式传递，且不使用mutable。
+
+### 12.1.2 Shared Future
+
+由于future 的get只能调用一次，多次调用会出现不可预期的问题，你可以通过valid的方法返回get是否被调用过了。
+
+但在有的时候，多次处理"并发运算之未来的结果"是合理的，特别是当多个其它线程都想处理这份结果时。基于这个目的，c++标准库提供了**`class std::shared_future`**，于是你可以多次调用get()，导致相同的结果，或导致抛出同样的异常
+
+```c++
+#include <future>
+#include <thread>
+#include <iostream>
+#include <exception>
+#include <stdexcept>
+using namespace std;
+
+int queryNumber ()
+{
+    // read number
+    cout << "read number: ";
+    int num;
+    cin >> num; 
+
+    // throw exception if none
+    if (!cin) {
+        throw runtime_error("no number read");
+    }
+
+    return num;
+}
+
+void doSomething (char c, shared_future<int> f)
+{
+    try {
+        // wait for number of characters to print
+        int num = f.get();  // get result of queryNumber()
+
+        for (int i=0; i<num; ++i) {
+            this_thread::sleep_for(chrono::milliseconds(100));
+            cout.put(c).flush();
+        }
+    }
+    catch (const exception& e) {
+        cerr << "EXCEPTION in thread " << this_thread::get_id()
+                  << ": " << e.what() << endl;
+    }
+}
+
+int main()
+{
+    try {
+        // start one thread to query a number
+        shared_future<int> f = async(queryNumber);
+
+        // start three threads each processing this number in a loop
+        auto f1 = async(launch::async,doSomething,'.',f);
+        auto f2 = async(launch::async,doSomething,'+',f);
+        auto f3 = async(launch::async,doSomething,'*',f);
+
+        // wait for all loops to be finished
+        f1.get();
+        f2.get();
+        f3.get();
+    }
+    catch (const exception& e) {
+        cout << "\nEXCEPTION: " << e.what() << endl;
+    }
+    cout << "\ndone" << endl;
+}
+
+```
+
+### 12.1.3 future的get方法
+
+class future<> 提供的get方法如下：
+
+1. `T future<T>::get();`
+2. `T& future<T&>::get();`
+3. `void future<void>::get()`
+
+class shared_future<>提供的get()方法如下：
+
+1. `const T& shared_future<T>::get();`
+2. `T& future<T&>::get();`
+3. `void future<void>::get()`
+
+## 12.2 Thread和Promise
+
+除了高级接口async和future，c++ 标准库还提供了一个启动及处理线程的底层接口。
+
+### 12.2.1 Thread
+
+```c++
+void doSomething();
+std::thread t(doSomething);
+// t.detach和t.join不能同时对同一个线程对象使用
+// 线程运行于后台，不受任何控制
+t.detach();
+// 是否等待线程运行结束
+t.join();
+```
+
+相较于高级接口（std::async）, thread需要注意：
+
+1. std::thread没有发射策略，直接后台运行，如果无法启动新的线程，就会抛出std::system_error
+2. 没有接口可处理线程结果，唯一可获得是一个独一无二的线程id
+3. 任务线程如果发生错误，而未被任务线程内部捕捉，将导致整个程序退出并调用std::treminate()
+4. 必须声明一个线程对象是join等待线程结束？还是detach运行于后台而不受任何控制
+5. 如果线程运行于后台，而一旦主线程（main)结束了，所有线程将被鲁莽而硬性的终止
+
+```c++
+#include <thread>
+#include <chrono>
+#include <random>
+#include <iostream>
+#include <exception>
+using namespace std;
+
+void doSomething (int num, char c)
+{
+    try {
+        // random-number generator (use c as seed to get different sequences)
+        default_random_engine dre(42*c);
+        uniform_int_distribution<int> id(10,1000);
+        for (int i=0; i<num; ++i) {
+            this_thread::sleep_for(chrono::milliseconds(id(dre)));
+            cout.put(c).flush();
+            //...
+        }
+    }
+    // make sure no exception leaves the thread and terminates the program
+    catch (const exception& e) {
+        cerr << "THREAD-EXCEPTION (thread "
+             << this_thread::get_id() << "): " << e.what() << endl;
+    }
+    catch (...) {
+        cerr << "THREAD-EXCEPTION (thread "
+             << this_thread::get_id() << ")" << endl;
+    }
+}
+
+int main()
+{
+    try {
+      thread t1(doSomething,5,'.');  // print five dots in separate thread
+      cout << "- started fg thread " << t1.get_id() << endl;
+
+      // print other characters in other background threads
+      for (int i=0; i<5; ++i) {
+          thread t(doSomething,10,'a'+i); // print 10 chars in separate thread
+          cout << "- detach started bg thread " << t.get_id() << endl;
+          t.detach();  // detach thread into the background
+      }
+
+      cin.get();  // wait for any input (return)
+
+      cout << "- join fg thread " << t1.get_id() << endl;
+      t1.join();  // wait for t1 to finish
+    }
+    catch (const exception& e) {
+      cerr << "EXCEPTION: " << e.what() << endl;
+    }
+}
+```
+
+可能出错的地方：
+
+1. 创建线程这个动作可能会抛出一个夹带差错码resource_unavailable_try_again的异常std::system_error
+2. 任务函数线程的内部任何报错未被捕捉将导致整个程序退出。
+
+Detached thread应该只访问local copy。
+
+线程id的获取：
+
+1. 通过thread object的get_id函数
+2. 在任务函数里面可以通过**namespace this_thread::get_id()**
+
+已结束的线程id可能会被系统拿去重复使用。
+
+### 12.2.2 Promise
+
+promise object是future object的配对兄弟，二者都能暂时持有一个shared state（用来表现结果值或一个异常）。
+
+但future object允许你取回数据（借由get()），而promise object却是让你提供数据（借由任务函数中的set_xxx函数群）。
+
+```c++
+#include <thread>
+#include <future>
+#include <iostream>
+#include <string>
+#include <exception>
+#include <stdexcept>
+#include <functional>
+#include <utility>
+
+void doSomething (std::promise<std::string>& p)
+{
+    try {
+        // read character and throw exception if 'x'
+        std::cout << "read char ('x' for exception): ";
+        char c = std::cin.get();
+        if (c == 'x') {
+            throw std::runtime_error(std::string("char ")+c+" read");
+        }
+        //...
+        std::string s = std::string("char ") + c + " processed";
+        p.set_value_at_thread_exit(std::move(s));    // store result
+    }
+    catch (...) {
+        p.set_exception_at_thread_exit(std::current_exception());  // store exception
+    }
+}
+
+int main()
+{
+    try {
+        // create a promise to store the outcome
+        std::promise<std::string> p;
+        // create a future to process the outcome
+        std::future<std::string> f(p.get_future());
+        // start a thread using the promise to store the outcome
+        std::thread t(doSomething,std::ref(p));
+        t.detach();
+        //...
+
+        // process the outcome
+        std::cout << "result: " << f.get() << std::endl;
+    }
+    catch (const std::exception& e) {
+        std::cerr << "EXCEPTION: " << e.what() << std::endl;
+    }
+    catch (...) {
+        std::cerr << "EXCEPTION " << std::endl;
+    }
+}
+```
 
 
 

@@ -1113,7 +1113,9 @@ cv2.destroyAllWindows()
 
 
 
-[参考2](https://blog.csdn.net/xhamigua/article/details/108855835)
+[参考2](https://blog.csdn.net/xhamigua/article/details/108855835)，
+
+[参考3](https://www.cnblogs.com/wal1317-59/p/15637369.html#3767-1585821384298)----[引用原文](https://note.youdao.com/ynoteshare/index.html?id=700052b0a49301059a34f20a00a830ca&type=note&_time=1638503513531)
 
 因为CPU是通用计算单元，没有集成视频编解码的ASIC，因此用CPU对视频进行编解码需要由软件主导进行，效率不高。
 
@@ -1458,4 +1460,17 @@ foreach(id ${ids})
 
    
 
-2. 
+2. [命令行解析器cv::CommandLineParser](https://blog.csdn.net/weixin_43229348/article/details/121656119)
+
+   ```c++
+   cv::CommandLineParser::CommandLineParser(int argc,
+   										const char *const 	argv[],
+   										const String & 	keys 
+   )	
+   
+   ```
+
+   
+
+3. [ffmpeg+nvidia解码SDK+GPU实现视频流硬解码成Mat](https://blog.csdn.net/Alvin_zy/article/details/103368350)
+
