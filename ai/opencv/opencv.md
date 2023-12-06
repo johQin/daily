@@ -1474,3 +1474,5 @@ foreach(id ${ids})
 
 3. [ffmpeg+nvidia解码SDK+GPU实现视频流硬解码成Mat](https://blog.csdn.net/Alvin_zy/article/details/103368350)
 
+4. [cv::Mat 初始化 与 访问](https://blog.csdn.net/weixin_40011280/article/details/125917110)
+

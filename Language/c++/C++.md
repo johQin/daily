@@ -884,7 +884,7 @@ delete p+1;
 
 ### 重复delete
 
-重复delete一个指针（重复释放一段内存），会报错：`free(): double free detected in tcache 2`
+**重复delete一个指针（重复释放一段内存），会报错**：`free(): double free detected in tcache 2`
 
 [**delete空指针是合法的，没有副作用。**](https://blog.csdn.net/weixin_41866717/article/details/110082750)
 
@@ -6959,9 +6959,9 @@ std::future<int> future1(std::async(func1));
 // 强制启动future代理的线程，并等待后台操作终止
 future1.wait();
 
-// 等待一个时间间隔
+// 等待一个时间间隔，但不会强制启动线程
 std::future_status status = future1.wait_for(std::chrono::seconds(10));
-// 等待一个绝对时间点
+// 等待一个绝对时间点，但不会强制启动线程
 std::future_status status = future1.wait_until(std::system_clock::now() + std::chrono::minutes(1));
 // status有三个状态，
 status == std::future_status::timeout		//在指定时间没有结束，就会超时timeout
@@ -7080,13 +7080,13 @@ int main()
 
 ### 12.1.3 future的get方法
 
-class future<> 提供的get方法如下：
+class future<> 提供的get方法如下，get方法只能被调用一次：
 
 1. `T future<T>::get();`
 2. `T& future<T&>::get();`
 3. `void future<void>::get()`
 
-class shared_future<>提供的get()方法如下：
+class shared_future<>提供的get()方法如下，get方法可以被调用多次：
 
 1. `const T& shared_future<T>::get();`
 2. `T& future<T&>::get();`
@@ -7298,7 +7298,413 @@ future async(F func, args...);
 
 用来表现某一任务的成果：可能是返回值，也可能是一个异常。
 
-get
+这份成果被管理于一个shared state内，shared state在调用如下函数时被构造：
+
+1. `async`
+2. `promise::get_future`
+3. `packaged_task::get_future`
+
+future只能调用一次get方法，因为get方法会令future处于无效状态。
+
+class future<> 提供的get方法如下：
+
+1. `T future<T>::get();`
+2. `T& future<T&>::get();`
+3. `void future<void>::get()`
+
+future没有拷贝构造函数和重载的拷贝赋值函数，确保不会有两个obj共享某一后台操作之状态。
+
+![image-20231206095139887](./legend/image-20231206095139887.png)
+
+### 12.3.3 shared_future
+
+1. 允许多次调用get函数
+2. 支持拷贝构造和拷贝赋值
+3. 
+
+class shared_future<>提供的get()方法如下：
+
+1. `const T& shared_future<T>::get();`
+2. `T& future<T&>::get();`
+3. `void future<void>::get()`
+
+## 12.4 Mutex和lock
+
+Mutex全名`mutual exclusion`（互斥体），用来协助采取独占排他方式控制"对资源的并发访问"。相应的线程必须lock mutex，这样防止其它线程也锁定Mutex，直到该线程unlock mutex
+
+```c++
+#include<mutex>
+#include<iostream>
+int val = 0;
+std::mutex valMutex;
+int main(){
+    valMutex.lock();
+    ++val;
+    valMutex.unlock();
+    return 1;
+}
+```
+
+### 12.4.1 使用
+
+#### 自动释放lock_guard
+
+为了确保异常发生时，已锁住的mutex会被自动释放。
+
+亦或是，在某个函数的生命周期结束时，可以自动释放已锁住的mutex，或减少因为忘记unlock而造成的bug。
+
+lock_guard 对象可以管理一个mutex，在lock_guard对象的析构函数里可以对管理的mutex进行解锁。所以**在lock_guard对象生命结束时（析构时）会自动对mutex进行释放。**
+
+lock应该被限制在可能的最小周期内，所以我们**可以明确的安插大括号"{ }"，来缩短lock周期**
+
+```c++
+#include<mutex>
+#include<iostream>
+int val = 0;
+std::mutex valMutex;
+int main(){
+    // 自动锁住，并在lg生命结束时自动释放mutex
+    std::lock_guard<std::mutex> lg(valMutex);
+    ++val;
+    return 1;
+}
+
+
+int main(){
+    {
+        //将锁的占用和释放放在一个更小的周期里，而不是放在lg的生命里
+        std::lock_guard<std::mutex> lg(valMutex);
+        ++val;
+    }
+    return 1;
+}
+```
+
+第一个多线程和锁的例子
+
+```c++
+#include <future>
+#include <mutex>
+#include <iostream>
+#include <string>
+
+std::mutex printMutex;  // enable synchronized output with print()
+
+void print (const std::string& s)
+{
+    std::lock_guard<std::mutex> l(printMutex);
+    for (char c : s) {
+        std::cout.put(c);
+    }
+    std::cout << std::endl;
+}
+
+int main()
+{
+    auto f1 = std::async (std::launch::async,
+                          print, "Hello from a first thread");
+    auto f2 = std::async (std::launch::async,
+                          print, "Hello from a second thread");
+    print("Hello from the main thread");
+}
+
+//结果
+Hello from the main thread
+Hello from a second thread
+Hello from a first thread
+```
+
+#### 递归锁问题
+
+**递归锁造成死锁问题**
+
+```c++
+class DatabaseAccess{
+private:
+    std::mutex dbMutex;
+public:
+    void createTable(){
+        std::lock_guard<std::mutex> lg(dbMutex);
+        std::cout<<"createTable"<<std::endl;
+        // ...
+    }
+    void insertData(){
+        std::lock_guard<std::mutex> lg(dbMutex);
+        std::cout<<"insertData"<<std::endl;
+        // ...
+    }
+    void createTableAndInsertData(){
+        std::lock_guard<std::mutex> lg(dbMutex);
+        std::cout<<"createTableAndInsertData"<<std::endl;
+        createTable();
+        // ...
+    }
+};
+```
+
+**使用recursive_mutex解决递归锁死锁的问题**
+
+```c++
+class DatabaseAccess{
+private:
+    std::recursive_mutex dbMutex;
+public:
+    void createTable(){
+        std::lock_guard<std::recursive_mutex> lg(dbMutex);
+        std::cout<<"createTable"<<std::endl;
+        // ...
+    }
+    void insertData(){
+        std::lock_guard<std::recursive_mutex> lg(dbMutex);
+        std::cout<<"insertData"<<std::endl;
+        // ...
+    }
+    void createTableAndInsertData(){
+        std::lock_guard<std::recursive_mutex> lg(dbMutex);
+        std::cout<<"createTableAndInsertData"<<std::endl;
+        createTable();
+        // ...
+    }
+};
+int main(){
+    DatabaseAccess da;
+    da.createTableAndInsertData();
+    return 1;
+}
+```
+
+#### try_lock和timed_mutex
+
+mutex提供一个成员函数try_lock，它试图取的一个lock，成功就返回true，失败返回false
+
+为了在获取锁之后，还能使用lock_guard，你可以**传递一个额外实参std::adopt_lock（将原始锁过继给guard），否则将会造成类似于递归锁的死锁问题。**
+
+```c++
+#include <unistd.h>
+int val;
+std::mutex valMutex;
+int main(){
+    // 循环去lock，
+    while(!valMutex.try_lock()){
+        sleep(1);
+        std::cout<<"没有获取到锁"<<std::endl;
+    }
+    std::cout<<"已获取到锁"<<std::endl;
+    std::lock_guard<std::mutex> lg(valMutex, std::adopt_lock);
+    ++val;
+    std::cout<<"val："<< val <<std::endl;
+    return 1;
+}
+```
+
+为了等待特定时间长度，你可以使用（带时间属性的）所谓的timed mutex，有两个特殊的**mutex class std::timed_mutex和std::recursive_timed_mutex**额外允许你调用try_lock_for（等待某一时间段）或try_lock_until（等待到某一特定绝对时间点）
+
+```c++
+#include <mutex>
+#include <iostream>
+#include <chrono>
+int val;
+std::timed_mutex tm;
+int main(){
+    if(tm.try_lock_for(std::chrono::seconds(1))){
+        std::lock_guard<std::timed_mutex> lg(tm,std::adopt_lock);
+        ++val;
+        std::cout<<"在1秒内获取到锁val:"<< val <<std::endl;
+    }else{
+        std::cout<<"在1秒内无法获取锁"<<std::endl;
+    }
+    return 1;
+}
+```
+
+#### 多lock问题
+
+通常一个线程一次只该锁一个mutex，然而有时候必须锁定多个mutex（多个受保护资源）。
+
+**std::lock**会锁住它收到的所有mutex，而且阻塞直到所有mutex都被锁定或直到抛出异常，如果抛出异常，那么已锁定的mutex都会被解锁。**要么都被锁定，要么都被解锁。**
+
+还可以**使用std::try_lock可以尝试取得所有的lock 且 并非在所有lock都可用也不至于造成阻塞**，会在取得所有lock都可用情况下返回-1，否则返回第一个失败的lock的索引（从0开始计），如果有失败，那么已锁定的lock又会被unlock。
+
+```c++
+int val;
+std::mutex m1;
+std::mutex m2;
+// lock
+int main(){
+    std::lock(m1,m2);
+    std::lock_guard<std::mutex> lg1(m1, std::adopt_lock);		//注意这里的adopt_lock（过继操作），它会取自动释放获取到的锁
+    std::lock_guard<std::mutex> lg2(m2, std::adopt_lock);
+    return 1;
+}
+
+// try_lock
+int main(){
+    while(std::try_lock(m1,m2) != -1){
+        sleep(1);
+    }
+    std::lock_guard<std::mutex> lg1(m1, std::adopt_lock);
+    std::lock_guard<std::mutex> lg2(m2, std::adopt_lock);
+    ++val;
+    std::cout<<"已获取到两个锁m1, m2。val："<< val <<std::endl;
+    return 1;
+}
+```
+
+#### unique_lock
+
+**class unique_lock提供的接口和class lock_guard相同，而又明确写出"何时"以及“如何”锁定和解锁mutex**
+
+lock_guard总是拥有一个被锁住的mutex，而unique可能有也可能没有。
+
+它提供了三个构造函数：
+
+```c++
+// 尝试锁住，但不阻塞
+std::unique_lock<std::mutex> lock(mutex, std::try_to_lock);
+// 尝试在一个明确时间周期锁定
+std::unique_lock<std::timed_mutex> lock(mutex, std::chrono::seconds(1));
+// 初始化一个lock，但尚未打算锁定
+std::unique_lock<std::mutex> lock(mutex, std::defer_lock);
+```
+
+unique_lock也提供一个release()来释放mutex，或是将其mutex的拥有权转移给另一个lock
+
+#### mutex无法克隆
+
+`mutex` ，这是无法克隆的。互斥锁代表对某些数据的唯一访问，因此对同一数据使用两个单独的互斥锁是没有意义的。
+
+所以如果要在Vector里添加带有mutex属性的类，需要通过指针的形式引用new 出来的对象。
+
+```c++
+class Item{
+public:
+    std::mutex m;
+    long timestamp;
+    std::string content;
+};
+typedef std::vector<Item> ItemList;
+int main(){
+
+    Item it();
+    ItemList il;
+    
+    
+    // 这里会报，in template: static assertion failed due to requirement 'is_constructible<Item, Item &&>::value': result type must be constructible from value type of input range
+    // 在template中：由于要求“is_constructible＜Item，Item&&＞：value”，静态断言失败：结果类型必须是可从输入范围的值类型构造的
+    il.reserve(5);	
+    
+    // 这里会报In template: no matching constructor for initialization of 'Item'
+    // 在模板中：没有用于初始化“Item”的匹配构造函数
+    il.push_back(it);
+    return 1;
+}
+
+// 所以这里要修改ItemList
+typedef std::vector<Item*> ItemList;
+int main(){
+
+    Item* it = new Item();
+	...
+    return 1;
+}
+```
+
+
+
+## 12.5 Condition Variable
+
+条件变量，它用来同步化线程之间的数据流逻辑依赖关系。
+
+## 12.6 atomic
+
+[atomic也支持自定义类型，但并不支持所有自定义类型，如果自定义类型在以下表达式的值均为true方可生成atomic变量](https://blog.csdn.net/qq_44875284/article/details/123994575#:~:text=atomic%E4%B9%9F%E6%94%AF%E6%8C%81%E8%87%AA%E5%AE%9A%E4%B9%89%E7%B1%BB%E5%9E%8B%EF%BC%8C%E4%BD%86%E6%98%AF%E5%B9%B6%E4%B8%8D%E6%94%AF%E6%8C%81%E6%89%80%E6%9C%89%E7%9A%84%E8%87%AA%E5%AE%9A%E4%B9%89%E7%B1%BB%E5%9E%8B%E3%80%82%E5%A6%82%E6%9E%9C%E8%87%AA%E5%AE%9A%E4%B9%89%E7%B1%BB%E5%9E%8B%E5%9C%A8%E4%BB%A5%E4%B8%8B%E8%A1%A8%E8%BE%BE%E5%BC%8F%E7%9A%84%E5%80%BC%E5%9D%87%E4%B8%BAtrue%E6%96%B9%E5%8F%AF%E7%94%9F%E6%88%90atomic%E5%8F%98%E9%87%8F%EF%BC%9A)
+
+```c++
+    auto ret = std::is_trivially_copyable<MY_TYPE>::value;
+    std::cout<<"是否平凡可复制："<< ret <<std::endl;
+    ret = std::is_copy_constructible<MY_TYPE>::value;
+    std::cout<<"是否有拷贝构造函数："<< ret <<std::endl;
+    ret = std::is_move_constructible<MY_TYPE>::value;
+    std::cout<<"是否有移动构造函数："<< ret <<std::endl;
+    ret = std::is_copy_assignable<MY_TYPE>::value;
+    std::cout<<"是否有拷贝赋值重载函数："<< ret <<std::endl;
+    ret = std::is_move_assignable<MY_TYPE>::value;
+    std::cout<<"是否有移动赋值重载函数："<< ret <<std::endl;
+```
+
+[关于平凡](https://blog.csdn.net/a1367666195/article/details/130621787)
+
+
+
+[原子操作指针用法](https://mp.weixin.qq.com/s?__biz=MzkwNTE0MTg2OA==&mid=2247483938&idx=1&sn=a1921ffde387b4a3acabe5e263f39472&chksm=c0fd0921f78a8037691bbaa52fbdb103dd68ffe271bc5aa07ed42a018579de8a8ecf796b8031&mpshare=1&scene=1&srcid=0107dbPo4yuwi73Wcf7f5wlh&sharer_sharetime=1610013032435&sharer_shareid=768ff54a895731815cc5d00026951d64&version=3.1.0.3004&platform=win#rd)
+
+```c++
+class Test {
+public:
+    Test( double a, float b, double c ) {
+        this->a    = a;
+        this->b[0] = b;
+        this->c.push_back( c );
+    };
+    double                a;
+    float                 b[100];
+    std::vector< double > c;
+};
+
+std::atomic< Test* > msg;
+
+void threadFunc() {
+    for ( int i = 0; i < 2000; i++ ) {
+        usleep( 1 );
+        Test* n = msg.load( std::memory_order_relaxed );
+        n->a++;
+        n->c.push_back( i );
+        msg.store( n, std::memory_order_relaxed );
+    }
+}
+
+int main( int argc, char* argv[] ) {
+    msg = new Test( 0, 0, 0 );
+    std::thread th1( threadFunc );
+    std::thread th2( threadFunc );
+    th1.join();
+    th2.join();
+    Test* n = msg.load( std::memory_order_relaxed );
+    std::cout << "msg->a: " << n->a << "\n"
+              << "msg->b[0]: " << n->b[0] << "\n"
+              << "msg->c.size(): " << n->c.size() << "\n";
+}
+
+// 结果
+msg->a: 3995;
+msg->b[0]: 0;
+msg->c.size(): 3995;
+// std::atomic的原子操作，在这个工程里面，只保证了msg的指针在多线程的读写过程中具有原子性（即读写不会出错），但并没有保证指针所指向的数据具有原子性。 
+// 另外，这个工程，还有可能出现内存错误：double free or corruption (!prev) 而不能运行。
+```
+
+```c++
+class Test {
+public:
+    ...
+    ...
+    std::mutex mutex;
+};
+
+void threadFunc() {
+    for ( int i = 0; i < 2000; i++ ) {
+        usleep( 1 );
+        Test* n = msg.load( std::memory_order_relaxed );
+        n->mutex.lock();
+        n->a++;
+        n->c.push_back( i );
+        n->mutex.unlock();
+        msg.store( n, std::memory_order_relaxed );
+    }
+}
+```
+
+
 
 # 其他
 
@@ -7412,7 +7818,36 @@ struct asd6{
 
 ## 4 [依赖注入](https://blog.csdn.net/weixin_43862847/article/details/122341510)
 
+## 5 [volatile](https://blog.csdn.net/tianya_lu/article/details/122749030)
 
+英文意思：易变的，不稳定的，和const相对。
+
+volatile提醒编译器它后面所定义的变量随时都有可能改变，因此编译后的程序每次需要存储或读取这个变量的时候，都会直接从变量地址中读取数据。
+
+如果没有volatile关键字，则编译器可能优化读取和存储，可能暂时使用寄存器中的值，如果这个变量由别的程序更新了的话（寄存器里的值已经过时），将出现不一致的现象。
+
+```c++
+short flag;
+void test(){
+    do1();
+    while(flag==0);
+    do2();
+}
+```
+
+这段程序等待内存变量flag的值变为1(怀疑此处是0,有点疑问,)之后才运行do2()。变量flag的值由别的程序更改，这个程序可能是某个硬件中断服务程序。例如：如果某个按钮按下的话，就会对DSP产生中断，在按键中断程序中修改flag为1，这样上面的程序就能够得以继续运行。但是，编译器并不知道flag的值会被别的程序修改，因此在它进行优化的时候，可能会把flag的值先读入某个寄存器，然后等待那个寄存器变为1。如果不幸进行了这样的优化，那么while循环就变成了死循环，因为寄存器的内容不可能被中断服务程序修改。为了让程序每次都读取真正flag变量的值，flag定义为如下形式：
+
+```c++
+volatile short flag;
+```
+
+一般说来，volatile用在如下的几个地方：
+
+1. 中断服务程序中修改的供其它程序检测的变量需要加volatile；
+2. 多任务环境下各任务间共享的标志应该加volatile；
+3. 存储器映射的硬件寄存器通常也要加volatile说明，因为每次对它的读写都可能由不同意义；
+
+另外，以上这几种情况经常还要同时考虑数据的完整性（相互关联的几个标志读了一半被打断了重写），在1中可以通过关中断来实现，2中可以禁止任务调度，3中则只能依靠硬件的良好设计了。
 
 # visual studio
 

@@ -900,7 +900,7 @@ int fac(int n) {
    - 实际上，在编译时遇到extern时，先在本文件找，如果找到，就在本文件扩展作用域，如果找不到，就在连接时其他文件找，依次向外找，找到就扩展作用域到本文件，如果再找不到就报错。
    - [参考](https://blog.csdn.net/mmyaoduli/article/details/51122326)
 
-   ```
+   ```c
    场景：多个文件想共享一个全局变量
    
    头文件：state.h 源文件：state.cpp
