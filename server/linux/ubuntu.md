@@ -543,7 +543,16 @@
 
     ![img](legend/v2-0ed918b6d0907ae0f4fb258e3ba9a668_720w.webp)
 
-13. 
+13. [查看进程中的线程](https://blog.csdn.net/AnChenliang_1002/article/details/131359525)
+
+    ```bash
+    # 实时显示指定线程内各个线程情况
+    top -H -p PID
+    ```
+
+    
+
+14. 
 
 
 
