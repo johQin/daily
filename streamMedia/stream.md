@@ -1050,6 +1050,8 @@ FFMPEG有8个常用库：
 
 ## 5.1 [ffmpeg内存模型](https://blog.csdn.net/qq_38731735/article/details/126109751)
 
+
+
 只新增数据包对象，用于管理数据对象，对于数据本身采用同一个内存空间进行管理，当所有的内存引用为0时释放这片内存空间。
 
 FFmpeg正是采用这种内存管理的方式进行数据包和数据帧的管理。
@@ -1059,6 +1061,14 @@ AVPacket和AVFrame都有一个指针AVBufferRef，指向存放具体数据的AVB
 采用引用计数的方式进行内存释放。
 
 ### 5.1.1 AVPacket实现
+
+AVPacket 作为解码器的输入 或 编码器的输出。
+
+- 用于存储压缩的数据，分别包括有音频压缩数据，视频压缩数据和字幕压缩数据。
+- 当作为解码器的输入时，它由demuxer生成，然后传递给解码器。当作为编码器的输出时，由编码器生成，然后传递给muxer
+- 在视频中，AVPacket 只能包含不大于1帧的内容，而视频的1帧可能要包含在多个AVPacket中，AVPacket < AVFrame
+- 对于视频压缩数据，一个AVPacket通常包括不大于1个视频帧。对于音频压缩数据，可能包括几个压缩的音频帧。
+- 内部的buffer数据由av_malloc申请，整个AVPacket由av_packet_alloc申请，由av_packet_free释放。
 
 <table><thead><tr><th>核心API</th><th>功能</th></tr></thead><tbody><tr><td>av_packet_alloc</td><td>申请AVPacket</td></tr><tr><td>av_packet_free</td><td>释放AVPacket</td></tr><tr><td>av_init_packet</td><td>初始化AVPacket，将结构体中的*buf置为null</td></tr><tr><td>av_new_packet</td><td>给AVPacket申请AVBufferRef和AVBuffer数据空间，引用计数设置为1</td></tr><tr><td>av_buffer_ref</td><td>新申请AVBufferRef，AVBuffer引用计数加一</td></tr><tr><td>av_buffer_unref</td><td>释放AVBufferRef，AVBuffer引用计数减一</td></tr></tbody></table>
 
@@ -1112,11 +1122,24 @@ struct AVBuffer {
 
 ### 5.1.2  AVFrame实现
 
+AVFrame表示解码过后的一个数据帧（可能是音频帧，也可能是视频帧）
+
+- AVFrame 通过使用 av_frame_alloc()来创建. 这个函数只是创建了AVFrame结构本身，在结构中定义的指向其他内存块的缓冲区。
+- 内存块缓冲区指针使用av_malloc/av_frame_get_buffer来分配，整个AVFrame使用 av_frame_alloc来申请，由av_frame_free()来释放。
+
 <table><thead><tr><th>核心API</th><th>功能</th></tr></thead><tbody><tr><td>av_frame_alloc</td><td>申请AVFrame</td></tr><tr><td>av_frame_free</td><td>释放AVFrame</td></tr><tr><td>av_frame_get_buffer</td><td>申请AVBufferRef和AVFrame数据空间</td></tr><tr><td>av_frame_ref</td><td>新申请AVBufferRef，AVFrame引用计数加一</td></tr><tr><td>av_frame_unref</td><td>释放AVBufferRef，AVFrame引用计数减一</td></tr><tr><td>av_frame_move_ref</td><td>AVFrame转移引用计数</td></tr></tbody></table>
 
 AVFrame实现原理与AVPacket 一致，都是利用AVBufferRef进行引用计数的管理，同时数据存储在AVBuffer中，只有保存一份，av_frame_ref负责将引用计数加一，av_frame_unref引用计数减一，当引用计数减到0后，进行数据释放。
 
 AVFrame帧的操作与packet分配原理一致，使用方式也类似。主要包括几个步骤一个是av_frame_alloc分配一个AVFrame帧，然后稍微有点不同的是需要为帧进行初始化，然后来确认是视频帧还是音频帧。第二步是av_frame_get_buffer获取帧的数据区也就是AVBufferRef和AVBuffer这里有一个比较特殊的地方是这里预制了一个长度为8的AVBufferRef指针数组，主要是用于不同的数据存储格式不一样需要多个内存空间。最后是确保AVFrame是可写的，在进行数据操作。释放利用av_frame_free。
+
+### 5.1.3 AVPacket与AVFrame的关系
+
+[参考1](https://www.cnblogs.com/renhui/p/12217958.html)
+
+av_read_frame得到压缩的数据包AVPacket，一般有三种压缩的数据包(视频、音频和字幕)，都用AVPacket表示。
+
+然后调用avcodec_send_packet 和 avcodec_receive_frame对AVPacket进行解码得到AVFrame。
 
 ## 5.2 ffmpeg解复用 + 解码
 
@@ -3078,3 +3101,13 @@ rtsp、rtp、rtmp、rtcp、http等流媒体协议
 此时老板A就派出了质量经理和小工，让经理出具质量报告，小工负责搬运媒体流。
 搬运过程中，老板B手下的质量经理也会提出各种意见，指出小工偷懒等问题。
 最终，A和B说这次合作很愉快，下次再见。
+
+# log
+
+## [vlc 做流媒体服务器](https://blog.csdn.net/huangleiisme/article/details/134291290)
+
+将本地的视频文件，以流的形式，推送到VLC自建的固定端口的流媒体服务器上，并且以可以指定地址。
+
+然后，我们就可以通过ffplay拉流播放。
+
+![](./legend/VLC做流媒体服务器.png)
