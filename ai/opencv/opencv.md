@@ -1576,5 +1576,25 @@ foreach(id ${ids})
 
    
 
-10. [grab与cap.read帧的区别]()
+10. [grab与cap.read帧的区别](https://blog.csdn.net/submarineas/article/details/110083906#:~:text=%E8%B7%B3%E5%B8%A7%E5%A4%84%E7%90%86%E3%80%82-,%E6%8A%93%E5%8F%96%E4%B8%8E%E8%B7%B3%E5%B8%A7,-%E9%A6%96%E5%85%88%EF%BC%8C%E6%9C%80%E7%AE%80%E5%8D%95)
+
+    - 抓取（grab）：方法/函数从视频文件或摄像机抓取下一帧，并在成功的情况下返回true（非零）。
+      - 视频流==>抓取==>检索==>图片
+      - 那么可以说grab的意思是当前帧还没有进入缓冲区，即还没有交给进程，只是获悉当前状态正常并不会继续下一帧。而retrieve才是建立缓冲区将图片拉给进程。
+    - 读取（read）：解码并返回下一个视频帧。
+      - 视频流==>读取=抓取+检索+缓冲区==>图片
+
+    ```python
+    # 跳帧优化
+    fp += 1
+    success = cap.grab()
+    if (fp % 2 == 0):
+        continue
+    _,image = cap.retrive()
+    
+    ```
+
+    
+
+11. 
 
