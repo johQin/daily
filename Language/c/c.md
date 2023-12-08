@@ -469,6 +469,61 @@ switch(expr){
 4. case后面如果有多个语句可以不用花括号，因为通过case找到语句执行的入口后，后面会顺序执行。所以如果不想入口后面的case执行，就必须添加break
 5. 多个case可以共用一个语句
 
+### [swith结构里面不允许定义变量](https://blog.csdn.net/zhoumuyu_yu/article/details/115733266)
+
+在switch-case中定义变量，编译时出现异常：crosses initialization of......，异常代码如下：
+
+```c
+switch(Type)
+{
+case 1:
+    int a;
+    break;
+case 2:
+    int b;
+    break;
+default: break;
+}
+```
+
+出现异常的原因是c/c++中变量的[生命周期](https://so.csdn.net/so/search?q=生命周期&spm=1001.2101.3001.7020)的问题，在case 1中定义了变量a，在case2也能使用，但如果在程序运行中直接跳入case2分支就会出现没有初始化的异常。程序编译时为了防止出现上述情况，就会报编译失败，不是证明程序有异常，只是编译器担心你程序有异常。
+
+```c++
+// 法一：
+int a;
+int b;
+switch(Type)
+{
+case 1:
+    a = 0;
+    break;
+case 2:
+    b = 0;
+    break;
+default: break;
+}
+
+// 法二
+switch(Type)
+{
+case 1:
+{
+    int a;
+}// a的生命周期到此结束   
+    break;
+case 2:
+{
+    int b;
+}
+    break;
+default: break;
+}
+```
+
+
+
+
+
 ## 2.3 关系与逻辑
 
 运算符之间的优先级：

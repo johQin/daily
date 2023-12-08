@@ -1733,11 +1733,11 @@ sizeof(ClassName)——计算的是类对象所占的空间大小。
 
 **成员函数通过this指针即可知道当前正在操作哪个对象的数据**。**this指针是一种隐含指针，它隐含于每个类的非静态成员函数中**，this指针无需定义，直接使用
 
-![img](file:///C:/Users/10365/AppData/Local/Temp/msohtmlclip1/01/clip_image001.gif)this指针是类的指针，指向对象的首地址。
+this指针是类的指针，指向对象的首地址。
 
-![img](file:///C:/Users/10365/AppData/Local/Temp/msohtmlclip1/01/clip_image002.gif)this指针只能在成员函数中使用，在全局函数、静态成员函数中都不能用this。
+this指针只能在成员函数中使用，在全局函数、静态成员函数中都不能用this。
 
-![img](file:///C:/Users/10365/AppData/Local/Temp/msohtmlclip1/01/clip_image003.gif)this指针只有在成员函数中才有定义，且存储位置会因编译器不同有不同存储位置。
+this指针只有在成员函数中才有定义，且存储位置会因编译器不同有不同存储位置。
 
 ```c++
 class Data {
@@ -6809,8 +6809,64 @@ void click() {
   using remove_reference_t = typename remove_reference<T>::type;
   ```
 
+## 11.2 [log4cplus](https://zhuanlan.zhihu.com/p/645021633)
 
-## 11.2 [log4cpp](https://log4cpp.sourceforge.net/)
+### 11.2.1 [在项目中使用](https://zhuanlan.zhihu.com/p/645021633#:~:text=6-,log4cplus%E8%BF%90%E7%94%A8%E4%BA%8E%E9%A1%B9%E7%9B%AE,-%E4%BB%A5%E4%B8%8A%E2%80%9Chello%2C%20world)
+
+[参考2](https://log4cpp.sourceforge.net/)
+
+定义一个全局logger对象，将log4cplus初始化配置放到一个源文件中，重新定义一些简化的宏置于头文件，例如：定义两个文件Log.h/Log.cpp
+
+**log.h**
+
+```c++
+#pragma once
+ 
+#include <log4cplus/logger.h>
+#include <log4cplus/loggingmacros.h>
+ 
+using namespace log4cplus;
+using namespace log4cplus::helpers;
+ 
+// global object
+extern Logger logger;
+ 
+// define some macros for simplicity
+#define LOG_TRACE(logEvent)			LOG4CPLUS_TRACE(logger, logEvent)
+#define LOG_DEBUG(logEvent)			LOG4CPLUS_DEBUG(logger, logEvent)
+#define LOG_INFO(logEvent)			LOG4CPLUS_INFO(logger, logEvent)
+#define LOG_WARN(logEvent)			LOG4CPLUS_WARN(logger, logEvent)
+#define LOG_ERROR(logEvent)			LOG4CPLUS_ERROR(logger, logEvent)
+#define LOG_FATAL(logEvent)			LOG4CPLUS_FATAL(logger, logEvent)
+ 
+extern void InitLogger(bool daemonized);
+```
+
+**log.cpp**
+
+```c++
+#include <log4cplus/logger.h>
+#include <log4cplus/consoleappender.h>
+#include <log4cplus/fileappender.h>
+#include <log4cplus/layout.h>
+#include <log4cplus/configurator.h>
+ 
+#include "Log.h"
+ 
+Logger logger = Logger::getInstance(LOG4CPLUS_TEXT("logmain"));
+ 
+void InitLogger(bool daemonized)
+{
+	if (daemonized)
+		PropertyConfigurator::doConfigure(LOG4CPLUS_TEXT("/your/path/log4cplusd.conf"));
+	else
+		PropertyConfigurator::doConfigure(LOG4CPLUS_TEXT("/your/path/log4cplus.conf"));
+}
+```
+
+然后在 main 函数中调用 InitLogger() 初始化 log4cplus，再在需要加log的文件中包含Log.h即可。
+
+### 11.2.2 [让Log4CPLUS每个CPP记一个日志文件](https://blog.csdn.net/Augusdi/article/details/8989918)
 
 ## 11.3 string
 
@@ -6832,7 +6888,7 @@ int main(){
 
 ## 11.4 [rapidjson](https://rapidjson.org/zh-cn/md_doc_tutorial_8zh-cn.html)
 
-
+[生成json字串](https://blog.csdn.net/ccf19881030/article/details/104547929)
 
 # 12 多线程
 
@@ -7104,7 +7160,7 @@ std::thread t(doSomething);
 // t.detach和t.join不能同时对同一个线程对象使用
 // 线程运行于后台，不受任何控制
 t.detach();
-// 是否等待线程运行结束
+// 等待线程运行结束
 t.join();
 ```
 
@@ -8184,6 +8240,7 @@ volatile short flag;
     
     // 2.1 C++11提供了to_string函数，可以方便的将数值转变为string。
     // include<string>
+    std::to_string(num);
     
     // 2.2 通过stringstream类转化
     stringstream sstream;

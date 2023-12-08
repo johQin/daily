@@ -3111,3 +3111,56 @@ rtsp、rtp、rtmp、rtcp、http等流媒体协议
 然后，我们就可以通过ffplay拉流播放。
 
 ![](./legend/VLC做流媒体服务器.png)
+
+## python 推多路流
+
+```python
+# 需先自行安装FFmpeg，并添加环境变量
+# 通过命令行参数--channel 指定推流的路数
+import cv2
+import subprocess
+
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--channel", type=int, default=1)
+args =parser.parse_args()
+streamList = []
+
+rtmp = 'rtmp://127.0.0.1/live/test'
+cap = cv2.VideoCapture(0)
+
+size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+sizeStr = str(size[0]) + 'x' + str(size[1])
+command = ['ffmpeg',
+    '-y', '-an',
+    '-f', 'rawvideo',
+    '-vcodec','rawvideo',
+    '-pix_fmt', 'bgr24',
+    '-s', sizeStr,
+    '-r', '25',
+    '-i', '-',
+    '-c:v', 'libx264',
+    '-pix_fmt', 'yuv420p',
+    '-preset', 'ultrafast',
+    '-f', 'flv', 'place rtmp']
+pipeList = []
+for i in range(args.channel):
+    rtmp = f'rtmp://127.0.0.1/live/test/{i}'
+    command[-1] = rtmp
+    pipeList.append(subprocess.Popen(command, shell=False, stdin=subprocess.PIPE))
+
+while cap.isOpened():
+    success, frame = cap.read()
+    if success:
+        # cv2.imshow('camera', frame)
+        if cv2.waitKey(10) & 0xFF == ord('q'):
+            break
+        for pipe in pipeList:
+            pipe.stdin.write(frame.tobytes())
+cap.release()
+for pipe in pipeList:
+    pipe.terminate()
+
+```
+

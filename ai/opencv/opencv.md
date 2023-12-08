@@ -1057,55 +1057,8 @@ cv2.destroyAllWindows()
 
 # 8 OpenCV C++
 
-1. cmake中引入opencv
+1. 
 
-   - 安装opencv
-
-     ```bash
-     # 系统中安装opencv，供c语言调用
-     sudo apt install libopencv-dev python3-opencv
-     ```
-
-   - CMakeLists.txt
-
-   ```cmake
-   cmake_minimum_required(VERSION 3.25)
-   project(OpencvPkgTest)
-   set(CMAKE_CXX_STANDARD 17)
-   
-   # 找包，然后就能获得OpenCV_DIR、OpenCV_INCLUDE_DIRS 和 OpenCV_LIBS
-   find_package(OpenCV REQUIRED)
-   
-   # 头文件
-   include_directories(${OPENCV_INCLUDE_DIRS})
-   
-   add_executable(OpencvPkgTest main.cpp)
-   
-   # 静态库
-   target_link_libraries(OpencvPkgTest ${OpenCV_LIBS})
-   ```
-
-   
-
-2. [OpenCV Mat与Base64编码图像数据的相互转换](https://blog.csdn.net/qq_27278957/article/details/119971305)
-
-   - [CV_IMWRITE_JPEG_QUALITY没定义](https://blog.csdn.net/m0_51849183/article/details/124928562)
-   - [opencv4中未定义标识符CV_CAP_PROP_FPS；CV_CAP_PROP_FRAME_COUNT；CV_CAP_PROP_POS_FRAMES问题](https://blog.csdn.net/Zhongai0049/article/details/116423037)：
-     - 很多标识符在opecv4中，前面的**CV_**都被去掉了
-
-   ```C++
-   #include<opencv2/opencv.hpp>
-   #include<opencv2/imgcodecs/legacy/constants_c.h>
-   ```
-
-3. 读取rtsp流
-
-   ```c++
-   rtsp = "rtsp://127.0.0.1/live/test";
-   cv::VideoCapture(rtsp1, cv::CAP_FFMPEG);
-   ```
-
-4. 
 
 
 
@@ -1475,4 +1428,153 @@ foreach(id ${ids})
 3. [ffmpeg+nvidia解码SDK+GPU实现视频流硬解码成Mat](https://blog.csdn.net/Alvin_zy/article/details/103368350)
 
 4. [cv::Mat 初始化 与 访问](https://blog.csdn.net/weixin_40011280/article/details/125917110)
+
+5. cmake中引入opencv
+
+   - 安装opencv
+
+     ```bash
+     # 系统中安装opencv，供c语言调用
+     sudo apt install libopencv-dev python3-opencv
+     ```
+
+   - CMakeLists.txt
+
+   ```cmake
+   cmake_minimum_required(VERSION 3.25)
+   project(OpencvPkgTest)
+   set(CMAKE_CXX_STANDARD 17)
+   
+   # 找包，然后就能获得OpenCV_DIR、OpenCV_INCLUDE_DIRS 和 OpenCV_LIBS
+   find_package(OpenCV REQUIRED)
+   
+   # 头文件
+   include_directories(${OPENCV_INCLUDE_DIRS})
+   
+   add_executable(OpencvPkgTest main.cpp)
+   
+   # 静态库
+   target_link_libraries(OpencvPkgTest ${OpenCV_LIBS})
+   ```
+
+   
+
+6. [OpenCV Mat与Base64编码图像数据的相互转换](https://blog.csdn.net/qq_27278957/article/details/119971305)
+
+   - [CV_IMWRITE_JPEG_QUALITY没定义](https://blog.csdn.net/m0_51849183/article/details/124928562)
+   - [opencv4中未定义标识符CV_CAP_PROP_FPS；CV_CAP_PROP_FRAME_COUNT；CV_CAP_PROP_POS_FRAMES问题](https://blog.csdn.net/Zhongai0049/article/details/116423037)：
+     - 很多标识符在opecv4中，前面的**CV_**都被去掉了
+
+   ```C++
+   #include<opencv2/opencv.hpp>
+   #include<opencv2/imgcodecs/legacy/constants_c.h>
+   ```
+
+7. 读取rtsp流
+
+   ```c++
+   rtsp = "rtsp://127.0.0.1/live/test";
+   cv::VideoCapture(rtsp1, cv::CAP_FFMPEG);
+   ```
+
+8. [常用颜色](https://blog.csdn.net/zhang1970109/article/details/122332452)
+
+   ```c++
+   Scalar(255,0,0); 		//蓝色
+   
+   Scalar(0,255,0); 		//绿色
+   
+   Scalar(0,0,255); 		//红色
+   
+   Scalar(255,255,0);  	//青色
+   
+   Scalar(255,255,255); 	//白色
+   
+   Scalar(0,255,255); 		//黄色
+   ```
+
+   
+
+9. 将多个图片显示在一个窗口上
+
+   ```c++
+   // 最多显示12张图片
+   void showMulti(const std::string& _winName, const std::vector<cv::Mat>& _imgs, int delay_ms)
+   {
+       int nImg = (int)_imgs.size();
+   
+       cv::Mat dispImg;
+       int size;
+       int x, y;
+       // w - Maximum number of images in a row
+       // h - Maximum number of images in a column
+       int w, h;
+       // scale - How much we have to resize the image
+       float scale;
+       int max;
+       if (nImg <= 0)
+       {
+           printf("Number of arguments too small....\n");
+           return;
+       }
+       else if (nImg > 12)
+       {
+           printf("Number of arguments too large....\n");
+           return;
+       }
+   
+       switch (nImg)
+       {
+           case 1:
+               w = h = 1;
+               size = 300;
+               break;
+           case 2:
+               w = 2; h = 1;
+               size = 300;
+               break;
+           case 3:
+           case 4:
+               w = 2; h = 2;
+               size = 300;
+               break;
+           case 5:
+           case 6:
+               w = 3; h = 2;
+               size = 200;
+               break;
+           case 7:
+           case 8:
+               w = 4; h = 2;
+               size = 200;
+               break;
+           default:
+               w = 4; h = 3;
+               size = 150;
+               break;
+       }
+       dispImg.create(cv::Size(100 + size*w, 60 + size*h), CV_8UC3);
+       for (int i = 0, m = 20, n = 20; i<nImg; i++, m += (20 + size))//m和n是绘图的超始点
+       {
+           x = _imgs[i].cols;
+           y = _imgs[i].rows;
+           max = (x > y) ? x : y;
+           scale = (float)((float)max / size);
+           if (i%w == 0 && m != 20)
+           {
+               m = 20;
+               n += 20 + size;
+           }
+           cv::Mat imgROI = dispImg(cv::Rect(m, n, (int)(x / scale), (int)(y / scale)));
+           resize(_imgs[i], imgROI, cv::Size((int)(x / scale), (int)(y / scale)));
+       }
+       cv::namedWindow(_winName);
+       imshow(_winName, dispImg);
+       cv::waitKey(delay_ms);
+   }
+   ```
+
+   
+
+10. 
 
