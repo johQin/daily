@@ -7671,6 +7671,84 @@ int main(){
 
 条件变量，它用来同步化线程之间的数据流逻辑依赖关系。
 
+让线程B等待线程A的粗浅办法，就是通过A设置flag位，然后线程B轮询flag位。但这样会消耗CPU时间去重复检测flag，此外sleep周期也很难把握。
+
+C++ 标准库在`<condition_variable>`提供了 condition Variable条件变量，它是一个变量可以唤醒一或多个其它等待中的线程。
+
+原则上：
+
+1. 必须同时包含`<mutex>`和`<condition_variable>`，声明一个mutex和condition variable
+2. 用于主动“激发条件满足”的线程（或多线程之一）必须调用con_var的notify_one()或notify_all()方法
+3. 用于被动“等待条件被满足”的线程必须调用，unique_lock和cond_var的wait()方法。
+
+```c++
+#include <condition_variable>
+#include <mutex>
+#include <future>
+#include <thread>
+#include <iostream>
+#include <queue>
+
+std::queue<int> queue;
+std::mutex queueMutex;
+std::condition_variable queueCondVar;
+
+// 生产者线程
+void provider (int val)
+{
+    // 生产数据，推入队列。每个线程会生产6个
+    for (int i=0; i<6; ++i) {
+        {
+            std::lock_guard<std::mutex> lg(queueMutex);
+            queue.push(val+i);
+        } // release lock
+        
+        // 切记通知行为不能放在lock保护区中
+        queueCondVar.notify_one();
+		// 休眠val ms
+        std::this_thread::sleep_for(std::chrono::milliseconds(val));
+    }
+}
+
+void consumer (int num)
+{
+    // 消费数据，推出队列
+    while (true) {
+        int val;
+        {
+            // 等待者线程只能使用unique_lock，而不可使用lock_guard，因为wait的内部会明确地对mutex进行解锁和锁定
+            std::unique_lock<std::mutex> ul(queueMutex);
+            
+            // 等待发信号
+            // wait()的第一参数为unique_lock。
+            // 第二实参为callable，用来检测条件是否真的满足（防止假醒），wait内部会不断地调用该第二实参，直到它返回true。
+            queueCondVar.wait(ul,[]{ return !queue.empty(); });
+            val = queue.front();
+            queue.pop();
+        } // release lock
+        std::cout << "consumer " << num << ": " << val << std::endl;
+    }
+}
+
+int main()
+{
+    // 生产线程3个
+    auto p1 = std::async(std::launch::async,provider,100);
+    auto p2 = std::async(std::launch::async,provider,300);
+    auto p3 = std::async(std::launch::async,provider,500);
+
+    // 消费线程2个
+    auto c1 = std::async(std::launch::async,consumer,1);
+    auto c2 = std::async(std::launch::async,consumer,2);
+}
+```
+
+**condition var接口**
+
+![image-20231211102845836](./legend/image-20231211102845836.png)
+
+除了std::condition_variable，c++还提供了一个std::condition_variable_any，它不要求使用std::unique_lock对象作为lock，那么此时调用者必须提供所关联的predicate判断式。
+
 ## 12.6 atomic
 
 [atomic也支持自定义类型，但并不支持所有自定义类型，如果自定义类型在以下表达式的值均为true方可生成atomic变量](https://blog.csdn.net/qq_44875284/article/details/123994575#:~:text=atomic%E4%B9%9F%E6%94%AF%E6%8C%81%E8%87%AA%E5%AE%9A%E4%B9%89%E7%B1%BB%E5%9E%8B%EF%BC%8C%E4%BD%86%E6%98%AF%E5%B9%B6%E4%B8%8D%E6%94%AF%E6%8C%81%E6%89%80%E6%9C%89%E7%9A%84%E8%87%AA%E5%AE%9A%E4%B9%89%E7%B1%BB%E5%9E%8B%E3%80%82%E5%A6%82%E6%9E%9C%E8%87%AA%E5%AE%9A%E4%B9%89%E7%B1%BB%E5%9E%8B%E5%9C%A8%E4%BB%A5%E4%B8%8B%E8%A1%A8%E8%BE%BE%E5%BC%8F%E7%9A%84%E5%80%BC%E5%9D%87%E4%B8%BAtrue%E6%96%B9%E5%8F%AF%E7%94%9F%E6%88%90atomic%E5%8F%98%E9%87%8F%EF%BC%9A)
