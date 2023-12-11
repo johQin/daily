@@ -1580,7 +1580,14 @@ foreach(id ${ids})
 
     - 抓取（grab）：方法/函数从视频文件或摄像机抓取下一帧，并在成功的情况下返回true（非零）。
       - 视频流==>抓取==>检索==>图片
+      
       - 那么可以说grab的意思是当前帧还没有进入缓冲区，即还没有交给进程，只是获悉当前状态正常并不会继续下一帧。而retrieve才是建立缓冲区将图片拉给进程。
+      
+      - ```c++
+        CV_WRAP virtual bool retrieve(OutputArray image, int flag = 0);
+        //The method decodes and returns the just grabbed frame. If no frames has been grabbed (camera has been disconnected, or there are no more frames in video file), the method returns false and the function returns an empty image (with %cv::Mat, test it with Mat::empty())
+        ```
+      
     - 读取（read）：解码并返回下一个视频帧。
       - 视频流==>读取=抓取+检索+缓冲区==>图片
 
@@ -1596,5 +1603,119 @@ foreach(id ${ids})
 
     
 
-11. 
+11. 等比例缩放并在边缘插值
+
+    ```c++
+    //存放缩放和填充参数的结构体
+    struct ResizeInfo{
+        double ratio;       // 需要变换的尺度
+        int w;              // 变换前的宽
+        int h;              // 变换前的高
+        int reW;            // 变换后的宽
+        int reH;            // 变换后的高
+        int fillTop = 0;
+        int fillRight = 0;
+        int fillLeft = 0;
+        int fillBottom = 0;
+    };
+    // 计算缩放和填充的参数
+    void computeResizeRatioAndFill(int src_w,int src_h,int dst_w, int dst_h, ResizeInfo& rInfo){
+        if(src_w == dst_w && src_h == dst_h) return;
+        rInfo.w = src_w;
+        rInfo.h = src_h;
+        double imageAspectRatio = static_cast<double>(src_w) / src_h;
+        double reAspectRatio = static_cast<double>(dst_w) / dst_h;
+        int reW,reH;
+        bool isFillWidth = false;
+        if(imageAspectRatio > reAspectRatio){
+            // 根据宽度进行缩放
+            reW = dst_w;
+            rInfo.reW = reW;
+            rInfo.ratio = static_cast<double>(src_w) / dst_w;
+            reH = static_cast<int>(reW / imageAspectRatio);
+            rInfo.reH = reH;
+    
+        }else{
+            // 根据高度进行缩放
+            reH = dst_h;
+            rInfo.reH = reH;
+            rInfo.ratio = static_cast<double>(src_h) / dst_h;
+            reW = static_cast<int>(reH * imageAspectRatio);
+            rInfo.reW = reW;
+            isFillWidth = true;
+        }
+        if(isFillWidth){
+            int fillLeft = std::floor( (dst_w-reW) /2);
+            int fillRight = dst_w - reW - fillLeft;
+            rInfo.fillLeft = fillLeft;
+            rInfo.fillRight = fillRight;
+        }else{
+            int fillTop = std::floor((dst_h-reH) /2);
+            int fillBottom = dst_h - reH - fillTop;
+            rInfo.fillTop = fillTop;
+            rInfo.fillBottom = fillBottom;
+        }
+    }
+    // 根据结构体，缩放和填充图片
+    void resizeWithResizeInfo(const cv::Mat &srcImg, cv::Mat &dstImg, ResizeInfo& rInfo){
+        cv::Mat resizeMat;
+        cv::resize(srcImg, resizeMat, cv::Size(rInfo.reW, rInfo.reH));
+        cv::copyMakeBorder(resizeMat, dstImg, rInfo.fillTop, rInfo.fillBottom, rInfo.fillLeft, rInfo.fillRight, cv::BORDER_CONSTANT, cv::Scalar(0,0,0));
+    }
+    // 等比例缩放并填充
+    int resizeWithEqualAspectRatioAndBoderFill(const cv::Mat &srcImg, cv::Mat &dstImg, int dst_w, int dst_h){
+        if(srcImg.cols==dst_w && srcImg.rows == dst_h){
+            return 0;
+        }
+        cv::Mat resizeMat;
+        double imageAspectRatio = static_cast<double>(srcImg.cols) / srcImg.rows;
+        double reAspectRatio = static_cast<double>(dst_w) / dst_h;
+        int reW,reH;
+        bool isFillWidth = false;
+        if(imageAspectRatio > reAspectRatio){
+            // 根据宽度进行缩放
+            reW = dst_w;
+            reH = static_cast<int>(reW / imageAspectRatio);
+    
+        }else{
+            // 根据高度进行缩放
+            reH = dst_h;
+            reW = static_cast<int>(reH * imageAspectRatio);
+            isFillWidth = true;
+        }
+        cv::resize(srcImg, resizeMat, cv::Size(reW, reH));
+    
+        if(isFillWidth){
+            int fillLeft = std::floor( (dst_w-reW) /2);
+            int fillRight = dst_w - reW - fillLeft;
+            cv::copyMakeBorder(resizeMat, dstImg, 0, 0, fillRight, fillRight, cv::BORDER_CONSTANT, cv::Scalar(0,0,0));
+        }else{
+            int fillTop = std::floor((dst_h-reH) /2);
+            int fillBottom = dst_h - reH - fillTop;
+            cv::copyMakeBorder(resizeMat, dstImg, fillTop, fillBottom, 0, 0, cv::BORDER_CONSTANT, cv::Scalar(0,0,0));
+        }
+        return 1;
+    }
+    int main(){
+        cv::VideoCapture cap ;
+        cv::Mat srcMat;
+        cap.open("/home/buntu/gitRepository/axxt/OpenCVHardTest/img/dog.png");
+        cap >> srcMat;
+        cv::Mat dstMat;
+        int src_h = cap.get(cv::CAP_PROP_FRAME_HEIGHT);
+        int src_w = cap.get(cv::CAP_PROP_FRAME_WIDTH);
+        cap.release();
+        ResizeInfo ri;
+        computeResizeRatioAndFill(src_w, src_h, 640, 480,ri);
+        resizeWithResizeInfo(srcMat,dstMat,ri);
+    //    resizeWithEqualAspectRatioAndBoderFill(srcMat,dstMat,640,480);
+        cv::imshow("0",dstMat);
+        cv::waitKey(0);
+        return 1;
+    }
+    ```
+
+    
+
+12. 
 
