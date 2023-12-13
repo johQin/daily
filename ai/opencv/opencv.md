@@ -1421,6 +1421,18 @@ foreach(id ${ids})
    										const String & 	keys 
    )	
    
+   cv::CommandLineParser parser(argc, argv,
+                            {
+                                    "{model 	|| tensorrt model file，模型文件的位置	   }"
+                                    "{size      || image (h, w), eg: 640   }"
+                                    "{batch_size|| batch size              }"
+                                    "{video     || video's path			   }"
+                                    "{img       || image's path			   }"
+                                    "{cam_id    || camera's device id	   }"
+                                    "{stream    || realtime stream     	   }"
+                                    "{show      || if show the result	   }"
+                                    "{savePath  || save path, can be ignore}"
+                            });
    ```
 
    
@@ -1491,6 +1503,10 @@ foreach(id ${ids})
    Scalar(255,255,255); 	//白色
    
    Scalar(0,255,255); 		//黄色
+   
+   cv::Mat dst(100, 200, CV_8UC3);
+   // 颜色设置
+   dst = cv::Scalar(130, 130, 0);
    ```
 
    
@@ -1554,6 +1570,7 @@ foreach(id ${ids})
                break;
        }
        dispImg.create(cv::Size(100 + size*w, 60 + size*h), CV_8UC3);
+       dispImg = cv::Scalar(0,0,0);		//黑色背景
        for (int i = 0, m = 20, n = 20; i<nImg; i++, m += (20 + size))//m和n是绘图的超始点
        {
            x = _imgs[i].cols;
@@ -1605,10 +1622,12 @@ foreach(id ${ids})
 
 11. 等比例缩放并在边缘插值
 
+    - [参考1](https://blog.csdn.net/weixin_43999691/article/details/129856856)，[参考2](https://avmedia.0voice.com/?id=46717)
+
     ```c++
     //存放缩放和填充参数的结构体
     struct ResizeInfo{
-        double ratio;       // 需要变换的尺度
+        double ratio;       // 需要变换的尺度，ratio = 原始尺度 / 目标尺度
         int w;              // 变换前的宽
         int h;              // 变换前的高
         int reW;            // 变换后的宽
@@ -1717,5 +1736,116 @@ foreach(id ${ids})
 
     
 
-12. 
+12. 分辨率
+
+    - 480p：640×480，480p是垂直方向有480条水平线的扫描线
+    - 720p：1280x720
+    - 1080p：1920x1080，也称为全高清（Full High Definition，简称Full HD）
+    - 4k：3840x2160
+
+13. 在图片多边形区域上，添加mask（填充半透明颜色）
+
+    - [参考1](https://blog.csdn.net/weixin_44966641/article/details/119039522)
+
+    ```c++
+        cv::VideoCapture cap ;
+        cv::Mat srcMat;
+        cap.open("/img/aud0.jpg");
+    
+        cap >> srcMat;
+        std::vector<cv::Point> area1{cv::Point(960,0),cv::Point(1900,0), cv::Point(1900,1000),cv::Point(960,1000)};
+        std::vector<cv::Point> area2{cv::Point(0,0),cv::Point(800,0), cv::Point(800,500),cv::Point(0,800)};
+    
+        cv::Scalar color = cv::Scalar(0, 255, 0);
+        cv::polylines(srcMat, std::vector<std::vector<cv::Point>>{area1, area2}, true, color, 1);
+    
+        cv::Mat mask = cv::Mat::zeros(srcMat.rows,srcMat.cols,srcMat.type());
+        cv::fillPoly(mask,std::vector<std::vector<cv::Point>>{area1, area2},color);
+        cv::addWeighted(srcMat,1,mask,0.1,0,srcMat);
+    
+        cv::rectangle(srcMat, cv::Point(50, 100), cv::Point(200, 400), color, 2, cv::LINE_AA);
+        cv::imshow("0",srcMat);
+        cv::waitKey(0);
+    ```
+
+    
+
+14. 断流重连的相关问题
+
+    ```c++
+    // 1. 指定地址服务器未开，此时cap.open("rtsp:...", cv::CAP_FFMPEG)会报如下错误，cap.isOpened()为false
+    connection to tcp:127.0.0.1::554 timeout
+    // 2. 若指定地址未推流，此时cap.open("rtsp:...", cv::CAP_FFMPEG)会报如下错误，cap.isOpened()为false
+    method describle failed：404，stream not found
+    // 3. 若在使用cap grab抓流之后，也就是说在正常读流后，服务器关掉或指定地址未推流，cap.isOpened()仍为true
+        // 这时需要对cap.grab()进行判断，如果它返回的状态为false，则需要cap.release()，然后再开流cap.open
+    
+        
+    while (true)
+        {
+            try{
+                // 如果capture没打开，就释放，并重新打开
+                if(!cap.isOpened()){
+                    cap.release();
+                    sleep(2);
+                    logger.warn(capObj + " can't open");
+                    cap.open(captureList[capItemInd]->url, cv::CAP_FFMPEG);
+                    continue;
+                }
+                // 抓取图像的下一帧
+                status = cap.grab();
+                // 如果没抓到，则释放，并重新打开
+                if(!status){
+                    cap.release();
+                    sleep(2);
+                    logger.warn(capObj + " can't grab");
+                    cap.open(captureList[capItemInd]->url, cv::CAP_FFMPEG);
+                    continue;
+                }
+                // 如果抓到了，则加1
+                jumpFrameCount += 1;
+                // 跳帧
+                if(jumpFrameCount <= jumpFrameNum - 1)continue;
+                // 到了采样的时候
+                if(!cap.retrieve(frame) || frame.empty()){
+                    usleep(1000);
+                    continue;
+                }
+                // 重置采样
+                if(jumpFrameCount == jumpFrameNum) jumpFrameCount = 0;
+    
+                // 放入最新一帧
+                {
+                    std::lock_guard<std::mutex> lg(captureList[capItemInd]->mt);
+                    captureList[capItemInd]->lastFrame.timestamp = smu::timeu::convertTimeStr2TimeStamp();
+                    captureList[capItemInd]->lastFrame.frame = frame.clone();
+                    captureList[capItemInd]->lastFrame.isInfered = false;
+                }
+    
+                usleep(2000);
+                continue;
+            }
+            catch (cv::Exception &e){
+                logger.error(capObj + " capture error");
+                sleep(1);
+            }
+        }
+    ```
+
+    
+
+15. 创建一个和源图一样大小的图
+
+    ```c++
+    Mat src = imread("/img.png");
+    cv::Mat dst;
+    //创建一个与src相同大小的Mat对象dst
+    dst = cv::Mat(src.size(), src.type());
+    // 颜色设置
+    dst = cv::Scalar(130, 130, 0);
+    ```
+
+    
+
+16. 
 

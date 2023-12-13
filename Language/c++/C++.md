@@ -6890,6 +6890,39 @@ int main(){
 
 [生成json字串](https://blog.csdn.net/ccf19881030/article/details/104547929)
 
+## 11.5 curl
+
+```bash
+sudo apt install libcurl4-openssl-dev
+```
+
+```cmake
+find_package(CURL REQUIRED)
+include_directories(${CURL_INCLUDE_DIRS})
+add_executable(Density DensityAnalyze.cpp)
+target_include_directories(Density PUBLIC ${CURL_LIBRARIES})
+```
+
+
+
+[编译静态库](https://zhuanlan.zhihu.com/p/86307842)
+
+[使用Cmake编译libcurl库](https://blog.csdn.net/weixin_46020777/article/details/134558478)
+
+```bash
+./configure --with-openssl
+make
+# 这里面存放库文件
+cd lib/.libs/
+# cp libcurl.a /path/
+
+# 这里面存放头文件
+cd /include/curl/
+# cp * /path/
+```
+
+
+
 # 12 多线程
 
 ## 12.1 async和future
@@ -7383,6 +7416,8 @@ class shared_future<>提供的get()方法如下：
 1. `const T& shared_future<T>::get();`
 2. `T& future<T&>::get();`
 3. `void future<void>::get()`
+
+
 
 ## 12.4 Mutex和lock
 
@@ -8360,6 +8395,23 @@ volatile short flag;
 19. [C++设计模式之单例模式Singleton 模式与全局变量区别](https://blog.csdn.net/yangxueyangxue/article/details/122945326)
 
     - 我认为一个比较关键的点在于，这个实例必须是这个类的静态成员变量（static），而非这个类对象的实例变量
+
+20. [clion使用动态模板](https://blog.csdn.net/weixin_45636061/article/details/124864422)
+
+    ![image-20211126172303593](legend/a895b28788f17bab26ed12a99a3b0562.png)
+
+21. 取绝对值
+
+    ```c++
+    #define ABS(n) ((n)>=0 ? (n) : -(n))
+    
+    int n = -10;
+    std::cout << ABS(n) << std::endl;
+    ```
+
+    
+
+22. 
 
 
 
