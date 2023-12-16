@@ -3923,7 +3923,38 @@ C++风格的强制转换的好处在于：更能清晰的表达转换的意图�
 
 ## 6.2 static_cast
 
-**静态类型转换用于类层次结构中基类（父类）和派生类（子类）之间指针或引用的转换。**
+**静态类型转换用于：**
+
+- **基本数据类型**转换
+
+  ```c++
+  int n = 97;
+  cout << n << '\t' << (char)n << '\t' << static_cast<char>(n) << endl;
+  
+  int n = 1;
+  cout << n/2 << '\t' << (float)n/2 << '\t' << static_cast<float>(n)/2 << endl;
+  
+  ```
+
+  
+
+- `int`转换成`enum
+
+  ```c++
+  enum Week{
+     SUN,MON,TUE,WED,THU,FRI,SAT
+  };
+  Week day = 0;
+  
+  // 编译上述代码出现如下错误：
+  
+  // g++编译错误：error: invalid conversion from ‘int’ to ‘Week’
+  // clang++编译错误：error: cannot initialize a variable of type 'const Week' with an rvalue of type 'int'
+  // 把代码Week day = 0;改为Week day = static_cast<Week>(0);可以消除上面的错误。
+  
+  ```
+
+- **类层次结构中基类（父类）和派生类（子类）之间指针或引用的转换。**
 
 ```c++
 #include<iostream>
@@ -6890,6 +6921,46 @@ int main(){
 
 [生成json字串](https://blog.csdn.net/ccf19881030/article/details/104547929)
 
+```c++
+#include "./rapidjson/document.h"
+#include "./rapidjson/writer.h"
+#include "./rapidjson/stringbuffer.h"    
+int main()	{
+    rapidjson::Document document;
+    rapidjson::StringBuffer s;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(s);
+    writer.StartObject();
+    writer.Key("analyzeRes");
+    writer.StartObject();
+    writer.Key("frame");
+    writer.String("2132");
+    writer.Key("timestamp");
+    writer.Int(15);
+    writer.Key("targetRes");
+    writer.StartArray();
+    for (size_t i = 0; i < 4; ++i) {
+        writer.Int(i);
+        // writer.StartObject();
+        // writer.Key("paramCode");
+        // writer.String("15");
+        // writer.EndObject();
+    }
+    writer.EndArray();
+    writer.EndObject();
+    writer.Key("rtmpUrl");
+    writer.String("rfdfdfdfdfdfdfd");
+    writer.EndObject();
+    std::cout<<"hello："<< std::string(s.GetString())<<std::endl;
+    // hello：{"analyzeRes":{"frame":"2132","timestamp":15,"targetRes":[0,1,2,3]},"rtmpUrl":"rfdfdfdfdfdfdfd"}
+    // hello：{"analyzeRes":{"frame":"2132","timestamp":15,"targetRes":[
+    //        {"paramCode":"15"},{"paramCode":"15"},{"paramCode":"15"},{"paramCode":"15"}
+    //																					]},"rtmpUrl":"rfdfdfdfdfdfdfd"}
+}
+
+```
+
+
+
 ## 11.5 curl
 
 ```bash
@@ -6901,6 +6972,27 @@ find_package(CURL REQUIRED)
 include_directories(${CURL_INCLUDE_DIRS})
 add_executable(Density DensityAnalyze.cpp)
 target_include_directories(Density PUBLIC ${CURL_LIBRARIES})
+```
+
+```c++
+CURL *curl = NULL;
+curl = curl_easy_init();
+if(!curl) return;
+// 设置请求的地址
+curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+struct curl_slist *header = NULL;
+header = curl_slist_append(header, "Content-Type: application/json");
+// 设置请求方式
+curl_easy_setopt(curl,  CURLOPT_CUSTOMREQUEST, "POST");
+//设置头
+curl_easy_setopt(curl, CURLOPT_HTTPHEADER, header);
+//设置需要传递的数据
+curl_easy_setopt(curl, CURLOPT_POSTFIELDS, wjson.c_str());
+//发起请求
+curl_easy_perform(curl);
+// 清理
+curl_slist_free_all(header);
+curl_easy_cleanup(curl);
 ```
 
 
@@ -8411,7 +8503,7 @@ volatile short flag;
 
     
 
-22. 
+22. [c语言和c++ 相互调用](https://blog.csdn.net/qq_29344757/article/details/73332501)
 
 
 

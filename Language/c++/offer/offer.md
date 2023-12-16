@@ -54,7 +54,7 @@
        3. 系统变量CPLUS_INCLUDE_PATH/C_INCLUDE_PATH指定的头文件路径（vs，如果安装在C盘就在programfile x86下的Windows Kits\10\Source\10.0.22000.0\ucrt，如果在其他盘就在盘下的Windows Kits\10\Source\10.0.22000.0\ucrt）
      - 尖括号就在后两个路径上找
 
-6. 在C++中导入C语言代码的关键字。
+6. [在C++中导入C语言代码的关键字](https://zhuanlan.zhihu.com/p/593593416)。
 
    - 关键字是extern，表达形式是extern "C"
    - 主要作用：为了实现C++代码调用其他C语言代码，加上extern "C"后，会指示编译器这部分代码按C语言进行编译，而不是C++

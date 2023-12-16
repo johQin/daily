@@ -58,7 +58,7 @@ add_executable(<name> ALIAS <target>)
   
   	
   # 2. 导入库 IMPORTED
-  #  直接导入已经生成的库，cmake不会给这类library添加编译规则。
+  #  直接导入已经生成(现有)的库，cmake不会给这类library添加编译规则。
   add_library(
   	<name>
   	<SHARED|STATIC|MODULE|OBJECT|UNKNOWN>
@@ -568,6 +568,193 @@ if(TEST_IT_CMAKE)
 endif()
 ```
 
+## 2.5 [条件结构](https://zhuanlan.zhihu.com/p/653282782)
+
+```cmake
+if(<condition>)
+  <commands>
+elseif(<condition>) # optional block, can be repeated
+  <commands>
+else()              # optional block
+  <commands>
+endif()
+```
+
+在if后面的变量，不需要使用`${Var}`的形式获取Var的值，而是直接使用Var。
+
+`if(P)`的语法看起来非常奇怪: 尝试对一个变量名称**自动求值**。
+
+如果希望处理一个可能是**变量名的字符串**，建议使用双引号`if("${P}")`，这会**抑制if的自动求值**。
+
+### 2.5.1 基本变量
+
+P可以是最基本的常量，字符串或者变量名。
+
+1. P是有意义的常量：`if(<constant>)`
+   - true：
+     - 1, ON, YES, TRUE, Y
+     - 非零的数，甚至浮点数
+   - false：
+     - 空字符串
+     - 0, OFF, NO, FALSE, N, IGNORE, NOTFOUND, *-NOTFOUND
+   - 这里的bool量，不区分大小写，true，True，TRUE都是正。
+   - 其它情形会被视作一个变量或一个字符串进行处理
+2. P是一个变量的名称(而非变量的值)：`if(<variable>)`
+   - true：
+     - 变量已定义，并且变量的值不是上述False常量的情形
+   - false：
+     - 变量已定义，但是变量的值是上述False常量的情形
+     - 变量未定义
+     - 上述规则对宏结构不使用，对环境变量也不使用(环境变量的名称总是得到False)
+3. P是字符串：`if(<string>)`
+   - true：可以被解析为True常量的字符串
+   - false：通常情形下，其它的字符串
+
+### 2.5.2 逻辑运算
+
+P可以是一些简单的逻辑判断
+
+```cmake
+# 取反运算
+if(NOT <condition>)
+
+# 与运算
+if(<cond1> AND <cond2>)
+
+# 或运算
+if(<cond1> OR <cond2>)
+
+if((condition1) AND (condition2 OR (condition3)))
+```
+
+### 2.5.3 存在性判断
+
+- `if(COMMAND command-name)`: 判断这个command-name是否属于命令、可调用的宏或者函数的名称，则返回True
+- `if(TARGET target-name)`: 判断这个target是否已经被`add_executable(), add_library(), add_custom_target()`这类命令创建，即使target不在当前目录下
+- `if(DEFINED <name>|CACHE{<name>}|ENV{<name>})`: 判断这个变量是否已定义
+- `if(<variable|string> IN_LIST <variable>)`: 判断这个变量或字符串是否在列表中，见下文的列表操作
+
+### 2.5.4 大小比较
+
+```cmake
+# 数字比较
+# 小于
+if(<variable|string> LESS <variable|string>)
+# 大于
+if(<variable|string> GREATER <variable|string>)
+# 等于
+if(<variable|string> EQUAL <variable|string>)
+# 小于或等于
+if(<variable|string> LESS_EQUAL <variable|string>)
+# 大于或等于
+if(<variable|string> GREATER_EQUAL <variable|string>)
+
+# 字符串比较
+if(<variable|string> STRLESS <variable|string>)
+if(<variable|string> STRGREATER <variable|string>)
+if(<variable|string> STREQUAL <variable|string>)
+if(<variable|string> STRLESS_EQUAL <variable|string>)
+if(<variable|string> STRGREATER_EQUAL <variable|string>)
+
+# 版本号比较
+if(<variable|string> VERSION_LESS <variable|string>)
+if(<variable|string> VERSION_GREATER <variable|string>)
+if(<variable|string> VERSION_EQUAL <variable|string>)
+if(<variable|string> VERSION_LESS_EQUAL <variable|string>)
+if(<variable|string> VERSION_GREATER_EQUAL <variable|string>)
+```
+
+### 2.5.5 路径与文件判断
+
+细节比较多，用时再查文档
+
+```cmake
+# 完整路径是否存在，这里~开头的还不行
+if(EXISTS path-to-file-or-directory)
+
+# 两个完整路径下的文件比较时间戳
+if(file1 IS_NEWER_THAN file2)
+
+# 完整路径是否是一个目录
+if(IS_DIRECTORY path-to-directory)
+
+# 完整路径是不是绝对路径
+if(IS_ABSOLUTE path)
+# 对于windows，要求路径以盘符开始
+# 对于linux，要求路径以~开始
+# 空路径视作false
+```
+
+## 2.6 [循环结构](https://blog.csdn.net/maizousidemao/article/details/132654835)
+
+### 2.6.1 foreach
+
+```cmake
+foreach(<loop_var> <item1> <item2> <item3>...)
+  <commands>
+endforeach()
+# eg:
+set(item1 a)
+set(item2 b)
+set(item3 c)
+set(item4 d)
+foreach(var ${item1} ${item2} ${item3} ${item4})
+    message("var = ${var}")
+endforeach()
+
+foreach(<loop_var> RANGE <stop>)
+# eg:
+foreach(var RANGE 5)
+    message("var = ${var}")
+endforeach()
+
+foreach(<loop_var> RANGE <start> <stop> [<step>])
+#eg:
+foreach(var RANGE 2 10 2)
+    message("var = ${var}")
+endforeach()
+
+foreach(<loop_var> IN [LISTS [<lists>]] [ITEMS [<items>]]) 		# 用LISTS指定列表后不需要用 ${}对列表进行取值。
+# eg:
+set(myList 1 2 3 4)
+foreach(var IN LISTS myList)
+    message("var = ${var}")
+endforeach()
+
+foreach(<loop_var>... IN ZIP_LISTS <lists>)
+eg:
+set(myList0 a b c d)
+set(myList1 1 2 3 4)
+foreach(var0 var1 IN ZIP_LISTS myList0 myList1)
+    message("var0 = ${var0}, var1 = ${var1}")
+endforeach()
+```
+
+### 2.6.2 while
+
+```cmake
+while(<condition>)
+	<commands>
+endwhile()
+
+list(LENGTH myList listLen)
+while(listLen GREATER 0)
+    message("myList = ${myList}")
+    list(POP_FRONT myList)
+    list(LENGTH myList listLen)
+endwhile()
+----------------
+myList = 1;2;3;4
+myList = 2;3;4
+myList = 3;4
+myList = 4
+
+```
+
+也可以通过 `break()` 跳出循环，通过 `continue()` 结束本次循环并继续下次循环。
+
+
+
 ## cmake内置变量
 
 ```cmake
@@ -910,6 +1097,36 @@ unset(var) # 不带CACHE则缓存文件CMakeCache.txt中仍然存在var的值
 
 HINTS与PATHS区别：**HINTS是在搜索系统路径之前先搜索HINTS指定的路径。PATHS是先搜索系统路径，然后再搜索PATHS指定的路径**。
 
+### 循环查找多个库
+
+```cmake
+include(CMakePrintHelpers)		# 这是一个打印帮助工具
+
+set(ffmpeg_libs_DIR /usr/lib/x86_64-linux-gnu)
+set(ffmpeg_headers_DIR /usr/include/x86_64-linux-gnu)
+
+SET(ffmpeg_LIB_NAME avcodec avformat avutil swresample swscale avfilter)
+cmake_print_variables(ffmpeg_LIB_NAME)
+SET(FFMPEG_LIBS)
+
+FOREACH (flib IN LISTS ffmpeg_LIB_NAME)
+
+    unset(tmp)
+    find_library(tmp ${flib} HINTS ${ffmpeg_libs_DIR} NO_CACHE)
+    
+    if(tmp)
+        LIST(APPEND FFMPEG_LIBS ${tmp})
+    else()
+        message("${flib} not found")
+    endif ()
+    
+ENDFOREACH ()
+
+cmake_print_variables(FFMPEG_LIBS)
+```
+
+
+
 ## 3.5 查找头文件find_path
 
 find_path 一般用于在某个目录下查找一个或者多个头文件，命令的执行结果会保存到 `<VAR>` 中。同时命令的执行结果也会默认缓存到 CMakeCache.txt 中。
@@ -944,8 +1161,6 @@ find_path (
 总之，`find_package`和`find_library`都可以用于在CMake中查找和链接库，但**`find_package`更适用于具有CMake配置文件的库，而`find_library`则适用于没有CMake配置文件的库。**
 
 # 4 cmake命令行参数
-
-
 
 # 工具函数
 

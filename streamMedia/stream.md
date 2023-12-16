@@ -1048,6 +1048,8 @@ FFMPEG有8个常用库：
 7.  SWScale：该模块是将图像进行格式转换的模块，比如，可以将 YUV的数据转换为RGB的数据，缩放尺寸由1280*720变为800*480。
 8. PostProc：该模块可用于进行后期处理，当我们使用AVFilter的时 候需要打开该模块的开关，因为Filter中会使用到该模块的一些基 础函数
 
+[ubuntu下FFmpeg安装和使用以及CMakeLists.txt模板](https://blog.csdn.net/mao_hui_fei/article/details/132192108)
+
 ## 5.1 [ffmpeg内存模型](https://blog.csdn.net/qq_38731735/article/details/126109751)
 
 
@@ -2394,6 +2396,8 @@ int main(int argc, char **argv)
 ## 5.3  ffmpeg 编码 + 封装
 
 ## 5.4 [ffmpeg使用gpu硬解码](https://blog.csdn.net/weicao1990/article/details/128969734)
+
+[参考2](https://blog.csdn.net/m0_60259116/article/details/131253241)
 
 ```bash
 

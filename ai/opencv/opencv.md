@@ -1059,7 +1059,7 @@ cv2.destroyAllWindows()
 
 1. 
 
-
+[ffmpeg和opencv的版本匹配](https://blog.csdn.net/Damon_Sandy/article/details/131995799)
 
 
 ## 8.1 [opencv 硬件加速解码](https://blog.csdn.net/weicao1990/article/details/128969734)
@@ -1437,11 +1437,13 @@ foreach(id ${ids})
 
    
 
-3. [ffmpeg+nvidia解码SDK+GPU实现视频流硬解码成Mat](https://blog.csdn.net/Alvin_zy/article/details/103368350)
+3. [base64 与 图片互转](https://try8.cn/tool/image/base64)
 
-4. [cv::Mat 初始化 与 访问](https://blog.csdn.net/weixin_40011280/article/details/125917110)
+4. [ffmpeg+nvidia解码SDK+GPU实现视频流硬解码成Mat](https://blog.csdn.net/Alvin_zy/article/details/103368350)
 
-5. cmake中引入opencv
+5. [cv::Mat 初始化 与 访问](https://blog.csdn.net/weixin_40011280/article/details/125917110)
+
+6. cmake中引入opencv
 
    - 安装opencv
 
@@ -1471,7 +1473,7 @@ foreach(id ${ids})
 
    
 
-6. [OpenCV Mat与Base64编码图像数据的相互转换](https://blog.csdn.net/qq_27278957/article/details/119971305)
+7. [OpenCV Mat与Base64编码图像数据的相互转换](https://blog.csdn.net/qq_27278957/article/details/119971305)
 
    - [CV_IMWRITE_JPEG_QUALITY没定义](https://blog.csdn.net/m0_51849183/article/details/124928562)
    - [opencv4中未定义标识符CV_CAP_PROP_FPS；CV_CAP_PROP_FRAME_COUNT；CV_CAP_PROP_POS_FRAMES问题](https://blog.csdn.net/Zhongai0049/article/details/116423037)：
@@ -1482,14 +1484,14 @@ foreach(id ${ids})
    #include<opencv2/imgcodecs/legacy/constants_c.h>
    ```
 
-7. 读取rtsp流
+8. 读取rtsp流
 
    ```c++
    rtsp = "rtsp://127.0.0.1/live/test";
    cv::VideoCapture(rtsp1, cv::CAP_FFMPEG);
    ```
 
-8. [常用颜色](https://blog.csdn.net/zhang1970109/article/details/122332452)
+9. [常用颜色](https://blog.csdn.net/zhang1970109/article/details/122332452)
 
    ```c++
    Scalar(255,0,0); 		//蓝色
@@ -1511,7 +1513,7 @@ foreach(id ${ids})
 
    
 
-9. 将多个图片显示在一个窗口上
+10. 将多个图片显示在一个窗口上
 
    ```c++
    // 最多显示12张图片
@@ -1593,7 +1595,7 @@ foreach(id ${ids})
 
    
 
-10. [grab与cap.read帧的区别](https://blog.csdn.net/submarineas/article/details/110083906#:~:text=%E8%B7%B3%E5%B8%A7%E5%A4%84%E7%90%86%E3%80%82-,%E6%8A%93%E5%8F%96%E4%B8%8E%E8%B7%B3%E5%B8%A7,-%E9%A6%96%E5%85%88%EF%BC%8C%E6%9C%80%E7%AE%80%E5%8D%95)
+11. [grab与cap.read帧的区别](https://blog.csdn.net/submarineas/article/details/110083906#:~:text=%E8%B7%B3%E5%B8%A7%E5%A4%84%E7%90%86%E3%80%82-,%E6%8A%93%E5%8F%96%E4%B8%8E%E8%B7%B3%E5%B8%A7,-%E9%A6%96%E5%85%88%EF%BC%8C%E6%9C%80%E7%AE%80%E5%8D%95)
 
     - 抓取（grab）：方法/函数从视频文件或摄像机抓取下一帧，并在成功的情况下返回true（非零）。
       - 视频流==>抓取==>检索==>图片
@@ -1620,7 +1622,7 @@ foreach(id ${ids})
 
     
 
-11. 等比例缩放并在边缘插值
+12. 等比例缩放并在边缘插值
 
     - [参考1](https://blog.csdn.net/weixin_43999691/article/details/129856856)，[参考2](https://avmedia.0voice.com/?id=46717)
 
@@ -1736,14 +1738,14 @@ foreach(id ${ids})
 
     
 
-12. 分辨率
+13. 分辨率
 
     - 480p：640×480，480p是垂直方向有480条水平线的扫描线
     - 720p：1280x720
     - 1080p：1920x1080，也称为全高清（Full High Definition，简称Full HD）
     - 4k：3840x2160
 
-13. 在图片多边形区域上，添加mask（填充半透明颜色）
+14. 在图片多边形区域上，添加mask（填充半透明颜色）
 
     - [参考1](https://blog.csdn.net/weixin_44966641/article/details/119039522)
 
@@ -1770,7 +1772,7 @@ foreach(id ${ids})
 
     
 
-14. 断流重连的相关问题
+15. 断流重连的相关问题
 
     ```c++
     // 1. 指定地址服务器未开，此时cap.open("rtsp:...", cv::CAP_FFMPEG)会报如下错误，cap.isOpened()为false
@@ -1834,7 +1836,7 @@ foreach(id ${ids})
 
     
 
-15. 创建一个和源图一样大小的图
+16. 创建一个和源图一样大小的图
 
     ```c++
     Mat src = imread("/img.png");
@@ -1847,5 +1849,5 @@ foreach(id ${ids})
 
     
 
-16. 
+17. 
 
