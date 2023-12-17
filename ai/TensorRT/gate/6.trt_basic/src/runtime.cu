@@ -20,7 +20,7 @@ TensorRT runtime 推理过程
 
 #include "cuda_runtime.h"
 #include "NvInfer.h"
-
+#include "../utils/utils.h"
 // logger用来管控打印日志级别
 // TRTLogger继承自nvinfer1::ILogger
 class TRTLogger : public nvinfer1::ILogger
@@ -33,32 +33,18 @@ class TRTLogger : public nvinfer1::ILogger
     }
 } gLogger;
 
-// 加载模型
-std::vector<unsigned char> loadEngineModel(const std::string &fileName)
-{
-    std::ifstream file(fileName, std::ios::binary);        // 以二进制方式读取
-    assert(file.is_open() && "load engine model failed!"); // 断言
-
-    file.seekg(0, std::ios::end); // 定位到文件末尾
-    size_t size = file.tellg();   // 获取文件大小
-
-    std::vector<unsigned char> data(size); // 创建一个vector，大小为size
-    file.seekg(0, std::ios::beg);          // 定位到文件开头
-    file.read((char *)data.data(), size);  // 读取文件内容到data中
-    file.close();
-
-    return data;
-}
-
 int main()
 {
+    char cwd[128] = {0};
+    utils::getExeWd(cwd,128);
+
     // ==================== 1. 创建一个runtime对象 ====================
     TRTLogger logger;
     nvinfer1::IRuntime *runtime = nvinfer1::createInferRuntime(logger);
 
     // ==================== 2. 反序列化生成engine ====================
     // 读取文件
-    auto engineModel = loadEngineModel("./model/mlp.engine");
+    auto engineModel = utils::loadEngineModel(std::string(cwd) + "/../model/mlp.engine");
     // 调用runtime的反序列化方法，生成engine，参数分别是：模型数据地址，模型大小，pluginFactory
     nvinfer1::ICudaEngine *engine = runtime->deserializeCudaEngine(engineModel.data(), engineModel.size(), nullptr);
 

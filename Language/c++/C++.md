@@ -6650,7 +6650,9 @@ int main() {
 }
 ```
 
-## 10.6 [关键字nullptr](https://blog.csdn.net/weixin_43340455/article/details/124888946)
+## 10.6 关键字
+
+### 10.6.1 [nullptr](https://blog.csdn.net/weixin_43340455/article/details/124888946)
 
 nullptr是nullptr_t类型的右值常量，专门用于初始化空类型的指针。
 
@@ -6709,6 +6711,40 @@ int main(){
 	pFish->breathe(); // 输出：fish bubble
 }
 ```
+
+### 10.6.2 noexcept
+
+[参考1](https://www.cnblogs.com/sword03/p/10020344.html)， [参考2](https://zhuanlan.zhihu.com/p/632541194)
+
+noexcept两个含义：
+
+- 异常说明符，noexcept(bool)
+  - noexcept说明符接受一个可选参数，该参数必须可转换为bool类型；如果参数为真，则函数不会抛出异常；如果参数为false，则函数可能抛出异常。
+- noexcept操作符， noexcept(exp)
+  - 如果exp调用的所有函数都具有非抛出规范，并且exp本身不包含throw，则noexcept(exp)为真。否则，noexcept(exp)返回false。
+
+该关键字告诉编译器，函数中不会发生异常,这有利于编译器对程序做更多的优化。
+ 如果在运行时，noexecpt函数向外抛出了异常（如果函数内部捕捉了异常并完成处理，这种情况不算抛出异常），程序会直接终止，调用std::terminate()函数，该函数内部会调用std::abort()终止程序。
+
+```c++
+    void swap(Type& x, Type& y) throw()   //C++11之前
+    {
+        x.swap(y);
+    }
+    void swap(Type& x, Type& y) noexcept  //C++11
+    {
+        x.swap(y);
+    }
+```
+
+什么时候该使用noexcept
+
+- 使用noexcept表明函数或操作不会发生异常，会给编译器更大的优化空间。然而，并不是加上noexcept就能提高效率，步子迈大了也容易扯着蛋。 以下情形鼓励使用noexcept：
+  - 移动构造函数（move constructor）
+  - 移动分配函数（move assignment）
+  - 析构函数（destructor）。在新版本的编译器中，析构函数是默认加上关键字noexcept的。
+
+
 
 ## 10.7 [原子操作](https://blog.csdn.net/weixin_41567783/article/details/116919856)
 

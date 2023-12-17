@@ -101,6 +101,238 @@ nvinfer1::IBuilder* builder = nvinfer1::createInferBuilder(logger);
 - 填写`Builder`构建配置参数，告诉构建器应该如何优化模型
 - 调用`Builder`生成`Engine`
 
+```c++
+/*
+TensorRT build engine的过程
+1. 创建builder
+2. 创建网络定义：builder ---> network
+3. 配置参数：builder ---> config
+4. 生成engine：builder ---> engine (network, config)
+5. 序列化保存：engine ---> serialize
+6. 释放资源：delete
+*/
+
+#include <iostream>
+#include <fstream>
+#include <cassert>
+#include <vector>
+#include<unistd.h>
+#include <NvInfer.h>
+#include <string.h>
+#include "../utils/utils.h"
+
+// logger用来管控打印日志级别
+// TRTLogger继承自nvinfer1::ILogger
+class TRTLogger : public nvinfer1::ILogger
+{
+    void log(Severity severity, const char *msg) noexcept override
+    {
+        // 屏蔽INFO级别的日志
+        if (severity != Severity::kINFO)
+            std::cout << msg << std::endl;
+    }
+} gLogger;
+int main()
+{
+    // ======= 1. 创建builder =======
+    TRTLogger logger;
+    nvinfer1::IBuilder *builder = nvinfer1::createInferBuilder(logger);
+
+    // ======= 2. 创建网络定义：builder ---> network =======
+
+    // 显性batch
+    // 1U代表unsigned 1，nvinfer1::NetworkDefinitionCreationFlag::kEXPLICIT_BATCH为0（可以ctrl + click去看一下）
+    // 1 << 0 = 1，二进制移位，左移0位，相当于1（y左移x位，相当于y乘以2的x次方）
+    auto explicitBatch = 1U << static_cast<uint32_t>(nvinfer1::NetworkDefinitionCreationFlag::kEXPLICIT_BATCH);
+    // 调用createNetworkV2创建网络定义，参数是显性batch
+    nvinfer1::INetworkDefinition *network = builder->createNetworkV2(explicitBatch);
+
+    // 定义网络结构
+    // mlp多层感知机：input(1,3,1,1) --> fc1 --> sigmoid --> output (2)
+
+    // 创建一个input tensor ，参数分别是：name, data type, dims
+    const int input_size = 3;
+    nvinfer1::ITensor *input = network->addInput("data", nvinfer1::DataType::kFLOAT, nvinfer1::Dims4{1, input_size, 1, 1});
+
+    // 创建全连接层fc1
+    // 这里模拟，从文件中加载权重和偏执，然后读入模型
+    // weight and bias
+    const float *fc1_weight_data = new float[input_size * 2]{0.1, 0.2, 0.3, 0.4, 0.5, 0.6};
+    const float *fc1_bias_data = new float[2]{0.1, 0.5};
+
+    char cwd[128] = {0};
+    utils::getExeWd(cwd,128);
+    // 将权重保存到文件中，演示从别的来源加载权重
+    utils::saveWeights(std::string(cwd) + "/../model/fc2.wts", fc1_weight_data, 6);
+    utils::saveWeights(std::string(cwd) + "/../model/fc2.bias", fc1_bias_data, 2);
+
+    // 读取权重
+    auto fc1_weight_vec = utils::loadWeights(std::string(cwd) + "/../model/fc2.wts");
+    auto fc1_bias_vec = utils::loadWeights(std::string(cwd) + "/../model/fc2.bias");
+
+    // 转为nvinfer1::Weights类型，参数分别是：data type, data, size
+    nvinfer1::Weights fc1_weight{nvinfer1::DataType::kFLOAT, fc1_weight_vec.data(), static_cast<int64_t>(fc1_weight_vec.size())};
+    nvinfer1::Weights fc1_bias{nvinfer1::DataType::kFLOAT, fc1_bias_vec.data(), static_cast<int64_t>(fc1_bias_vec.size())};
+    // nvinfer1::Weights fc1_weight{nvinfer1::DataType::kFLOAT, fc1_weight_vec.data(), fc1_weight_vec.size()}; // Non-constant-expression cannot be narrowed from type 'std::vector::size_type (aka 'unsigned long') to 'int64_t' (aka 'long') in initializer list
+                                                                                                                // 这个是C++11的新特性，禁止以列表形式初始化时将高精度类型转为低精度类型，换老版本的编译器可解决问题,也可通过static_cast<int64_t>()。
+    //nvinfer1::Weights fc1_bias{nvinfer1::DataType::kFLOAT, fc1_bias_vec.data(), fc1_bias_vec.size()};
+
+
+    const int output_size = 2;
+    // 调用addFullyConnected创建全连接层，参数分别是：input tensor, output size, weight, bias
+    nvinfer1::IFullyConnectedLayer *fc1 = network->addFullyConnected(*input, output_size, fc1_weight, fc1_bias);
+
+    // 添加sigmoid激活层，参数分别是：input tensor, activation type（激活函数类型）
+    nvinfer1::IActivationLayer *sigmoid = network->addActivation(*fc1->getOutput(0), nvinfer1::ActivationType::kSIGMOID);
+
+    // 设置输出名字
+    sigmoid->getOutput(0)->setName("output");
+    // 标记输出，没有标记会被当成顺时针优化掉
+    network->markOutput(*sigmoid->getOutput(0));
+
+    // 设定最大batch size
+    builder->setMaxBatchSize(1);
+
+    // ====== 3. 配置参数：builder ---> config ======
+    // 添加配置参数，告诉TensorRT应该如何优化网络
+    nvinfer1::IBuilderConfig *config = builder->createBuilderConfig();
+    // 设置最大工作空间大小，单位是字节
+    config->setMaxWorkspaceSize(1 << 28); // 256MiB
+
+    // ====== 4. 创建engine：builder ---> network ---> config ======
+    nvinfer1::ICudaEngine *engine = builder->buildEngineWithConfig(*network, *config);
+    if (!engine)
+    {
+        std::cerr << "Failed to create engine!" << std::endl;
+        return -1;
+    }
+    // ====== 5. 序列化engine ======
+    nvinfer1::IHostMemory *serialized_engine = engine->serialize();
+    // 存入文件
+    std::ofstream outfile(std::string (cwd) + "/../model/mlp.engine", std::ios::binary);
+    assert(outfile.is_open() && "Failed to open file for writing");
+    outfile.write((char *)serialized_engine->data(), serialized_engine->size());
+
+    
+
+    // ====== 6. 释放资源 ======
+    // 理论上，这些资源都会在程序结束时自动释放，但是为了演示，这里手动释放部分
+    outfile.close();
+
+    delete serialized_engine;
+    delete engine;
+    delete config;
+    delete network;
+    delete builder;
+
+    std::cout << "engine文件生成成功！" << std::endl;
+
+
+    return 0;
+}
+```
+
+
+
+### 0.4.2 运行时阶段
+
+TensorRT运行时的最高层级接口是`Runtime` 如下：
+
+```cpp
+nvinfer1::IRuntime *runtime = nvinfer1::createInferRuntime(loger);
+```
+
+当使用`Runtime`时，你通常会执行以下步骤：
+
+- 反序列化一个计划以创建一个`Engine`。
+- 从引擎中创建一个`ExecutionContext`。
+
+然后，重复进行：
+
+- 为Inference填充输入缓冲区。
+- 在`ExecutionContext`调用`enqueueV2()`来运行Inference
+
+```c++
+int main()
+{
+    char cwd[128] = {0};
+    utils::getExeWd(cwd,128);
+    
+    // ==================== 1. 创建一个runtime对象 ====================
+    TRTLogger logger;
+    nvinfer1::IRuntime *runtime = nvinfer1::createInferRuntime(logger);
+
+    // ==================== 2. 反序列化生成engine ====================
+    // 读取文件
+    auto engineModel = utils::loadEngineModel(std::string(cwd) + "/../model/mlp.engine");
+    // 调用runtime的反序列化方法，生成engine，参数分别是：模型数据地址，模型大小，pluginFactory
+    nvinfer1::ICudaEngine *engine = runtime->deserializeCudaEngine(engineModel.data(), engineModel.size(), nullptr);
+
+    if (!engine)
+    {
+        std::cout << "deserialize engine failed!" << std::endl;
+        return -1;
+    }
+
+    // ==================== 3. 创建一个执行上下文 ====================
+    nvinfer1::IExecutionContext *context = engine->createExecutionContext();
+
+    // ==================== 4. 填充数据 ====================
+
+    // 设置stream 流
+    cudaStream_t stream = nullptr;
+    cudaStreamCreate(&stream);
+
+    // 数据流转：host --> device ---> inference ---> host
+
+    // 输入数据
+    float *host_input_data = new float[3]{2, 4, 8}; // host 输入数据
+    int input_data_size = 3 * sizeof(float);        // 输入数据大小
+    float *device_input_data = nullptr;             // device 输入数据
+
+    // 输出数据
+    float *host_output_data = new float[2]{0, 0}; // host 输出数据
+    int output_data_size = 2 * sizeof(float);     // 输出数据大小
+    float *device_output_data = nullptr;          // device 输出数据
+
+    // 申请device内存
+    cudaMalloc((void **)&device_input_data, input_data_size);
+    cudaMalloc((void **)&device_output_data, output_data_size);
+
+    // host --> device
+    // 参数分别是：目标地址，源地址，数据大小，拷贝方向
+    cudaMemcpyAsync(device_input_data, host_input_data, input_data_size, cudaMemcpyHostToDevice, stream);
+
+    // bindings告诉Context输入输出数据的位置
+    float *bindings[] = {device_input_data, device_output_data};
+
+    // ==================== 5. 执行推理 ====================
+    bool success = context -> enqueueV2((void **) bindings, stream, nullptr);
+    // 数据从device --> host
+    cudaMemcpyAsync(host_output_data, device_output_data, output_data_size, cudaMemcpyDeviceToHost, stream);
+    // 等待流执行完毕
+    cudaStreamSynchronize(stream);
+    // 输出结果
+    std::cout << "输出结果: " << host_output_data[0] << " " << host_output_data[1] << std::endl;
+
+    // ==================== 6. 释放资源 ====================
+    cudaStreamDestroy(stream);
+    cudaFree(device_input_data); 
+    cudaFree(device_output_data);
+
+    delete host_input_data;
+    delete host_output_data;
+
+    delete context;
+    delete engine;
+    delete runtime;
+    
+    return 0;
+}
+```
+
+
+
 # log
 
 1. [CMP0104: CMAKE_CUDA_ARCHITECTURES now detected for NVCC, empty CUDA_ARCHITECTURES not allowed](https://blog.csdn.net/qq_33642342/article/details/116459742)

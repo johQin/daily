@@ -2,6 +2,7 @@
 cmake_minimum_required(VERSION 3.10)
 
 # 项目信息
+# 指定语言信息
 project(trt_demo LANGUAGES CXX CUDA)
 
 include(CMakePrintHelpers)		# 这是一个打印帮助工具
@@ -26,32 +27,43 @@ list (APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 #    message(FATAL_ERROR "Cannot find TensorRT")
 #endif()
 
+set(CUDA_INCLUDE_DIRS "/usr/local/cuda/include" CACHE PATH "TensorRT include directory")
 # 如果使用tar包的方式解压的TensorRT，需要指定对应的变量
 set(TensorRT_ROOT "/usr/local/TensorRT-8.6.1.6" CACHE PATH "TensorRT root directory")
-message(STATUS "TensorRT_ROOT: ${TensorRT_ROOT}")
-set(TensorRT_LIBRARIES "${TensorRT_ROOT}/lib" CACHE PATH "TensorRT lib directory")
-#link_directories(TensorRT_LIBRARIES)
 set(TensorRT_INCLUDE_DIRS "${TensorRT_ROOT}/include" CACHE PATH "TensorRT include directory")
-set(CUDA_INCLUDE_DIRS "/usr/local/cuda/include" CACHE PATH "TensorRT include directory")
-find_library(TRT_NVINFER NAMES nvinfer HINTS "${TensorRT_ROOT}" PATH_SUFFIXES lib lib64 lib/x64)
-find_library(TRT_NVINFER_PLUGIN NAMES nvinfer_plugin HINTS  "${TensorRT_ROOT}" PATH_SUFFIXES lib lib64 lib/x64)
-find_library(TRT_NVONNX_PARSER NAMES nvonnxparser HINTS  "${TensorRT_ROOT}" PATH_SUFFIXES lib lib64 lib/x64)
-find_library(TRT_NVINFER_BUILDER_RESOURCE NAMES nvinfer_builder_resource HINTS  "${TensorRT_ROOT}" PATH_SUFFIXES lib lib64 lib/x64)
-cmake_print_variables(TRT_NVINFER)
-list(APPEND TensorRT_LIBRARIES ${TRT_NVINFER} ${TRT_NVINFER_PLUGIN} ${TRT_NVONNX_PARSER})
+
+set(TensorRT_LIB_NAME nvinfer nvinfer_plugin nvonnxparser nvinfer_builder_resource)
+set(TensorRT_LIBRARIES)
+FOREACH (tlib IN LISTS TensorRT_LIB_NAME)
+    unset(TRT_LIB)
+    find_library(TRT_LIB NAMES ${tlib} HINTS "${TensorRT_ROOT}" PATH_SUFFIXES lib lib64 lib/x64 NO_CACHE)
+    if(TRT_LIB)
+        list(APPEND TensorRT_LIBRARIES ${TRT_LIB})
+    ENDIF ()
+ENDFOREACH ()
+CMAKE_PRINT_VARIABLES(TensorRT_LIBRARIES)
+
+
+file(GLOB CPPS
+        ${CMAKE_CURRENT_SOURCE_DIR}/utils/*.cpp
+        )
+set(INCLUDE_DIRS)
+list(APPEND INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/utils)
+
+
 # 添加可执行文件
 add_executable(build src/build.cpp)
 
 # 头文件
-target_include_directories(build PRIVATE ${TensorRT_INCLUDE_DIRS} ${CUDA_INCLUDE_DIRS})
+target_include_directories(build PRIVATE ${TensorRT_INCLUDE_DIRS} ${CUDA_INCLUDE_DIRS} ${INCLUDE_DIRS})
 # 链接库
-target_link_libraries(build PRIVATE ${TensorRT_LIBRARIES})
+target_link_libraries(build PRIVATE ${TensorRT_LIBRARIES} ${CPPS})
 
 # 添加可执行文件
 add_executable(runtime src/runtime.cu)
-
 # 头文件
-target_include_directories(runtime PRIVATE ${TensorRT_INCLUDE_DIRS} ${CUDA_INCLUDE_DIRS})
+target_include_directories(runtime PRIVATE ${TensorRT_INCLUDE_DIRS} ${CUDA_INCLUDE_DIRS} ${INCLUDE_DIRS})
+
 # 链接库
-target_link_libraries(runtime PRIVATE ${TensorRT_LIBRARIES})
+target_link_libraries(runtime PRIVATE ${TensorRT_LIBRARIES} ${CPPS})
 

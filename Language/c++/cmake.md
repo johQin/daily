@@ -910,6 +910,9 @@ Module模式只有两个查找路径：**CMAKE_MODULE_PATH**和cmake安装路径
 # 一定记住是在这两个路径的Modules目录下查找Find<PackageName>.cmake
 message(STATUS "CMAKE_MODULE_PATH = ${CMAKE_MODULE_PATH}")		# 默认为空
 message(STATUS "CMAKE_ROOT = ${CMAKE_ROOT}")
+
+# 如果直接使用find_package报找不到FindXxxx.cmake, 可以指定文件目录去查找，例如下面这个TensorRT的例子
+list (APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 ```
 
 
