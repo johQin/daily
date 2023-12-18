@@ -2407,6 +2407,39 @@ ffmpeg -hwaccels
 ffmpeg -codecs | grep cuvid
 ```
 
+```c++
+av_hwdevice_find_type_by_name("cuda");
+
+static const char *const hw_type_names[] = {
+  [AV_HWDEVICE_TYPE_CUDA]   = "cuda",
+  [AV_HWDEVICE_TYPE_DRM]    = "drm",
+  [AV_HWDEVICE_TYPE_DXVA2]  = "dxva2",
+  [AV_HWDEVICE_TYPE_D3D11VA] = "d3d11va",
+  [AV_HWDEVICE_TYPE_OPENCL] = "opencl",
+  [AV_HWDEVICE_TYPE_QSV]    = "qsv",
+  [AV_HWDEVICE_TYPE_VAAPI]  = "vaapi",
+  [AV_HWDEVICE_TYPE_VDPAU]  = "vdpau",
+  [AV_HWDEVICE_TYPE_VIDEOTOOLBOX] = "videotoolbox",
+  [AV_HWDEVICE_TYPE_MEDIACODEC] = "mediacodec",
+  [AV_HWDEVICE_TYPE_VULKAN] = "vulkan",
+};
+
+enum AVHWDeviceType {
+ AV_HWDEVICE_TYPE_NONE,
+ AV_HWDEVICE_TYPE_VDPAU,
+ AV_HWDEVICE_TYPE_CUDA,
+ AV_HWDEVICE_TYPE_VAAPI,
+ AV_HWDEVICE_TYPE_DXVA2,
+ AV_HWDEVICE_TYPE_QSV,
+ AV_HWDEVICE_TYPE_VIDEOTOOLBOX,
+ AV_HWDEVICE_TYPE_D3D11VA,
+ AV_HWDEVICE_TYPE_DRM,
+ AV_HWDEVICE_TYPE_OPENCL,
+ AV_HWDEVICE_TYPE_MEDIACODEC,
+ AV_HWDEVICE_TYPE_VULKAN,
+};
+```
+
 
 
 # 6 RTMP推拉流

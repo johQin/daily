@@ -6997,7 +6997,9 @@ int main()	{
 
 
 
-## 11.5 curl
+## 11.5 [curl](https://zhuanlan.zhihu.com/p/646640511)
+
+直接安装，编译比较麻烦还容易出错
 
 ```bash
 sudo apt install libcurl4-openssl-dev
@@ -8146,6 +8148,242 @@ volatile short flag;
 
 另外，以上这几种情况经常还要同时考虑数据的完整性（相互关联的几个标志读了一半被打断了重写），在1中可以通过关中断来实现，2中可以禁止任务调度，3中则只能依靠硬件的良好设计了。
 
+## 6 [c和c++ 相互调用](https://zhuanlan.zhihu.com/p/593593416)
+
+### 关键点
+
+思考领悟参考：
+
+- [C程序调用C++函数](https://blog.csdn.net/weixin_45312249/article/details/129563422#:~:text=C%E7%A8%8B%E5%BA%8F%E5%87%BD%E6%95%B0-,C%E7%A8%8B%E5%BA%8F%E8%B0%83%E7%94%A8C%2B%2B%E5%87%BD%E6%95%B0,-%E5%9C%BA%E6%99%AF%EF%BC%9A%E5%9F%BA%E6%9C%AC%E6%88%91%E4%BB%AC)
+- [C语言之extern “C“详解与使用方法](https://blog.csdn.net/huanxiajioabu/article/details/132356001)
+
+关键点：
+
+1. **c调用c++（关键是C++ 提供一个符合 C 调用惯例的函数）**
+2. **c++ 调用 c 的方法（关键是要让c的函数按照c的方式编译，而不是c++的方式）**
+
+关于关键点1
+
+- 提供一个接口类，和一个用c++编译的
+
+```c++
+Middele.h
+#pragma once
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+void Robot_sayHi(const char *name);
+
+#ifdef __cplusplus
+}
+#endif
+
+-----------------------------------------
+Middle.cpp
+
+#include "Middle.h"
+#include "robot.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+// 因为我们将使用C++的编译方式，用g++编译器来编译 robot_c_api.cpp 这个文件，
+// 所以在这个文件中我们可以用C++代码去定义函数 void Robot_sayHi(const char *name)（在函数中使用C++的类 Robot），
+// 最后我们用 extern "C" 来告诉g++编译器，不要对 Robot_sayHi(const char *name) 函数进行name mangling
+// 这样最终生成的动态链接库中，函数 Robot_sayHi(const char *name) 将生成 C 编译器的符号表示。
+
+void Robot_sayHi(const char *name)
+{
+    Robot robot(name);
+    robot.sayHi();
+}
+
+#ifdef __cplusplus
+}
+#endif
+
+```
+
+
+
+
+
+在项目开发过程中，我们底层代码经常用`C`来实现，而上层应用大都会用`C++`实现，这样我们就涉及到了`C`和`C++`相互调用的情况了。那么，`C/C++`如何实现相互调用呢？
+
+为什么会有差异？
+
+- **编译方式不同**：C文件常采用gcc编译，而Cpp文件常采用g++来编译
+- **C++支持函数重载**：由于这一特性，C++和C中的同一个函数，经过编译后，生成的函数名称是不同的。
+
+这样就导致了C与C++之间不能直接进行调用，要解决这一问题，就得靠extern "C"来辅助了。
+
+
+
+
+
+### extern "C"
+
+extern 用来进行外部声明，"C"则表示编译器应以c的规则去编译文件。
+
+### c++调用c
+
+创建3个文件，分别为`main.cpp`、`cal.c`、`cal.h`。
+
+![img](./legend/v2-b19ba0f1ab3add75d73f2b20f089a3db_r.jpg)
+
+```bash
+ # 将c语言代码cal.c编译生成cal.o
+ gcc -c cal.c
+ # 将c++语言代码main.cpp编译生成main.o
+ g++ -c main.cpp
+ # 通过objdump工具，查看.o文件的符号表。以此了解main.o和cal.o中embedded_art函数在不同编译方式的区别
+ objdump -t cal.o
+ objdump -t main.o
+ # 可以看到，g++编译之后，对函数名称进行了加工，按照自身的编译规则，最终生成了一个新的函数名，所以我们如果直接调用cal.c中的embedded_art肯定是不行的。
+```
+
+![img](./legend/v2-339290f10c0270db07a80a424e8615e5_r.jpg)
+
+**正确方式**：
+
+**使用extern "C"来使g++编译器用C的方式编译。**
+
+**在main.cpp文件中，我们引入cal.h的位置，添加extern "C"**
+
+```c++
+// main.cpp里，在引入cal.h的位置。添加extern "C"
+extern "C" {
+#include "cal.h"
+}
+```
+
+```bash
+# 再次对main.cpp进行编译
+g++ -c main.cpp
+# 再次查看main的符号表，embedded_art函数名称和cal.c中的名称相同了
+```
+
+![img](legend/v2-28fbdc978b92ff140465c9160429aedf_r.jpg)
+
+### c调用c++
+
+
+
+创建3个文件，分别为`main.c`、`cal.cpp`、`cal.h`。
+
+![img](legend/v2-c5acd4af9865572d2d79e0be871f6741_r.jpg)
+
+```bash
+ # 将c语言代码main.c编译生成main.o
+ gcc -c main.c
+ # 将c++语言代码cal.cpp编译生成cal.o
+ g++ -c cal.cpp
+ # 通过objdump工具，查看.o文件的符号表。以此了解main.o和cal.o中embedded_art函数在不同编译方式的区别
+ objdump -t cal.o
+ objdump -t main.o
+ # 可以看到，g++编译之后，对函数名称进行了加工，按照自身的编译规则，最终生成了一个新的函数名，所以我们如果直接在main中调用cal.cpp中的embedded_art肯定是不行的。
+```
+
+![img](legend/v2-5b1d82286d2f0eea957c85ba044d3daa_r.jpg)
+
+在cal.h的声明部分加extern "C"
+
+```c++
+// 在cal.h文件里
+extern "C" {
+extern void embedded_art(void);
+}
+```
+
+再次编译cal.cpp
+
+```bash
+# 因为g++默认会查找当前目录下的头文件，所以cal.h里面的修改会自动同步到cal.cpp中
+g++ -c cal.cpp
+```
+
+![img](legend/v2-629816fff89b28c2e0976a542ab6414e_r.jpg)
+
+但在编译main.c的时候又出了问题
+
+![img](legend/v2-15703f0125b10227dc58309ee2c7c2dd_r.jpg)
+
+因为在main.c文件中，引入了c++的头文件cal.h，因为"C"在C++编译的时候才能识别，C语言中并没有这个关键字。
+
+所以，我们需要在g++编译的时候去加入extern "C"，而gcc编译的时候跳过，这个时候就要提到c++编译时候的特定宏__cplusplus了，相当于一个阀门了。
+
+我们修改cal.h文件：
+
+```c++
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+extern void embedded_art(void);
+
+#ifdef __cplusplus
+}
+#endif
+```
+
+这样就确保了，`c++`编译`embedded_art`函数的时候，采用`C`语法编译，而`gcc`编译的时候，不作处理。
+
+### [objdump](https://blog.csdn.net/K346K346/article/details/88203663)
+
+objdump命令是 GNU Binutils 二进制工具集的一员，用于查看目标文件或可执行文件的组成信息，以可读的形式打印二进制文件的内容。
+
+## 7 [gcc和g++ 头文件和库文件搜索路径](https://blog.csdn.net/song240948380/article/details/119418608)
+
+### 头文件
+
+        ①先搜索当前目录（#include<>方式不会搜索当前目录！）
+    
+        ②然后搜索-I指定的目录
+    
+        ③再搜索gcc的环境变量CPLUS_INCLUDE_PATH（C程序使用的是C_INCLUDE_PATH）
+    
+                export C_INCLUDE_PATH=XXXX:$C_INCLUDE_PATH
+    
+                export CPLUS_INCLUDE_PATH=XXX:$CPLUS_INCLUDE_PATH
+    
+        ④最后搜索gcc的内定目录
+    
+                /usr/include
+    
+                /usr/local/include
+    
+                /usr/lib/gcc/x86_64-redhat-linux/4.1.1/include
+### 库文件
+
+        编译的时候：
+                ①gcc会去找-L
+                ②再找gcc的环境变量LIBRARY_PATH
+                ③再找内定目录 /lib /usr/lib /usr/local/lib 这是当初compile gcc时写在程序内的
+    
+        运行时动态库的搜索路径：
+    
+                ①编译目标代码时指定的动态库搜索路径（这是通过gcc 的参数"-Wl,-rpath,“指定。当指定多个动态库搜索路径时，路径之间用冒号”："分隔）
+    
+                ②环境变量LD_LIBRARY_PATH指定的动态库搜索路径（当通过该环境变量指定多个动态库搜索路径时，路径之间用冒号"："分隔）
+    
+                ③配置文件/etc/ld.so.conf中指定的动态库搜索路径；
+    
+                ④默认的动态库搜索路径/lib；
+    
+                ⑤默认的动态库搜索路径/usr/lib。
+    
+        动态链接库搜索路径：
+    
+                export LD_LIBRARY_PATH=XXX:$LD_LIBRARY_PATH
+    
+        静态链接库搜索路径：
+    
+                export LIBRARY_PATH=XXX:$LIBRARY_PATH
+
+
 # visual studio
 
 1. [VS2022：如何在一个项目里写多个cpp文件并可以分别独立运行](https://blog.csdn.net/yang2330648064/article/details/123191912)
@@ -8539,7 +8777,38 @@ volatile short flag;
 
     
 
-22. [c语言和c++ 相互调用](https://blog.csdn.net/qq_29344757/article/details/73332501)
+22. c++在使用c语言代码的时候出现大量的undefined reference to
+
+    - 原因：
+
+      - 原因一：没有链接对应的库文件，所以要确保对应的库文件，被找到，被链接。
+
+      - 原因二：[可能是c++调用c，因为主调代码为c++代码，而被调代码为c，在编译的时候，c++在调用c的函数的地方，g++在编译这些函数时，名称会发生变化，所以在库里会找不到对应的函数，这时就会报undefined reference to xxxx](https://stackoverflow.com/questions/55963016/ffmpeg-undefined-references-on-multiple-functions)
+
+        ```c++
+        extern "C"
+        {
+            #include <libavcodec/avcodec.h>
+        }
+        ```
+
+      - 原因三：库文件可能带有版本的后缀，导致find_library，无法找到对应库，所以需要自行添加软链接ls -s 
+
+        ```bash
+        sudo ln -s libavfilter.so.7 libavfilter.so
+        
+        ll | grep avfilter
+        lrwxrwxrwx   1 root root        16 12月 15 15:17 libavfilter.so -> libavfilter.so.7
+        lrwxrwxrwx   1 root root        24  5月 19  2022 libavfilter.so.7 -> libavfilter.so.7.110.100
+        -rw-r--r--   1 root root   4806640  5月 19  2022 libavfilter.so.7.110.100
+        
+        ```
+
+        
+
+    - 
+
+23. 
 
 
 
