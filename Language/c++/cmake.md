@@ -774,6 +774,8 @@ EXECUTABLE_OUTPUT_PATH		# 指定最终的可执行文件生成的位置
 LIBRARY_OUTPUT_PATH			# 指定库文件的输出目录
 ```
 
+
+
 # 3 [依赖](https://blog.csdn.net/zhizhengguan/article/details/118396145)
 
 ## 3.1 [add_dependencies](https://blog.csdn.net/BeanGuohui/article/details/120217097) 指定依赖
@@ -1164,6 +1166,25 @@ find_path (
 总之，`find_package`和`find_library`都可以用于在CMake中查找和链接库，但**`find_package`更适用于具有CMake配置文件的库，而`find_library`则适用于没有CMake配置文件的库。**
 
 # 4 cmake命令行参数
+
+- -D：定义CMake变量，-D参数可以用于在CMake中定义变量并将其传递给CMakeLists.txt文件，这些变量可以用于控制构建过程中的行为。
+
+  ```cmake
+  # -D参数可以用于：
+  
+  # 定义变量并设置其值，例如：-DVAR_NAME=VALUE。
+  # 定义布尔类型的变量，其值为ON，例如：-DVAR_NAME。
+  # 定义路径类型的变量，例如：-DVAR_NAME:PATH=/path/to/dir。
+  # 定义配置变量（缓存变量），例如：-DVAR_NAME:STRING=VALUE。
+  ```
+
+- -B：指定构建目录。-B参数用于指定生成的构建目录，即将CMake生成的Makefile或项目文件保存到指定的目录中。这个目录可以是相对路径或绝对路径。
+
+  ```cmake
+  # cmake将使用它作为构建的根目录，如果这个目录不存在，那么cmake将会创建它
+  ```
+
+  
 
 # 工具函数
 
