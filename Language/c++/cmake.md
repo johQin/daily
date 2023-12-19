@@ -1,5 +1,7 @@
 # [CMAKE](https://cmake.org)
 
+[cmake-cookbook书籍](https://github.com/dev-cafe/cmake-cookbook)
+
 cmake内置命令是不区分大小写的， 因此`add_subdirectory`与`ADD_SUBDIRECTORY`作用一致。
 
 cmake所有变量是区分大小写的
@@ -1165,9 +1167,96 @@ find_path (
 
 总之，`find_package`和`find_library`都可以用于在CMake中查找和链接库，但**`find_package`更适用于具有CMake配置文件的库，而`find_library`则适用于没有CMake配置文件的库。**
 
-# 4 cmake命令行参数
+## 3.7 查找源文件
 
-- -D：定义CMake变量，-D参数可以用于在CMake中定义变量并将其传递给CMakeLists.txt文件，这些变量可以用于控制构建过程中的行为。
+```cmake
+# GLOB 子命令允许我们在指定的目录中查找匹配的文件。这是一个快速且简单的方法，特别是当你知道所有文件都位于同一目录中时。
+file(GLOB SOURCES "src/*.cpp")
+# GLOB_RECURSE 则为我们提供了递归查找的能力，使我们能够在指定的目录及其所有子目录中查找匹配的文件。
+file(GLOB_RECURSE HEADERS "include/*.h")
+
+file(GLOB CPPS
+  ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/*.cu
+  ${CMAKE_CURRENT_SOURCE_DIR}/../utils/*.cu
+  ${CMAKE_CURRENT_SOURCE_DIR}/../utils/*.cpp
+  ${TensorRT_ROOT}/samples/common/logger.cpp
+  ${TensorRT_ROOT}/samples/common/sampleOptions.cpp
+  ${TensorRT_ROOT}/samples/common/sampleUtils.cpp
+  )
+```
+
+
+
+# 4 [cmake构建](https://blog.csdn.net/qq_21438461/article/details/129797348)
+
+CMake 项目的构建分为两步：
+
+- **第一步**是 `cmake -B build`，称为**配置阶段**（**configure**），这时**只检测环境并生成构建规则**
+
+- - 会在 `build` 目录下**生成本地构建系统能识别的项目文件**（`Makefile` 或是 `.sln`）
+
+- **第二步**是 `cmake --build build`，称为**构建阶段**（**build**），这时才**实际调用编译器来编译代码**
+
+## 4.1 [内部构建与外部构建](https://blog.csdn.net/hubing_hust/article/details/128505399)
+
+内部构建：通过`cmake .`在CMakeLists.txt所在目录下，生成一系列中间文件，以及Makefile文件。这些文件和源码混在一起。
+
+外部构建：通过`cd build && cmake ..`，在当前的build文件夹下，生成一系列中间文件，以及Makefile文件
+
+out-of-source外部构建，一个最大的好处就是，对于原有的工程没有任何影响，所有动作全部发生在编译目录中。通过这一点，也足以说服我们全部采用外部编译的方式构建工程。
+
+## 4.2 命令行参数
+
+[使用CMake的命令行小技巧](https://zhuanlan.zhihu.com/p/631112052)
+
+- -G：**指定要用的生成器**
+
+  - CMake 是一个跨平台的构建系统，可以从 `CMakeLists.txt` 生成不同类型的构建系统（比如 Linux 的 `make`，Windows 的 `MSBuild`），从而让构建规则**可以只写一份**，**跨平台使用**。
+
+  - 过去的软件（例如 `TBB`）要跨平台，只好 `Makefile` 的构建规则写一份，`MSBuild` 也写一份。现在只需要写一次 `CMakeLists.txt`，他会视不同的操作系统，生成不同构建系统的规则文件。
+
+  - **和操作系统绑定**的构建系统（make、MSBuild）称为**本地构建系统**（native buildsystem）。
+
+  - 负责从 `CMakeLists.txt` 生成本地构建系统构建规则文件的，称为**生成器**（generator）。
+
+  - 系统支持的生成器可以通过`cmake -G`命令来查看
+
+  - ```bash
+    # 在ubuntu系统上查看
+    $ cmake -G
+    CMake Error: No generator specified for -G
+    
+    Generators
+      Green Hills MULTI            = Generates Green Hills MULTI files
+                                     (experimental, work-in-progress).
+    * Unix Makefiles               = Generates standard UNIX makefiles.				# 系统默认的生成器
+      Ninja                        = Generates build.ninja files.
+      Ninja Multi-Config           = Generates build-<Config>.ninja files.
+      Watcom WMake                 = Generates Watcom WMake makefiles.
+      CodeBlocks - Ninja           = Generates CodeBlocks project files.
+      CodeBlocks - Unix Makefiles  = Generates CodeBlocks project files.
+      CodeLite - Ninja             = Generates CodeLite project files.
+      CodeLite - Unix Makefiles    = Generates CodeLite project files.
+      Eclipse CDT4 - Ninja         = Generates Eclipse CDT 4.0 project files.
+      Eclipse CDT4 - Unix Makefiles= Generates Eclipse CDT 4.0 project files.
+      Kate - Ninja                 = Generates Kate project files.
+      Kate - Unix Makefiles        = Generates Kate project files.
+      Sublime Text 2 - Ninja       = Generates Sublime Text 2 project files.
+      Sublime Text 2 - Unix Makefiles
+                                   = Generates Sublime Text 2 project files.
+                                   
+      # 不同系统的默认生成器
+        # Linux 系统上的 CMake 默认用是 Unix Makefiles 生成器；
+        # Windows 系统默认是 Visual Studio 生成器；
+        # MacOS 系统默认是 Xcode 生成器。
+    ```
+
+  - 
+
+- -D：定义CMake变量（缓存变量），-D参数可以用于在CMake中定义变量并将其传递给CMakeLists.txt文件，这些变量可以用于控制构建过程中的行为。
+
+  - **这些变量都是缓存变量，保存在bulid/CMakeCache.txt中**
 
   ```cmake
   # -D参数可以用于：
@@ -1176,15 +1265,340 @@ find_path (
   # 定义布尔类型的变量，其值为ON，例如：-DVAR_NAME。
   # 定义路径类型的变量，例如：-DVAR_NAME:PATH=/path/to/dir。
   # 定义配置变量（缓存变量），例如：-DVAR_NAME:STRING=VALUE。
+  
+  
+  cmake -B build -DCMAKE_INSTALL_PREFIX=/opt/openvdb-8.0
+  cmake -B build -DCMAKE_BUILD_TYPE=Release
+  cmake -B build
+  # 第二次配置时没有 -D 参数，但是之前的 -D 设置的变量都会被保留（此时缓存里仍有你之前定义的 CMAKE_BUILD_TYPE 和 CMAKE_INSTALL_PREFIX，这些变量保存在bulid/CMakeCache.txt中）
   ```
 
 - -B：指定构建目录。-B参数用于指定生成的构建目录，即将CMake生成的Makefile或项目文件保存到指定的目录中。这个目录可以是相对路径或绝对路径。
 
   ```cmake
+  cmake -B path_to_build_directory # 在源码目录(CMakeLists.txt所在目录)用 -B 直接创建 path_to_build_directory 目录并生成 path_to_build_directory/Makefile
   # cmake将使用它作为构建的根目录，如果这个目录不存在，那么cmake将会创建它
   ```
 
+- -S，指定源码目录。
+
+  ```cmake
+  # 用于分别指定构建目录和源代码目录。这两个参数允许你将构建和源代码分开。
+  cmake -S path_to_source_directory -B path_to_build_directory
+  ```
+
+- -E，用于执行一些与构建无关的命令，例如创建目录、复制文件、压缩文件等。这些命令不会生成Makefile或项目文件，而是在构建之外执行。
+
+  - 这使得我们可以在构建过程之外执行一些必要的操作，例如在构建之前创建目录，或在构建之后删除临时文件。
+
+- **--build**：用于执行构建过程。使用已有的Makefile执行构建，具有跨平台的作用，**统一**了不同平台（Linux 上会调用 make，Windows 上调用 devenv.exe）
+
+  ```cmake
+  cmake --build path_to_build_directory
+  ```
+
+- **--config**：用于指定构建类型。例如 Debug 或 Release。
+
+  ```cmake
+  cmake --build path_to_build_directory --config Release
+  ```
+
+- `-j`：生成时要使用的最大并发进程数
+
+## 4.3 [cmake指定编译器](https://blog.csdn.net/kv110/article/details/119121255)
+
+- 法一：在CMakeLists.txt指定
+
+  ```cmake
+  set(CMAKE_C_COMPILER "/path/to/gcc")
   
+  set(CMAKE_CXX_COMPILER "/path/to/g++")
+  
+  # 指定路径并指定版本
+  set(CMAKE_CXX_COMPILER "/usr/bin/g++-4.2")
+  ```
+
+- 法二：cmake -D
+
+  ```bash
+  cmake -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPILER=/usr/bin/g++ -DCMAKE_CUDA_COMPILER:PATH=/usr/local/cuda-12.0/bin/nvcc
+  # 通过加横杠加版本
+  cmake -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPILER=/usr/bin/g++-4.2
+  ```
+
+  
+
+## 4.4 cmake部署（install）
+
+[CMake的install命令（在CMakeLists.txt）的基本结构](https://www.jianshu.com/p/c2b18fbdb503)如下：
+
+```cmake
+install(<TYPE> files... 
+		[EXPORT <export-name>]
+		[ARCHIVE|LIBRARY|RUNTIME|OBJECTS|FRAMEWORK|BUNDLE|
+        PRIVATE_HEADER|PUBLIC_HEADER|RESOURCE|FILE_SET <set-name>]
+		DESTINATION <dir>
+        [PERMISSIONS permissions...]
+        [CONFIGURATIONS [Debug|Release|...]]
+        [COMPONENT <component>]
+        [OPTIONAL] [NAMELINK_ONLY|NAMELINK_SKIP])
+```
+
+在这个结构中，我们可以看到以下几个关键部分：
+
+- `<TYPE>`：这是一个必选参数，它定义了我们要安装的内容的类型。
+
+  - 这个参数可以是TARGETS（目标），FILES（文件），DIRECTORY（目录）等。
+  - 对于常规的可执行文件、静态库文件、共享库文件，`DESTINATION`安装选项不是必须的，因为在未提供`DESTINATION`选项时，会从变量`GNUInstallDirs`获取一个默认值，如果该变量也未定义，会设置为内置的默认值。
+
+- `files...`：这是一个或多个我们要安装的文件或目标。
+
+  - 对于TARGETS，这将是我们在add_executable或add_library中定义的目标名称。
+  - 对于FILES和DIRECTORY，这将是文件或目录的路径。
+
+- `EXPORT`：可以通过`install(EXPORT)`命令将我们的目标导出为一个导出集（Export Set），然后在其他的CMake项目中通过`find_package()`命令来查找和使用这个导出集。
+
+  - 该选项必须出现在任何其他安装目标选项之前。
+
+  - ```cmake
+    # 例如，我们可以使用以下命令将我们的目标导出为一个名为MyLibraryTargets的导出集
+    install(TARGETS my_library EXPORT MyLibrary)
+    # 然后，我们可以在其他的CMake项目中使用以下命令来查找和使用这个导出集
+    find_package(MyLibrary)
+    ```
+
+  - `EXPORT`将会生成并安装一个`CMake`文件，该`CMake`文件包含将目标从安装树导出信息到其他工程的代码。
+
+- `DESTINATION <dir>`：这是一个必选参数，它定义了我们要将文件或目标安装到哪个目录。
+
+- `[PERMISSIONS permissions...]`：这是一个可选参数，它允许我们定义安装的文件或目标的权限。如果我们不指定这个参数，CMake将使用默认的权限。
+
+- `[CONFIGURATIONS [Debug|Release|...]]`：这是一个可选参数，它允许我们定义在哪些构建配置中执行安装命令。如果我们不指定这个参数，CMake将在所有的构建配置中执行安装命令。
+
+- `[COMPONENT <component>]`：这是一个可选参数，它允许我们将安装的文件或目标分组到一个组件中。这个参数在创建安装包时非常有用。
+
+  - 组件（Components）是CMake Install的一个高级概念。在一个大型的项目中，我们可能会有多个目标需要安装，这些目标可能属于不同的组件。我们可以通过在install命令中使用COMPONENT参数来为目标指定其所属的组件。
+
+- `[OPTIONAL]`：这是一个可选参数，它允许我们定义如果文件或目标不存在，CMake是否应该继续执行安装命令。
+
+- `[NAMELINK_ONLY|NAMELINK_SKIP]`：这是一个可选参数，它只对库目标有效。它允许我们定义是否安装库的名字链接。
+
+[CMake Install：深度解析与实践](https://zhuanlan.zhihu.com/p/661283021)
+
+### CMake Install的配置过程
+
+可以分为三个主要步骤：
+
+- 定义安装规则（Defining Install Rules），在CMakeLists.txt中定义
+- 配置安装目录（Configuring Install Directories），在CMakeLists.txt中定义
+- 生成安装脚本（Generating Install Scripts）。在命令行通过命令选项配置
+
+#### 定义安装规则
+
+在CMakeLists.txt中，通过install函数定义规则
+
+```cmake
+# 我们将myExecutable目标安装到了bin目录，将myLibrary目标安装到了lib目录。
+install(TARGETS myExecutable DESTINATION bin)
+install(TARGETS myLibrary DESTINATION lib)
+install(FILES readme.txt DESTINATION doc)
+```
+
+#### 配置安装目录
+
+```cmake
+# 使用变量管理安装目录
+set(INSTALL_BIN_DIR bin)
+install(TARGETS myExecutable DESTINATION ${INSTALL_BIN_DIR})
+
+# 使用GNUInstallDirs模块管理安装目录
+# CMake提供了一个名为GNUInstallDirs的模块，可以帮助我们更好地管理安装目录。这个模块定义了一些变量，表示了GNU系统中常见的安装目录。例如，CMAKE_INSTALL_BINDIR表示二进制文件的安装目录，CMAKE_INSTALL_LIBDIR表示库文件的安装目录。
+# 使用GNUInstallDirs模块可以使我们的项目更加符合GNU的标准，同时也使得安装目录的管理更加方便。
+include(GNUInstallDirs)
+install(TARGETS myExecutable DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(TARGETS myLibrary DESTINATION ${CMAKE_INSTALL_LIBDIR})
+
+# 使用CMAKE_INSTALL_PREFIX
+# CMAKE_INSTALL_PREFIX为cmake内置变量，是cmake install函数安装的路径前缀。其默认值为/usr/local，也就是我们执行make install<时如果没有设置该变量，对于cmake脚本里的install函数，默认会把内容安装到/usr/local下。
+set(CMAKE_INSTALL_PREFIX /usr/local)
+install(TARGETS test DESTINATION bin) #将test安装到/usr/local/bin目录下
+```
+
+#### install命令行选项
+
+```cmake
+# --prefix`或`-P`选项用于指定安装的前缀路径。这是一个全局选项，会影响所有的安装路径。
+cmake --install . --prefix /usr/local
+
+# `--component`或`-C`选项用于指定要安装的组件。如果一个项目有多个组件，我们可以选择只安装其中的一部分。
+cmake --install . --component runtime
+
+# --default-directory-permissions选项用于指定默认的目录权限。这是一个高级选项，通常只在需要特殊权限的情况下使用。
+cmake --install . --default-directory-permissions u=rwx,g=rx,o=rx
+```
+
+
+
+# 5 Cmake内置变量
+
+## 路径有关的变量
+
+```cmake
+CMAKE_SOURCE_DIR			# 源码树的最顶层目录(也就是项目CMakeLists.txt文件所在的地方)
+CMAKE_CURRENT_SOURCE_DIR	# CMake正在处理的CMakeLists.txt文件所在的目录。
+							# 每次在add_subdirectory()调用的结果中处理新文件时，它都会更新，并在完成对该目录的处理后再次恢复。
+CMAKE_CURRENT_LIST_DIR		# 自2.8.3开始，代表当前正在处理的列表文件的完整目录，和CMAKE_CURRENT_SOURCE_DIR几乎一样
+							# 只是在CMakeLists.txt里有include(src/CMakeLists.txt)代码时，
+							# CMAKE_CURRENT_SOURCE_DIR指向外部的CMakeLists，而CMAKE_CURRENT_LIST_DIR将指向src
+							# https://blog.csdn.net/jacke121/article/details/106550720
+							
+CMAKE_BINARY_DIR			# 构建树的最顶层目录。
+CMAKE_CURRENT_BINARY_DIR	# 当前CMake正在处理的CMakeLists.txt文件对应的构建目录。
+							# 每次调用add_subdirectory()时它都会改变，并在add_subdirectory()返回时再次恢复。
+
+EXECUTABLE_OUTPUT_PATH		# 指定最终的可执行文件生成的位置
+LIBRARY_OUTPUT_PATH			# 指定库文件的输出目录
+
+CMAKE_PREFIX_PATH			# 指定要搜索的库文件和头文件的目录。
+CMAKE_MODULE_PATH			# 指定要搜索的CMake模块的目录。
+```
+
+
+
+## 构建有关的变量
+
+```cmake
+CMAKE_BUILD_TYPE			# 指定构建类型(Debug/Release等)
+BUILD_SHARED_LIBS			# 指定构建库的默认类型(Static/Share)
+
+# 编译器
+CMAKE_C_COMPILER			# 指定c编译器位置和版本
+CMAKE_CXX_COMPILTER			# 指定c++编译器位置和版本
+CMAKE_CUDA_COMPILER			# 指定cuda编译器位置和版本
+
+# 编译器选项
+CMAKE_CXX_FLAGS				# 为c++编译器增加编译选项，set(CMAKE_CXX_FLAGS "-pthread -g -Wall")就相当于在编译某个cpp文件时为g++编译器增加一些选项，就像 g++ -pthread -g -Wall
+CMAKE_C_FLAGS				# 为c编译器增加编译选项
+
+
+CMAKE_TOOLCHAIN_FILE 		# CMake 的一个内定变量，它指定了一个文件，该文件用于设置和配置工具链。
+							# 在跨平台开发中，开发者经常需要为不同的目标平台编译代码。例如，你可能需要为 Windows、Linux 和 macOS 编译同一个项目，或者为 x86 和 ARM 架构编译。每个平台或架构可能都有自己的编译器和工具链。
+							# 为了简化这个过程，CMake 提供了 CMAKE_TOOLCHAIN_FILE 这个变量，允许开发者为每个目标平台提供一个预定义的工具链文件。这样，当你需要为不同的平台编译时，只需指定相应的工具链文件，而不是手动配置每个工具链参数。
+```
+
+## [CMAKE_INSTALL_RPATH](https://www.cnblogs.com/rickyk/p/3884257.html)
+
+简单介绍下CMake关于RPATH的机制，在之前文章中介绍过，如果你[没有显示指定](https://www.cnblogs.com/rickyk/p/3875084.html)
+
+- CMAKE_SKIP_RPATH
+- CMAKE_BUILD_WITH_INSTALL_RPATH
+- CMAKE_SKIP_BUILD_RAPTH
+- CMAKE_SKIP_INSTALL_RPATH
+
+的话，默认CMake在帮你编译之后，如果你使用了相关动态库，它会在相应的executable中增加你相关生成动态库的路径，这样当你每次去执行的时候你不需要每次都LD_LIBRARY_PATH就可以正常运行。这个时候你可以用一下
+
+```bash
+# 查看当前myexe中的RPATH字段有一个Library rpath,其中指定了你生成相应动态库target的目标路径
+readelf -d myexe
+# 来查看当前executable已经寻找到了哪些动态库
+ldd -r myexe
+```
+
+ 再来说一下make install下CMake是如何处理RPATH的。CMake为了方便用户的安装，默认在**make install之后会自动remove删除掉相关的RPATH**,这个时候你再去查看exe的RPATH，已经发现没有这个字段了。因此，当每次make install之后，我们进入到安装路径下执行相关exe的时候，就会发现此时的exe已经找不到相关的库路径了，因为它的RPATH已经被CMake给去除了。
+
+  那么，如何让CMake能够在install的过程中写入相关RPATH并且该RPATH不能使当初build的时候的RPATH呢？答案就是CMAKE_INSTALL_RPATH这个全局变量和INSTALL_RPATH这个target属性。下面举一下简单的例子。
+
+  大家都知道，CMake在安装的过程会有一个和configure一样的安装路径，CMAKE_INSTALL_PREFIX（configure下是--prefix,当然也可以用shell下的全局变量DESTDIR）,这个时候它会把你的安装文件安装到你prefix下的相对路径下，因此当我们希望在make install的时候，比如当前的share_lib在lib目录下，我们希望安装之后的RPATH可以自动找到它，我们就可以这么写
+
+```
+set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/lib)
+```
+
+需要注意的是，这个变量是全局变量，意味着你所有的target的RPATH都会在install的时候被写成这个(包括myexe和不需要RPATH的share_lib)，有没有简单的针对某个target呢，聪明的你应该已经想到了
+
+```
+set_target_properties(myexe PROPERTIES INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+```
+
+这样就可以保证只针对当前的target进行make install的时候RPATH的写入了。
+
+### [RPATH](https://www.jianshu.com/p/505a32ccdc91)
+
+rpath全称是`run-time search path`。Linux下所有elf（Executable and Linkable Format）格式的文件都包含它，特别是可执行文件。它规定了可执行文件在寻找`.so`文件时的第一优先位置。
+
+另外，elf文件中还规定了runpath。它与rpath相同，只是优先级低一些。
+
+搜索`.so`的优先级顺序
+
+- RPATH： 写在elf文件中
+- LD_LIBRARY_PATH： 环境变量
+- RUNPATH： 写在elf文件中
+- `ldconfig`的缓存： 配置`/etc/ld.conf*`可改变
+- 默认的`/lib`, `/usr/lib`
+
+对于任意的elf文件，可以使用`readelf -d Density` 或 `$ readelf -d xxx | grep 'R*PATH'`来查看。
+
+```bash
+Dynamic section at offset 0xde530 contains 35 entries:
+  标记        类型                         名称/值
+ 0x0000000000000001 (NEEDED)             共享库：[libyolov8.so]
+ 0x0000000000000001 (NEEDED)             共享库：[libcurl.so.4]
+ 0x0000000000000001 (NEEDED)             共享库：[libopencv_videoio.so.4.5d]
+ 0x0000000000000001 (NEEDED)             共享库：[libopencv_core.so.4.5d]
+ 0x0000000000000001 (NEEDED)             共享库：[libstdc++.so.6]
+ 0x0000000000000001 (NEEDED)             共享库：[libm.so.6]
+ 0x0000000000000001 (NEEDED)             共享库：[libgcc_s.so.1]
+ 0x0000000000000001 (NEEDED)             共享库：[libc.so.6]
+ 0x000000000000001d (RUNPATH)            Library runpath: [/home/buntu/gitRepository/xxx/cmake-build-debug:/usr/local/cuda/lib64:/opt/TensorRT-8.6.1.6/lib]
+ 0x000000000000000c (INIT)               0x1c000
+ 0x000000000000000d (FINI)               0xaf8a8
+ 0x0000000000000019 (INIT_ARRAY)         0xdc800
+ 0x000000000000001b (INIT_ARRAYSZ)       120 (bytes)
+ 0x000000000000001a (FINI_ARRAY)         0xdc878
+ 0x000000000000001c (FINI_ARRAYSZ)       8 (bytes)
+ 0x000000006ffffef5 (GNU_HASH)           0x3e8
+ 0x0000000000000005 (STRTAB)             0x6c80
+ 0x0000000000000006 (SYMTAB)             0x17d8
+ 0x000000000000000a (STRSZ)              47602 (bytes)
+ 0x000000000000000b (SYMENT)             24 (bytes)
+ 0x0000000000000015 (DEBUG)              0x0
+ 0x0000000000000003 (PLTGOT)             0xdf7a0
+ 0x0000000000000002 (PLTRELSZ)           5928 (bytes)
+ 0x0000000000000014 (PLTREL)             RELA
+ 0x0000000000000017 (JMPREL)             0x1a3a0
+ 0x0000000000000007 (RELA)               0x12f90
+ 0x0000000000000008 (RELASZ)             29712 (bytes)
+ 0x0000000000000009 (RELAENT)            24 (bytes)
+ 0x000000000000001e (FLAGS)              BIND_NOW
+ 0x000000006ffffffb (FLAGS_1)            标志： NOW PIE
+ 0x000000006ffffffe (VERNEED)            0x12d80
+ 0x000000006fffffff (VERNEEDNUM)         5
+ 0x000000006ffffff0 (VERSYM)             0x12672
+ 0x000000006ffffff9 (RELACOUNT)          955
+ 0x0000000000000000 (NULL)               0x0
+
+```
+
+
+
+#### [ELF文件](https://zhuanlan.zhihu.com/p/628432429)
+
+[ELF文件详解](https://blog.csdn.net/u014587123/article/details/115276998)
+
+ELF主要用于Linux平台，Windows下是PE/COFF格式。
+
+ELF （Executable and Linkable Format）文件，也就是在 Linux 中的目标文件，主要有以下三种类型：
+
+- 可重定位文件（Relocatable File），包含由编译器生成的代码以及数据。链接器会将它与其它目标文件链接起来从而创建可执行文件或者共享目标文件。在 Linux 系统中，这种文件的后缀一般为 .o 。
+- 可执行文件（Executable File），就是我们通常在 Linux 中执行的程序。
+- 共享目标文件（Shared Object File），包含代码和数据，这种文件是我们所称的库文件，一般以 .so 结尾。
+
+一般情况下，它有以下两种使用情景：
+
+- 链接器（Link eDitor, ld）可能会处理它和其它可重定位文件以及共享目标文件，生成另外一个目标文件。
+- 动态链接器（Dynamic Linker）将它与可执行文件以及其它共享目标组合在一起生成进程镜像。
+
+
 
 # 工具函数
 
