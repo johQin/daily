@@ -260,8 +260,13 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda-12.0/lib64
 # 更新环境
 source ~/.bashrc
 
-# 测试是否安装成功
+# 测试是否安装成功,并可以看到cuda的版本
 nvcc -V
+nvcc: NVIDIA (R) Cuda compiler driver
+Copyright (c) 2005-2022 NVIDIA Corporation
+Built on Mon_Oct_24_19:12:58_PDT_2022
+Cuda compilation tools, release 12.0, V12.0.76
+Build cuda_12.0.r12.0/compiler.31968024_0
 ```
 
 
