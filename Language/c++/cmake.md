@@ -1157,6 +1157,16 @@ find_path (
 - NO_CACHE：搜索结果将存储在普通变量中而不是缓存条目（即CMakeCache.txt）中
 - REQUIRED：如果没有找到指定头文件，就出发错误提示，变量会设为` <VAR>-NOTFOUND`
 
+```cmake
+include(CMakePrintHelpers)		# 这是一个打印帮助工具
+set(TensorRT_ROOT /opt/TensorRT-8.6.1.6)
+find_path(TENSORRT_INCLUDE_DIR NAMES NvInfer.h HINTS ${TensorRT_ROOT} PATH_SUFFIXES include)
+CMAKE_PRINT_VARIABLES(TENSORRT_INCLUDE_DIR)
+# -- TENSORRT_INCLUDE_DIR="/opt/TensorRT-8.6.1.6/include"
+```
+
+
+
 ## 3.6 [find_package和find_library的区别](https://juejin.cn/post/7213575951114977341)
 
 在CMake中，`find_package`和`find_library`都是用来找到和链接库的方法，但它们的用法和适用场景略有不同。
@@ -1195,6 +1205,23 @@ CMake 项目的构建分为两步：
 - **第一步**是 `cmake -B build`，称为**配置阶段**（**configure**），这时**只检测环境并生成构建规则**
 
 - - 会在 `build` 目录下**生成本地构建系统能识别的项目文件**（`Makefile` 或是 `.sln`）
+
+- ```bash
+  /opt/clion-2023.1.3/bin/cmake/linux/x64/bin/cmake 
+  -DCMAKE_BUILD_TYPE=Debug
+  -DCMAKE_MAKE_PROGRAM=/opt/clion-2023.1.3/bin/ninja/linux/x64/ninja
+  -DCMAKE_C_COMPILER=/usr/bin/gcc
+  -DCMAKE_CXX_COMPILER=/usr/bin/g++
+  -DCMAKE_C_COMPILER=/usr/bin/gcc
+  -DCMAKE_CXX_COMPILER=/usr/bin/g++
+  -DCMAKE_CUDA_COMPILER:PATH=/usr/local/cuda-12.0/bin/nvcc
+  -G Ninja
+  -S /home/buntu/gitRepository/person-density/yolov8
+  -B /home/buntu/gitRepository/person-density/yolov8/cmake-build-debug
+  
+  ```
+
+- 
 
 - **第二步**是 `cmake --build build`，称为**构建阶段**（**build**），这时才**实际调用编译器来编译代码**
 
@@ -1252,7 +1279,7 @@ out-of-source外部构建，一个最大的好处就是，对于原有的工程�
         # MacOS 系统默认是 Xcode 生成器。
     ```
 
-  - 
+  - ubuntu 安装ninja：`apt install ninja-build`
 
 - -D：定义CMake变量（缓存变量），-D参数可以用于在CMake中定义变量并将其传递给CMakeLists.txt文件，这些变量可以用于控制构建过程中的行为。
 
@@ -1851,6 +1878,22 @@ cmake --build . --config Release
 
 1. [合并静态库](https://zhuanlan.zhihu.com/p/389448385)
 
+1. [静态库合并到动态库中去](https://blog.csdn.net/qq_16810885/article/details/94036214)，静态库塞到动态库中去。参考下面的 动态库无法链接静态库
+
+   - 目的：libimp.a libalog.a 和 业务源码 一起打包成libaudioplug.so里面去。
+
+   - 总结：要想将libimp.a libalog.a文件打包到ibaudioplug.so里面去，必须在编译libimp.a libalog.a的时候和编译业务源码的时候，都使用-fPIC，才能将3个合二为一。
+
+   - 要实现就使用动态库libimp.so  libalog.so，就可以了，连接就完事了，运行时，就需要libaudioplug.so libimp.so  libalog.so 三个库。
+
+   - [linux下动态库链接静态库问题记录](https://blog.csdn.net/hong_yu0315/article/details/128077943)
+
+     - 在使用cmake编译静态库时，需要添加
+
+       ```cmake
+       add_compile_options(-fPIC)
+       ```
+
 1. 设置可执行目标文件的输出目录：`SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY output) `
 
 1. [子目录创建静态库和动态库](https://blog.csdn.net/Jay_Xio/article/details/122019770)
@@ -1875,6 +1918,28 @@ cmake --build . --config Release
    - 
 
 1. [彻底清除cmake产生的缓存](https://blog.csdn.net/kris_fei/article/details/81982565)：删除cmake产生的build和release产物
+
+1. [cmake 产生警告](https://blog.csdn.net/weixin_43662429/article/details/132286514)：CMP0074
+
+   ```cmake
+   # Policy CMP0074 is not set: find_package uses ＜PackageName＞_ROOT variables
+   # CMake Warning (dev) at CMakeLists.txt:83 (find_package):
+   #  Policy CMP0074 is not set: find_package uses <PackageName>_ROOT variables.
+   #  Run "cmake --help-policy CMP0074" for policy details.  Use the cmake_policy
+   #  command to set the policy and suppress this warning.
+   
+   #  CMake variable PCL_ROOT is set to:
+   
+   #    /usr
+   
+   #  For compatibility, CMake is ignoring the variable.
+   # This warning is for project developers.  Use -Wno-dev to suppress it.
+   
+   # 解决办法
+   cmake_policy(SET CMP0074 NEW)
+   ```
+
+   
 
 1. 
 

@@ -354,4 +354,18 @@ int main()
    ln -s ./libnvinfer_builder_resource.so.8.6.0 /usr/lib/libnvinfer_builder_resource.so.8.6.0
    ```
 
-   
+3. [在指定设备上执行推理](https://cloud.tencent.com/developer/article/2315263)
+
+   ```c++
+   // 设置当前设备为GPU 0
+   cudaSetDevice(0);
+   // 初始化TensorRT
+   this->runtime = createInferRuntime(gLogger);
+   ```
+
+4. [报错： The engine plan file is generated on an incompatible device, expecting compute 7.5 got compute 8.6, please rebuild.](https://blog.csdn.net/xiao_xian_/article/details/132313941)
+
+   - 不同的gpu设备，它的计算能力不兼容，导致其它机器的.engine与当前gpu不兼容
+   - 解决：需要在当前设备通过onnx文件重新转换新的engine文件
+
+5. 

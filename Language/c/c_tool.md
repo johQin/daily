@@ -201,6 +201,7 @@ pkg-config --libs --cflags opencv4
 动态库和静态库
 
 - 静态库（.a）：程序在编译链接的时候把库的代码链接到可执行文件中。程序运行的时候将不再需要静态库。
+  - 静态库的后缀名是.a（a是archive的缩写，也就是文档文件），是一个文档，然后解压缩，将其解压缩至当前目录，进入目录中，里面都是以.o后缀名的文件
 - 动态库（.so）：程序在运行的时候才去链接动态库的代码，多个程序共享使用库的代码。
 - 一个与动态库链接的可执行文件仅仅包含它用到的函数入口地址的一个表，而不是外部函数所在目标文件的整个机器码。
 - 在可执行文件开始运行以前，外部函数的机器码由操作系统从磁盘上的该动态库中复制到内存中，这个过程称为动态链接（dynamic linking）。
@@ -383,6 +384,23 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/mylib/lib/
 **ldconfig**
 
 ldconfig这个程序，位于/sbin下，它的作用是将文件/etc/ld.so.conf列出的路径下的库文件缓存到/etc/ld.so.cache（**此文件保存有已排好序的动态链接库名字列表。**）以供使用，因此当安装完一些库文件，或者修改/etc/ld.so.conf增加了库的新的搜索路径，需要运>行一下ldconfig，使所有的库文件都被缓存到文件/etc/ld.so.cache中，如果没做，可能会找不到刚安装的库。
+
+```bash
+# 法一：在ld.so.conf最后添加一行
+/usr/local/yolo
+
+# 法二：在/etc/ld.so.conf.d/下面新建一个xxx.conf，写入你需要添加的动态库存放地址
+/usr/local/yolo
+# 当然你必须确保ld.so.conf包含以下内容
+include /etc/ld.so.conf.d/*.conf
+
+# 写完之后，必须执行ldconfig，否则ld.so.cache里面没有刚刚写入的地址
+ldconfig
+
+# 检查是否生效
+ldconfig -p | grep yolov8
+	libyolov8.so (libc6,x86-64) => /usr/local/yolo/libyolov8.so
+```
 
 ```bash
  # -p或--print-cache：此选项指示ldconfig打印出当前缓存文件所保存的所有共享库的名字。
@@ -1222,3 +1240,22 @@ target_include_directories(my_target PUBLIC ${MYLIB_INCLUDE_DIRS})
 target_link_libraries(my_target ${MYLIB_LIBRARIES})
 ```
 
+# log
+
+1. [程序执行时无法找到库（动态库）](https://blog.csdn.net/djfjkj52/article/details/131243531)
+
+   - 法一：/etc/ld.so.conf 
+
+   - 法二：修改二进制文件里面的 rpath
+
+     - ##### chrpath 修改rpath，`apt install chrpath`
+
+     - ##### patchelf设置rpath， `apt install patchelf`
+
+     - ##### gcc 指定rpath 编译选项
+
+     - cmake中指定rpath选项
+
+   - 法三：修改LD_LIBRARY_PATH
+
+2. 

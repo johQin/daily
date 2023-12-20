@@ -1057,7 +1057,14 @@ cv2.destroyAllWindows()
 
 # 8 OpenCV C++
 
-1. 
+通过apt直接安装opencv c++
+
+```bash
+# 它不包含GPU部分
+apt install libopencv-dev
+```
+
+
 
 [ffmpeg和opencv的版本匹配](https://blog.csdn.net/Damon_Sandy/article/details/131995799)
 
@@ -1849,5 +1856,5 @@ foreach(id ${ids})
 
     
 
-17. 
+17. [FFmpeg解码后的帧 转OpenCV Mat显示](https://blog.csdn.net/guyuealian/article/details/79607568)
 

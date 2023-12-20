@@ -8408,6 +8408,105 @@ objdump命令是 GNU Binutils 二进制工具集的一员，用于查看目标�
 
 7. 
 
+# Clion
+
+## [在本地使用远程docker开发环境](https://zhuanlan.zhihu.com/p/429270402?utm_id=0)
+
+全文参考上面的标题链接
+
+### 搭建容器环境
+
+```bash
+# 1. 搭建容器环境
+docker run -it --gpus all -v /home/buntu/docker:/var/docker -p 8522:22 187c5dc02f8f /bin/bash
+# 安装ssh
+apt install openssh-server
+
+# 修改ssh配置，允许root登录
+vi /etc/ssh/sshd_config
+# 找到下面一项并修改
+PermitRootLogin yes
+# 修改root密码
+echo 'root:12345' | chpasswd
+
+# 启动ssh
+service ssh start
+service ssh status
+
+# 开机自启动ssh
+systemctl enable ssh
+
+# 如果时区有问题修改一下时区
+# docker.md中看
+```
+
+### clion中配置
+
+#### 配置新的远程docker ssh
+
+![image-20231220204054363](legend/image-20231220204054363.png)
+
+#### 配置新的toolchain
+
+```bash
+# 安装rsync，用于同步的
+apt-get install rsync
+rsync --version
+
+# 安装gcc，g++，make
+apt-get install build-essential
+gcc --version
+g++ --version
+make --version
+
+# 安装生成器ninja
+apt install ninja-build
+ninja --version
+
+# 安装gdb
+apt install gdb
+gdb --version
+
+# 使用whereis 找命令的位置，一般都在如图的位置
+```
+
+
+
+![](./legend/clion中配置docker的toolchain.png)
+
+#### 配置新的cmake
+
+```bash
+# cmake options
+-DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPILER=/usr/bin/g++ -DCMAKE_CUDA_COMPILER:PATH=/usr/local/cuda-12.0/bin/nvcc
+```
+
+
+
+![](./legend/配置新的cmake.png)
+
+#### 远程同步
+
+![](./legend/clion配置deployment文件映射.png)
+
+**此时，右键工程或者工程内的任意文件或文件夹，都可以看到Deployment选项，选择上传或下载。需要手动同步很麻烦，可以设置自动同步File->Settings->Build,Executiong,Deployment->Deployment->Options**
+
+![](./legend/clion配置deployment的option.png)
+
+#### 引用同步
+
+**到这里还没完，当远程Linux环境下安装第三方库的时候，本地是引用不到的，此时可以手动点击Tools ->Resync with Remote Hosts**（主界面的tab页上）
+
+![](./legend/clion手动引用.png)
+
+当然还可以设置为自动引入，Help->Find Action，输入
+
+![image-20231220213114672](legend/image-20231220213114672.png)
+
+搜索选中resync
+
+![image-20231220213232130](legend/image-20231220213232130.png)
+
 # log
 
 1. [在ubuntu中配置c++开发环境](https://blog.csdn.net/qq_33867131/article/details/126540537)
@@ -8806,9 +8905,21 @@ objdump命令是 GNU Binutils 二进制工具集的一员，用于查看目标�
 
         
 
-    - 
+23. [程序执行时无法找到库（动态库）](https://blog.csdn.net/djfjkj52/article/details/131243531)
 
-23. 
+    - 法一：/etc/ld.so.conf 
+
+    - 法二：修改二进制文件里面的 rpath
+
+      - ##### chrpath 修改rpath，`apt install chrpath`
+
+      - ##### patchelf设置rpath， `apt install patchelf`
+
+      - ##### gcc 指定rpath 编译选项
+
+      - cmake中指定rpath选项
+
+    - 法三：修改LD_LIBRARY_PATH
 
 
 

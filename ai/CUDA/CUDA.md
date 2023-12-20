@@ -2311,3 +2311,93 @@ CUDA内存管理包含GPU内存分配、释放、数据在主机和设备（GPU�
 4. [Docker 搭建深度学习环境镜像，一次搭建，无限部署](https://blog.csdn.net/hxj0323/article/details/109405492)
 5. [nvidia/cuda下载](https://gitlab.com/nvidia/container-images/cuda/blob/master/doc/supported-tags.md)
 6. [Docker 快速搭建 TensorRT 环境(超详细)](https://blog.csdn.net/hxj0323/article/details/115859174)
+
+# log
+
+1. cuda 根据gpu设备的剩余内存选择gpu设备
+
+   - [查询设备的内存信息](https://www.jianshu.com/p/187846d9ede9)
+   - [如何查看当前位置显存使用情况](https://blog.csdn.net/qq_41764621/article/details/127522462)
+
+   ```c++
+   bool YOLOV8::chooseGPUDeviceWithMemory(int GpuMemoryUsage) {
+       int deviceCount = 0;
+       cudaGetDeviceCount(&deviceCount);
+       if(deviceCount == 0){
+           logger.error("当前没有可用的GPU设备");
+           return false;
+       }else{
+           std::string deviceCountInfo = std::string("当前有" + deviceCount) + "个GPU设备";
+           logger.info(deviceCountInfo);
+           std::cout<< "当前有" << deviceCount<< "个GPU设备" <<std::endl;
+       }
+   
+       // 遍历设备编号信息
+       int device;
+       int maxRestMemoryDevice = -1;
+       double maxRestMemory = GpuMemoryUsage;
+       size_t avail(0);//可用显存
+       size_t total(0);//总显存
+       for (device = 0; device < deviceCount; ++device) {
+           cudaSetDevice(device);
+           cudaError_t cuda_status = cudaMemGetInfo(&avail,&total);
+           if (cudaSuccess != cuda_status)
+           {
+               std::cout << "Error: cudaMemGetInfo fails : " << cudaGetErrorString(cuda_status) << std::endl;
+               return false;
+           }
+           double freeMemory = double(avail) / (1024.0 * 1024.0);     // MB
+           if(freeMemory > maxRestMemory){
+               maxRestMemoryDevice = device;
+               maxRestMemory = freeMemory;
+           }
+       }
+       if(maxRestMemoryDevice != -1){
+           cudaSetDevice(maxRestMemoryDevice);
+           return true;
+       }
+       return false;
+   }
+   ```
+
+   
+
+2. [依据设定的属性选取设备的流程示例](https://blog.csdn.net/dcrmg/article/details/54577709#:~:text=%E4%BB%A5%E4%B8%8B%E6%98%AF-,%E4%BE%9D%E6%8D%AE%E8%AE%BE%E5%AE%9A%E7%9A%84%E5%B1%9E%E6%80%A7%E9%80%89%E5%8F%96%E8%AE%BE%E5%A4%87%E7%9A%84%E6%B5%81%E7%A8%8B%E7%A4%BA%E4%BE%8B,-%EF%BC%9A)
+
+   ```c++
+   #include "cuda_runtime.h"
+   #include "device_launch_parameters.h"
+   #include <iostream>
+    
+   using namespace std;
+    
+   int main()
+   {
+   	//定义需要的设备属性
+   	cudaDeviceProp devicePropDefined;
+   	memset(&devicePropDefined, 0, sizeof(cudaDeviceProp));  //设置devicepropDefined的值
+   	devicePropDefined.major = 5;
+   	devicePropDefined.minor = 2;
+    
+   	int devicedChoosed;  //选中的设备ID
+   	cudaError_t cudaError;
+   	cudaGetDevice(&devicedChoosed);  //获取当前设备ID
+   	cout << "当前使用设备的编号： " << devicedChoosed << endl;
+    
+   	cudaChooseDevice(&devicedChoosed, &devicePropDefined);  //查找符合要求的设备ID
+   	cout << "满足指定属性要求的设备的编号： " << devicedChoosed << endl;
+    
+   	cudaError = cudaSetDevice(devicedChoosed); //设置选中的设备为下文的运行设备
+    
+   	if (cudaError == cudaSuccess)
+   		cout << "设备选取成功！" << endl;
+   	else
+   		cout << "设备选取失败！" << endl;
+   	getchar();
+   	return 0;
+   }
+   ```
+
+   
+
+3. 
