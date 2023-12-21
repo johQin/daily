@@ -2398,6 +2398,10 @@ CUDA内存管理包含GPU内存分配、释放、数据在主机和设备（GPU�
    }
    ```
 
-   
+3. RuntimeError: CUDA error: an illegal memory access was encountered
 
-3. 
+   - 可能原因一：查看cudaSetDevice，要放在所有关于cuda初始化之前
+   - 可能原因二：图片的尺寸是否符合要求。
+   - [其它](https://blog.csdn.net/yyywxk/article/details/132773782)
+
+4. 

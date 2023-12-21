@@ -1117,6 +1117,8 @@ download now下载下来，解压：
 
 ffnvcodec是ffmpeg英伟达硬解码的头文件，需要下载
 
+[这里可以查看版本信息](https://git.videolan.org/?p=ffmpeg/nv-codec-headers.git;a=summary)
+
 ```bash
 git clone https://git.videolan.org/git/ffmpeg/nv-codec-headers.git
 cd nv-codec-headers
@@ -1130,6 +1132,18 @@ Corresponds to Video Codec SDK version 12.0.16.
 Minimum required driver versions:
 Linux: 530.41.03 or newer
 Windows: 531.61 or newer
+
+
+# 如果嫌驱动版本要求太高，可以切换另一个版本	n12.0.16.0
+git checkout c5e4af74850a616c42d39ed45b9b8568b71bf8bf
+# 它的要求低一些，只需要520
+FFmpeg version of headers required to interface with Nvidias codec APIs.
+
+Corresponds to Video Codec SDK version 12.0.16.
+
+Minimum required driver versions:
+Linux: 520.56.06 or newer
+Windows: 522.25 or newer
 
 # 安装
 make install

@@ -25,7 +25,7 @@
 # 2 常用命令
 1. 查看操作系统版本：`lsb_release -a 或 cat /proc/version`
 
-2. 查看文件或文件夹大小：**ls -hl    or    ls -hl filename**
+2. 查看文件或文件夹大小（MB）：**ls -hl    or    ls -hl filename**
 
 3. ubuntu最小系统通过apt-get安装包前，需要县apt-get update更新一下源，然后才可查找包并安装相关包
 

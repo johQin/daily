@@ -368,4 +368,14 @@ int main()
    - 不同的gpu设备，它的计算能力不兼容，导致其它机器的.engine与当前gpu不兼容
    - 解决：需要在当前设备通过onnx文件重新转换新的engine文件
 
-5. 
+5. tensorRT转换
+
+   - `/usr/src/tensorrt/bin/trtexec --onnx=yolov8m.onnx --saveEngine=yolov8md.trt --buildOnly --minShapes=images:1x3x640x640 --optShapes=images:4x3x1280x1280 --maxShapes=images:8x3x1920x1920`
+   - 后两位尺寸要一致
+
+6. 通过netron可以查看onnx文件的结构
+
+   - [网址](https://netron.app/)
+   - 好像也可以通过pip安装。
+
+7. 
