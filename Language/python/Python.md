@@ -2088,15 +2088,26 @@ libevent 是一个事件分发引擎，greenlet 提供了轻量级线程的支�
 
    ![](./legend/pycharm添加解释器-添加项目代码映射位置和引用同步.png)
 
-4. 
+   
+
+使用远程服务器的其它问题：
+
+1. [pycharm在deployment下的rootpath的含义](https://blog.csdn.net/chenmozhe22/article/details/113996091)
+
+   -![](./legend/pycharm在deployment下的rootpath.png)
+
+2. 
 
 
 
-[pycharm在deployment下的rootpath的含义](https://blog.csdn.net/chenmozhe22/article/details/113996091)
+### 其它问题
 
-![](./legend/pycharm在deployment下的rootpath.png)
+
+
+
 
 1. 对比文件：
+
    - 在右侧文件栏，Ctrl选中两个文件，右击选中Compare Files
    - ![](./legend/pycharm对比文件.png)
 

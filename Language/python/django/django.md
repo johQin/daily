@@ -600,9 +600,17 @@ def downloadModel(request):
     User.objects.all().order_by('-pk')  # 降序，即从大到小，字段前面多个一个减号'-'
     ```
 
+31. [Django 项目报错：TypeError: __init__() got an unexpected keyword argument ‘allow_abbrev‘](https://blog.csdn.net/m0_61643215/article/details/130695209)
+
+    - [参考2](https://stackoverflow.com/questions/55619099/django-admin-typeerror-init-got-an-unexpected-keyword-argument-allow-abb)
+
+    ```bash
+    pip uninstall argparse
+    ```
+
     
 
-31. 
+32. 
 
 # 部署
 
