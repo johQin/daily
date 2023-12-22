@@ -2096,7 +2096,7 @@ libevent 是一个事件分发引擎，greenlet 提供了轻量级线程的支�
 
    -![](./legend/pycharm在deployment下的rootpath.png)
 
-2. 
+2. [解决Pycharm运行服务器文件时出现Cannot find remote credentials for target config com.jetbrains.plugins.remotesdk.](https://blog.csdn.net/yxn4065/article/details/127466041)
 
 
 
