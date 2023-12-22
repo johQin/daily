@@ -272,8 +272,25 @@ GPU版TensorFlow：conda install tensorflow-gpu
 
 ```bash
  # 在源环境的prompt（命令行）生成environment.yml
- conda env export > environment.yml
+ conda env export > environment.yml 
  
+ # 查看镜像源
+ conda config --show-sources
+ ==> /root/.condarc <==
+channels:
+  - https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/pytorch/
+  - https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/r/
+  - https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free/
+  - https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main/
+  - https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/conda-forge/
+  - https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud//pytorch/
+  - defaults
+show_channel_urls: True
+# 删除一个镜像源
+conda config --remove channels https://pypi.tuna.tsinghua.edu.cn/simple
+# 添加一个镜像源
+conda config --add channels https://pypi.tuna.tsinghua.edu.cn/simple
+
  # 在目标环境（命令行）按照environment.yml
  conda env create -f environment.yml
  

@@ -8452,6 +8452,7 @@ systemctl enable ssh
 # 安装rsync，用于同步的
 apt-get install rsync
 rsync --version
+# 远程服务器和本地都要安装
 
 # 安装gcc，g++，make
 apt-get install build-essential

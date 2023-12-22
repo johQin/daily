@@ -1355,11 +1355,29 @@ PARTITION BY KEY(s1) # KEY(EXPR)，EXPR可以为字符串
 PARTITIONS 10;
 ```
 
+## 7.8 [约束](https://blog.csdn.net/weixin_56650035/article/details/131075845#t31)
+
+约束分类：
+
+- 根据约束数据列的限制，约束可分为：
+  - 单列约束：每个约束只约束一列
+  - 多列约束：每个约束可约束多列数据
+- 根据约束的作用范围，约束可分为：
+  - 列级约束：只能作用在一个列上，跟在列的定义后面
+  -  表级约束：可以作用在多个列上，不与列一起，而是单独定义
+- 根据约束起的作用，约束可分为：
+  - NOT NULL 非空约束，规定某个字段不能为空
+  - UNIQUE 唯一约束，规定某个字段在整个表中是唯一的
+  -  PRIMARY KEY 主键(非空且唯一)约束
+  -  FOREIGN KEY 外键约束
+  -  CHECK 检查约束
+  -  DEFAULT 默认值约束
 
 
-## 7.7 其他关键字
 
-### 7.7.1 [exists](<https://www.cnblogs.com/jinghan/p/7150183.html>)
+## 其他关键字
+
+###  [exists](<https://www.cnblogs.com/jinghan/p/7150183.html>)
 
 exists 关键字是判断是否存在的，存在则返回true，不存在则返回false， not exists则是不存在时返回true，存在返回false：
 
@@ -1380,6 +1398,8 @@ where instance_id = '1234' );
 ```
 
 5. 
+
+
 
 # 8 数据库函数
 
@@ -1902,3 +1922,45 @@ where s.to_date='9999-01-01'
 and de.emp_no not in (select emp_no from dept_manager)
 ```
 
+# 13 sqlite
+
+1. [外键约束](https://blog.csdn.net/qq_41363459/article/details/134623442)
+
+   ```sql
+   -- 创建主键表
+   CREATE TABLE Persons (
+       PersonID INTEGER PRIMARY KEY,
+       FirstName TEXT,
+       LastName TEXT
+   );
+   
+   -- 创建外键表，并指定外键约束
+   CREATE TABLE Orders (
+       OrderID INTEGER PRIMARY KEY,
+       OrderNumber TEXT,
+       PersonID INTEGER,
+       FOREIGN KEY (PersonID) REFERENCES Persons(PersonID) ON DELETE CASCADE
+   );
+   
+   -- 插入一些数据
+   INSERT INTO Persons (PersonID, FirstName, LastName) VALUES (1, 'John', 'Doe');
+   INSERT INTO Orders (OrderID, OrderNumber, PersonID) VALUES (101, 'A123', 1);
+   INSERT INTO Orders (OrderID, OrderNumber, PersonID) VALUES (102, 'B456', 1);
+   
+   -- 查询数据
+   SELECT * FROM Persons;
+   SELECT * FROM Orders;
+   
+   -- 删除Persons表中的记录，由于外键上有CASCADE选项，相关的Orders表中的记录也会被删除
+   DELETE FROM Persons WHERE PersonID = 1;
+   
+   -- 再次查询数据
+   SELECT * FROM Persons;
+   SELECT * FROM Orders;
+   
+   
+   ```
+
+   
+
+2. 

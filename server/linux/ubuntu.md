@@ -265,7 +265,15 @@
     apt search -r <regex-pattern>
     ```
 
-22. 
+22. 修改root密码
+
+    ```bash
+    echo 'root:12345' | chpasswd
+    ```
+
+    
+
+23. 
 
 # 3 ubuntu软件安装
 
