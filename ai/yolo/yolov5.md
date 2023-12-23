@@ -109,11 +109,113 @@ wget https://github.com/ultralytics/yolov5/releases/download/v1.0/coco2017labels
 https://github.com/ultralytics/yolov5/releases/download/v1.0/coco128.zip
 
 # 下载yolov5对应代码的版本tag版本，在这里我们用的时tag v5.0版本
-https://github.com/ultralytics/yolov5/releases/download/v5.0/yolov5s.pt
+https://github.com/ultralytics/yolov5/releases/download/v5.0/yolov5s.
 https://github.com/ultralytics/yolov5/releases/download/v5.0/yolov5m.pt
 https://github.com/ultralytics/yolov5/releases/download/v5.0/yolov5l.pt
 https://github.com/ultralytics/yolov5/releases/download/v5.0/yolov5x.pt
 ```
+
+# 1 全流程
+
+## 1.1 标注数据
+
+需要在有界面的主机上安装，远程ssh无法使用窗口
+
+```bash
+# 安装
+pip install labelImg
+# 启动
+labelImg
+```
+
+标注
+
+![img](./legend/wp.jpeg)
+
+![img](./legend/wp-1703317059823-3.jpeg)
+
+- 一张图片对应一个txt标注文件（如果图中无所要物体，则无需txt文件）；
+- txt每行一个物体（一张图中可以有多个标注）；
+- 每行数据格式：`类别id、x_center y_center width height`；
+- **xywh**必须归一化（0-1），其中`x_center、width`除以图片宽度，`y_center、height`除以画面高度；
+- 类别id必须从0开始计数。
+
+## 1.2 准备数据集
+
+### 数据集结构与存放位置
+
+```bash
+. 工作路径
+├── datasets
+│   └── person_data
+│       ├── images
+│       │   ├── train
+│       │   │   └── demo_001.jpg
+│       │   └── val
+│       │       └── demo_002.jpg
+│       └── labels
+│           ├── train
+│           │   └── demo_001.txt
+│           └── val
+│               └── demo_002.txt
+└── yolov5
+```
+
+**要点：**
+
+- `datasets`与`yolov5`同级目录；
+- 图片 `datasets/person_data/images/train/{文件名}.jpg`对应的标注文件在 `datasets/person_data/labels/train/{文件名}.txt`，YOLO会根据这个映射关系自动寻找（`images`换成`labels`）；
+- 训练集和验证集
+  - `images`文件夹下有`train`和`val`文件夹，分别放置训练集和验证集图片;
+  - `labels`文件夹有`train`和`val`文件夹，分别放置训练集和验证集标签(yolo格式）;
+
+###  创建数据集的配置文件
+
+复制`yolov5/data/coco128.yaml`一份，比如为`coco_person.yaml`
+
+```yaml
+# Train/val/test sets as 1) dir: path/to/imgs, 2) file: path/to/imgs.txt, or 3) list: [path/to/imgs1, path/to/imgs2, ..]
+path: ../datasets/person_data  # 数据所在目录
+train: images/train  # 训练集图片所在位置（相对于path）
+val:  images/val # 验证集图片所在位置（相对于path）
+test:  # 测试集图片所在位置（相对于path）（可选）
+
+# 类别
+nc: 5  # 类别数量
+names: ['pedestrians','riders','partially-visible-person','ignore-regions','crowd'] # 类别标签名
+```
+
+### 选择并创建模型的配置文件
+
+
+
+> 官方权重下载地址：https://github.com/ultralytics/yolov5
+
+![img](./legend/wp-1703317810676-6.jpeg)
+
+根据你的设备，选择合适的预训练模型，具体模型比对如下：
+
+![img](./legend/wp-1703317810676-7.jpeg)
+
+复制`models`下对应模型的`yaml`文件，重命名，比如课程另存为`yolov5s_person.yaml`，并修改其中：
+
+```shell
+# nc: 80  # 类别数量
+nc: 5  # number of classes
+```
+
+### 训练
+
+下载对应的预训练模型权重文件，可以放到`weights`目录下，设置本机最好性能的各个参数，即可开始训练，课程中训练了以下参数：
+
+```shell
+# yolov5s 
+python ./train.py --data ./data/coco_person.yaml --cfg ./models/yolov5s_person.yaml --weights ./weights/yolov5s.pt --batch-size 32 --epochs 120 --workers 0 --name s_120 --project yolo_person_s
+```
+
+> 更多参数见`train.py`；
+>
+> 训练结果在`yolo_person_s/`中可见，一般训练时间在几个小时以上。
 
 
 
