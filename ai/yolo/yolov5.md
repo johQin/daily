@@ -185,9 +185,9 @@ nc: 5  # 类别数量
 names: ['pedestrians','riders','partially-visible-person','ignore-regions','crowd'] # 类别标签名
 ```
 
+## 1.3 训练
+
 ### 选择并创建模型的配置文件
-
-
 
 > 官方权重下载地址：https://github.com/ultralytics/yolov5
 
@@ -210,12 +210,116 @@ nc: 5  # number of classes
 
 ```shell
 # yolov5s 
-python ./train.py --data ./data/coco_person.yaml --cfg ./models/yolov5s_person.yaml --weights ./weights/yolov5s.pt --batch-size 32 --epochs 120 --workers 0 --name s_120 --project yolo_person_s
+python ./train.py --data ./data/coco_person.yaml --cfg ./models/yolov5s_person.yaml --weights ./weights/yolov5s.pt --batch-size 16 --epochs 120 --workers 0 --name s_120 --project yolo_person_s
 ```
 
 > 更多参数见`train.py`；
 >
 > 训练结果在`yolo_person_s/`中可见，一般训练时间在几个小时以上。
+
+建议gpu内存小的机器，batch-size选择16及以下的数值（4的倍数），过大会导致相关问题，导致训练过程中断
+
+如以下：
+
+1. RuntimeError: cuDNN error: CUDNN_STATUS_NOT_INITIALIZED
+2. torch.cuda.OutOfMemoryError: CUDA out of memory. Tried to allocate 14.00 MiB (GPU 0; 5.79 GiB total capacity; 4.79 GiB already allocated; 52.69 MiB free; 4.88 GiB reserved in total by PyTorch) If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.  See documentation for Memory Management and PYTORCH_CUDA_ALLOC_CONF
+3. 
+
+### 训练过程可视化
+
+#### wandb
+
+YOLO官网推荐使用https://wandb.ai/。
+
+- 去官网注册账号；
+- 获取`key`秘钥，地址：https://wandb.ai/authorize
+- 使用`pip install wandb`安装包；
+- 使用`wandb login`粘贴秘钥后登录；
+- 打开网站即可查看训练进展。
+
+```bash
+pip install wandb
+```
+
+![img](./legend/wp-1703381122005-12.jpeg)
+
+#### tensorboard
+
+```bash
+tensorboard --logdir=./yolo_person_s
+```
+
+![img](./legend/wp-1703381182111-15.jpeg)
+
+
+
+## 1.4 测试与评估
+
+### 测试
+
+```bash
+# 如                                                         
+python detect.py --source ./000057.jpg --weights ./yolo_person_s/s_120/weights/best.pt --conf-thres 0.3
+# 或
+python detect.py --source ./c3.mp4 --weights ./yolo_person_s/s_120/weights/best.pt --conf-thres 0.3
+```
+
+### 评估
+
+```bash
+python val.py --data  ./data/coco_person.yaml  --weights ./yolo_person_s/s_120/weights/best.pt --batch-size 12
+
+val: data=./data/coco_person.yaml, weights=['./yolo_person_s/s_1203/weights/best.pt'], batch_size=12, imgsz=640, conf_thres=0.001, iou_thres=0.6, max_det=300, task=val, device=, workers=8, single_cls=False, augment=False, verbose=False, save_txt=False, save_hybrid=False, save_conf=False, save_json=False, project=runs/val, name=exp, exist_ok=False, half=False, dnn=False
+YOLOv5 🚀 v7.0-212-g9974d51 Python-3.9.17 torch-2.0.1+cu117 CUDA:0 (NVIDIA GeForce GTX 1660 SUPER, 5928MiB)
+
+Fusing layers... 
+YOLOv5s_person summary: 157 layers, 7023610 parameters, 0 gradients, 15.8 GFLOPs
+val: Scanning /home/buntu/gitRepository/yoloXXX/datasets/person_data/labels/val.cache... 1000 images, 0 backgrounds, 0 corrupt: 100%|██████████| 1000/1000 [00:00<?, ?it/s]
+                 Class     Images  Instances          P          R      mAP50   mAP50-95:   2%|▏         | 2/84 [00:02<01:40,  1.22s/it]WARNING ⚠️ NMS time limit 1.100s exceeded
+                 Class     Images  Instances          P          R      mAP50   mAP50-95: 100%|██████████| 84/84 [00:12<00:00,  6.58it/s]
+                   all       1000      28423      0.508      0.366      0.379      0.205
+           pedestrians       1000      17833      0.754      0.836      0.872      0.605
+                riders       1000        185      0.609      0.492      0.495      0.237
+partially-visible persons       1000       9335      0.509      0.322      0.341      0.124
+        ignore regions       1000        409      0.428      0.144      0.154     0.0528
+                 crowd       1000        661      0.242     0.0358     0.0312    0.00788
+Speed: 0.1ms pre-process, 6.5ms inference, 3.3ms NMS per image at shape (12, 3, 640, 640)
+Results saved to runs/val/exp2
+```
+
+## 1.5 导出onnx
+
+```bash
+pip install onnx
+
+# 如果torch是GPU版本，就可以安装onnxruntime-gpu
+# 检查torch是什么版本，进入python的命令交互式环境
+import torch
+torch.__version__				# 如果是2.0.1+cu117，就是GPU版本
+torch.cuda.is_available()		# 查看cuda是否可用
+torch.cuda.get_device_name(0)	# 查看gpu设备名称
+
+# 如果pytorch是CPU版本就不能安装onnxruntime的gpu版本
+# GPU版本
+pip install onnxruntime-gpu==1.16    #（本人cuda12.2.，安装1.16可用）
+# CPU版本
+pip install onnxruntime   
+
+# 验证onnxruntime GPU版本是否可用
+import onnxruntime
+onnxruntime.get_device()
+onnxruntime.get_available_providers()
+```
+
+
+
+在本项目中，我们将使用`tensort decode plugin`来代替原来yolov5代码中的decode操作，如果不替换，这部分运算将影响整体性能。
+
+为了让`tensorrt`能够识别并加载我们额外添加的`plugin operator`，我们需要修改Yolov5代码中导出onnx模型的部分。
+
+<img src="./legend/wp-1703410251412-18.jpeg" alt="img" style="zoom: 33%;" />
+
+### 1.5.1 修改decode部分代码
 
 
 
