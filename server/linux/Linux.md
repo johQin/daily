@@ -433,6 +433,12 @@ Unix Software Resource
 
 ![](legend/磁盘结构组成.png)
 
+扇区，是指磁盘上划分的区域。磁盘上的每个磁道被等分为若干个弧段，这些弧段便是磁盘的扇区，硬盘的读写以扇区为基本单位。
+
+磁盘的每一面被分为很多条磁道，即表面上的一些同心圆，越接近中心，圆就越小。而每一个磁道又按512个字节为单位划分为等分，叫做扇区。
+
+扇区是磁盘存储数据的基本单位，每个扇区的大小一般都是512字节。
+
 整个磁盘的第一个扇区特别重要，记录了整块磁盘的重要信息，分别是：
 
 1. 主引导分区（MBR，Master Boot Record）：446bytes，安装引导加载程序的地方。
@@ -545,6 +551,8 @@ block 使用情况映射表，用于记录哪个block为空或不为空，删除
 
 ## 6.4 磁盘操作
 
+**当服务器插入一块硬盘，如果我们想要使用该硬盘，需要先使用磁盘分区管理工具进行磁盘分区，然后格式化分区，把分区挂载到目录上，才可以正式使用该硬盘存储文件。**
+
 ### 6.4.1 磁盘分区
 
 1. **fdisk [ -l ]  [ 设备名称 ]**
@@ -556,6 +564,76 @@ block 使用情况映射表，用于记录哪个block为空或不为空，删除
    - d，**删除**一个分区
    - q，不保存操作离开
    - w，操作写入分区表并离开
+
+```bash
+# 当在ubuntu系统插入u盘后，要去/media/${username}/设备名，去卸载挂载的设备
+umount /media/${username}/设备名
+# 确定磁盘的名字，一般当前系统的磁盘名字为sda，插入系统的u盘为sdb，当然务必要确定名字的正确，因为数据无价
+
+cd /dev
+# 未插u盘时
+ls
+# 插入u盘时
+ls
+# 二者对比，多了什么磁盘名，我这里多了一个sdb，然后查看磁盘的大小，再次核对是否和真实盘的大小一致
+fdisk -l | grep sdb
+# 下面演示的是fdisk -l | grep sda（当前系统盘的分区情况）
+fdisk -l | grep sda
+Disk /dev/sda：931.51 GiB，1000204886016 字节，1953525168 个扇区
+/dev/sda1     2048    1050623    1048576  512M EFI 系统
+/dev/sda2  1050624 1953523711 1952473088  931G Linux 文件系统
+# 查看分区的大小和挂载情况
+lsblk sda
+NAME   MAJ:MIN RM   SIZE RO TYPE MOUNTPOINTS
+sda      8:0    0 931.5G  0 disk 
+├─sda1   8:1    0   512M  0 part /boot/efi
+└─sda2   8:2    0   931G  0 part /var/snap/firefox/common/host-hunspell
+                                 /
+
+# 如果要对sdb开始分区，进入交互式命令窗
+fdisk /dev/sdb
+Welcome to fdisk (util-linux 2.23.2).
+
+Changes will remain in memory only, until you decide to write them.
+Be careful before using the write command.
+
+
+Command (m for help): m
+Command action
+   a   toggle a bootable flag                                   # 切换可启动标志
+   b   edit bsd disklabel　　　　　　　　　　　　　　　　　　         # 编辑磁盘标记
+   c   toggle the dos compatibility flag　　　　　　　　　　　　　　 # 切换dos兼容标志
+   d   delete a partition　　　　　　　　　　　　　　　　　　　　　　　 # 删除一个分区
+   g   create a new empty GPT partition table             　　   # 创建一个空的GPT分区表
+   G   create an IRIX (SGI) partition table            　　      # 创建一个IRIX分区表
+   l   list known partition types　　　　　　　　　　　　　　　　　　　# 列出已知的分区类型
+   m   print this menu　　　　　　　　　　　　　　　　　　　　　　　　　　# 打印菜单　　　　　　　　　　　　　　　　　　　
+   n   add a new partition                                       # 添加一个分区
+   o   create a new empty DOS partition table                    # 创建一个空的DOS分区表
+   p   print the partition table                                 # 打印分区表
+   q   quit without saving changes                               # 退出不保存
+   s   create a new empty Sun disklabel                          # 创建一个空的sun磁盘标签
+   t   change a partition's system id                            # 改变一个分区的类型
+   u   change display/entry units                                # 改变显示的单位
+   v   verify the partition table                                # 验证分区表
+   w   write table to disk and exit                              # 写分区表并退出
+   x   extra functionality (experts only)                        # 高级功能
+   
+Command (m for help): n                  #新建分区
+Partition type:
+   p   primary (0 primary, 0 extended, 4 free)             #主分区
+   e   extended                                            #扩展分区
+Select (default p): p                                      #选择新建主分区
+Partition number (1-4, default 1):                         #主分区号，会生成/dev/sdb1
+First sector (2048-2097151, default 2048):                  #开始扇区，回车默认从2048开始
+Using default value 2048
+Last sector, +sectors or +size{K,M,G} (2048-2097151, default 2097151): +50M     #分配主分区大小，在此为50M
+# 这里指定的容量大小，有两种模式，一种是扇区数（+sectors），一种是容量（+size），一定要写+号，否则会认为你指定的是sectors数
+# 我们通常采用容量的方式，指定大小，比如说你要分一个100G的分区，你就要写：+100G，然后你就会得到一个100G的分区。
+Partition 1 of type Linux and of size 50 MiB is set
+```
+
+
 
 ### 6.4.2 分区格式化
 
