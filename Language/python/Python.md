@@ -1645,7 +1645,26 @@ with open("./params.json", mode="w") as f:
 }
 ```
 
+## 10.7 [tqdm](https://blog.csdn.net/weixin_44676081/article/details/104834371)
 
+`tqdm`是一个快速的，易扩展的进度条提示模块
+
+```bash
+pip install tqdm -i https://pypi.tuna.tsinghua.edu.cn/simple/
+```
+
+```python
+# 向tqdm中传入迭代类型即可
+from tqdm import tqdm
+import time
+
+text = ""
+for char in tqdm(["a", "b", "c", "d"]):
+    time.sleep(0.25)
+    text = text + char
+```
+
+![img](/home/buntu/gitRepository/daily/Language/python/legend/20200313095040435.gif)
 
 # 12 文件I/O
 
@@ -1653,6 +1672,8 @@ with open("./params.json", mode="w") as f:
 #open(file_name[,access_mode],encoding='utf-8')
 #w、w，不能打开文件夹不存在的文件，但能打开文件夹存在且文件不存在的文件，如不存在就会新建
 ```
+
+
 
 ## 读文件
 
