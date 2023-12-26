@@ -8003,6 +8003,13 @@ void threadFunc() {
 }
 ```
 
+# 13 文件系统
+
+```c++
+#include <filesystem>
+std::filesystem::create_directories(std::string(exeWd) + "/log");
+```
+
 
 
 # 其他
@@ -8921,6 +8928,17 @@ gdb --version
       - cmake中指定rpath选项
 
     - 法三：修改LD_LIBRARY_PATH
+
+24. 查看g++支持的版本
+
+    ```bash
+    # 查看g++是否支持c++11
+    g++ -std=c++11 -E - < /dev/null
+    ```
+
+    
+
+25. 
 
 
 

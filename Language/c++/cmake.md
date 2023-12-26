@@ -1627,6 +1627,56 @@ ELF （Executable and Linkable Format）文件，也就是在 Linux 中的目标
 
 
 
+# 6 文件系统
+
+## 6.1 创建文件夹
+
+```cmake
+# 创建文件夹，根据需要创建给定的目录及其父目录。
+file(MAKE_DIRECTORY [<directories>...])
+
+# eg: 创建多个目录
+set(DIRS ${CMAKE_CURRENT_BINARY_DIR}/add/a ${CMAKE_CURRENT_BINARY_DIR}/add/b ${CMAKE_CURRENT_BINARY_DIR}/add/c)
+file(MAKE_DIRECTORY ${DIRS})
+
+# 输入路径的相对地址时，是相对CMAKE_CURRENT_SOURCE_DIR来创建的
+# 该命令在构建时执行，如果指定的目录不存在，则会自动创建它们。如果指定目录已存在，也不会报错。
+```
+
+## 6.2 文件复制
+
+```cmake
+file(<COPY|INSTALL> <files>... DESTINATION <dir>
+     [FILE_PERMISSIONS <permissions>...]
+     [DIRECTORY_PERMISSIONS <permissions>...]
+     [NO_SOURCE_PERMISSIONS] [USE_SOURCE_PERMISSIONS]
+     [FOLLOW_SYMLINK_CHAIN]
+     [FILES_MATCHING]
+     [[PATTERN <pattern> | REGEX <regex>]
+     [EXCLUDE] [PERMISSIONS <permissions>...]] [...])
+
+# COPY将文件，目录和符号链接复制到目标文件夹。
+
+# 相对于当前源目录评估相对输入路径(CMAKE_CURRENT_SOURCE_DIR)，相对于当前构建目录评估相对目的地(CMAKE_CURRENT_BINARY_DIR)。
+# 如果DESTINATION <dir> 不存在那么它将会，自动根据需要创建给定的目录及其父目录。
+# 如果没有指定DESTINATION 或者 DESTINATION后面的变量为空，将会报：FILE COPY given no DESTINATION
+
+# eg：复制模型文件到构建目录
+# 模型源文件名
+SET(MODEL_FILE_NAME yolov8md.trt)
+# 模型源文件存放目录
+SET(MODEL_SRC_SAVE_DIR_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../data/yolov8")
+SET(MODEL_SRC_FILE_PATH "${MODEL_SRC_SAVE_DIR_PATH}/${MODEL_FILE_NAME}")
+# 判断模型文件是否存在
+if(NOT EXISTS ${MODEL_SRC_FILE_PATH})
+    MESSAGE(FATAL_ERROR "model src file not exist")
+ENDIF ()
+# 拷贝模型
+FILE(COPY ${MODEL_SRC_FILE_PATH} DESTINATION ./model)
+```
+
+
+
 # 工具函数
 
 ## [工程声明project](https://www.jianshu.com/p/cdd6e56c2422)
