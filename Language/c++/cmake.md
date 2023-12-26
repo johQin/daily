@@ -1643,7 +1643,7 @@ file(MAKE_DIRECTORY ${DIRS})
 # 该命令在构建时执行，如果指定的目录不存在，则会自动创建它们。如果指定目录已存在，也不会报错。
 ```
 
-## 6.2 文件复制
+## 6.2 [文件复制](https://blog.csdn.net/zhaodeming000/article/details/102712648)
 
 ```cmake
 file(<COPY|INSTALL> <files>... DESTINATION <dir>
@@ -1675,7 +1675,24 @@ ENDIF ()
 FILE(COPY ${MODEL_SRC_FILE_PATH} DESTINATION ./model)
 ```
 
+- 复制将保留输入文件的权限，除非给出明确的权限或NO_SOURCE_PERMISSIONS（默认为USE_SOURCE_PERMISSIONS）。
 
+- 如果指定了FOLLOW_SYMLINK_CHAIN，则COPY将在给定的路径上递归解析符号链接，直到找到真实文件为止，然后在目标位置为遇到的每个符号链接安装相应的符号链接。
+
+  - 对于已安装的每个符号链接，解析都会从目录中剥离，仅保留文件名，这意味着新符号链接指向与符号链接相同目录中的文件。此功能在某些Unix系统上很有用，在这些系统中，库是作为带有符号链接的版本号安装的，而较少特定的版本指向的是特定版本。FOLLOW_SYMLINK_CHAIN会将所有这些符号链接和库本身安装到目标目录中。
+
+  - ```cmake
+    # 例如，如果您具有以下目录结构：
+    # /opt/foo/lib/libfoo.so.1.2.3
+    # /opt/foo/lib/libfoo.so.1.2 -> libfoo.so.1.2.3
+    # /opt/foo/lib/libfoo.so.1 -> libfoo.so.1.2
+    # /opt/foo/lib/libfoo.so -> libfoo.so.1
+    
+    file(COPY /opt/foo/lib/libfoo.so DESTINATION lib FOLLOW_SYMLINK_CHAIN)
+    # 这会将所有符号链接和libfoo.so.1.2.3本身安装到lib中。
+    ```
+
+  - 
 
 # 工具函数
 
