@@ -1924,6 +1924,20 @@ and de.emp_no not in (select emp_no from dept_manager)
 
 # 13 sqlite
 
+## 13.1 [基础命令](https://blog.csdn.net/apple_71040140/article/details/132745689)
+
+```bash
+sqlite3
+sqlite> .open db.sqlite3	# 打开当前目录下
+sqlite> .tables				# 查看库中所有表
+django_migrations  model_entity       model_target     
+sqlite> SELECT * FROM model_entity;			# 查询数据
+sqlite> delete from model_entity  where 1;	# 删除所有数据
+sqlite> update model_entity set modelImg='/device/img/202312281745b43906.jpg' where id = 'fc9744fa-50bb-4bee-9cf9-388c4731a649';
+```
+
+
+
 1. [外键约束](https://blog.csdn.net/qq_41363459/article/details/134623442)
 
    ```sql

@@ -614,6 +614,8 @@ def downloadModel(request):
 
 # 部署
 
+[如何使用gunicorn部署django程序](https://blog.csdn.net/qq_15028721/article/details/129298393)
+
 ```bash
 /home/buntu/.conda/envs/djg_conf_server/bin/python /home/buntu/gitRepository/axxt/ModelDeployment/manage.py runserver 192.168.101.163:8000 --noreload
 ```
