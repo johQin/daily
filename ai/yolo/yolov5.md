@@ -10,6 +10,12 @@ yolov5（you only look once，version 5）是基于python环境，在pytorch机�
 
 **yolov5 tagv5.0版本代码**
 
+```bash
+git clone https://github.com/ultralytics/yolov5.git
+```
+
+
+
 ## 0.1 项目结构
 
 ![](./legend/yolov5项目结构.png)
@@ -187,6 +193,15 @@ names: ['pedestrians','riders','partially-visible-person','ignore-regions','crow
 
 ## 1.3 训练
 
+```bash
+# 切换yolov5到指定分支
+git checkout a80dd66efe0bc7fe3772f259260d5b7278aab42f
+# 查看当前版本
+git log -1 --pretty=format:"%h"
+```
+
+
+
 ### 选择并创建模型的配置文件
 
 > 官方权重下载地址：https://github.com/ultralytics/yolov5
@@ -319,7 +334,509 @@ onnxruntime.get_available_providers()
 
 <img src="./legend/wp-1703410251412-18.jpeg" alt="img" style="zoom: 33%;" />
 
-### 1.5.1 修改decode部分代码
+### 1.5.1 修改yolov5 decode部分代码
+
+将训练后的模型（项目名/s_xxx/weights/best.pt）移动重命名到weights/yolov5s_person.pt
+
+```bash
+# 用于导出onnx时，对模型进行简化
+pip install onnx-simplifier  # >= 0.3.10
+# 用于可视化onnx模型结构
+pip install netron
+
+# seaborn是python中的一个可视化库，是对matplotlib进行二次封装而成
+pip install seaborn
+# onnx的手术刀工具，可改变网络结构
+pip install onnx-graphsurgeon
+
+apt update
+apt install -y libgl1-mesa-glx		# opengl的图形依赖包
+
+# 修改之前，建议先使用export.py 导出一份原始操作的onnx模型，以便和修改后的模型进行对比。
+python export.py --weights weights/yolov5s_person.pt --include onnx --simplify --dynamic
+# 可视化原始的模型
+netron ./weights/yolov5s_person.onnx
+```
+
+```bash
+# 通过git的补丁，修改export.py
+git am export.patch
+# 可以下来仔细研究export的变化
+
+# 然后导出修改后的网络
+python export.py --weights weights/yolov5s_person.pt --include onnx --simplify --dynamic
+```
+
+![](./legend/修改yolov5的decode网络模块.png)
+
+### 1.5.2 具体修改细节
+
+在`models/yolo.py`文件中54行，我们需要修改`class Detect`的forward方法，以删除其box decode运算，以直接输出网络结果。在后面的tensorrt部署中，我们将利用decode plugin来进行decode操作，并用gpu加速。修改内容如下：
+
+```python
+-            bs, _, ny, nx = x[i].shape  # x(bs,255,20,20) to x(bs,3,20,20,85)
+-            x[i] = x[i].view(bs, self.na, self.no, ny, nx).permute(0, 1, 3, 4, 2).contiguous()
+-
+-            if not self.training:  # inference
+-                if self.onnx_dynamic or self.grid[i].shape[2:4] != x[i].shape[2:4]:
+-                    self.grid[i], self.anchor_grid[i] = self._make_grid(nx, ny, i)
+-
+-                y = x[i].sigmoid()
+-                if self.inplace:
+-                    y[..., 0:2] = (y[..., 0:2] * 2 + self.grid[i]) * self.stride[i]  # xy
+-                    y[..., 2:4] = (y[..., 2:4] * 2) ** 2 * self.anchor_grid[i]  # wh
+-                else:  # for YOLOv5 on AWS Inferentia https://github.com/ultralytics/yolov5/pull/2953
+-                    xy, wh, conf = y.split((2, 2, self.nc + 1), 4)  # y.tensor_split((2, 4, 5), 4)  # torch 1.8.0
+-                    xy = (xy * 2 + self.grid[i]) * self.stride[i]  # xy
+-                    wh = (wh * 2) ** 2 * self.anchor_grid[i]  # wh
+-                    y = torch.cat((xy, wh, conf), 4)
+-                z.append(y.view(bs, -1, self.no))
+-
+-        return x if self.training else (torch.cat(z, 1),) if self.export else (torch.cat(z, 1), x)
++            y = x[i].sigmoid()
++            z.append(y)
++        return z
+```
+
+可以看到这里删除了主要的运算部分，将模型输出直接作为list返回。修改后，onnx的输出将被修改为三个原始网络输出，我们需要在输出后添加decode plugin的算子。首先我们先导出onnx，再利用nvidia的graph surgeon来修改onnx。首先我们修改onnx export部分代码：
+
+> GraphSurgeon 是nvidia提供的工具，可以方便的用于修改、添加或者删除onnx网络图中的节点，并生成新的onnx。参考链接：https://github.com/NVIDIA/TensorRT/tree/master/tools/onnx-graphsurgeon。
+
+```python
+torch.onnx.export(
+        model,
+        im,
+        f,
+        verbose=False,
+        opset_version=opset,
+        training=torch.onnx.TrainingMode.TRAINING if train else torch.onnx.TrainingMode.EVAL,
+        do_constant_folding=not train,
+        input_names=['images'],
+        output_names=['p3', 'p4', 'p5'],
+        dynamic_axes={
+            'images': {
+                0: 'batch',
+                2: 'height',
+                3: 'width'},  # shape(1,3,640,640)
+            'p3': {
+                0: 'batch',
+                2: 'height',
+                3: 'width'},  # shape(1,25200,4)
+            'p4': {
+                0: 'batch',
+                2: 'height',
+                3: 'width'},
+            'p5': {
+                0: 'batch',
+                2: 'height',
+                3: 'width'}
+        } if dynamic else None)
+```
+
+将onnx的输出改为3个原始网络输出。输出完成后，我们再加载onnx，并simplify：
+
+```python
+model_onnx = onnx.load(f)
+model_onnx = onnx.load(f)  # load onnx model
+onnx.checker.check_model(model_onnx)  # check onnx model
+
+# Simplify
+if simplify:
+    # try:
+    check_requirements(('onnx-simplifier',))
+    import onnxsim
+
+    LOGGER.info(f'{prefix} simplifying with onnx-simplifier {onnxsim.__version__}...')
+    model_onnx, check = onnxsim.simplify(model_onnx,
+        dynamic_input_shape=dynamic,
+        input_shapes={'images': list(im.shape)} if dynamic else None)
+    assert check, 'assert check failed'
+    onnx.save(model_onnx, f)
+```
+
+然后我们再将onnx加载回来，用nvidia surgeon进行修改:
+
+```python
+import onnx_graphsurgeon as onnx_gs
+import numpy as np
+yolo_graph = onnx_gs.import_onnx(model_onnx)
+```
+
+首先我们获取原始的onnx输出p3,p4,p5：
+
+```python
+p3 = yolo_graph.outputs[0]
+p4 = yolo_graph.outputs[1]
+p5 = yolo_graph.outputs[2]
+```
+
+然后我们定义新的onnx输出，由于decode plugin中，有4个输出，所以我们将定义4个新的输出。其名字需要和下面的代码保持一致，这是decode_plugin中预先定义好的。
+
+```python
+decode_out_0 = onnx_gs.Variable(
+  "DecodeNumDetection",
+  dtype=np.int32
+)
+decode_out_1 = onnx_gs.Variable(
+  "DecodeDetectionBoxes",
+  dtype=np.float32
+)
+decode_out_2 = onnx_gs.Variable(
+  "DecodeDetectionScores",
+  dtype=np.float32
+)
+decode_out_3 = onnx_gs.Variable(
+  "DecodeDetectionClasses",
+  dtype=np.int32
+)
+```
+
+然后我们需要再添加一些decode参数，定义如下：
+
+```python
+decode_attrs = dict()
+
+decode_attrs["max_stride"] = int(max(model.stride))
+decode_attrs["num_classes"] = model.model[-1].nc
+decode_attrs["anchors"] = [float(v) for v in [10,13, 16,30, 33,23, 30,61, 62,45, 59,119, 116,90, 156,198, 373,326]]
+decode_attrs["prenms_score_threshold"] = 0.25
+```
+
+在定义好了相关参数后，我们创建一个onnx node，用作decode plugin。由于我们的tensorrt plugin的名称为`YoloLayer_TRT`,因此这里我们需要保持op的名字与我们的plugin名称一致。通过如下代码，我们创建了一个node：
+
+```python
+decode_plugin = onnx_gs.Node(
+        op="YoloLayer_TRT",
+        name="YoloLayer",
+        inputs=[p3, p4, p5],
+        outputs=[decode_out_0, decode_out_1, decode_out_2, decode_out_3],
+        attrs=decode_attrs
+    )
+```
+
+然后我们将这个node添加了网络中：
+
+```python
+yolo_graph.nodes.append(decode_plugin)
+    yolo_graph.outputs = decode_plugin.outputs
+    yolo_graph.cleanup().toposort()
+    model_onnx = onnx_gs.export_onnx(yolo_graph)
+```
+
+最后添加一些meta信息后，我们导出最终的onnx文件，这个文件可以用于后续的tensorrt部署和推理。
+
+```python
+d = {'stride': int(max(model.stride)), 'names': model.names}
+    for k, v in d.items():
+        meta = model_onnx.metadata_props.add()
+        meta.key, meta.value = k, str(v)
+
+    onnx.save(model_onnx, f)
+    LOGGER.info(f'{prefix} export success, saved as {f} ({file_size(f):.1f} MB)')
+    return f
+```
+
+## 1.6 TensorRT部署
+
+### 1.6.1 模型构建 
+
+```c++
+#include "NvInfer.h"
+#include "NvOnnxParser.h" // onnxparser头文件
+#include "logger.h"
+#include "common.h"
+#include "buffers.h"
+#include "cassert"
+#include "./utils/common_utils.h"
+
+// main函数
+int main(int argc, char **argv)
+{
+    if (argc != 3)
+    {
+        std::cerr << "用法: ./build [input_onnx_file_name] [output_file_name]" << std::endl;
+        return -1;
+    }
+    char cwd[128] = {0};
+    utils::getExeWd(cwd,128);
+
+
+    // 命令行获取onnx文件路径
+    std::string onnx_file_path = std::string(cwd) + "/weights/" + argv[1];
+    std::string engine_file_path = std::string(cwd) + "/weights/" + argv[2];
+    std::cout<< "onnx_file_path："<< onnx_file_path << std::endl;
+    std::cout<< "engine_file_path："<< engine_file_path << std::endl;
+
+    // =========== 1. 创建builder ===========
+    auto builder = std::unique_ptr<nvinfer1::IBuilder>(nvinfer1::createInferBuilder(sample::gLogger.getTRTLogger()));
+    if (!builder)
+    {
+        std::cerr << "Failed to create builder" << std::endl;
+        return -1;
+    }
+
+    // ========== 2. 创建network：builder--->network ==========
+    // 显性batch
+    const auto explicitBatch = 1U << static_cast<uint32_t>(nvinfer1::NetworkDefinitionCreationFlag::kEXPLICIT_BATCH);
+    // 调用builder的createNetworkV2方法创建network
+    auto network = std::unique_ptr<nvinfer1::INetworkDefinition>(builder->createNetworkV2(explicitBatch));
+    if (!network)
+    {
+        std::cout << "Failed to create network" << std::endl;
+        return -1;
+    }
+    // 与上节课手动创建网络不同，这次使用onnxparser创建网络
+
+    // 创建onnxparser，用于解析onnx文件
+    auto parser = std::unique_ptr<nvonnxparser::IParser>(nvonnxparser::createParser(*network, sample::gLogger.getTRTLogger()));
+    // 调用onnxparser的parseFromFile方法解析onnx文件
+    auto parsed = parser->parseFromFile(onnx_file_path.c_str(), static_cast<int>(sample::gLogger.getReportableSeverity()));
+    if (!parsed)
+    {
+        std::cout << "Failed to parse onnx file" << std::endl;
+        return -1;
+    }
+    // 配置网络参数
+    // 我们需要告诉tensorrt我们最终运行时，输入图像的范围，batch size的范围。这样tensorrt才能对应为我们进行模型构建与优化。
+    auto input = network->getInput(0);                                                                             // 获取输入节点
+    auto profile = builder->createOptimizationProfile();                                                           // 创建profile，用于设置输入的动态尺寸
+    profile->setDimensions(input->getName(), nvinfer1::OptProfileSelector::kMIN, nvinfer1::Dims4{1, 3, 640, 640}); // 设置最小尺寸
+    profile->setDimensions(input->getName(), nvinfer1::OptProfileSelector::kOPT, nvinfer1::Dims4{1, 3, 640, 640}); // 设置最优尺寸
+    profile->setDimensions(input->getName(), nvinfer1::OptProfileSelector::kMAX, nvinfer1::Dims4{1, 3, 640, 640}); // 设置最大尺寸
+
+    // ========== 3. 创建config配置：builder--->config ==========
+    auto config = std::unique_ptr<nvinfer1::IBuilderConfig>(builder->createBuilderConfig());
+    if (!config)
+    {
+        std::cout << "Failed to create config" << std::endl;
+        return -1;
+    }
+    // 使用addOptimizationProfile方法添加profile，用于设置输入的动态尺寸
+    config->addOptimizationProfile(profile);
+
+    // 设置精度，不设置是FP32，设置为FP16，设置为INT8需要额外设置calibrator 
+    config->setFlag(nvinfer1::BuilderFlag::kFP16);
+    // 设置最大batchsize
+    builder->setMaxBatchSize(1);
+    // 设置最大工作空间（新版本的TensorRT已经废弃了setWorkspaceSize）
+    config->setMemoryPoolLimit(nvinfer1::MemoryPoolType::kWORKSPACE, 1 << 30);
+
+    // 创建流，用于设置profile
+    auto profileStream = samplesCommon::makeCudaStream();
+    if (!profileStream)
+    {
+        return -1;
+    }
+    config->setProfileStream(*profileStream);
+
+    // ========== 4. 创建engine：builder--->engine(*nework, *config) ==========
+    // 使用buildSerializedNetwork方法创建engine，可直接返回序列化的engine（原来的buildEngineWithConfig方法已经废弃，需要先创建engine，再序列化）
+    auto plan = std::unique_ptr<nvinfer1::IHostMemory>(builder->buildSerializedNetwork(*network, *config));
+    if (!plan)
+    {
+        std::cout << "Failed to create engine" << std::endl;
+        return -1;
+    }
+
+    // ========== 5. 序列化保存engine ==========
+
+    std::ofstream engine_file(engine_file_path, std::ios::binary);
+    assert(engine_file.is_open() && "Failed to open engine file");
+    engine_file.write((char *)plan->data(), plan->size());
+    engine_file.close();
+
+    // ========== 6. 释放资源 ==========
+    // 因为使用了智能指针，所以不需要手动释放资源
+
+    std::cout << "Engine build success!" << std::endl;
+
+    return 0;
+}
+```
+
+
+
+### 1.6.2 运行时构建
+
+```c++
+#include "NvInfer.h"
+#include "NvOnnxParser.h"
+#include "logger.h"
+#include "common.h"
+#include "buffers.h"
+#include "utils/preprocess.h"
+#include "utils/postprocess.h"
+#include "utils/types.h"
+#include "./utils/common_utils.h"
+
+// 加载模型文件
+std::vector<unsigned char> load_engine_file(const std::string &file_name)
+{
+    std::vector<unsigned char> engine_data;
+    std::ifstream engine_file(file_name, std::ios::binary);
+    assert(engine_file.is_open() && "Unable to load engine file.");
+    engine_file.seekg(0, engine_file.end);
+    int length = engine_file.tellg();
+    engine_data.resize(length);
+    engine_file.seekg(0, engine_file.beg);
+    engine_file.read(reinterpret_cast<char *>(engine_data.data()), length);
+    return engine_data;
+}
+
+int main(int argc, char **argv)
+{
+    if (argc < 3)
+    {
+        std::cerr << "用法: " << argv[0] << " <engine_file> <input_path_path>" << std::endl;
+        return -1;
+    }
+    char cwd[128] = {0};
+    utils::getExeWd(cwd,128);
+
+    auto engine_file = std::string(cwd) + "/weights/" + argv[1];      // 模型文件
+    auto input_video_path = std::string(cwd) + "/media/" + argv[2]; // 输入视频文件
+    auto output_video_path = std::string(cwd) + "/media/" + std::to_string(utils::timeu::getSecTimeStamp()) + ".mp4";
+    std::cout<< "engine_file: "<< engine_file << std::endl;
+    std::cout<< "input_video_path："<< input_video_path << std::endl;
+    std::cout<< "output_video_path："<< output_video_path << std::endl;
+
+
+    // ========= 1. 创建推理运行时runtime =========
+    auto runtime = std::unique_ptr<nvinfer1::IRuntime>(nvinfer1::createInferRuntime(sample::gLogger.getTRTLogger()));
+    if (!runtime)
+    {
+        std::cout << "runtime create failed" << std::endl;
+        return -1;
+    }
+    // ======== 2. 反序列化生成engine =========
+    // 加载模型文件
+    auto plan = load_engine_file(engine_file);
+    // 反序列化生成engine
+    auto mEngine = std::shared_ptr<nvinfer1::ICudaEngine>(runtime->deserializeCudaEngine(plan.data(), plan.size()));
+    if (!mEngine)
+    {
+        return -1;
+    }
+
+    // ======== 3. 创建执行上下文context =========
+    auto context = std::unique_ptr<nvinfer1::IExecutionContext>(mEngine->createExecutionContext());
+    if (!context)
+    {
+        std::cout << "context create failed" << std::endl;
+        return -1;
+    }
+
+    // ========== 4. 创建输入输出缓冲区 =========
+    samplesCommon::BufferManager buffers(mEngine);
+
+    auto cap = cv::VideoCapture(input_video_path);
+
+    int width = int(cap.get(cv::CAP_PROP_FRAME_WIDTH));
+    int height = int(cap.get(cv::CAP_PROP_FRAME_HEIGHT));
+    int fps = int(cap.get(cv::CAP_PROP_FPS));
+
+    // 写入MP4文件，参数分别是：文件名，编码格式，帧率，帧大小
+    cv::VideoWriter writer(output_video_path, cv::VideoWriter::fourcc('H', '2', '6', '4'), fps, cv::Size(width, height));
+
+    cv::Mat frame;
+    int frame_index{0};
+    // 申请gpu内存
+    cuda_preprocess_init(height * width);
+
+    while (cap.isOpened())
+    {
+        // 统计运行时间
+        auto start = std::chrono::high_resolution_clock::now();
+
+        cap >> frame;
+        if (frame.empty())
+        {
+            std::cout << "文件处理完毕" << std::endl;
+            break;
+        }
+        frame_index++;
+
+        // 输入预处理（实现了对输入图像处理的gpu 加速)
+        process_input(frame, (float *)buffers.getDeviceBuffer(kInputTensorName));
+        // ========== 5. 执行推理 =========
+        context->executeV2(buffers.getDeviceBindings().data());
+        // 拷贝回host
+        buffers.copyOutputToHost();
+
+        // 从buffer manager中获取模型输出
+        int32_t *num_det = (int32_t *)buffers.getHostBuffer(kOutNumDet); // 检测到的目标个数
+        int32_t *cls = (int32_t *)buffers.getHostBuffer(kOutDetCls);     // 检测到的目标类别
+        float *conf = (float *)buffers.getHostBuffer(kOutDetScores);     // 检测到的目标置信度
+        float *bbox = (float *)buffers.getHostBuffer(kOutDetBBoxes);     // 检测到的目标框
+        // 执行nms（非极大值抑制），得到最后的检测框
+        std::vector<Detection> bboxs;
+        yolo_nms(bboxs, num_det, cls, conf, bbox, kConfThresh, kNmsThresh);
+
+        // 结束时间
+        auto end = std::chrono::high_resolution_clock::now();
+        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+        auto time_str = std::to_string(elapsed) + "ms";
+        auto fps_str = std::to_string(1000 / elapsed) + "fps";
+
+        // 遍历检测结果
+        for (size_t j = 0; j < bboxs.size(); j++)
+        {
+            cv::Rect r = get_rect(frame, bboxs[j].bbox);
+            cv::rectangle(frame, r, cv::Scalar(0x27, 0xC1, 0x36), 2);
+            cv::putText(frame, std::to_string((int)bboxs[j].class_id), cv::Point(r.x, r.y - 10), cv::FONT_HERSHEY_PLAIN, 1.2, cv::Scalar(0x27, 0xC1, 0x36), 2);
+        }
+        cv::putText(frame, time_str, cv::Point(50, 50), cv::FONT_HERSHEY_PLAIN, 1.2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
+        cv::putText(frame, fps_str, cv::Point(50, 100), cv::FONT_HERSHEY_PLAIN, 1.2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
+
+        // cv::imshow("frame", frame);
+        // 写入视频文件
+        writer.write(frame);
+        std::cout << "处理完第" << frame_index << "帧" << std::endl;
+        if (cv::waitKey(1) == 27)
+            break;
+    }
+    // ========== 6. 释放资源 =========
+    // 因为使用了unique_ptr，所以不需要手动释放
+
+    return 0;
+}
+
+```
+
+### 1.6.3 量化
+
+深度学习量化就是将深度学习模型中的参数（例如权重和偏置）从浮点数转换成整数或者定点数的过程。这样做可以减少模型的存储和计算成本，从而达到模型压缩和运算加速的目的。如int8量化，让原来模型中32bit存储的数字**映射**到8bit再计算（范围是[-128,127]）。
+
+- 加快推理速度：访问一次32位浮点型可以访问4次int8整型数据；
+- 减少存储空间和内存占用：在边缘设备（如嵌入式）上部署更实用。
+
+当然，提升速度的同时，量化也会带来**精度的损失**，为了能尽可能减少量化过程中精度的损失，需要使用各种校准方法来降低信息的损失。TensorRT 中支持两种 INT8 校准算法：
+
+- 熵校准 (Entropy Calibration)
+- 最小最大值校准 (Min-Max Calibration)
+
+> 熵校准是一种动态校准算法，它使用 KL 散度 (KL Divergence) 来度量推理数据和校准数据之间的分布差异。在熵校准中，校准数据是从实时推理数据中采集的，它将 INT8 精度量化参数看作概率分布，根据推理数据和校准数据的 KL 散度来更新量化参数。这种方法的优点是可以更好地反映实际推理数据的分布。
+>
+> 最小最大值校准使用最小最大值算法来计算量化参数。在最小最大值校准中，需要使用一组代表性的校准数据来生成量化参数，首先将推理中的数据进行统计，计算数据的最小值和最大值，然后根据这些值来计算量化参数。
+
+这两种校准方法都需要准备一些数据用于在校准时执行推理，以统计数据的分布情况。**一般数据需要有代表性，即需要符合最终实际落地场景的数据。**实际应用中一般准备500-1000个数据用于量化。
+
+#### TensorRT中实现
+
+在 TensorRT 中，可以通过实现 `IInt8EntropyCalibrator2` 接口或 `IInt8MinMaxCalibrator` 接口来执行熵校准或最小最大值校准，并且需要实现几个虚函数方法：
+
+- `getBatch() `方法：用于提供一批校准数据；
+- `readCalibrationCache()` 和 `writeCalibrationCache()` 方法：实现缓存机制，以避免在每次启动时重新加载校准数据。
+
+##### 构造推理数据
+
+```bash
+# 进入media目录，在视频中随机挑选200帧画面作为校准图片
+# 从视频中生成图片
+ffmpeg -i c3.mp4 sample%04d.png
+# 从生成的图片中挑选200张，并将名字写入txt中
+ls *.png | shuf -n 200 > filelist.txt
+```
 
 
 
