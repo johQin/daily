@@ -8006,6 +8006,7 @@ void threadFunc() {
 # 13 文件系统
 
 ```c++
+// C++ 17 才有
 #include <filesystem>
 std::filesystem::create_directories(std::string(exeWd) + "/log");
 ```

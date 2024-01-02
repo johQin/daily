@@ -838,6 +838,19 @@ ffmpeg -i c3.mp4 sample%04d.png
 ls *.png | shuf -n 200 > filelist.txt
 ```
 
+### 1.6.4 预处理
+
+Yolov5图像预处理步骤主要如下：
+
+1. **lettorbox**：即保持原图比例（图像直接resize到输入大小效果不好），将图片放在一个正方形的画布中，多余的部分用黑色填充。
+2. **Normalization（归一化）**：将像素值缩放至`[0,1]`间；
+3. **颜色通道顺序调整**：BGR2RGB
+4. **NHWC 转为 NCHW**
+
+
+
+### 1.6.5 后处理
+
 
 
 # log
@@ -861,9 +874,11 @@ ls *.png | shuf -n 200 > filelist.txt
    indices.append((b, a, gj.clamp_(0, gain[3].long() - 1), gi.clamp_(0, gain[2].long() - 1)))  # image, anchor, grid indices
    ```
 
-   
+4. 在运行执行build engine时，报Error Code 6: Internal Error (Unable to load library: libnvinfer_builder_resource.so.8.6.1，[可以参考自己的文章](https://blog.csdn.net/qq_42190134/article/details/135339907)
 
-4. 
+   - `sudo cp libnvinfer_builder_resource.so.8.6.1 /usr/lib/`
+
+5. 
 
 
 

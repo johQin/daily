@@ -1694,6 +1694,30 @@ FILE(COPY ${MODEL_SRC_FILE_PATH} DESTINATION ./model)
 
   - 
 
+## 6.3 查找文件
+
+`file(GLOB ...)` 命令用于获取匹配指定模式的文件列表。`file(GLOB ...)` 命令的一种常见用法是用于收集源文件列表，例如 C++ 源文件（`.cpp`）和 C 源文件（`.c`）。
+
+```cmake
+file(GLOB 
+variable 
+[LIST_DIRECTORIES true|false]
+[RELATIVE path]
+[CONFIGURE_DEPENDS]
+[globbingexpressions]...
+)
+
+# LIST_DIRECTORIES 是一个可选的参数，用于指定是否包含目录，默认为 true，返回是带目录的
+# RELATIVE path，相对路径<path> 返回的结果将不是绝对路径，而是将绝对路径中的<path>部分去掉，返回相对路径
+# <globbing-expression>：匹配表达式,表达式类似与正则匹配
+```
+
+虽然使用 file(GLOB ...) 简便，但有一些潜在的问题：
+
+- 不会自动检测新增或删除的文件： 使用 file(GLOB ...) 时，CMake 不会自动检测源文件的变化，因此在添加或删除源文件时，需要手动重新运行 CMake。
+
+- 不建议在大型项目中使用： 对于大型项目，由于可能包含大量的源文件，使用 file(GLOB ...) 可能会导致性能问题。
+
 # 工具函数
 
 ## [工程声明project](https://www.jianshu.com/p/cdd6e56c2422)
