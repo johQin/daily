@@ -1079,6 +1079,50 @@ int main() {
 }
 ```
 
+#### [构造的default和delete](https://blog.csdn.net/nihao_2014/article/details/125409352)
+
+当类中不需要默认构造函数时，或者需要禁止默认构造函数的生成，可以使用`构造函数=delete`方式去禁用。
+
+当我们自己定义了待参数的构造函数时，我们最好是声明不带参数的版本以完成无参的变量初始化，此时编译是不会再自动提供默认的无参版本了。我们可以通过使用关键字default来控制默认构造函数的生成，显式地指示编译器生成该函数的默认版本。
+
+```c++
+
+class MyClass
+{
+  public:
+    MyClass()=default;  //同时提供默认版本和带参版本，类型是POD的
+    MyClass(int i):data(i){}
+  private:
+    int data;
+};
+
+class MyClass
+{
+  public:
+    MyClass()=delete;  //表示删除默认构造函数
+    MyClass(int i):data(i){}
+  private:
+    int data;
+};
+```
+
+在类的外面，也可以在类定义之外修饰成员函数，比如：
+
+```c++
+class MyClass
+{
+  public:
+    MyClass()=default;
+    MyClass() &operator=(const MyClass& );
+);
+//在类的定义外用default来指明缺省函数版本
+inline MyClass& MyClass::operator=(const MyClass& )=default;
+```
+
+
+
+**析构函数也是可以delete的**
+
 ### 2.3.2 析构函数
 
 析构函数名和类名相同，但需要在函数前面加**波浪号~**。
@@ -2548,6 +2592,80 @@ int main() {
 ```
 
 ## 3.2 继承中的构造与析构
+
+**构造顺序**：基类，子类成员（成员间构造顺序：先声明先构造，先声明先入栈先构造），子类
+
+**析构顺序**：子类，子类成员（成员间析构顺序：先声明后析构，先声明先入栈后析构），基类
+
+```c++
+//
+// Created by buntu on 2024/1/3.
+//
+#include <iostream>
+// 成员类
+class A{
+public:
+    A(){
+        std::cout<< "A" <<std::endl;
+    }
+    ~A(){
+        std::cout<< "~A" <<std::endl;
+    }
+};
+class B{
+public:
+    B(){
+        std::cout<< "B" <<std::endl;
+    }
+    ~B(){
+        std::cout<< "~B" <<std::endl;
+    }
+};
+// 父类
+class C{
+public:
+    C(){
+        std::cout<< "C" <<std::endl;
+    }
+    ~C(){
+        std::cout<< "~C" <<std::endl;
+    }
+};
+
+// 子类
+class D : public  C{
+public:
+    D(){
+        std::cout<< "D" <<std::endl;
+    }
+    ~D(){
+        std::cout<< "~D" <<std::endl;
+    }
+public:
+    A a;
+    B b;
+};
+
+int main(int argc, char **argv){
+    D d;
+}
+
+/*
+
+C 父
+A 先声明的成员
+B 后声明的成员
+D 子
+
+~D 子
+~B 后声明的成员
+~A 先声明的成员
+~C 父
+
+*/
+```
+
+
 
 ### 3.2.1 子类构造析构顺序
 
@@ -5105,6 +5223,20 @@ cout << pair3.second << endl;
 ## 8.10 map/multimap容器
 
 Map 的特性是，所有元素都会根据元素的键值自动排序。**Map 所有的元素都是pair**，同时拥有实值和键值，pair 的第一元素被视为键值，第二元素被视为实值，map 不允许两个元素有相同的键值。
+
+```c++
+#include<map>
+// 直接初始化
+std::map<int, std::string> classMap = {
+    {0, "pedestrians"},
+    {1, "riders"},
+    {2, "partially-visible-person"},
+    {3, "ignore-regions"},
+    {4, "crowd"}
+};
+```
+
+
 
 multimap允许键值重复。
 
