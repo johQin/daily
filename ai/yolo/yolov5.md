@@ -853,8 +853,6 @@ Yolov5图像预处理步骤主要如下：
 
 非极大值抑制
 
-
-
 # log
 
 1. [运行yolov5-5.0出现AttributeError: Can‘t get attribute ‘SPPF‘ 正确解决方法](https://blog.csdn.net/qq_41035097/article/details/122884652)
