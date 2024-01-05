@@ -745,3 +745,37 @@ pip install docker
 3. 
 
 # Django-Ninja
+
+
+
+# Cache
+
+Django中提供了多种缓存方式，如果要使用缓存，需要先在settings.py中进行配置，然后应用。根据缓存介质的不同，你需要设置不同的缓存后台Backend。
+
+[Django基础(8): 缓存Cache应用场景及工作原理，Cache设置及如何使用](https://www.cnblogs.com/tracydzf/p/14324404.html)
+
+这里仅展示缓存放在本地内存中的方式
+
+```python
+# setting.py
+# 本地内存缓存
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake'
+    }
+}
+
+# 使用cache
+from django.core.cache import cache
+
+# 设置
+cache.set('FILE_SERVER_SITE', addr, timeout=None)
+# timeout参数, 它是值存在缓存里的秒数。timeout设置为None时将永久缓存。timeout为0将不缓存值。
+
+# 获取
+site = cache.get('FILE_SERVER_SITE')
+if not site:
+    print("缓存里没有FILE_SERVER_SITE字段")
+```
+
