@@ -5243,11 +5243,16 @@ cout << pair1.second << endl;//访问 pair 第二个值
 pair<string, int> pair2 = make_pair("name", 30);
 cout << pair2.first << endl;
 cout << pair2.second << endl;
+
 //pair=赋值
 pair<string, int> pair3 = pair2;
 cout << pair3.first << endl;
 cout << pair3.second << endl;
 ```
+
+![image-20240105144840442](./legend/image-20240105144840442.png)
+
+
 
 ## 8.10 map/multimap容器
 
