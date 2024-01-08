@@ -1709,17 +1709,20 @@ static修饰的成员，在定义类的时候，必须分配空间。
 
 静态成员分为：静态成员变量和静态成员函数
 
-静态成员变量：
+**静态成员变量特点**：
 
 1. 在编译阶段分配内存。
-2. 类内声明，类外初始化（C++11支持类中初始化)。
+2. 类内声明，类外初始化（C++11支持类中初始化)，在类的外部不能指定static，在类的定义时候进行初始化；
 3. 所有对象共享同一份数据。
 
-静态成员函数：
+**静态成员函数特点**：
 
 1. 所有对象共享同一个函数。
-2. 静态成员函数没有 this 指针，只能访问静态成员变量。普通成员函数有 this 指针，可以访问类中的任意成员
-3. **静态成员函数只能在类体里面定义**
+2. 静态成员函数没有 this 指针，只能访问static成员变量，但不能访问非 static 成员。普通成员函数有 this 指针，可以访问类中的任意成员；
+3. static成员函数既可以在类的内部定义，也可以在类的外部定义，在外部定义时，不能重复指定static保留字；
+4. static成员函数不能声明为虚函数，不能实现动态绑定；
+5. static 成员函数不能声明为const，因为const是针对this是不是const而言的；
+6. 构造函数、析构函数不能为静态函数；
 
 静态成员的两种访问方式：
 
@@ -2514,6 +2517,31 @@ c++11新增了枚举类enum class，是限定作用域枚举类型，仅在枚�
 enum class可以前置声明，enum仅在指定默认底层类型的情况下才能前置声明
 
 ```c++
+// enum 枚举类型
+enum Week {Mon=0, Tue, Wed, Thu, Fri, Sta, Sun};
+Week a = Mon;
+cout << (a == 0); // 正确
+Week b = 1;  // 报错
+cout << (a == Tue); // 正确
+
+// enum class 枚举类
+enum class MyEnum {age=0, gender};
+MyEnum c = MyEnum::age;
+cout << (c == 0); // 报错
+cout << (c == MyEnum::age); // 不报错
+
+MyEnum a = MyEnum::age;
+std::cout << static_cast<typename std::underlying_type<MyEnum>::type>(a)<<std::endl;	// 打印出0
+
+// 如果想对任意的enum类进行输出，可以定义如下模板函数
+template<typename T>
+typename std::underlying_type<T>::type PrintEnum(T const value) {
+    return static_cast<typename std::underlying_type<T>::type>(value);
+}
+
+std::cout << PrintEnum(a);
+
+
 // 1.降低命名空间污染
 enum Color{black,white,red};	//black、white、red作用域和color作用域相同
 auto white = false;	//错误，white已经被声明过了
@@ -2532,6 +2560,7 @@ enum Color:std::uint8_t;	//提前指定底层型别，可以进行前置声明
 
 enum class Status;		//默认底层型别是int
 enum class Status:std::uint32_t; //修改底层型别为uint32_t
+
 ```
 
 ## 2.14 类的内存管理

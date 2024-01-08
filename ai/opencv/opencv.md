@@ -1872,3 +1872,4 @@ foreach(id ${ids})
 
 17. [FFmpeg解码后的帧 转OpenCV Mat显示](https://blog.csdn.net/guyuealian/article/details/79607568)
 
+18. [线段与多边形关系的算法](https://www.cnblogs.com/xiaozhi_5638/p/4165353.html)
