@@ -2534,6 +2534,7 @@ MyEnum a = MyEnum::age;
 std::cout << static_cast<typename std::underlying_type<MyEnum>::type>(a)<<std::endl;	// 打印出0
 
 // 如果想对任意的enum类进行输出，可以定义如下模板函数
+// https://zhuanlan.zhihu.com/p/458363400
 template<typename T>
 typename std::underlying_type<T>::type PrintEnum(T const value) {
     return static_cast<typename std::underlying_type<T>::type>(value);
@@ -3066,6 +3067,68 @@ void Derived::func()
 动态多态（运行时多态，晚绑定）：虚函数
 
 **同一类型的多个实例，在执行同一方法时，呈现出多种行为特征——多态**
+
+## 4.0 [子类对象赋值给父类对象的问题](https://blog.csdn.net/hldgs/article/details/130348878)
+
+**多态实现，必须使用指针或引用。**
+
+**如果直接将一个子类对象赋值给父类对象会怎么样？直接赋值并不会改变父类对象的虚函数表，即无法实现多态。**
+
+```c++
+#include <iostream>
+using namespace std;
+ 
+class A{
+public:
+    virtual void print(){
+        cout << "A::print(), i=" << i << endl;
+    }
+    A(int a):i(a){}
+protected:
+    int i;
+};
+ 
+class B:public A{
+public:
+    virtual void print(){
+        cout << "B::print(), i=" << i << endl;
+    }
+    B(int a):A(a){}
+};
+ 
+int main()
+{
+    A a(10);
+    B b(20);
+    a.print();
+    b.print();
+    
+    int* p_v_a = (int*)&a;
+    int* p_v_b = (int*)&b;
+    cout << p_v_a << " " <<  p_v_b << endl; 
+ 	// p_v_a和p_v_b存储的其实是a和b的虚函数表的地址，这是由虚函数的实现决定的
+    
+    A* p_a = &a;
+    
+    a = b;
+    // A aa = B(100);	//依旧无法实现多态
+    p_v_a = (int*)&a;
+    p_a->print();
+    a.print();
+    cout << p_v_a << " " << p_v_b << endl;
+ 
+    return 0;
+}
+
+// A::print(), i=10
+// B::print(), i=20
+// 0x7ffc7ed7b8b0 0x7ffc7ed7b8c0
+// A::print(), i=20
+// A::print(), i=20
+// 0x7ffc7ed7b8b0 0x7ffc7ed7b8c0
+```
+
+
 
 ## 4.1 虚函数
 
@@ -7197,6 +7260,114 @@ curl_easy_perform(curl);
 // 清理
 curl_slist_free_all(header);
 curl_easy_cleanup(curl);
+```
+
+### 发起get请求
+
+```c++
+	std::map<std::string, std::string> emap={
+            {"报错信息",error},
+            {"模型标识", cfgObj->modelId},
+            {"模型版本",  cfgObj->modelVersion},
+            {"模型名称", cfgObj->modelName},
+    };
+    std::string message = "message=";
+    for(auto& eInfo: emap){
+        message += eInfo.first + ":[" + eInfo.second + "]";
+    }
+    url += "?" + message;
+	// 携带的query参数必须转一下utf，因为url中不允许中文等其它字符，
+	// 如果直接将中文写入url那么将会报400（bad request）
+    url = utils::utf8url::Encode(url);
+    CURL *curl = NULL;
+    curl = curl_easy_init();
+    if(!curl) return;
+    // 设置请求的地址
+    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+    printf("send warning \n");
+    //发起请求
+    curl_easy_perform(curl);
+    curl_easy_cleanup(curl);
+```
+
+[C++实现URL的UTF8转码](https://blog.csdn.net/FlushHip/article/details/88578454)
+
+```c++
+struct UTF8Url
+{
+    static std::string Encode(const std::string & url);
+    static std::string Decode(const std::string & url);
+
+private:
+    static const std::string & HEX_2_NUM_MAP();
+    static const std::string & ASCII_EXCEPTION();
+    static unsigned char NUM_2_HEX(const char h, const char l);
+};
+
+const std::string & UTF8Url::HEX_2_NUM_MAP()
+{
+    static const std::string str("0123456789ABCDEF");
+    return str;
+}
+
+const std::string & UTF8Url::ASCII_EXCEPTION()
+{
+    static const std::string str(R"("%<>[\]^_`{|})");
+    return str;
+}
+
+unsigned char UTF8Url::NUM_2_HEX(const char h, const char l)
+{
+    unsigned char hh = std::find(std::begin(HEX_2_NUM_MAP()), std::end(HEX_2_NUM_MAP()), h) - std::begin(HEX_2_NUM_MAP());
+    unsigned char ll = std::find(std::begin(HEX_2_NUM_MAP()), std::end(HEX_2_NUM_MAP()), l) - std::begin(HEX_2_NUM_MAP());
+    return (hh << 4) + ll;
+}
+
+std::string UTF8Url::Encode(const std::string & url)
+{
+    std::string ret;
+    for (auto it = url.begin(); it != url.end(); ++it)
+    {
+        if (((*it >> 7) & 1) || (std::count(std::begin(ASCII_EXCEPTION()), std::end(ASCII_EXCEPTION()), *it)))
+        {
+            ret.push_back('%');
+            ret.push_back(HEX_2_NUM_MAP()[(*it >> 4) & 0x0F]);
+            ret.push_back(HEX_2_NUM_MAP()[*it & 0x0F]);
+        }
+        else
+        {
+            ret.push_back(*it);
+        }
+    }
+    return ret;
+}
+
+std::string UTF8Url::Decode(const std::string & url)
+{
+    std::string ret;
+    for (auto it = url.begin(); it != url.end(); ++it)
+    {
+        if (*it == '%')
+        {
+            if (std::next(it++) == url.end())
+            {
+                throw std::invalid_argument("url is invalid");
+            }
+            ret.push_back(NUM_2_HEX(*it, *std::next(it)));
+            if (std::next(it++) == url.end())
+            {
+                throw std::invalid_argument("url is invalid");
+            }
+        }
+        else
+        {
+            ret.push_back(*it);
+        }
+    }
+    return ret;
+}
+
+
 ```
 
 
