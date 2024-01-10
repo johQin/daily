@@ -7059,6 +7059,8 @@ void click() {
 // duration:2105ms，相较于mutex，时间减少了
 ```
 
+## 10.8 auto
+
 
 
 # 11 库
