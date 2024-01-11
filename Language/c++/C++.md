@@ -6943,6 +6943,8 @@ int main(){
 
 ### 10.6.2 noexcept
 
+c++11提供关键字，用来指明某个函数无法或不打算抛出异常。若有异常未在函数内被捕获或处理，程序会被终止。
+
 [参考1](https://www.cnblogs.com/sword03/p/10020344.html)， [参考2](https://zhuanlan.zhihu.com/p/632541194)
 
 noexcept两个含义：
@@ -6972,6 +6974,27 @@ noexcept两个含义：
   - 移动构造函数（move constructor）
   - 移动分配函数（move assignment）
   - 析构函数（destructor）。在新版本的编译器中，析构函数是默认加上关键字noexcept的。
+
+### 10.6.3 auto
+
+以auto声明的变量，其类型会根据初值被自动推导出来，因此需要一个初始化操作。
+
+如果类型很长或表达式很复杂，auto特别有用
+
+```c++
+std::vector<std::string> v;
+auto pos = v.begin();	// pos has type std::vector<std::string>::iterator
+```
+
+### 10.6.4 decltype
+
+decltype(exp)，可让编译器计算出表达式（exp）的类型。
+
+```c++
+// 有时候，函数返回的类型取决于某个表达式对实参的处理
+template<typename T1, template T2>
+auto add(T1 x, T2 y) -> decltype(x + y);
+```
 
 
 
@@ -7059,7 +7082,50 @@ void click() {
 // duration:2105ms，相较于mutex，时间减少了
 ```
 
-## 10.8 auto
+
+
+## 10.8 for range-based
+
+c++11 引入了一种崭新的for循环形式，可以逐一迭代某个给定区间，数组，集合（range，array，or collection）内的每一个元素。
+
+- initializer_list列表使用此种循环，本质上是调用initializer_list的begin()和end()进行遍历
+- 如果访问集合中的元素，不支持隐式的构造函数，也就是说构造函数如果声明为explicit，那么就无法使用for range based。
+
+```c++
+for (auto i : { 1,2,3,4,5 }) {
+    std::cout << i << " ";
+}
+for (auto& elem : arr) {
+    elem *= 3;
+}
+
+class C {
+public:
+    // 如果这里加上explicit，那么就for那一段就无法编译通过
+    C(const std::string& s) :elem(s) {}
+
+    friend std::ostream& operator<<(std::ostream& out,const C& elem) {
+        out << elem.elem;
+        return out;
+    }
+private:
+    std::string elem;
+};
+
+int main()
+{
+    std::vector<std::string> vs;
+    vs.push_back("a");
+    vs.push_back("b");
+
+    //遍历vs中的每一个元素构造一个C对象，返回的为const类型的对象
+    for (const C& elem : vs) {
+        std::cout << elem << " ";
+    }
+
+    return 0;
+}
+```
 
 
 
