@@ -1873,3 +1873,11 @@ foreach(id ${ids})
 17. [FFmpeg解码后的帧 转OpenCV Mat显示](https://blog.csdn.net/guyuealian/article/details/79607568)
 
 18. [线段与多边形关系的算法](https://www.cnblogs.com/xiaozhi_5638/p/4165353.html)
+
+19. 求多边形交并比（IOU）和重叠面积占比
+
+    `交集面积 = 多边形1面积+多边形2面积-并集面积`
+
+    
+
+20. 

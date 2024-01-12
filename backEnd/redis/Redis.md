@@ -132,6 +132,10 @@ service redis-server status
 # 使用密码登录命令行，设置密码后，直接使用：redis-cli ping 就会出现 (error) NOAUTH Authentication required.
 redis-cli -h 127.0.0.1 -p 6379 -a 123456
 
+# 使用用户名和密码登录
+redis-cli -h 120.26.82.254 -p 6379
+auth user password
+
 # redis默认端口
 6379
 ```
