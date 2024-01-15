@@ -3996,7 +3996,7 @@ int main() {
 
 ### 5.3 类模板的继承
 
-### 5.3.1 类模板派生普通类
+#### 5.3.1 类模板派生普通类
 
 普通类继承类模板，模板类型必须具体化，否则无法派生
 
@@ -4039,7 +4039,7 @@ int main() {
 
 
 
-### 5.3.2 类模板派生类模板
+#### 5.3.2 类模板派生类模板
 
 ```c++
 #include<iostream>
@@ -5553,7 +5553,40 @@ c++标准库提供了数个预定义的特殊迭代器，亦所谓迭代器适�
           inserter(coll4,coll4.begin()));  // destination:123456789
 ```
 
+#### stream Iterator（串流迭代器）
 
+stream iterator被用来读写stream
+
+```c++
+	vector<string> coll;
+
+    // 从标准输入中读取所有字符
+    copy (istream_iterator<string>(cin),    // start of source
+          istream_iterator<string>(),       // end of source
+          back_inserter(coll));             // destination
+
+    // 排序
+    sort (coll.begin(), coll.end());
+
+    // 去重打印
+    unique_copy (coll.cbegin(), coll.cend(),           // source
+                 ostream_iterator<string>(cout,"\n")); // destination
+```
+
+#### Reverse Iterator（反向迭代器）
+
+Reverse iterator会造成算法逆向操作，其内部将对increment（递增）操作符的调用转换为对decrement操作符的调用，反之亦然。
+
+所有提供双向或随即访问迭代器的容器（除forward_list之外的，提供双向或随机访问迭代器的序列式容器和有序关联容器）都可以通过rbegin和rend产生一个反向迭代器。
+
+```c++
+vector<int> coll;
+copy(coll.crbegin, coll.crend(), ostream_iterator<int>(cout, " "))
+```
+
+#### Move Iterator（搬移迭代器）
+
+这类迭代器源自c++11，用来将任何“对底层元素的访问“转换为一个move操作。
 
 ## 8.13 空间配置器
 
@@ -6769,11 +6802,71 @@ int main()
 
 ### bind函数
 
-std::bind函数定义在头文件中，是一个函数模板，他像一个函数包装器（适配器），接受一个可调用对象，生成一个新的可调用对象来“适应”对象的参数列表。一般而言，我们用它可以把一个原本接收N个参数的函数，通过绑定一些参数，返回一个接收M个（M可以大于N）参数的新函数。同时，使用std::bind函数还可以实现参数顺序调整等操作。
+std::bind函数定义在functional头文件中，是一个函数模板，他像一个函数包装器（适配器），接受一个可调用对象，生成一个新的可调用对象来“适应”对象的参数列表。一般而言，我们用它可以把一个原本接收N个参数的函数，通过绑定一些参数，返回一个接收M个（M可以大于N）参数的新函数。同时，使用std::bind函数还可以实现参数顺序调整等操作。
 
 bind可以替代适配器中的bind1st，bind2se
 
+ std::bind 则是用来绑定函数调用的参数的，它解决的需求是我们有时候可能并不一定能够一次性获得调用某个函数的全部参数，通过这个函数，我们可以将部分调用参数提前绑定到函数身上成为一个新的对象，然后在参数齐全后，完成调用。
+
+```c++
+#include <functional>
+
+// 基本用法
+int foo(int a, int b, int c) {
+	return a+b+c;                        									 
+}
+
+auto bindFoo = std::bind(foo, std::placeholders::_1, 1, 2);
+std::cout<< bindFoo(3) <<std::endl;			        //输出：6  //a=3,b=1,c=2
+std::cout << bindFoo(4,5) << std::endl;				//输出：7  //a=4,b=1,c=2
+
+auto bindFoo_1 = std::bind(foo, std::placeholders::_1, 6, std::placeholders::_2);
+std::cout << bindFoo_1(7,8) << std::endl;			//输出：21  //a=7,b=6,b=8
+
+
+int TestFunc(int a, char c, float f)
+{
+    cout << a << endl;
+    cout << c << endl;
+    cout << f << endl;
+    return a;
+}
+// 参数顺序调整
+auto bindFunc2 = bind(TestFunc, std::placeholders::_2, std::placeholders::_1, 100.1);
+bindFunc2('B', 10);
+
+```
+
+
+
+
+
 ### [std::function](https://blog.csdn.net/aiynmimi/article/details/119732176)
+
+`std::function`对象可以代表任何可以调用的对象，包括函数，lambda表达式，bind表达式或其他函数对象，以及指向成员函数和指向数据成员的指针。
+
+当std::function对象未包裹任何实际的可调用元素，调用该 std::function 对象将抛出std::bad_function_call 异常。
+
+```c++
+template< class R, class... Args >
+class function<R(Args...)>;
+
+// 模板参数说明：
+// R: 被调用函数的返回类型
+// Args…：被调用函数的形参
+```
+
+成员函数声明：	
+
+| 成员函数      | 说明                                              |
+| ------------- | ------------------------------------------------- |
+| constructor   | 构造函数：constructs a new std::function instance |
+| destructor    | 析构函数： destroys a std::function instance      |
+| operator=     | 给定义的function对象赋值                          |
+| operator bool | 检查定义的function对象是否包含一个有效的对象      |
+| operator()    | 调用一个对象                                      |
+
+
 
 ## 10.5 [智能指针](https://blog.csdn.net/liqingbing12/article/details/107395954)
 
