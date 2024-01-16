@@ -1972,7 +1972,25 @@ https://docker.mirrors.ustc.edu.cn
 
    
 
-3. 
+3. docker-py在使用脚本时
+
+   - ```python
+     client = docker.from_env()
+     containers = client.containers.list(all=True, filters={'ancestor':'ubuntu:hello'})
+     ```
+
+   - 如果当前用户不是root，或者脚本不是通过sudo执行，它就会报`docker.errors.DockerException: Error while fetching server API version: (‘Connection aborted.‘, Permission...`
+
+   - 这时需要将当前用户添加到docker用户组上去，并且添加完成之后，重启系统，既可生效
+
+   - ```bash
+     # docker 命令只能由 root 用户或 docker 组中的用户运行，该组是在 Docker 安装过程中自动创建的。如果您想避免在运行 docker 命令时输入 sudo，请将您的用户名添加到 docker 组
+     sudo usermod -aG docker $USER
+     # 添加之后，需要重启电脑然后才能生效
+     ```
+
+   - [参考1](https://blog.csdn.net/m0_57236802/article/details/131642832)
+
 
 ## [修改端口映射](https://zhuanlan.zhihu.com/p/583479364)
 
