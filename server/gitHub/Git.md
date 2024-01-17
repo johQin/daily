@@ -1322,7 +1322,47 @@ git config --list
    # 将远程库origin的dev设定为当前工作分支的跟踪分支，远程库可以没有dev分支，推送的时候，它会自动创建
    ```
 
-9. 
+9. git push时，报
+
+   ```
+   ssh: connect to host github.com port 22: Connection timed out
+   fatal: 无法读取远程仓库。
+   
+   请确认您有正确的访问权限并且仓库存在。
+   ```
+
+   - 首先排查仓库的地址是否发生变更
+
+     ```bash
+     git remote -v
+     origin	git@github.com:user/daily.git (fetch)
+     origin	git@github.com:user/daily.git (push)
+     
+     # 如果发现地址和现目前的地址不一致，可以通过set-url进行变更
+     git remote set-url origin git@github.com:user/dailyNote.git
+     ```
+
+   - 其次，如果地址没有变更，并且使用ssh的方式尝试多次，长时间无法推送，那么可以尝试http的方式
+
+     ```bash
+     # 获取仓库http的地址，并通过set-url进行设置
+     git remote set-url origin https://github.com/user/daily.git
+     
+     # 然后使用http的方式推送
+     # https://blog.csdn.net/weixin_46182908/article/details/129540548
+     git push
+     
+     Username for 'https://github.com':	65515@qq.com		
+     # username并非github的用户名，而是邮箱
+     # 查看自己github的关联邮箱方法：右上角个人图标 -> settings -> email（在右边一栏）
+     Password for 'https://65515@qq.com@github.com':
+     # 输入username后又会提示输入password，pswd并非登录密码而是一个可生成的个人token
+     # 创建方法：右上角个人图标 -> settings -> developer settings（在右边一栏）-> create new tokens
+     ```
+
+     
+
+10. 
 
 
 

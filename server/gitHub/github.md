@@ -567,9 +567,10 @@ Gitlab
 - ssh-key的使用和解释，通过密钥和私钥的方式，建立线上库和本地库的连接，使后面的连接不需要再输入用户名和密码。
 
   ```bash
-  ssh-keygen -t ed25519 -c "备注，通常为自己的邮箱"
+  ssh-keygen -t ed25519 -C "备注，通常为自己的邮箱"
   # SSH keys allow you to establish a secure connection between your computer and GitLab
   # -t 用来指定加密方式，这里采用了ed25519加密，其他的有rsa，dsa
+  # Enter file in which to save the key (/home/buntu/.ssh/id_ed25519)，写入的文件名在/home/buntu/.ssh下，如果有重复，可以命名为其它文件名
   # 执行这个命令后，会在用户的主目录下，生成.ssh文件夹，进入后，将.pub文件通过记事本打开，复制里面的字符串到
   # gitlab->avatar头像的setting->SSH keys -> key输入框->add key
   # 在此设置之后git clone/push/pull 等操作就不会让我们再输密码了
