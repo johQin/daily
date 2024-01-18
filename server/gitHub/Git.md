@@ -1283,6 +1283,7 @@ git config --list
 
    ```bash
    git rm -r --cached filename
+   # 不会删除本地工作区文件
    ```
 
 6. [git怎么删除某一次提交](https://www.zhihu.com/question/324710274)
@@ -1307,11 +1308,13 @@ git config --list
 8. 先建本地库和本地分支，然后再推送到远程库的对应分支，并建立分支的跟踪关系
 
    ```bash
+   # 请严格按照此顺序进行操作，操作前请备份本地的文件，否则可能造成文件丢失的问题
+   
    # 初始化本地库，并记得设定.gitignore，不然你很多的不想添加到库中的文件将会被跟踪
    git init
    # 为本地库绑定（添加）对应的远程库名，和远程库地址
    git remote add origin ssh://git@xxx.com:9022/algorithm/others/models.git
-   # 切换创建工作分支
+   # 切换创建工作分支，不要在远程库中建立dev分支，否则会存在没有公共提交的错误。
    git checkout -b dev
    
    git add .

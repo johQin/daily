@@ -364,9 +364,25 @@ print(a)
    - get()：无key则返None
    - **update()：有则更，无则增**
    - items(),keys(),values()：返回键值对，键，值的对象，可通过list做转换
+   
+     ```python
+     dicta = {
+             "a":100,
+             "c":200
+         }
+     print(list(dicta.values()))		#[100, 200]
+     print(list(dicta.items()))		#[('a', 100), ('c', 200)]
+     for k,v in dicta.items():
+         print(v)		# 100 200
+     for k in dicta:
+         print(k)		# a c
+     ```
+   
+     
+   
    - pop(),popitem()
    - fromkeys()
-
+   
 7. 注意：字典相当于索引是任意不可变类型的列表，因此元组可以做字典的索引，而列表不能。
 
 # 4 流程控制
