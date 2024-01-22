@@ -1464,6 +1464,146 @@ cmake --install . --component runtime
 cmake --install . --default-directory-permissions u=rwx,g=rx,o=rx
 ```
 
+## 4.5 [add_custom_command](https://zhuanlan.zhihu.com/p/661284935)
+
+该命令可以为生成的构建系统添加一条自定义的构建规则。
+
+它包含两种使用方式，一种是通过自定义命令在构建中生成输出文件，另外一种是向构建目标添加自定义命令。
+
+### 4.5.1 构建输出文件
+
+```cmake
+add_custom_command(
+    OUTPUT output1 [output2 ...]
+    COMMAND command1 [ARGS] [args1...]
+    [COMMAND command2 [ARGS] [args2...] ...]
+    [MAIN_DEPENDENCY depend]
+    [DEPENDS [depends...]]
+    [BYPRODUCTS [files...]]
+    [WORKING_DIRECTORY dir]
+    [COMMENT comment]
+    [VERBATIM]
+)
+```
+
+- `OUTPUT output1 [output2 ...]`：这个参数用于指定自定义命令的输出文件。这些文件在构建过程中会被生成，如果这些文件不存在，那么CMake就会执行这条自定义命令。
+- `COMMAND command1 [ARGS] [args1...]`：这个参数用于指定要执行的命令。你可以提供任何有效的命令，包括**系统命令、脚本，或者其他的构建工具**。`ARGS`关键字后面可以跟随一系列的参数，这些参数会被传递给命令。
+- `MAIN_DEPENDENCY depend`：这个参数用于指定自定义命令的主要依赖。如果这个依赖的文件被修改，那么自定义命令就会被执行。
+- `DEPENDS [depends...]`：这个参数用于指定自定义命令的其他依赖。如果这些依赖的文件被修改，那么自定义命令也会被执行。
+- `BYPRODUCTS [files...]`：这个参数用于指定自定义命令的副产品。如果你指定了一个或多个文件作为副产品，那么这些文件将会被添加到构建系统的清理列表中。
+- `WORKING_DIRECTORY dir`：这个参数用于指定自定义命令的工作目录。如果你没有指定这个参数，那么自定义命令将会在当前的源码目录中执行。
+- `COMMENT comment`：这个参数用于指定一个注释，这个注释将会在执行自定义命令时被打印出来。
+- `VERBATIM`：这个参数用于控制命令参数的处理方式。如果你指定了`VERBATIM`，那么命令参数将会被按照字面意义处理，而不会被解析为变量或表达式。
+
+```cmake
+SET(MODEL_LIST "PersonGather" "PersonInvasion" "GuardAbsense" "OfficeAbsense" "PersonCross")
+SET(MODEL_SRC_LIST "Gather" "Gather" "Absense" "Absense" "Cross")
+foreach(MD MD_SRC IN ZIP_LISTS MODEL_LIST MODEL_SRC_LIST)
+    message("var = ${MD} ${MD_SRC}")
+    FILE(COPY ./weights DESTINATION ./${MD})
+    
+    # 将指定的目标拷贝到指定的文件夹，并重命名。（使用了系统的cp命令），当target构建的时候，就会执行自定义命令。
+    ADD_CUSTOM_COMMAND(TARGET ${MD_SRC} POST_BUILD COMMAND cp ${CMAKE_BINARY_DIR}/${MD_SRC} ${CMAKE_BINARY_DIR}/${MD}/${MD})
+endforeach()
+```
+
+
+
+### 4.5.2 为构建目标添加自定义命令
+
+向目标（如库或可执行文件）添加自定义命令。这对于在构建目标之前或之后执行操作非常有用。
+
+```cmake
+add_custom_command(
+   TARGET <target>
+   PRE_BUILD | PRE_LINK | POST_BUILD
+   COMMAND command1 [ARGS] [args1...]
+   [COMMAND command2 [ARGS] [args2...] ...]
+   [BYPRODUCTS [files...]]
+   [WORKING_DIRECTORY dir]
+   [COMMENT comment]
+   [VERBATIM] [USES_TERMINAL]
+   [COMMAND_EXPAND_LISTS]
+)
+```
+
+- TARGET：由 `add_executable` 或 `add_library` 生成的目标文件名称，这个目标可以是任何CMake支持的目标类型，包括库（Library）、可执行文件（Executable）、测试（Test）等。它的主要作用是指定一个目标，自定义命令将会在构建这个目标时被执行。
+
+  - `TARGET`指定的目标必须是已经存在的目标。如果你试图指定一个不存在的目标，CMake会在配置阶段报错。
+  - `TARGET`选项指定的目标，必须是在`add_custom_command`命令之前定义的。如果你试图在`add_custom_command`命令之后定义目标，CMake会在配置阶段报错。
+
+- `PRE_BUILD`、`PRE_LINK`和`POST_BUILD`是非常重要的选项，它们用于指定自定义命令在构建过程中的执行时机。
+
+  - 分别表示编译之前执行命令，链接之前执行命令，生成目标文件后执行命令
+
+  - | 选项                 | 执行时机     | 常见用途                                                     |
+    | -------------------- | ------------ | ------------------------------------------------------------ |
+    | PRE_BUILD（预构建）  | 在编译之前   | 执行预处理任务，如清理上一次构建的残留文件，检查某些必要的条件是否满足 |
+    | PRE_LINK（链接前）   | 链接之前     | 执行需要在编译完成但链接未开始之前的任务，如生成或更新一些需要链接的库文件 |
+    | POST_BUILD（构建后） | 生成目标之后 | 执行后处理任务，如复制生成的文件到指定的目录，执行一些测试和验证任务 |
+
+
+
+## 4.6 [生成器表达式](https://blog.csdn.net/weixin_39766005/article/details/122979811)
+
+**生成器表达式用于引用仅在构建阶段时已知，但在配置阶段时未知或难于知晓的信息**
+
+生成器表达式的格式为**$<...>**，生成器表达式可以嵌套。
+
+### 4.6.1 bool生成器表达式
+
+布尔生成器表达式的计算结果为0或1（也就是说整个表达式会生成一个true or false值）。它们通常用于在**条件生成器表达式**中构造条件。
+
+```cmake
+# 逻辑运算
+$<BOOL:string>：如果字符串为空，或者是不区分大小写的0、FALSE、OFF、N、NO、IGNORE、NOTFOUND，或者是以NOTFOUND结尾，则为0；否则为1
+$<AND:conditions>：逻辑与，conditons是以逗号分割的条件列表
+$<OR:conditions>：逻辑或，conditons是以逗号分割的条件列表
+$<NOT:condition>：逻辑非
+
+# 字符串比较
+$<STREQUAL:string1,string2>：判断字符串是否相等
+$<EQUAL:value1,value2>：判断数值是否相等
+$<IN_LIST:string,list>：判断string是否包含在list中，list使用分号分割
+$<VERSION_LESS:v1,v2>：版本号V1小于V2则为1，否则0
+$<VERSION_GREATER:v1,v2>：版本号V1大于V2则为1，否则0
+$<VERSION_EQUAL:v1,v2>：判断版本号是否相等 
+$<VERSION_LESS_EQUAL:v1,v2>：版本号V1小于等于V2则为1，否则0
+$<VERSION_LESS_EQUAL:v1,v2>：版本号V1大于等于V2则为1，否则0
+
+# 变量查询
+$<TARGET_EXISTS:target>：target存在则为1
+$<CONFIG:cfgs>：判断编译类型配置是否包含在cfgs列表（比如"release,debug"）中；不区分大小写 。eg:$<CONFIG:Debug>
+$<PLATFORM_ID:platform_ids> ：判断CMake定义的平台ID是否包含在platform_ids列表中
+$<COMPILE_LANGUAGE:languages>：判断CMake定义的平台ID是否包含在platform_ids列表中。 eg:$<COMPILE_LANGUAGE:CXX>
+```
+
+### 4.6.2 字符串值生成器表达式
+
+字符串值生成器表达式的计算结果为一个字符串（也就是说整个表达式会生成一个字符串）。字符串值表达式也可以与其他表达式组合使用。
+
+```cmake
+# 条件表达式
+$<condition:true_string>：如果condition为1则值为true_string，否则为空字符串
+$<IF:condition,true_string,false_string>：如果condition为1则值为true_string，否则为false_string
+
+# 字符串转换
+$<LOWER_CASE:string>：将字符串转为小写
+$<UPPER_CASE:string>：将字符串转为大写
+
+# 变量查询
+$<CONFIG>：配置名称
+$<PLATFORM_ID>：当前系统的 CMake 平台 ID
+$<CXX_COMPILER_ID>：使用的 CXX 编译器的 CMake 编译器 ID
+
+# 编译目标查询
+$<TARGET_NAME_IF_EXISTS:tgt>：如果目标tgt存在，则表示目标名称，否则为空字符串
+$<TARGET_FILE:tgt>：获取编译目标tgt的文件路径
+$<TARGET_FILE_BASE_NAME:tgt>：获取编译目标的基础名字，也就是文件名去掉前缀和扩展名
+
+
+```
+
 
 
 # 5 Cmake内置变量
@@ -1857,10 +1997,6 @@ message(">>> git location: ${git_location}, ${git_imported}")
   -  将input文件中的`#cmakedefine var`关键字替换成`#define var`或者`#undef var`，取决于cmake是否定义了var。
 
 - c++获取项目路径的两种方式中有应用
-
-## [file](https://www.jianshu.com/p/ed151fdcf473)
-
-- **使用cmake 文件操作时不可避免需要操作相关文件，比如读取文件内容，创建新文件，返回文件地址等等**
 
 # 最佳实践
 
