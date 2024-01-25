@@ -2339,6 +2339,7 @@ CUDA内存管理包含GPU内存分配、释放、数据在主机和设备（GPU�
        size_t avail(0);//可用显存
        size_t total(0);//总显存
        for (device = 0; device < deviceCount; ++device) {
+           // setDevice会在每个gpu上创建一个上下文，如果不手动释放会导致上下文一直占用，所以在使用完之后，要通过cudaDeviceReset来释放上下文
            cudaSetDevice(device);
            cudaError_t cuda_status = cudaMemGetInfo(&avail,&total);
            if (cudaSuccess != cuda_status)
@@ -2351,6 +2352,8 @@ CUDA内存管理包含GPU内存分配、释放、数据在主机和设备（GPU�
                maxRestMemoryDevice = device;
                maxRestMemory = freeMemory;
            }
+           //cudaDeviceReset来释放setDevice造成的上下文
+           cudaDeviceReset(device);
        }
        if(maxRestMemoryDevice != -1){
            cudaSetDevice(maxRestMemoryDevice);

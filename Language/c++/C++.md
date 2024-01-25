@@ -6635,7 +6635,52 @@ in assignment operator
 
 [非平凡(non-trivial)构造函数](https://zhuanlan.zhihu.com/p/434531482)
 
-#### 4 std::move 强制转化为右值引用
+#### 4 [std::ref](https://blog.csdn.net/m0_51551385/article/details/123965079)
+
+`std::ref`主要在函数式编程（如`std::bind`）时使用，`bind`是对参数直接拷贝，无法传入引用（即使你传入的实参是引用类型也不行），故引入`std::ref()`。使用`std::ref`可以在模板传参的时候传入引用。
+
+std::ref只是尝试模拟引用传递，并不能真正变成引用，**在非模板情况下，std::ref根本没法实现引用传递**，只有模板自动推导类型或类型隐式转换时，ref能用包装类型reference_wrapper来代替原本会被识别的值类型，而reference_wrapper能隐式转换为被引用的值的引用类型。
+
+
+```c++
+// 参考2：https://blog.csdn.net/leapmotion/article/details/120338292
+// 如下使用皆会报错
+
+// bind中传递引用
+void func(int& n2) {
+    n2++;
+}
+
+int main() {
+    int n1 = 0;
+    auto bind_fn = std::bind(&func, n1);
+    // 除非通过std::ref 传递
+    // auto bind_fn = std::bind(&func, std::ref(n1));
+
+    bind_fn();
+    std::cout << n1 << std::endl; // 1
+}
+
+// 在thread中传递引用
+void thread_func(int& n2) { // error, >> int n2
+    n2++;
+}
+
+int main() {
+    int n1 = 0;
+    // 编译不过
+    std::thread t1(thread_func, n1);
+	// 除非通过std::ref
+    std::thread t1(thread_func, std::ref(n1));
+    
+    t1.join();
+    std::cout << n1 << std::endl;
+}
+```
+
+
+
+#### 5 std::move 强制转化为右值引用
 
 虽然不能直接对左值建立右值引用，但是我们可以显示地将一个左值转换为对应的右值引用类型。
 
@@ -6648,7 +6693,7 @@ int&&　rr2=std::move(rr1);	//ok
 
 **当一个右值引用复制给一个左值时，会调用该对象的 重载的移动赋值运算符。**
 
-#### 5 std::forward 实现完美转发
+#### 6 std::forward 实现完美转发
 
 完美转发（perfect forwarding）指在函数模板中，完全依照模板参数的类型，将参数传递给函数模板中调用的另外一个函数
 
@@ -6685,6 +6730,8 @@ int main() {
 	TestForward(x);		// 输出 lvalue
 }
 ```
+
+
 
 #### [c++成员函数声明()后加&或&&表示什么](https://www.zhihu.com/question/47163104/answer/104708138)
 
@@ -6806,13 +6853,341 @@ int main()
 }
 ```
 
-### bind函数
+
+
+### [std::function](https://blog.csdn.net/aiynmimi/article/details/119732176)
+
+`std::function`对象可以代表任何可以调用的对象，包括函数，lambda表达式，bind表达式或其他函数对象，以及指向成员函数和指向数据成员的指针。
+
+当std::function对象未包裹任何实际的可调用元素，调用该 std::function 对象将抛出std::bad_function_call 异常。
+
+```c++
+template< class R, class... Args >
+class function<R(Args...)>;
+
+// 模板参数说明：
+// R: 被调用函数的返回类型
+// Args…：被调用函数的形参
+// eg:
+// std::function<void()>，R——返回值类型为void，()——入参为空
+```
+
+成员函数声明：	
+
+| 成员函数      | 说明                                              |
+| ------------- | ------------------------------------------------- |
+| constructor   | 构造函数：constructs a new std::function instance |
+| destructor    | 析构函数： destroys a std::function instance      |
+| operator=     | 给定义的function对象赋值                          |
+| operator bool | 检查定义的function对象是否包含一个有效的对象      |
+| operator()    | 调用一个对象                                      |
+
+
+
+#### [std::function对象的不同类型的值](https://blog.csdn.net/qq_41317716/article/details/125839126)
+
+注意带模板的函数，非静态成员函数用法，以及bind绑定非静态成员函数用法。
+
+```c++
+// 普通函数类型
+int f(int a, int b)
+{
+    return a+b;
+}
+std::function<int(int, int)>func = f;
+
+// 模板函数类型
+template<class T>
+T f(T a, T b)
+{
+    return a+b;
+}
+std::function<int(int, int)>func = f<int>;
+
+// 函数对象
+//function object
+struct functor  // or class functor
+{
+public:
+    int operator() (int a, int b)
+    {
+        return a + b;
+    }
+};
+
+int main()
+{
+    functor ft;
+    function<int(int,int)> func = ft();
+    cout<<func(1,2)<<endl;    //3
+    
+    system("pause");
+    return 0;
+}
+
+// 模板函数对象
+//function object
+template<class T>
+struct functor   // or class functor
+{
+public:
+    T operator() (T a, T b)
+    {
+        return a + b;
+    }
+};
+functor<int> ft;
+function<int(int,int)> func = ft;
+
+
+
+// lambda表达式
+auto f = [](const int a, const int b) { return a + b; };
+std::function<int(int, int)>func = f;
+cout << func(1, 2) << endl;
+
+```
+
+##### 成员函数类型
+
+```c++
+// 静态类成员函数
+class Plus
+{
+public:
+    static int plus(int a, int b)
+    {
+        return a + b;
+    }
+};
+function<int(int, int)> f = Plus::plus;
+
+// 带模板静态成员函数
+class Plus
+{
+public:
+    template <class T>
+    static T plus(T a, T b)
+    {
+        return a + b;
+    }
+};
+function<int(int, int)> f = Plus::plus<int>;
+
+// 非静态成员函数
+class Plus
+{
+public:
+    int plus(int a, int b)
+    {
+        return a + b;
+    }
+};
+
+Plus p;
+function<int(Plus&,int, int)> f = &Plus::plus;
+function<int(Plus,int, int)> f2 = &Plus::plus;
+cout << f(p,1, 2) << endl;     //3
+cout << f2(p,1, 2) << endl;     //3
+```
+
+
+
+##### bind绑定成员函数
+
+```c++
+// bind函数调用类成员函数
+class Plus
+{
+public:
+    int plus(int a, int b)
+    {
+        return a + b;
+    }
+};
+
+class Plus2
+{
+public:
+    static int plus(int a, int b)
+    {
+        return a + b;
+    }
+};
+
+int main()
+{
+    Plus p;
+    // 指针形式调用成员函数
+    function<int(int, int)> f1 = bind(&Plus::plus, &p, placeholders::_1, placeholders::_2);// placeholders::_1是占位符
+    
+    // 对象形式调用成员函数
+    function<int(int, int)> f2 = bind(&Plus::plus, p, placeholders::_1, placeholders::_2);// placeholders::_1是占位符
+    cout << f1(1, 2) << endl;     //3
+    cout << f2(1, 2) << endl;     //3
+    
+    Plus2 p2;
+	// 指针形式调用成员函数
+	function<int(int, int)> f3 = bind(Plus2::plus, placeholders::_1, placeholders::_2);// placeholders::_1是占位符
+	cout << f3(1, 2) << endl;     //3
+    
+    system("pause");                                       
+    return 0;
+}
+
+// bind绑定带模板的非静态成员函数
+class Math
+{
+public:
+    template <class T>
+    T Minus(T i, T j)
+    {
+        return i - j;
+    }
+};
+
+int main()
+{
+	Math m;
+    function<int(int, int)> f = bind(&Math::Minus<int>, &m, placeholders::_1, placeholders::_2);
+    cout << f(1, 2) << endl;                                            // -1
+    return 1;
+}
+```
+
+##### 其它
+
+```c++
+#include <iostream>
+#include <map>
+#include <functional>
+
+using namespace std;
+ 
+// 普通函数
+int add(int i, int j) { return i + j; }
+
+// lambda表达式
+auto mod = [](int i, int j){return i % j; };
+
+// 函数对象类
+struct divide
+{
+	int operator() (int denominator, int divisor)
+	{
+		return denominator / divisor;
+	}
+};
+
+int main()
+{
+	map<char, function<int(int, int)>> binops = 
+	{
+		{ '+', add },
+		{ '-', [](int i, int j){return i - j; } },
+		{ '/', divide() }
+	};
+	cout << binops['+'](10, 5) << endl;
+	cout << binops['-'](10, 5) << endl;
+	cout << binops['/'](10, 5) << endl;
+    
+	system("pause");
+	return 0;
+}
+
+```
+
+
+
+#### 使用std::function作为函数的入参
+
+```c++
+#include <fonctional>
+// 基于传值的方式传递参数
+void registerCallBack(std::function<void()>);
+registerCallBack([=]{
+    ....  // 回调函数的实现部分
+};
+// 传值方式下std::function对象保存
+class CallBackHolder 
+{
+public:
+  void registerCallBack(std::function<void()> func)
+  {
+    callback = std::move(func);
+  } 
+private:
+  std::function<void()> callback; 
+}
+        
+
+// 基于引用的方式传递参数                 
+void registerCallBack(std::function<void()> const&);      
+```
+
+
+
+### std::bind
 
 std::bind函数定义在functional头文件中，是一个函数模板，他像一个函数包装器（适配器），接受一个可调用对象，生成一个新的可调用对象来“适应”对象的参数列表。一般而言，我们用它可以把一个原本接收N个参数的函数，通过绑定一些参数，返回一个接收M个（M可以大于N）参数的新函数。同时，使用std::bind函数还可以实现参数顺序调整等操作。
 
 bind可以替代适配器中的bind1st，bind2se
 
  std::bind 则是用来绑定函数调用的参数的，它解决的需求是我们有时候可能并不一定能够一次性获得调用某个函数的全部参数，通过这个函数，我们可以将部分调用参数提前绑定到函数身上成为一个新的对象，然后在参数齐全后，完成调用。
+
+**bind中，为函数绑定的参数将会以值传递的方式传递给具体函数，而绑定的占位符将会以引用传递。**
+
+```c++
+#include <iostream>
+#include <functional>
+#include<vector>
+
+using namespace std;
+
+// std::ref主要是考虑函数式编程（如std::bind）在使用时，是对参数直接拷贝，而不是引用
+void f(int& a, int& b, int& c)
+{
+    cout << "in function a = " << a << "  b = " << b << "  c = " << c << endl;
+    cout << "in function a = " << &a << "  b = " << &b << "  c = " << &c << endl;
+    a += 1;
+    b += 10;
+    c += 100;
+}
+
+int main() {
+
+    int n1 = 1, n2 = 10, n3 = 100;
+    int& r1 = n1;
+    int& r2 = n2;
+
+    function<void()> f1 = bind(f, r1, r2, ref(n3));		
+    前两个参数即便是引用类型，bind 传入的还是其值的拷贝，第三个参数传入 reference_wrapper 对象，该对象可隐式的转换为值的引用
+
+    f1();
+    cout << "out function a = " << n1 << "  b = " << n2 << "  c = " << n3 << endl;
+    cout << "out function a = " << &n1 << "  b = " << &n2 << "  c = " << &n3 << endl;
+    f1();
+    cout << "out function a = " << n1 << "  b = " << n2 << "  c = " << n3 << endl;
+    cout << "out function a = " << &n1 << "  b = " << &n2 << "  c = " << &n3 << endl;
+    return 0;
+}
+/*
+in function a = 1  b = 10  c = 100
+in function a = 0000006B90EFF710  b = 0000006B90EFF708  c = 0000006B90EFF684
+out function a = 1  b = 10  c = 200
+out function a = 0000006B90EFF644  b = 0000006B90EFF664  c = 0000006B90EFF684
+
+in function a = 2  b = 20  c = 200
+in function a = 0000006B90EFF710  b = 0000006B90EFF708  c = 0000006B90EFF684
+out function a = 1  b = 10  c = 300
+out function a = 0000006B90EFF644  b = 0000006B90EFF664  c = 0000006B90EFF684
+*/
+
+```
+
+
+
+**bind中，如果被绑定的函数为非静态成员函数，则需要传递this指针作为第一个参数。而静态成员函数其实可以看做是全局函数**
 
 ```c++
 #include <functional>
@@ -6846,31 +7221,6 @@ bindFunc2('B', 10);
 
 
 
-
-### [std::function](https://blog.csdn.net/aiynmimi/article/details/119732176)
-
-`std::function`对象可以代表任何可以调用的对象，包括函数，lambda表达式，bind表达式或其他函数对象，以及指向成员函数和指向数据成员的指针。
-
-当std::function对象未包裹任何实际的可调用元素，调用该 std::function 对象将抛出std::bad_function_call 异常。
-
-```c++
-template< class R, class... Args >
-class function<R(Args...)>;
-
-// 模板参数说明：
-// R: 被调用函数的返回类型
-// Args…：被调用函数的形参
-```
-
-成员函数声明：	
-
-| 成员函数      | 说明                                              |
-| ------------- | ------------------------------------------------- |
-| constructor   | 构造函数：constructs a new std::function instance |
-| destructor    | 析构函数： destroys a std::function instance      |
-| operator=     | 给定义的function对象赋值                          |
-| operator bool | 检查定义的function对象是否包含一个有效的对象      |
-| operator()    | 调用一个对象                                      |
 
 
 
@@ -7317,6 +7667,8 @@ int main()
     return 0;
 }
 ```
+
+
 
 
 

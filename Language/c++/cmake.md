@@ -129,6 +129,8 @@ add_subdirectory (source_dir [binary_dir] [EXCLUDE_FROM_ALL])
 
 - 如果不指定库后缀，默认优先链接动态库。
 
+### link_directories
+
 - ```cmake
   # 1.添加需要链接的库文件目录（https://blog.csdn.net/fengbingchun/article/details/128292359）
   # 相当于g++命令的-L选项，添加编译器可以查找库的文件夹路径，但不会将库链接到target上。
@@ -138,34 +140,49 @@ add_subdirectory (source_dir [binary_dir] [EXCLUDE_FROM_ALL])
   # 还有
   target_link_directories()
   
-  # 2.添加需要链接的库文件路径（绝对路径），将库链接到稍后添加的所有目标。
-  link_libraries(absPath1 absPath2...)
-  link_libraries("/opt/MATLAB/R2012a/bin/glnxa64/libeng.so")
-  # 如果target调用了某个库，而没有取link，那么就会报undefined reference to `xxx'
-  # 例如：使用mysql.h里的函数，而没有link mysqlclient 就会报undefined reference to `mysql_init'
   
-  # 3.添加要连接的库文件名称，默认优先链接动态库
-  # 指定链接 给定目标和其依赖项时 要使用的库或标志。
-  target_link_libraries(<target>
-                        <PRIVATE|PUBLIC|INTERFACE> <item>...
-                       [<PRIVATE|PUBLIC|INTERFACE> <item>...]...)
-                       
-  # target不能是ALIAS target。
-  # PUBLIC 在public后面的库会被Link到你的target中，并且里面的符号也会被导出，提供给第三方使用。
-  # PRIVATE 在private后面的库仅被link到你的target中，并且终结掉，第三方不能感知你调了啥库
-  # INTERFACE 在interface后面引入的库不会被链接到你的target中，只会导出符号。
-  target_link_libraries(myProject eng mx)     
-  #equals to below 
-  #target_link_libraries(myProject -leng -lmx) `
-  #target_link_libraries(myProject libeng.so libmx.so)`
   
-  # 以下写法都可以： 
-  target_link_libraries(myProject comm)       # 连接libhello.so库，默认优先链接动态库
-  target_link_libraries(myProject libcomm.a)  # 显示指定链接静态库
-  target_link_libraries(myProject libcomm.so) # 显示指定链接动态库
+  
   ```
-  
+
 - **target_link_libraries 要在 add_executable '之后'，link_libraries 要在 add_executable '之前'**
+
+### link_libraries
+
+```cmake
+# 2.添加需要链接的库文件路径（绝对路径），将库链接到稍后添加的所有目标。
+link_libraries(absPath1 absPath2...)
+link_libraries("/opt/MATLAB/R2012a/bin/glnxa64/libeng.so")
+# 如果target调用了某个库，而没有取link，那么就会报undefined reference to `xxx'
+# 例如：使用mysql.h里的函数，而没有link mysqlclient 就会报undefined reference to `mysql_init'
+```
+
+### target_link_libraries
+
+```cmake
+# 3.添加要连接的库文件名称，默认优先链接动态库
+# 指定链接 给定目标和其依赖项时 要使用的库或标志。
+# 它会在你的生成库或程序中添加rpath。这个可能会在你开发便携时程序时导致某些库找不到。
+target_link_libraries(<target>
+                      <PRIVATE|PUBLIC|INTERFACE> <item>...
+                     [<PRIVATE|PUBLIC|INTERFACE> <item>...]...)
+                     
+# target不能是ALIAS target。
+# PUBLIC 在public后面的库会被Link到你的target中，并且里面的符号也会被导出，提供给第三方使用。
+# PRIVATE 在private后面的库仅被link到你的target中，并且终结掉，第三方不能感知你调了啥库
+# INTERFACE 在interface后面引入的库不会被链接到你的target中，只会导出符号。
+target_link_libraries(myProject eng mx)     
+#equals to below 
+#target_link_libraries(myProject -leng -lmx) `
+#target_link_libraries(myProject libeng.so libmx.so)`
+
+# 以下写法都可以： 
+target_link_libraries(myProject comm)       # 连接libhello.so库，默认优先链接动态库
+target_link_libraries(myProject libcomm.a)  # 显示指定链接静态库
+target_link_libraries(myProject libcomm.so) # 显示指定链接动态库
+```
+
+
 
 ## 1.5 include 包含头
 
@@ -1496,20 +1513,16 @@ add_custom_command(
 - `VERBATIM`：这个参数用于控制命令参数的处理方式。如果你指定了`VERBATIM`，那么命令参数将会被按照字面意义处理，而不会被解析为变量或表达式。
 
 ```cmake
-SET(MODEL_LIST "PersonGather" "PersonInvasion" "GuardAbsense" "OfficeAbsense" "PersonCross")
-SET(MODEL_SRC_LIST "Gather" "Gather" "Absense" "Absense" "Cross")
-foreach(MD MD_SRC IN ZIP_LISTS MODEL_LIST MODEL_SRC_LIST)
-    message("var = ${MD} ${MD_SRC}")
-    FILE(COPY ./weights DESTINATION ./${MD})
-    
-    # 将指定的目标拷贝到指定的文件夹，并重命名。（使用了系统的cp命令），当target构建的时候，就会执行自定义命令。
-    ADD_CUSTOM_COMMAND(TARGET ${MD_SRC} POST_BUILD COMMAND cp ${CMAKE_BINARY_DIR}/${MD_SRC} ${CMAKE_BINARY_DIR}/${MD}/${MD})
-endforeach()
+add_custom_command(
+    TARGET myTarget
+    POST_BUILD
+    COMMAND python3 myScript.py
+)
 ```
 
 
 
-### 4.5.2 为构建目标添加自定义命令
+### 4.5.2 为已有构建目标添加自定义命令
 
 向目标（如库或可执行文件）添加自定义命令。这对于在构建目标之前或之后执行操作非常有用。
 
@@ -1541,6 +1554,18 @@ add_custom_command(
     | PRE_BUILD（预构建）  | 在编译之前   | 执行预处理任务，如清理上一次构建的残留文件，检查某些必要的条件是否满足 |
     | PRE_LINK（链接前）   | 链接之前     | 执行需要在编译完成但链接未开始之前的任务，如生成或更新一些需要链接的库文件 |
     | POST_BUILD（构建后） | 生成目标之后 | 执行后处理任务，如复制生成的文件到指定的目录，执行一些测试和验证任务 |
+
+```cmake
+SET(MODEL_LIST "PersonGather" "PersonInvasion" "GuardAbsense" "OfficeAbsense" "PersonCross")
+SET(MODEL_SRC_LIST "Gather" "Gather" "Absense" "Absense" "Cross")
+foreach(MD MD_SRC IN ZIP_LISTS MODEL_LIST MODEL_SRC_LIST)
+    message("var = ${MD} ${MD_SRC}")
+    FILE(COPY ./weights DESTINATION ./${MD})
+    
+    # 将指定的目标拷贝到指定的文件夹，并重命名。（使用了系统的cp命令），当target构建的时候，就会执行自定义命令。
+    ADD_CUSTOM_COMMAND(TARGET ${MD_SRC} POST_BUILD COMMAND cp ${CMAKE_BINARY_DIR}/${MD_SRC} ${CMAKE_BINARY_DIR}/${MD}/${MD})
+endforeach()
+```
 
 
 
@@ -1645,6 +1670,7 @@ CMAKE_CUDA_COMPILER			# 指定cuda编译器位置和版本
 
 # 编译器选项
 CMAKE_CXX_FLAGS				# 为c++编译器增加编译选项，set(CMAKE_CXX_FLAGS "-pthread -g -Wall")就相当于在编译某个cpp文件时为g++编译器增加一些选项，就像 g++ -pthread -g -Wall
+
 CMAKE_C_FLAGS				# 为c编译器增加编译选项
 
 
@@ -1659,8 +1685,11 @@ CMAKE_TOOLCHAIN_FILE 		# CMake 的一个内定变量，它指定了一个文件�
 
 - CMAKE_SKIP_RPATH
 - CMAKE_BUILD_WITH_INSTALL_RPATH
-- CMAKE_SKIP_BUILD_RAPTH
-- CMAKE_SKIP_INSTALL_RPATH
+  - 当值为 `TRUE` 时，CMake 在构建阶段使用与安装阶段相同的 RPATH 设置。
+  - 当 值为 `FALSE` 时（默认值），构建阶段会使用默认的 RPATH 设置，而不考虑安装阶段的设置。
+- CMAKE_SKIP_BUILD_RAPTH：
+  -  控制是否在构建阶段跳过为目标设置 RPATH。如果设置为 `TRUE`，则在构建时不会设置 RPATH。这意味着在构建目标时，将不会包含指定的运行时库搜索路径。默认情况下，它是 `FALSE`。
+- CMAKE_SKIP_INSTALL_RPATH：当值为 `TRUE` 时，CMake 不会在安装目标时设置任何 RPATH。
 
 的话，默认CMake在帮你编译之后，如果你使用了相关动态库，它会在相应的executable中增加你相关生成动态库的路径，这样当你每次去执行的时候你不需要每次都LD_LIBRARY_PATH就可以正常运行。这个时候你可以用一下
 
@@ -1746,7 +1775,17 @@ Dynamic section at offset 0xde530 contains 35 entries:
 
 ```
 
+#### RPATH和RUNPATH
 
+二者除了在动态库的查找优先级方面：RPATH大于RUNPATH
+
+他们还有所区别：
+
+1. 如果同时有rpath和runpath，那么rpath是失效的，只有runpath有效。
+2. 对间接库的查找：
+   - 在搜索程序或库的间接依赖时，rpath和runpath是不同的。
+   - rpath设置的路径对间接库的搜索也生效，即搜索间接库时，也会优先从rpath指定的路径中搜索。而runpath设置的路径在对间接库搜索时是不起作用的。
+   - 所谓的间接库是指一个库所依赖的库中又依赖的别的库，如test程序依赖liba.so，而liba.so又依赖libb.so，那么对于test程序来说，libb.so就是一个间接依赖库。那么加载器在加载test程序时，寻找libb.so的时候，rpath和runpath的作用是不同的。
 
 #### [ELF文件](https://zhuanlan.zhihu.com/p/628432429)
 
@@ -2051,6 +2090,21 @@ int putenv(char *string);
 cmake --build . --config Release
 
 # 在构建的最后加上 --config Release即可。
+```
+
+## 3 将可执行文件所在目录设置为动态库查找位置
+
+```cmake
+set_target_properties(Gather PROPERTIES LINK_FLAGS "-Wl,--disable-new-dtags,-rpath,./")
+
+# -Wl，将逗号分割的选项传递给链接器
+# --disable-new-dtags：表示使用的是rpath，去掉后编译器默认使用runpath。
+#           rpath和runpath的区别一部分在于rpath可查找间接依赖的库
+#           例如：target依赖库a,而库a又依赖库b，rpath可以在查找到库a后，再去查库b。而runpath不会，它仅仅会查库a
+# -rpath,./ : 指定可执行文件在当前可执行文件所在目录查找动态库
+
+# 使用下面这一种方法好像没有效果
+set(CMAKE_CXX_FLAGS   "-Wl,-z,origin,-rpath,$ORIGIN")
 ```
 
 

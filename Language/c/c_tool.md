@@ -66,12 +66,15 @@ $ gcc test.o -o test
 | -D                                          | 在程序编译的时候，指定一个宏                                 |
 | -w                                          | 不生成任何警告信息，不建议使用，有些时候警告就是错误         |
 | -Wall                                       | 生成所有警告信息                                             |
-| -On                                         | n 的取值范围：0~3。编译器的优化选项的 4 个级别，-O0 表示没有优化，-O1 为缺省值，-O3 优化级别最高 |
+| -On                                         | n 的取值范围：0~3。编译器的优化选项的 4 个级别<br />-O0 表示没有优化，-O1 为缺省值，-O3 优化级别最高 |
 | -l                                          | 在程序编译的时候，指定使用的库                               |
-| -L                                          | 指定编译的时候，搜索的库的路径。                             |
+| -L                                          | 指定编译的时候，搜索的库的路径。（指定链接时，要引入的库目录） |
 | -fPIC/fpic                                  | 生成与位置无关的代码，<br />代码在加载到内存时使用相对地址，所有对固定地址的访问都通过全局偏移表(GOT)来实现。 |
 | -shared                                     | 生成共享目标文件。通常用在建立共享库时                       |
 | -std                                        | 指定 C 方言，如:-std=c99，gcc 默认的方言是 GNU C             |
+| `-Wl,<options> `                            | `Pass comma-separated <options> on to the linker`，<br />将逗号分割的选项传递给链接器（指定运行阶段，要引入的库目录） |
+| `-Wp,<options>`                             | `Pass comma-separated <options> on to the preprocessor`      |
+| `-Wa,<options>`                             | `Pass comma-separated <options> on to the assembler`         |
 
 -D 参数的应用场景:
 
@@ -92,6 +95,20 @@ $ gcc test.o -o test
 - 将所有的打印 log 的代码都写到一个宏判定中，可以模仿上边的例子
   在编译程序的时候指定 -D 就会有 log 输出
   在编译程序的时候不指定 -D, log 就不会输出
+
+### gcc指定Rpath
+
+```bash
+gcc -o test test.c -I. -L. -lc -Wl,-rpath=.   
+
+#-I. 是指定头文件路径为当前目录下;
+#-L. 是指定库文件路径为当前目录下;
+#-lc 是从-L指定库文件路径下去找libc.so.6这个库，也就是库名砍头去尾(类似使用过-lpthread);
+
+# -Wl,-rpath=. 为告诉编译器将后面的参数传递给链接器
+```
+
+
 
 ## 编译运行
 
