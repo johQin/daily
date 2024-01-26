@@ -2135,11 +2135,99 @@ libevent 是一个事件分发引擎，greenlet 提供了轻量级线程的支�
 
 2. [解决Pycharm运行服务器文件时出现Cannot find remote credentials for target config com.jetbrains.plugins.remotesdk.](https://blog.csdn.net/yxn4065/article/details/127466041)
 
+## [远程调试图像程序—x11服务](https://zhuanlan.zhihu.com/p/428922453)
 
+### 原理
 
-### 其它问题
+**X Window System 常被简称为 X11 或 X**，其功能包括窗口的绘制、移动，以及与鼠标、键盘等输入设备的交互。没有x11，我们只能使用命令行。
 
+它采用C/S模型：一个X server 和多个应用程序（client）通信。server接收client的请求绘制窗口，并将来自鼠标、键盘等设备的输入传递给client。
 
+X serverv和vclient（GUI）可以位于同一计算机上，就类似于平时使用的Windows操作系统；
+
+当X server和client不在同一计算机时，使用client（本地）的X server 进行绘制、交互，就变成了远程桌面。
+
+举个例子：
+
+- 前者是你在披萨店点了一份披萨，店员在你旁边帮你做好拿给你（这家店相当于同一台计算机）；
+- 后者是你在网上叫了一份披萨，店员接单后到你家帮你做了一份披萨（注意：VNC是使用店里厨房，做好给你送过来；X转发是使用你家厨房做披萨）
+
+常用X Server有免费的[Xming](https://link.zhihu.com/?target=http%3A//www.straightrunning.com/XmingNotes/)、收费的[Xmanager](https://link.zhihu.com/?target=http%3A//www.netsarang.com/)（非常棒的Xshell终端软件也是他家出的，家庭教育用户免费使用） 等；上述需要手动配置，然而有了MobaXterm，一切都变得超级简单！
+
+#### X11 Forwarding
+
+许多时候 X server 和 X client 在同一台主机上，这看起来没什么。但是， X server 和 X client 完全可以运行在不同的机器上，只要彼此通过 X 协议通信即可。
+
+**在本地显示 (X server)运行在服务器上的 GUI 程序 (X client)。**这样的操作可以通过 SSH X11 Forwarding (转发) 来实现。
+
+X11 中的 X 指的就是 X 协议，11 指的是采用 X 协议的第 11 个版本。
+
+### 操作步骤
+
+#### 服务器
+
+```bash
+# 服务器上安装
+apt update
+apt install xorg
+apt install xclock	# 用于验证
+
+# 修改ssh配置
+sudo vim /etc/ssh/sshd_config
+#AllowAgentForwarding yes
+#AllowTcpForwarding yes
+#GatewayPorts no
+X11Forwarding yes
+#X11DisplayOffset 10
+X11UseLocalhost no
+
+# 重启ssh服务
+sudo systemctl restart sshd.service
+```
+
+#### 本地机器
+
+**安装mobaXterm,，并连接服务器，并且在pycharm 使用过程中，不要关闭，否则无法使用显示功能。**
+
+![img](./legend/v2-778732ed7fc9a8f2fb11f07b877ebeea_720w.webp)
+
+注意到 X11-forwarding 和 DISPLAY 这两项都打上了绿色的勾，代表设置成功了。（其实有一个X11-forwarding也可以）
+
+在mobaXterm上验证
+
+```
+xclock
+```
+
+这时候，你在本地 (Windows 端)，就可以看到相应的图形化界面（窗口）
+
+![img](./legend/v2-02f056b1a2acc69b0f2309cbe7648958_720w.webp)
+
+#### [本地pycharm](https://www.jianshu.com/p/b5a3bd1f6fe0)
+
+在mobaXterm输入
+
+```bash
+# 获取参数信息
+echo $DISPLAY
+localhost:10.0
+
+# 然后将此参数设置到pycharm run/debug configuration的环境变量里面去
+
+```
+
+![](./legend/pycharm远程桌面设置.png)
+
+#### pycharm测试
+
+![img](legend/v2-1ceb6cad15a6bda9ffd05f23ab86cc23_720w.webp)
+
+参考：
+
+- [解决qt.qpa.xcb: could not connect to display问题](https://blog.csdn.net/zimojiang/article/details/127383943)
+- 
+
+## 其它问题
 
 
 
