@@ -878,7 +878,83 @@ Yolov5图像预处理步骤主要如下：
 
    - `sudo cp libnvinfer_builder_resource.so.8.6.1 /usr/lib/`
 
-5. 
+5. 根据GPU剩余内存选择GPU设备
+
+   - 一定要记得在cudaSetDevice之后，cudaDeviceReset一下，否则每个设备都会留下上下文内存占用（一个进程运行在多个gpu上）
+   - ![](./legend/同一进程setDevice多个gpu设备后在所有设备上占有上下文内存.png)
+
+   ```c++
+   bool YOLOV8::chooseGPUDeviceWithMemory(int GpuMemoryUsage) {
+       int deviceCount = 0;
+       cudaGetDeviceCount(&deviceCount);
+       if(deviceCount == 0){
+           logger.error("当前没有可用的GPU设备");
+           return false;
+       }else{
+           std::string deviceCountInfo = std::string("当前有" + deviceCount) + "个GPU设备";
+           logger.info(deviceCountInfo);
+           std::cout<< "当前有" << deviceCount<< "个GPU设备" <<std::endl;
+       }
+   
+       // 遍历设备编号信息
+       int device;
+       int maxRestMemoryDevice = -1;
+       double maxRestMemory = GpuMemoryUsage;
+       size_t avail(0);//可用显存
+       size_t total(0);//总显存
+       for (device = 0; device < deviceCount; ++device) {
+           // setDevice会在每个gpu上创建一个上下文，如果不手动释放会导致上下文一直占用，所以在使用完之后，要通过cudaDeviceReset来释放上下文
+           cudaSetDevice(device);
+           cudaError_t cuda_status = cudaMemGetInfo(&avail,&total);
+           if (cudaSuccess != cuda_status)
+           {
+               std::cout << "Error: cudaMemGetInfo fails : " << cudaGetErrorString(cuda_status) << std::endl;
+               return false;
+           }
+           double freeMemory = double(avail) / (1024.0 * 1024.0);     // MB
+           if(freeMemory > maxRestMemory){
+               maxRestMemoryDevice = device;
+               maxRestMemory = freeMemory;
+           }
+           //cudaDeviceReset来释放setDevice造成的上下文
+           cudaDeviceReset(device);
+       }
+       if(maxRestMemoryDevice != -1){
+           cudaSetDevice(maxRestMemoryDevice);
+           return true;
+       }
+       return false;
+   }
+   ```
+
+6. tensorRT在运行时报`[W] [TRT] CUDA lazy loading is not enabled. Enabling it can significantly reduce device memory usage and speed up TensorRT initialization. See "Lazy Loading" section of CUDA documentation `
+
+   - https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#lazy-loading
+
+   - 懒加载无法启动，使能它可以显著的降低设备的内存占用加速tensortRT的初始化。
+
+   - 因为我运行的时候，报这个警告，我会发现我的程序所占用的设备内存（480MB）比没有报这个警告的时候所占用的设备内存（194MB）要差不多大一半，所以我必须解决这个警告。
+
+   - ![](./legend/warningandnowarning.png)
+
+   - 首先cuda toolkit必须大于11.7，其次需要设置环境变量CUDA_MODULE_LOADING = LAZY，然后再次运行就不会报警告，设备内存的占用也恢复正常。
+
+   - ```bash
+     vim ~/.bashrc
+     export CUDA_LAZY_LOADING="LAZY"
+     
+     source ~/.bashrc
+     
+     # 看到结果，发现设置成功
+     env | grep CUDA_LAZY_LOADING
+     CUDA_MODULE_LOADING=LAZY
+     
+     # 再次运行TensorRT程序就不会报警告了
+     ```
+
+   - 参考：[CUDA lazy loading is not enabled. Enabling it can significantly reduce device memory usage and speed](https://blog.csdn.net/s1_0_2_4/article/details/135026761)
+
+7. 
 
 
 

@@ -1681,6 +1681,10 @@ CMAKE_TOOLCHAIN_FILE 		# CMake 的一个内定变量，它指定了一个文件�
 
 ## [CMAKE_INSTALL_RPATH](https://www.cnblogs.com/rickyk/p/3884257.html)
 
+`CMAKE_INSTALL_RPATH` 是用于**设置安装后**的运行时库搜索路径（RPATH）
+
+`CMAKE_BUILD_RPATH`是用于设置**构建目录中**的运行时库搜索路径（RPATH）
+
 简单介绍下CMake关于RPATH的机制，在之前文章中介绍过，如果你[没有显示指定](https://www.cnblogs.com/rickyk/p/3875084.html)
 
 - CMAKE_SKIP_RPATH
@@ -1775,7 +1779,7 @@ Dynamic section at offset 0xde530 contains 35 entries:
 
 ```
 
-#### RPATH和RUNPATH
+#### [RPATH和RUNPATH](https://zhuanlan.zhihu.com/p/675090398#:~:text=rpath%E5%92%8Crunpath%E5%85%B6%E5%AE%83%E6%96%B9%E9%9D%A2%E7%9A%84%E4%B8%8D%E5%90%8C)
 
 二者除了在动态库的查找优先级方面：RPATH大于RUNPATH
 
@@ -1804,7 +1808,9 @@ ELF （Executable and Linkable Format）文件，也就是在 Linux 中的目标
 - 链接器（Link eDitor, ld）可能会处理它和其它可重定位文件以及共享目标文件，生成另外一个目标文件。
 - 动态链接器（Dynamic Linker）将它与可执行文件以及其它共享目标组合在一起生成进程镜像。
 
+#### $ORIGIN
 
+`$ORIGIN` 是一个在可执行文件运行时由动态链接器解析的特殊字符串，表示可执行文件所在的目录。它通常用于设置运行时库搜索路径（RPATH）或在可执行文件中指定动态库的路径。
 
 # 6 文件系统
 
@@ -2095,17 +2101,41 @@ cmake --build . --config Release
 ## 3 将可执行文件所在目录设置为动态库查找位置
 
 ```cmake
+# cmake中
 set_target_properties(Gather PROPERTIES LINK_FLAGS "-Wl,--disable-new-dtags,-rpath,./")
 
 # -Wl，将逗号分割的选项传递给链接器
+# 参考：[gcc编译参数-Wl和rpath的理解](https://blog.csdn.net/fengyuyeguirenenen/article/details/130739830)
 # --disable-new-dtags：表示使用的是rpath，去掉后编译器默认使用runpath。
 #           rpath和runpath的区别一部分在于rpath可查找间接依赖的库
 #           例如：target依赖库a,而库a又依赖库b，rpath可以在查找到库a后，再去查库b。而runpath不会，它仅仅会查库a
 # -rpath,./ : 指定可执行文件在当前可执行文件所在目录查找动态库
 
+# 给多个对象同时设置属性
+SET_PROPERTY(TARGET Gather Absense Cross Block PROPERTY LINK_FLAGS "-Wl,--disable-new-dtags,-rpath,./")
 # 使用下面这一种方法好像没有效果
 set(CMAKE_CXX_FLAGS   "-Wl,-z,origin,-rpath,$ORIGIN")
+
+# 也可以通过指定对应的变量来设置Rpath
+# 设置构建目录中的运行时库搜索路径
+set(CMAKE_BUILD_RPATH "$ORIGIN")
+# 设置安装后的运行时库搜索路径
+set(CMAKE_INSTALL_RPATH "$ORIGIN")
+
+# gcc中
+gcc -o test test.c -I. -L. -lc -Wl,-rpath=.
+
+# 直接修改可执行文件的rpath
+# 将rpath路径修改为当前可执行文件所在目录./
+chrpath -r ./  my_executeable
+chrpath -r ./ my_lib.so
+# 如果想查看上述文件的rpath，可以使用l参数
+chrpath -l my_executeable
 ```
+
+[CMakeList.txt中增加rpath选项](https://blog.csdn.net/u013171226/article/details/122047692)
+
+[【cmake开发（8）】cmake 编译无法找到库，和编译通过后运行时无法找到库](https://blog.csdn.net/djfjkj52/article/details/131243531)
 
 
 

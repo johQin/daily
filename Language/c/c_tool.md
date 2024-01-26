@@ -108,7 +108,7 @@ gcc -o test test.c -I. -L. -lc -Wl,-rpath=.
 # -Wl,-rpath=. 为告诉编译器将后面的参数传递给链接器
 ```
 
-
+[【gcc编译选项】-L、-Wl 的区别（运行时无法链接到动态库）](https://blog.csdn.net/challenglistic/article/details/129687387)
 
 ## 编译运行
 
