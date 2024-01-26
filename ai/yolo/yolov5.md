@@ -954,7 +954,24 @@ Yolov5图像预处理步骤主要如下：
 
    - 参考：[CUDA lazy loading is not enabled. Enabling it can significantly reduce device memory usage and speed](https://blog.csdn.net/s1_0_2_4/article/details/135026761)
 
-7. 
+7. docker运行gpu镜像后（--gpus all），一段时间后无法在容器内执行`nvidia-smi`，报`Docker with GPU: "Failed to initialize NVML: Unknown Error"`
+
+   - [参考1](https://www.cnblogs.com/azureology/p/16673192.html)
+
+   ```
+   优先尝试将host显卡驱动版本与内核对齐，方法为sudo dmesg | grep NVRM查看正确版本。如果不行再往下看：
+   
+   这个问题比较复杂，在我这边属于偶发，表现为container中cuda无法正常调用，运行nvidia-smi报错Docker with GPU: "Failed to initialize NVML: Unknown Error"，且调用torch.cuda.is_avaliable()值为False，重启container可以暂时恢复正常，host始终没有发生此类问题。
+   
+   开始根据参考文档指引修改了cgroups参数，正常使用一段时间后问题依旧，后续又将host安装的nvidia驱动升级到最新依然无法解决。
+   
+   仔细观察文档中的docker run命令，包含--gpus all外还有--privileged不知用意为何。
+   抱着试试看的心态将现有container打包为image并重新加入--privileged参数，问题未再复现
+   ```
+
+   - [参考2](https://blog.csdn.net/ZnS_oscar/article/details/134108758)
+
+8. 
 
 
 

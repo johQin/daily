@@ -1991,6 +1991,9 @@ https://docker.mirrors.ustc.edu.cn
 
    - [参考1](https://blog.csdn.net/m0_57236802/article/details/131642832)
 
+4. 查询镜像列表时，使用image短id和imagename:tag都能查询到镜像。
+
+
 
 ## [修改端口映射](https://zhuanlan.zhihu.com/p/583479364)
 
