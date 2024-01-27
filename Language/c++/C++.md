@@ -4189,6 +4189,8 @@ int main() {
 	//不相关类型转换：不支持
 	//Base* p3 = static_cast<Base *> (new Other);// error
 	return 0;
+    
+    // 记住这里的支持和安全是两个概念，支持是语法上的概念，安全是使用上的概念
 }
 ```
 
@@ -4214,6 +4216,17 @@ int main() {
 	Base* p3 = static_cast<Base *> (new Other);// error
 	return 0;
 }
+
+// dynamic_cast是支持下行转换的
+// 条件：基类必须有虚析构函数，并且类型之间的继承关系中，至少要有一个虚函数。
+class Base {
+public:
+    virtual ~Base() {}
+};
+class Sub: public Base {
+};
+Base* bp = new Base;
+Sub* sp = dynamic_cast<Sub*>(bp);
 ```
 
 
