@@ -501,7 +501,38 @@ docker rm $(docker ps -a -q) # 删除所有未运行的容器，它实际会对�
 # 1. 容器关闭，然后再启动容器，数据是存在的。
 # 2. 创建容器，然后把容器删除，数据随着容器的删除也被删除
 # 3. 如何删除容器不删除数据，可以在创建容器的时候加容器卷
+
+
+docker run --rm  --name=test1 alpine
+# docker run 加上--rm退出容器以后，这个容器就被删除了，方便在临时测试使用。
+# 不加--rm 退出容器后，容器只是停止运行，数据任然被保留。 不过容器内数据卷的内容不会被删除。
+# 但是,--rm选项不能与-d同时使用(或者说同时使用没有意义)，即只能自动清理foreground容器，不能自动清理detached容器。
 ```
+
+#### privileged参数
+
+```bash
+docker run -it --privileged=true dfdfdfaer /bin/bash
+```
+
+`privileged` 参数用于指定是否在容器内启用特权模式。将容器设置为特权模式（privileged mode）可以使容器内的进程获得一些主机上的特权，这可能对某些特殊用途的容器非常有用。
+
+当 `privileged` 参数设置为 `True` 时，容器将获得主机上的一些特权，例如：
+
+1. **访问主机设备：** 特权容器可以访问主机上的设备，而非特权容器则无法做到。
+2. **访问主机的 PID 命名空间：** 特权容器可以看到主机上的所有进程。（--pid=host）
+3. **访问主机的网络命名空间：** 特权容器可以与主机共享网络命名空间。（--net=host）
+4. **访问主机的 IPC 命名空间：** 特权容器可以与主机共享 IPC 命名空间。（--ipc=host）
+5. **关闭应用 ARM：** 特权容器可以关闭应用 ARM（AppArmor）或其他安全性工具。
+
+使用 `privileged` 特权模式可能会增加容器的安全风险，因为容器内的进程具有更多的权限。因此，在启用特权模式时，务必小心，并确保你了解潜在的风险。
+
+```bash
+docker run --privileged --ipc=host --net=host --pid=host -it your_image /bin/bash
+# 分别关闭各项命名空间的隔离
+```
+
+
 
 ### 2.3.2  启动守护式容器
 
@@ -1905,12 +1936,15 @@ spring.swagger2.enabled=true
 docker commit -m  "first ps_env" -a  "qkh" ea7b81a40b7b  img_ps_env_1
 
 # 2. 转存镜像为tar包
-# docker save [OPTIONS] IMAGE [IMAGE...]
+# docker save [OPTIONS] IMAGE.tar [IMAGE:tag ...]
 # OPTIONS：
-# -o :输出到的文件。
-# IMAGE tar包名
-# [IMAGE...] 镜像名
-docker save -o img_ps_env_1.tar img_ps_env_1
+# -o :输出到的文件。指定输出文件的路径。
+# IMAGE.tar tar包名
+# [IMAGE:tag ...] 镜像名，多个镜像名，
+# 保存单个镜像到tar文件
+docker save -o my_image.tar my_image:tag
+# 保存多个镜像到一个tar文件
+docker save -o my_images.tar image1:tag image2:tag image3:tag
 
 # 3. 将tar包导入为镜像
 docker load [OPTIONS]
@@ -1919,9 +1953,25 @@ docker load [OPTIONS]
 # -q,--quiet: 精简输出信息。
 docker load < fedora.tar
 docker load --input fedora.tar
+docker load -i /path/to/directory/my_images.tar
+# 加载多个tar文件中的镜像
+cat image1.tar image2.tar | docker load
 
 # 推荐使用import，因为可以指定镜像名和版本
+# docker import命令用于从文件系统上的一个文件或 URL 导入一个文件系统镜像
+#  与 docker load 不同，docker import 不仅仅导入 Docker 镜像，还可以创建一个新的镜像。
+docker import [OPTIONS] file|URL|- [REPOSITORY[:TAG]]
+
+# 从文件导入创建镜像
 docker import  tar包名字.tar 镜像名称：版本id
+docker import my_image.tar my_custom_image:1.0
+# 从url导入创建镜像
+docker import http://example.com/my_image.tar my_custom_image:1.0
+# 从标准输入导入创建镜像
+cat my_image.tar | docker import - my_custom_image:1.0
+# 应应用 Dockerfile 指令
+docker import --change "CMD ['nginx', '-g', 'daemon off;']" my_image.tar my_custom_image:1.0
+# 请注意，docker import 主要用于创建基本的文件系统镜像，而不包括 Dockerfile 中的构建步骤。如果需要更复杂的构建步骤，建议使用 docker build 命令。
 ```
 
 ## 修改docker的国内镜像源

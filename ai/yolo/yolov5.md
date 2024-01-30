@@ -967,6 +967,8 @@ Yolov5图像预处理步骤主要如下：
    
    仔细观察文档中的docker run命令，包含--gpus all外还有--privileged不知用意为何。
    抱着试试看的心态将现有container打包为image并重新加入--privileged参数，问题未再复现
+   
+   docker run --gpus all --privileged .....
    ```
 
    - [参考2](https://blog.csdn.net/ZnS_oscar/article/details/134108758)

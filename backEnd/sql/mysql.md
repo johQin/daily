@@ -1934,6 +1934,7 @@ django_migrations  model_entity       model_target
 sqlite> SELECT * FROM model_entity;			# 查询数据
 sqlite> delete from model_entity  where 1;	# 删除所有数据
 sqlite> update model_entity set modelImg='/device/img/202312281745b43906.jpg' where id = 'fc9744fa-50bb-4bee-9cf9-388c4731a649';
+sqlite> .quit;	# 离开命令行
 ```
 
 
@@ -1975,6 +1976,17 @@ sqlite> update model_entity set modelImg='/device/img/202312281745b43906.jpg' wh
    
    ```
 
+2. 清空数据表
+
+   ```sql
+   # TRUNCATE 语句与 DELETE 语句不同，它是一个更快速的方法，因为它不记录删除的每一行，而是直接释放数据页。但需要注意，TRUNCATE 在 SQLite 中并不是 SQL 标准的一部分，因此并非所有的 SQLite 版本都支持。
+   
+   DELETE FROM table_name;
+   
+   TRUNCATE TABLE table_name;
+   
+   ```
+
    
 
-2. 
+3. 

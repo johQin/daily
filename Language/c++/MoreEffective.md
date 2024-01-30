@@ -93,3 +93,203 @@ deleteArray(cout,array);
 ```
 
 **数组面对切片分割问题，最好存放对象的指针，而不是对象本身。**
+
+
+
+# 2 操作符
+
+## [不同意义的new和delete](https://www.cnblogs.com/area-h-p/p/10345880.html)
+
+1. 如果你想在堆上建立一个对象，应该使用new 操作符，它既分配内存又为对象调用构造函数；
+2. 如果你只想分配内存，就调用operator new函数，它不会调用构造函数；
+3. 如果你想定制自己的在堆对象被建立时的内存分配过程，你应该写自己的operator new 函数，然后使用new操作符，new操作符会调用你定制的operator new。
+4. 如果你想在一块已经获得指针的内存里建立一个对象，应该使用palcement new.
+
+
+
+```c++
+#include <iostream>
+
+
+void* operator new(std::size_t size) {
+    std::cout << "Custom operator new called\n";
+    return std::malloc(size);
+}
+
+void operator delete(void* ptr) noexcept {
+    std::cout << "Custom operator delete called\n";
+    std::free(ptr);
+}
+
+class MyClass :public std::string {
+public:
+    int data;
+
+    MyClass():std::string() {
+        std::cout << "Constructor called\n";
+    }
+    MyClass(std::string a):std::string(a) {
+        std::cout << "with params Constructor called\n";
+    }
+
+    ~MyClass() {
+        std::cout << "Destructor called\n";
+    }
+    void* operator new(std::size_t size) {
+        std::cout << "In Class Custom operator new called\n";
+        return std::malloc(size);
+    }
+    void operator delete(void* ptr) noexcept {
+        std::cout << "In Class Custom operator delete called\n";
+        std::free(ptr);
+    }
+    void* operator new(size_t, void *p)//参数size_t没有名字，但是为了防止编译器警告必须加上
+    {
+        std::cout<< "placement new" <<std::endl;
+        return p;
+    }
+};
+
+int main() {
+    //使用类里重载的operator new 为对象MY分配空间
+    MyClass * MY = (MyClass*) MyClass::operator new(sizeof(MyClass));
+    // 调用placement new函数
+    new(MY) MyClass("Hello");
+    // 前两行代码等价于在未重载new时 MyClass *MY = new MyClass("Hello");
+
+    // 调用析构函数
+    MY->~MyClass();
+    //调用operator delete函数
+    operator delete (MY);
+    // 后两行代码等价于在未重载delete时 delete MY
+}
+
+/*
+In Class Custom operator new called
+placement new
+with params Constructor called
+Destructor called
+Custom operator delete called
+*/
+```
+
+
+
+### new操作（new operator）
+
+```c++
+std::string *ps = new std::string("Memory Management");
+```
+
+这里的new就是new操作（new operator）。
+
+new 操作符的执行过程：
+
+1. 调用operator new函数分配内存 ；
+2. 调用构造函数初始化内存中的对象。
+
+new操作总是会做这两步，不可以任何方式改变。但我们**可以通过operator new来改变步骤1的行为。**
+
+### 操作符new（operator new）
+
+**operator new()完成的操作一般只是分配内存，事实上系统默认的全局::operator new(size_t size)也只是调用malloc分配内存，并且返回一个void*指针。**
+
+```c++
+void* operator new(size_t size);		//在做其他形式重载时也要保证第一个参数必须为size_t类型
+```
+
+首先，operator new()它是一个函数，并不是运算符。有的地方在运算符重载那里加上了这个，其实它不是运算符。
+
+```c++
+#include <iostream>
+
+void* operator new(std::size_t size) {
+    std::cout << "Custom operator new called\n";
+    return std::malloc(size);
+}
+
+void operator delete(void* ptr) noexcept {
+    std::cout << "Custom operator delete called\n";
+    std::free(ptr);
+}
+
+class MyClass {
+public:
+    int data;
+
+    MyClass() {
+        std::cout << "Constructor called\n";
+    }
+
+    ~MyClass() {
+        std::cout << "Destructor called\n";
+    }
+    void* operator new(std::size_t size) {
+        std::cout << "In Class Custom operator new called\n";
+        return std::malloc(size);
+    }
+    void operator delete(void* ptr) noexcept {
+        std::cout << "In Class Custom operator delete called\n";
+        std::free(ptr);
+    }
+};
+
+MyClass * my = (MyClass*) operator new(sizeof(MyClass));			// 该函数调用时与普通函数一样(全局的)
+MyClass * inMy = (MyClass*) MyClass::operator new(sizeof(MyClass));	// 类里的
+```
+
+对于operator new来说，分为全局重载和类重载，全局重载（类外）是void* operator new(size_t size)，在类中重载形式 void* A::operator new(size_t size)。
+
+operator new就像operator + 一样，是可以重载的。如果类中没有重载operator new，那么调用的就是全局的::operator new来完成堆的分配。同理，operator new[]、operator delete、operator delete[]也是可以重载的。
+
+[**如何限制对象只能建立在堆上或者栈上**](https://blog.csdn.net/wisdomroc/article/details/131455671)
+
+- 只能建立在堆上：设置析构函数为Protected
+- 只能建立在栈上：重载new函数设为私有
+
+### 定位new (placement new)
+
+ placement new的作用是在已经被分配但是尚未处理的（raw）内存中构造一个对象。它是一个特殊的operator new
+
+```c++
+// 必须写在类里
+void* operator new(size_t, void *p)//参数size_t没有名字，但是为了防止编译器警告必须加上
+{
+      return p;      
+}
+
+// 调用placement new函数
+new(MY) MyClass("Hello");
+// 这初看上去有些陌生，但是它是 new 操作符的一个用法，需要使用一个额外的变量（buffer），当 new 操作符隐含调用 operator new 函数时，把这个变量传递给它。被调用的 operator new函数除了待有强制的参数 size_t 外，还必须接受 void*指针参数，指向构造对象占用的内存空间。这个 operator new 就是 placement new
+```
+
+### delete操作与操作符delete
+
+为了避免内存泄漏，每个动态内存分配必须与一个等同相反的 deallocation 对应。函数 operator delete 与 delete 操作符的关系与 operator new 与 new 操作符的关系一样。
+
+```c++
+string * ps;
+...
+delete ps;
+```
+
+操作符delete两个过程
+
+1. 调用类的析构函数
+2. 调用operator delete释放被对象初始化的内存。
+
+### 数组操作
+
+```c++
+string *ps= new string[10];
+
+// 1. 通过调用operator new[]分配数组的内存
+// 2. 在数组里的每一个对象的构造函数都必须被调用
+
+// 同样当 delete 操作符用于数组时，它为每个数组元素调用析构函数，然后调用 operator delete 来释放内存。
+// 就象你能替换或重载 operator delete 一样，你也替换或重载 operator delete[]。在它们重载的方法上有一些限制。
+    
+```
+
+# 3 异常
+

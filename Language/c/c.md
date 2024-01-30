@@ -835,6 +835,20 @@ float average(float arr[]){
 
 如果已在函数的开头（所有函数之前），对本文件中所调用的函数进行了声明，则各函数中不必对其所调用的函数再做声明。
 
+函数定义时，参数只声明类型（没有声明参数名），编译器不会报参数没有使用的警告。eg：
+
+```c
+int foo(int, int a){
+    printf("%d",a);
+    return a;
+}
+int main(){
+    foo(10,15);
+}
+```
+
+
+
 ## 5.3 嵌套和递归
 
 一个函数内不能再定义另一个函数，也就是不能嵌套定义函数，但可以嵌套调用函数。
@@ -5833,6 +5847,44 @@ int main() {
 
    - close
    - pthread_cancel
+
+# 15 异常
+
+`setjmp` 和 `longjmp` 是 C 语言中提供的一组函数，用于实现跳转和恢复程序执行的非局部跳转。尽管它们可以用于一些异常处理的模拟，但它们并不是真正的异常处理机制，而是一种简单的跳转和恢复的手段。
+
+```c
+#include <setjmp.h>
+int setjmp(jmp_buf env);
+// setjmp： 设置一个跳转点，并返回 0。这个跳转点通常是一个 jmp_buf 类型的变量，它保存了程序的状态。
+void longjmp(jmp_buf env, int val);
+// longjmp 调用会导致程序跳转到 setjmp 设定的位置，并且返回值为 setjmp 中的 val 参数的值。
+```
+
+
+
+```c
+#include <stdio.h>
+#include <setjmp.h>
+
+jmp_buf jump_buffer;
+
+void foo() {
+    printf("foo() is called\n");
+    longjmp(jump_buffer, 1);
+}
+
+int main() {
+    if (setjmp(jump_buffer) == 0) {
+        printf("setjmp() is called\n");
+        foo();
+    } else {
+        printf("longjmp() is called\n");
+    }
+
+    return 0;
+}
+
+```
 
 
 
