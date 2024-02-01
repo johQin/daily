@@ -941,12 +941,12 @@ Yolov5图像预处理步骤主要如下：
 
    - ```bash
      vim ~/.bashrc
-     export CUDA_LAZY_LOADING="LAZY"
+     export CUDA_MODULE_LOADING="LAZY"
      
      source ~/.bashrc
      
      # 看到结果，发现设置成功
-     env | grep CUDA_LAZY_LOADING
+     env | grep CUDA_MODULE_LOADING
      CUDA_MODULE_LOADING=LAZY
      
      # 再次运行TensorRT程序就不会报警告了

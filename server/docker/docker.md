@@ -429,6 +429,7 @@ docker save abc123def456 -o myimage.tar
 docker pull ubuntu
 # 2.新建并启动容器
 docker run [option] image [command]
+# 运行成功后，容器的状态为running
 # option :
 
 # --name="container_name" 为容器指定名称
@@ -481,6 +482,7 @@ docker start container_id_or_container_name
 docker restart container_id_or_container_name
 # 7.停止容器
 docker stop container_id_or_container_name
+# 停止成功后，容器的状态为exited
 # stop首先给容器发送一个TERM信号，让容器做一些退出前必须的保护性、安全性操作，
 # 然后让容器自动停止运行，如果在一段时间内，容器还是没有停止，再进行kill-9，强行终止。
 
@@ -503,10 +505,17 @@ docker rm $(docker ps -a -q) # 删除所有未运行的容器，它实际会对�
 # 3. 如何删除容器不删除数据，可以在创建容器的时候加容器卷
 
 
+# 10 运行容器并在退出容器后删除容器
 docker run --rm  --name=test1 alpine
 # docker run 加上--rm退出容器以后，这个容器就被删除了，方便在临时测试使用。
 # 不加--rm 退出容器后，容器只是停止运行，数据任然被保留。 不过容器内数据卷的内容不会被删除。
 # 但是,--rm选项不能与-d同时使用(或者说同时使用没有意义)，即只能自动清理foreground容器，不能自动清理detached容器。
+
+# 11 创建一个容器，但不启动它
+docker create --name my_container your_image_name
+# 生成的容器状态为created
+# 创建容器后，可通过start启动
+docker start my_container
 ```
 
 #### privileged参数
@@ -2084,4 +2093,35 @@ docker start fb2f614a6861275
 ```
 
 不知道容器卷是否也可以通过如此修改，后面再试吧
+
+## 设置容器的环境变量
+
+1. Dockerfile 中使用 `ENV` 指令
+
+   ```dockerfile
+   FROM ubuntu:latest
+   
+   ENV MY_ENV_VARIABLE=value
+   # 也可以
+   ENV MY_ENV_VARIABLE value
+   ```
+
+2. 使用 `-e` 选项运行容器时设置环境变量
+
+   ```bash
+   docker run -e MY_ENV_VARIABLE=new_value my_image
+   ```
+
+3. 使用`-env-file`选项从文件中读取环境变量
+
+   ```bash
+   docker run --env-file=/path/to/environment_file my_image
+   # --env-file 参数指定的是宿主机上的文件，而不是容器内部的文件
+   
+   # environment_file内容
+   VAR1=value1
+   VAR2=value2
+   ```
+
+
 
