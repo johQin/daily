@@ -1200,11 +1200,13 @@ libvorbis-dev \
 libxcb1-dev \
 libxcb-shm0-dev \
 libxcb-xfixes0-dev \
-pkg-config \
+pkg-config \			
 texinfo \
 wget \
 yasm \
 zlib1g-dev
+
+# pkg-config 可以确保opencv可以找到ffmpeg
 ```
 
 [ffmpeg 编译选项详解](https://blog.csdn.net/Mr_Tony/article/details/131052939)
@@ -1271,6 +1273,12 @@ ffmpeg -codecs | grep cuvid
 
 ### 8.1.3 安装opencv
 
+如果你通过apt 安装的ffmpeg，要使opencv可以支持（发现）ffmpeg，你需要安装pkg-config
+
+```bash
+apt install pkg-config
+```
+
 依赖环境安装：
 
 ```bash
@@ -1290,10 +1298,11 @@ apt install libjasper1 libjasper-dev
 下载并解压opencv
 
 ```bash
-wget https://github.com/opencv/opencv/archive/4.5.0.zip
-wget https://github.com/opencv/opencv_contrib/archive/4.5.0.zip
-unzip opencv-4.5.0.zip
-unzip opencv_contrib-4.5.0.zip
+# opencv 4.5.0 不支持cuda 12.x，make的时候会报错，我最后选择的是4.8.0
+wget https://github.com/opencv/opencv/archive/4.8.0.zip
+wget https://github.com/opencv/opencv_contrib/archive/4.8.0.zip
+unzip opencv-4.8.0.zip
+unzip opencv_contrib-4.8.0.zip
 ```
 
 安装qt5依赖：
@@ -1323,7 +1332,7 @@ cd build
 # OPENCV_EXTRA_MODULES_PATH 需要按照你的路径指定，
 # CUDA_ARCH_BIN需要按照你的GPU的计算能力来指定，查计算能力：https://developer.nvidia.com/zh-cn/cuda-gpus#compute
 cmake -D CMAKE_BUILD_TYPE=RELEASE \
-      -D CMAKE_INSTALL_PREFIX=install \
+      -D CMAKE_INSTALL_PREFIX=/usr/local/opencv-4.8.0 \
       -D WITH_TBB=ON \
       -D BUILD_TBB=ON  \
       -D ENABLE_FAST_MATH=1 \
@@ -1337,7 +1346,7 @@ cmake -D CMAKE_BUILD_TYPE=RELEASE \
       -D WITH_GTK_2_X=ON \
       -D WITH_NVCUVID=ON \
       -D CUDA_ARCH_BIN=8.6 \
-      -D OPENCV_EXTRA_MODULES_PATH=../opencv_contrib-4.5.0/modules \
+      -D OPENCV_EXTRA_MODULES_PATH=../opencv_contrib-4.8.0/modules \
       -D WITH_QT=ON \
       -D WITH_OPENGL=ON \
       -D WITH_FFMPEG=ON \
@@ -1346,21 +1355,21 @@ cmake -D CMAKE_BUILD_TYPE=RELEASE \
  # 在编译的时候会出现以下下载ippicv_2020_lnx_intel64_20191018_general.tgz很慢的问题
  # https://blog.csdn.net/Graceying/article/details/126993279
  # 需要将下载的文件的名称ippicv_2020_lnx_intel64_general_20191018_general.tgz改为ippicv_2020_lnx_intel64_20191018_general.tgz
- # 再进入var/docker/opencv-4.5.0/3rdparty/ippicv，修改ippicv.cmake，修改到指定位置
+ # 再进入var/docker/opencv-4.8.0/3rdparty/ippicv，修改ippicv.cmake，修改到指定位置
  ocv_download(FILENAME ${OPENCV_ICV_NAME}
                HASH ${OPENCV_ICV_HASH}
                URL
                  "${OPENCV_IPPICV_URL}"
                  "$ENV{OPENCV_IPPICV_URL}"
 		 # "https://raw.githubusercontent.com/opencv/opencv_3rdparty/${IPPICV_COMMIT}/ippicv/"
-		 "file:///var/docker/opencv-4.5.0/3rdparty/ippicv/"
+		 "file:///var/docker/opencv-4.8.0/3rdparty/ippicv/"
                DESTINATION_DIR "${THE_ROOT}"
                ID IPPICV
                STATUS res
                UNPACK RELATIVE_URL)
                
 
-# 在opencv_contrib-4.5.0/modules/xfeatures2d/src/目录下添加如下文件
+# 在opencv_contrib-4.8.0/modules/xfeatures2d/src/目录下添加如下文件
 boostdesc_bgm.i
 boostdesc_bgm_bi.i
 boostdesc_lbgm.i
@@ -1370,9 +1379,9 @@ boostdesc_binboost_128.i
 boostdesc_binboost_256.i
 vgg_generated_120.i
 vgg_generated_80.i
-vgg_generated_64.i
+vgg_generated_64.i/
 vgg_generated_48.i
-# 编译opencv的时候，xfeatures2d模块下载boostdesc_bgm.i等文件超时问题的解决办法        
+# 编译opencv的时候，xfeatures2d模块下载boostdesc_bgm.i等文件超时问题的解决办法:https://blog.csdn.net/AlexWang30/article/details/99612188        
 # 然后修改opencv_contrib/modules/xfeatures2d/cmake 文件夹里download_boostdesc.cmake的下载路径
 foreach(id ${ids})
     ocv_download(FILENAME ${name_${id}}
@@ -1381,16 +1390,107 @@ foreach(id ${ids})
                    "${OPENCV_BOOSTDESC_URL}"
                    "$ENV{OPENCV_BOOSTDESC_URL}"
 		   # "https://raw.githubusercontent.com/opencv/opencv_3rdparty/${OPENCV_3RDPARTY_COMMIT}/"
-		   "file:///var/docker/opencv-4.5.0/opencv_contrib-4.5.0/modules/xfeatures2d/src/"
+		   "file:///var/docker/opencv-4.8.0/opencv_contrib-4.8.0/modules/xfeatures2d/src/"
                  DESTINATION_DIR ${dst_dir}
                  ID "xfeatures2d/boostdesc"
                  RELATIVE_URL
                  STATUS res)
 
 # 同样修改download_vgg.cmake
+
+
+# 下载face_landmark_model.dat
+# 手动下载：https://raw.githubusercontent.com/opencv/opencv_3rdparty/8afa57abc8229d611c4937165d20e2a2d9fc5a12/face_landmark_model.dat
+# 参考：https://blog.csdn.net/dubochao_xinxi/article/details/134995274
+vim /var/docker/opencv-4.8.0/opencv_contrib-4.8.0/modules/face/CMakeLists.txt
 ```
 
+下面这个图是opencv 4.5.0的cmake后的效果。参考这篇文章：https://blog.csdn.net/wanggao_1990/article/details/130420462。
+
+**可以知道只有 NVCUVID也可以进行硬编解码。**
+
+`libnvidia-encode.so` 是 NVIDIA Video Codec SDK 中的一个库，用于支持 NVIDIA GPU 上的硬件加速视频编码。这个库提供了 API，允许开发者利用 NVIDIA GPU 的视频编码能力，以提高视频处理的性能和效率。
+
+`libnvcuvenc.so` 在过去的一些版本中可能存在，但在较新的版本中，NVIDIA 可能已经进行了一些更新和调整。具体而言，`libnvcuvenc.so` 应该是与 CUDA Video Encoding (CUVID) 相关的库，而 `libnvidia-encode.so` 是更为通用的、与 NVIDIA Video Codec SDK 集成的库。
+
+总的来说，如果您想要进行 NVIDIA GPU 上的硬件加速视频编码，您应该使用 `libnvidia-encode.so`，因为它是 NVIDIA Video Codec SDK 的一部分，提供了更全面的功能和支持。如果您之前使用的是 `libnvcuvenc.so`，建议更新到最新版本的 SDK，并相应地调整代码以使用新的库。在 SDK 的文档中应该提供了详细的使用说明
+
 ![](./legend/opencv编译后能支持GPU编解码的效果.png)
+
+#### make opencv 4.8.0
+
+```bash
+# 在build文件夹下
+make -j$(nproc)
+ 
+make install
+```
+
+
+
+#### make opencv 4.5.0
+
+在make opencv 4.5.0会出现下面的问题
+
+```bash
+# 如果opencv4.5.0在cmake完毕后，在build文件夹下
+# 编译4.5.0
+make -j$(nproc)
+# 差不多在进度15%的时候那么会报
+/var/docker/opencv-4.5.0/opencv_contrib-4.5.0/modules/cudev/include/opencv2/cudev/ptr2d/texture.hpp(61): error: texture is not a template
+
+/var/docker/opencv-4.5.0/opencv_contrib-4.5.0/modules/cudev/include/opencv2/cudev/ptr2d/texture.hpp(83): error: identifier "cudaUnbindTexture" is undefined
+
+/var/docker/opencv-4.5.0/modules/core/include/opencv2/core/cuda/common.hpp(99): error: identifier "textureReference" is undefined
+
+[ 15%] Building C object 3rdparty/libwebp/CMakeFiles/libwebp.dir/src/dsp/upsampling_sse41.c.o
+3 errors detected in the compilation of "/var/docker/opencv-4.5.0/modules/core/src/cuda/gpu_mat.cu".
+CMake Error at cuda_compile_1_generated_gpu_mat.cu.o.RELEASE.cmake:282 (message):
+  Error generating file
+  /var/docker/opencv-4.5.0/build/modules/core/CMakeFiles/cuda_compile_1.dir/src/cuda/./cuda_compile_1_generated_gpu_mat.cu.o
+
+make[2]: *** [modules/core/CMakeFiles/opencv_core.dir/build.make:77: modules/core/CMakeFiles/cuda_compile_1.dir/src/cuda/cuda_compile_1_generated_gpu_mat.cu.o] Error 1
+make[1]: *** [CMakeFiles/Makefile2:4078: modules/core/CMakeFiles/opencv_core.dir/all] Error 2
+make[1]: *** Waiting for unfinished jobs....
+
+# 参考链接：https://stackoverflow.com/questions/74830272/build-opencv-with-cuda-12-undefined-identifiers-cudaunbindtexture-texturerefer
+
+# 上面的链接说：
+CUDA 12.0 dropped support for legacy texture references. Therefore, any code that uses legacy texture references can no longer be properly compiled with CUDA 12.0 or beyond.
+
+Legacy texture reference usage has been deprecated for some time now.
+
+As indicated in the comments, by reverting to CUDA 11.x where legacy texture references are still supported (albeit deprecated) you won't run into this issue.
+
+The other option may happen some day when OpenCV converts usage of legacy texture references to texture object methods. In that case, it may then be possible to use CUDA 12.0 or a newer CUDA toolkit to compile OpenCV/CUDA functionality.
+
+There is no work around to somehow allow texture reference usage to be compiled properly with CUDA 12.0 and beyond.
+
+Likewise, this limitation is not unique or specific to OpenCV. Any CUDA code that uses texture references can no longer be compiled properly with CUDA 12.0 and beyond. The options are to refactor that code with texture object usage instead, or revert to a previous CUDA toolkit that still has the deprecated support for texture reference usage.
+
+# 翻译
+CUDA 12.0 放弃了对旧纹理引用的支持。 因此，任何使用旧版纹理引用的代码都无法再使用 CUDA 12.0 或更高版本正确编译。
+
+旧版纹理参考用法已被弃用一段时间了。
+
+如评论中所示，通过恢复到仍支持旧纹理引用（尽管已弃用）的 CUDA 11.x，您将不会遇到此问题。
+
+当 OpenCV 将旧纹理引用的使用转换为纹理对象方法时，有一天可能会出现另一种选择。 在这种情况下，可以使用 CUDA 12.0 或更新的 CUDA 工具包来编译 OpenCV/CUDA 功能。
+
+没有解决方法可以以某种方式允许使用 CUDA 12.0 及更高版本正确编译纹理参考使用。
+
+同样，这个限制并不是 OpenCV 独有的或特定的。 任何使用纹理引用的 CUDA 代码都无法再使用 CUDA 12.0 及更高版本正确编译。 这些选项是使用纹理对象使用来重构该代码，或者恢复到以前的 CUDA 工具包，该工具包仍然具有对纹理引用使用的已弃用支持
+
+# 这里就是我放弃opencv 4.5.0的原因，最后选择了4.8.0
+
+# 如果你用cuda11.x，也会报这个错
+# 可以参考：https://blog.csdn.net/songyu0120/article/details/77101961
+# 在opencv的根目录的CMakelists.txt的开头加一句
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_FORCE_INLINES")
+
+
+
+```
 
 
 
