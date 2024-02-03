@@ -1331,6 +1331,7 @@ cd build
 # 注意不要忘了末尾的“..”，
 # OPENCV_EXTRA_MODULES_PATH 需要按照你的路径指定，
 # CUDA_ARCH_BIN需要按照你的GPU的计算能力来指定，查计算能力：https://developer.nvidia.com/zh-cn/cuda-gpus#compute
+# 当您使用 CMake 构建项目并运行 make install 时，CMake 会根据您设置的 CMAKE_INSTALL_PREFIX 值，将项目的文件、库、头文件等复制到指定的安装路径。
 cmake -D CMAKE_BUILD_TYPE=RELEASE \
       -D CMAKE_INSTALL_PREFIX=/usr/local/opencv-4.8.0 \
       -D WITH_TBB=ON \
@@ -1351,6 +1352,7 @@ cmake -D CMAKE_BUILD_TYPE=RELEASE \
       -D WITH_OPENGL=ON \
       -D WITH_FFMPEG=ON \
       ..
+ 
  
  # 在编译的时候会出现以下下载ippicv_2020_lnx_intel64_20191018_general.tgz很慢的问题
  # https://blog.csdn.net/Graceying/article/details/126993279
@@ -1403,6 +1405,19 @@ foreach(id ${ids})
 # 手动下载：https://raw.githubusercontent.com/opencv/opencv_3rdparty/8afa57abc8229d611c4937165d20e2a2d9fc5a12/face_landmark_model.dat
 # 参考：https://blog.csdn.net/dubochao_xinxi/article/details/134995274
 vim /var/docker/opencv-4.8.0/opencv_contrib-4.8.0/modules/face/CMakeLists.txt
+
+ocv_download(
+    FILENAME face_landmark_model.dat
+    HASH ${__file_hash}
+    URL
+      "${OPENCV_FACE_ALIGNMENT_URL}"
+      "$ENV{OPENCV_FACE_ALIGNMENT_URL}"
+      "file:///var/docker/opencv-4.8.0/opencv_contrib-4.8.0/modules/face/"
+    DESTINATION_DIR "${CMAKE_BINARY_DIR}/${OPENCV_TEST_DATA_INSTALL_PATH}/cv/face/"
+    ID "data"
+    RELATIVE_URL
+    STATUS res
+)
 ```
 
 下面这个图是opencv 4.5.0的cmake后的效果。参考这篇文章：https://blog.csdn.net/wanggao_1990/article/details/130420462。
