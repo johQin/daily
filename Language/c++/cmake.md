@@ -1569,66 +1569,6 @@ endforeach()
 
 
 
-## 4.6 [生成器表达式](https://blog.csdn.net/weixin_39766005/article/details/122979811)
-
-**生成器表达式用于引用仅在构建阶段时已知，但在配置阶段时未知或难于知晓的信息**
-
-生成器表达式的格式为**$<...>**，生成器表达式可以嵌套。
-
-### 4.6.1 bool生成器表达式
-
-布尔生成器表达式的计算结果为0或1（也就是说整个表达式会生成一个true or false值）。它们通常用于在**条件生成器表达式**中构造条件。
-
-```cmake
-# 逻辑运算
-$<BOOL:string>：如果字符串为空，或者是不区分大小写的0、FALSE、OFF、N、NO、IGNORE、NOTFOUND，或者是以NOTFOUND结尾，则为0；否则为1
-$<AND:conditions>：逻辑与，conditons是以逗号分割的条件列表
-$<OR:conditions>：逻辑或，conditons是以逗号分割的条件列表
-$<NOT:condition>：逻辑非
-
-# 字符串比较
-$<STREQUAL:string1,string2>：判断字符串是否相等
-$<EQUAL:value1,value2>：判断数值是否相等
-$<IN_LIST:string,list>：判断string是否包含在list中，list使用分号分割
-$<VERSION_LESS:v1,v2>：版本号V1小于V2则为1，否则0
-$<VERSION_GREATER:v1,v2>：版本号V1大于V2则为1，否则0
-$<VERSION_EQUAL:v1,v2>：判断版本号是否相等 
-$<VERSION_LESS_EQUAL:v1,v2>：版本号V1小于等于V2则为1，否则0
-$<VERSION_LESS_EQUAL:v1,v2>：版本号V1大于等于V2则为1，否则0
-
-# 变量查询
-$<TARGET_EXISTS:target>：target存在则为1
-$<CONFIG:cfgs>：判断编译类型配置是否包含在cfgs列表（比如"release,debug"）中；不区分大小写 。eg:$<CONFIG:Debug>
-$<PLATFORM_ID:platform_ids> ：判断CMake定义的平台ID是否包含在platform_ids列表中
-$<COMPILE_LANGUAGE:languages>：判断CMake定义的平台ID是否包含在platform_ids列表中。 eg:$<COMPILE_LANGUAGE:CXX>
-```
-
-### 4.6.2 字符串值生成器表达式
-
-字符串值生成器表达式的计算结果为一个字符串（也就是说整个表达式会生成一个字符串）。字符串值表达式也可以与其他表达式组合使用。
-
-```cmake
-# 条件表达式
-$<condition:true_string>：如果condition为1则值为true_string，否则为空字符串
-$<IF:condition,true_string,false_string>：如果condition为1则值为true_string，否则为false_string
-
-# 字符串转换
-$<LOWER_CASE:string>：将字符串转为小写
-$<UPPER_CASE:string>：将字符串转为大写
-
-# 变量查询
-$<CONFIG>：配置名称
-$<PLATFORM_ID>：当前系统的 CMake 平台 ID
-$<CXX_COMPILER_ID>：使用的 CXX 编译器的 CMake 编译器 ID
-
-# 编译目标查询
-$<TARGET_NAME_IF_EXISTS:tgt>：如果目标tgt存在，则表示目标名称，否则为空字符串
-$<TARGET_FILE:tgt>：获取编译目标tgt的文件路径
-$<TARGET_FILE_BASE_NAME:tgt>：获取编译目标的基础名字，也就是文件名去掉前缀和扩展名
-
-
-```
-
 
 
 # 5 Cmake内置变量
@@ -1902,6 +1842,215 @@ variable
 - 不会自动检测新增或删除的文件： 使用 file(GLOB ...) 时，CMake 不会自动检测源文件的变化，因此在添加或删除源文件时，需要手动重新运行 CMake。
 
 - 不建议在大型项目中使用： 对于大型项目，由于可能包含大量的源文件，使用 file(GLOB ...) 可能会导致性能问题。
+
+## 6.4 读取文件内容
+
+```bash
+# file(STRINGS) 函数主要用于读取文件的内容并将其逐行提取到变量中。
+file(STRINGS "example.txt" content ENCODING "UTF-8")
+# 读取example文件的内容，并逐行提取到content变量中
+foreach(line IN LISTS content)
+    message("Line: ${line}")
+endforeach()
+
+# 限制读取的行数
+file(STRINGS "example.txt" content LIMIT 5)
+# REGEX: 仅保留匹配正则表达式的行
+file(STRINGS "example.txt" content REGEX "pattern")
+# 消掉换行符 
+file(STRINGS "example.txt" content NEWLINE_CONSUME)
+# NEWLINE_CONSUME: 如果设置了这个选项，将消耗换行符。默认情况下，换行符会被保留在每一行的末尾。
+
+```
+
+
+
+
+
+# 7 [字符串](https://blog.csdn.net/weixin_41923935/article/details/122155064)
+
+## 7.1 查找与替换
+
+```cmake
+# 查找
+string(FIND <string> <substring> <output_variable> [REVERSE])
+# 在<string>中查找<substring>，返回值存放于<output_variable>，找到则返回在<string>中的下标，找不到返回-1。默认为首次出现的匹配，如果使用了REVERSE则为最后一次匹配。注：下标从0开始，以字节做为单位，因此遇到中文时下标表示字符编码第一字节的位置。
+# eg:
+include(FindPackageHandleStandardArgs)
+SET(SRC /opt/local/opencv)
+STRING(FIND ${SRC} "/local" index)
+cmake_print_variables(index)
+
+# 替换
+string(REPLACE <match_string> <replace_string> <output_variable> <input> [<input>...])
+# 从所有<input> ...中查找<match_string>并使用<replace_string>替换，替换后的字符串存放于<output_variable>。多个输入时，先将所有输入连接后，再做查找替换。
+# eg:
+SET(SRC /opt/local/opencv)
+SET(SRC1 /usr/local/opencv)
+string(REPLACE "opencv" "cv" CVDST ${SRC} ${SRC1})
+CMAKE_PRINT_VARIABLES(CVDST)
+# -- CVDST="/opt/local/cv/usr/local/cv"
+
+
+# 正则匹配查找
+string(REGEX MATCH <regular_expression> <output_variable> <input> [<input>...])		# 只做一次匹配
+string(REGEX MATCHALL <regular_expression> <output_variable> <input> [<input>...])	# 会匹配所有
+
+# 正则匹配替换
+string(REGEX REPLACE <regular_expression> <replacement_expression> <output_variable> <input> [<input>...])
+
+# 根据正则表达式查找，并替换。找不到则输出为输入字符串。<replacement_expression>可以使用\\1 \\2 ..,\\9来表示()元字符匹配到的字符 。这里使用两个\是因为\要先在字符串中转义，然后在正则匹配中进行转义。
+```
+
+## 7.2 字符串操作
+
+```cmake
+# 尾部追加
+string(APPEND <string_variable> [<input>...])
+# 头部插入
+string(PREPEND <string_variable> [<input>...])
+
+# 连接
+string(JOIN <glue> <output_variable> [<input>...])
+# 使用<glue>作为连接符，连接所有<input>，输出于<output_variable>
+
+# 大小写转换
+string(TOLOWER <string> <output_variable>)
+string(TOUPPER <string> <output_variable>)
+
+# 计算字节长度
+string(LENGTH <string> <output_variable>)
+# 计算<string>的字节长度，输出于<output_variable>。注：中文这种多字节编码的字符，字节长度大于字符长度
+
+# 取子串
+string(SUBSTRING <string> <begin> <length> <output_variable>)
+# 从<string>中取出<begin>为起始下标，长度为<length>的子串，输出于<output_variable>。
+# 注：如果<length>为-1或大于源字符串长度则子串为余下全部字符串。
+
+# 删除首尾空白字符
+string(STRIP <string> <output_variable>)
+
+# 删除字符串中的生成器表达式
+string(GENEX_STRIP <string> <output_variable>)
+
+# 复制字符串
+string(REPEAT <string> <count> <output_variable>)
+# 将<string>复制<count>个并连接在一起，输出于<output_variable>
+
+```
+
+## 7.3 其它功能
+
+```cmake
+
+# 字符串比较
+string(COMPARE LESS <string1> <string2> <output_variable>) # 输出1：string1 < string2，否则输出0
+string(COMPARE GREATER <string1> <string2> <output_variable>)#输出1：string1 > string2，否则输出0
+string(COMPARE EQUAL <string1> <string2> <output_variable>) #输出1：string1 = string2，否则输出0
+string(COMPARE NOTEQUAL <string1> <string2> <output_variable>)#输出1：string1 != string2，否则输出0
+string(COMPARE LESS_EQUAL <string1> <string2> <output_variable>)#输出1：string1 <= string2，否则输出0
+string(COMPARE GREATER_EQUAL <string1> <string2> <output_variable>)#输出1：string1 >= string2，否则输出0
+
+# 字符串加密
+string(<HASH> <output_variable> <input>)
+# 根据指定的编码规则，将<input>进行加密编码，输出于<output_variable>
+# <HASH>可取值如下：MD5、SHA1、SHA224、SHA256、SHA384、SHA512、SHA3_224、SHA3_256、SHA3_384、SHA3_512
+
+#  数转字符
+string(ASCII <number> [<number> ...] <output_variable>)
+# 将ASCii码转为对应的字符，如65转为A，66转为B
+
+string(HEX <string> <output_variable>)
+# 将<string>转换为对应的16进制ASii码，如A转为61（61为A十六进制ascii）。
+
+
+# 变量（引用）替换
+string(CONFIGURE <string> <output_variable>
+           [@ONLY] [ESCAPE_QUOTES])
+# 示例：
+set(myVar "test")
+string(CONFIGURE "first${myVar}end, next${myVar2}end" POS) #输出POS变量值为"firsttestend, nextend"
+
+# 将特殊符号替换为下划线
+string(MAKE_C_IDENTIFIER <string> <output_variable>)
+# 将<string>中所有非字符数字替换为_。如+hello*world()会被替换为_hello_world__
+
+# 生成uuid
+string(UUID <output_variable> NAMESPACE <namespace> NAME <name>
+       TYPE <MD5|SHA1> [UPPER])
+# 根据NAMESPACE和NAME生成一个UUID字符串。其中NAMESPACE必须为UUID格式的字符串。相同的NAMESPACE和NAME生成的UUID是相同的。
+# UUID字符串格式xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+# [UPPER]表示输出的UUID字符串为大写
+# TYPE <MD5|SHA1>表示生成UUID时使用的算法
+```
+
+
+
+
+
+
+
+## 7.4 [生成器表达式](https://blog.csdn.net/weixin_39766005/article/details/122979811)
+
+**生成器表达式用于引用仅在构建阶段时已知，但在配置阶段时未知或难于知晓的信息**
+
+生成器表达式的格式为**$<...>**，生成器表达式可以嵌套。
+
+### 7.4.1 bool生成器表达式
+
+布尔生成器表达式的计算结果为0或1（也就是说整个表达式会生成一个true or false值）。它们通常用于在**条件生成器表达式**中构造条件。
+
+```cmake
+# 逻辑运算
+$<BOOL:string>：如果字符串为空，或者是不区分大小写的0、FALSE、OFF、N、NO、IGNORE、NOTFOUND，或者是以NOTFOUND结尾，则为0；否则为1
+$<AND:conditions>：逻辑与，conditons是以逗号分割的条件列表
+$<OR:conditions>：逻辑或，conditons是以逗号分割的条件列表
+$<NOT:condition>：逻辑非
+
+# 字符串比较
+$<STREQUAL:string1,string2>：判断字符串是否相等
+$<EQUAL:value1,value2>：判断数值是否相等
+$<IN_LIST:string,list>：判断string是否包含在list中，list使用分号分割
+$<VERSION_LESS:v1,v2>：版本号V1小于V2则为1，否则0
+$<VERSION_GREATER:v1,v2>：版本号V1大于V2则为1，否则0
+$<VERSION_EQUAL:v1,v2>：判断版本号是否相等 
+$<VERSION_LESS_EQUAL:v1,v2>：版本号V1小于等于V2则为1，否则0
+$<VERSION_LESS_EQUAL:v1,v2>：版本号V1大于等于V2则为1，否则0
+
+# 变量查询
+$<TARGET_EXISTS:target>：target存在则为1
+$<CONFIG:cfgs>：判断编译类型配置是否包含在cfgs列表（比如"release,debug"）中；不区分大小写 。eg:$<CONFIG:Debug>
+$<PLATFORM_ID:platform_ids> ：判断CMake定义的平台ID是否包含在platform_ids列表中
+$<COMPILE_LANGUAGE:languages>：判断CMake定义的平台ID是否包含在platform_ids列表中。 eg:$<COMPILE_LANGUAGE:CXX>
+```
+
+### 7.4.2 字符串值生成器表达式
+
+字符串值生成器表达式的计算结果为一个字符串（也就是说整个表达式会生成一个字符串）。字符串值表达式也可以与其他表达式组合使用。
+
+```cmake
+# 条件表达式
+$<condition:true_string>：如果condition为1则值为true_string，否则为空字符串
+$<IF:condition,true_string,false_string>：如果condition为1则值为true_string，否则为false_string
+
+# 字符串转换
+$<LOWER_CASE:string>：将字符串转为小写
+$<UPPER_CASE:string>：将字符串转为大写
+
+# 变量查询
+$<CONFIG>：配置名称
+$<PLATFORM_ID>：当前系统的 CMake 平台 ID
+$<CXX_COMPILER_ID>：使用的 CXX 编译器的 CMake 编译器 ID
+
+# 编译目标查询
+$<TARGET_NAME_IF_EXISTS:tgt>：如果目标tgt存在，则表示目标名称，否则为空字符串
+$<TARGET_FILE:tgt>：获取编译目标tgt的文件路径
+$<TARGET_FILE_BASE_NAME:tgt>：获取编译目标的基础名字，也就是文件名去掉前缀和扩展名
+
+
+```
+
+
 
 # 工具函数
 
@@ -2248,6 +2397,22 @@ chrpath -l my_executeable
    
    # 解决办法
    cmake_policy(SET CMP0074 NEW)
+   ```
+
+   
+
+1. 打印Cmake find_package产生的各种变量
+
+   ```cmake
+   find_package(YourPackage REQUIRED)
+   
+   get_property(pkg_vars DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VARIABLES)
+   foreach(var ${pkg_vars})
+       if(var MATCHES "^YourPackage_")
+           message("${var} = ${${var}}")
+       endif()
+   endforeach()
+   
    ```
 
    

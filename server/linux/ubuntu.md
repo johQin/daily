@@ -281,9 +281,27 @@
     echo 'root:12345' | chpasswd
     ```
 
+23. cp复制文件夹
+
+    ```bash
+    # 不管destination文件夹是否拖一个斜杠“/”
+    
+    # 如果destination文件夹“存在”，source文件夹都会被复制到destination文件夹下
+    mkdir dest
+    cp -r ./opencc ./dest
+    # 等同于
+    cp -r ./opencc ./dest/
+    
+    # 如果destination文件夹“不存在”，source文件夹会被复制并重命名为dest
+    rm -rf ./dest
+    cp -r ./opencc ./dest
+    # 等同于
+    cp -r ./opencc ./dest/
+    ```
+
     
 
-23. 
+24. 
 
 # 3 ubuntu软件安装
 

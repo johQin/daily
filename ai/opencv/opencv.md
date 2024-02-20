@@ -1346,11 +1346,13 @@ cmake -D CMAKE_BUILD_TYPE=RELEASE \
       -D WITH_CUDEV=ON \
       -D WITH_GTK_2_X=ON \
       -D WITH_NVCUVID=ON \
+      -D WITH_NVCUVENC=ON \
       -D CUDA_ARCH_BIN=8.6 \
       -D OPENCV_EXTRA_MODULES_PATH=../opencv_contrib-4.8.0/modules \
       -D WITH_QT=ON \
       -D WITH_OPENGL=ON \
       -D WITH_FFMPEG=ON \
+      -D DIR_OPENCV_ROOT=/home/buntu/opencv-4.8.0
       ..
  
  
@@ -1420,9 +1422,7 @@ ocv_download(
 )
 ```
 
-下面这个图是opencv 4.5.0的cmake后的效果。参考这篇文章：https://blog.csdn.net/wanggao_1990/article/details/130420462。
-
-**可以知道只有 NVCUVID也可以进行硬编解码。**
+下面这个图是opencv 4.5.0的cmake后的效果。参考这篇文章：https://blog.csdn.net/wanggao_1990/article/details/130420462。从这篇文章中，我们**可以知道只有 NVCUVID也可以进行硬编解码。**
 
 `libnvidia-encode.so` 是 NVIDIA Video Codec SDK 中的一个库，用于支持 NVIDIA GPU 上的硬件加速视频编码。这个库提供了 API，允许开发者利用 NVIDIA GPU 的视频编码能力，以提高视频处理的性能和效率。
 
@@ -1435,10 +1435,15 @@ ocv_download(
 #### make opencv 4.8.0
 
 ```bash
-# 在build文件夹下
+# 在build文件夹下，编译
 make -j$(nproc)
- 
+
+# 安装编译好的opencv到之前你指定的CMAKE_INSTALL_PREFIX路径下
 make install
+
+# opencv会自动生成你指定的CMAKE_INSTALL_PREFIX文件夹，然后子目录结构为include, lib, bin, share
+# 并且你可以从CMAKE_INSTALL_PREFIX/lib/cmake/opencv4，看到cmake findPackage在config模式下所需要的OpenCVConfig.cmake
+
 ```
 
 
