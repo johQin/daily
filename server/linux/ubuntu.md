@@ -120,6 +120,14 @@
     ```bash
     # 1. linux 服务器安装ssh服务
     sudo apt-get install openssh-server
+    
+    # 修改ssh配置，允许root登录
+    vi /etc/ssh/sshd_config
+    # 找到下面一项并修改
+    PermitRootLogin yes
+    # 修改root密码
+    echo 'root:12345' | chpasswd
+    
     # 2. # 开启ssh服务
     service ssh status
     service ssh start

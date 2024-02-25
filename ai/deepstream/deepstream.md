@@ -70,6 +70,144 @@ Deepstream具备稳定高效的读流和推流能力；
 
 ## 0.3 环境准备
 
+<table class="colwidths-given docutils align-default" id="id6">
+<caption><span class="caption-text">dGPU model Platform and OS Compatibility</span><a class="headerlink" href="#id6" title="Permalink to this table"></a></caption>
+<colgroup>
+<col style="width: 17%">
+<col style="width: 17%">
+<col style="width: 17%">
+<col style="width: 17%">
+<col style="width: 17%">
+<col style="width: 17%">
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>DS release</p></th>
+<th class="head"><p>DS 6.1</p></th>
+<th class="head"><p>DS 6.1.1</p></th>
+<th class="head"><p>DS 6.2</p></th>
+<th class="head"><p>DS 6.3</p></th>
+<th class="head"><p>DS 6.4</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>GPU platforms</p></td>
+<td><p>T4, V100, A2, A10, A30, A100, RTX Ampere (Ax000/RTX30x0)</p></td>
+<td><p>T4, V100, A2, A10, A30, A100, RTX Ampere (Ax000/RTX30x0)</p></td>
+<td><p>T4, V100, A2, A10, A30, A100, RTX Ampere (Ax000/RTX30x0), Hopper, ADA</p></td>
+<td><p>T4, V100, A2, A10, A30, A100, RTX Ampere (Ax000/RTX30x0), Hopper, ADA</p></td>
+<td><p>T4, V100, A2, A10, A30, A100, RTX Ampere (Ax000/RTX30x0), Hopper, ADA</p></td>
+</tr>
+<tr class="row-odd"><td><p>OS</p></td>
+<td><p>Ubuntu 20.04</p></td>
+<td><p>Ubuntu 20.04</p></td>
+<td><p>Ubuntu 20.04</p></td>
+<td><p>Ubuntu 20.04</p></td>
+<td><p>Ubuntu 22.04</p></td>
+</tr>
+<tr class="row-even"><td><p>GCC</p></td>
+<td><p>GCC 9.4.0</p></td>
+<td><p>GCC 9.4.0</p></td>
+<td><p>GCC 9.4.0</p></td>
+<td><p>GCC 9.4.0</p></td>
+<td><p>GCC 11.4.0</p></td>
+</tr>
+<tr class="row-odd"><td><p>CUDA release</p></td>
+<td><p>CUDA 11.6.1</p></td>
+<td><p>CUDA 11.7.1</p></td>
+<td><p>CUDA 11.8</p></td>
+<td><p>CUDA 12.1</p></td>
+<td><p>CUDA 12.2</p></td>
+</tr>
+<tr class="row-even"><td><p>cuDNN release</p></td>
+<td><p>cuDNN 8.4.0.27</p></td>
+<td><p>cuDNN 8.4.1.50+</p></td>
+<td><p>cuDNN 8.7.0.84-1+</p></td>
+<td><p>cuDNN 8.8.1.3-1+</p></td>
+<td><p>cuDNN 8.9.4.25-1+</p></td>
+</tr>
+<tr class="row-odd"><td><p>TRT release</p></td>
+<td><p>TRT 8.2.5.1</p></td>
+<td><p>TRT 8.4.1.5</p></td>
+<td><p>TRT 8.5.2.2</p></td>
+<td><p>TRT 8.5.3.1</p></td>
+<td><p>TRT 8.6.1.6</p></td>
+</tr>
+<tr class="row-even"><td><p>Display Driver</p></td>
+<td><p>R510.47.03</p></td>
+<td><p>R515.65.01</p></td>
+<td><p>R525.85.12</p></td>
+<td><p>R525.125.06</p></td>
+<td><p>R535.104.12</p></td>
+</tr>
+<tr class="row-odd"><td><p>VideoSDK release</p></td>
+<td><p>SDK 9.1</p></td>
+<td><p>SDK 9.1</p></td>
+<td><p>SDK 9.1</p></td>
+<td><p>SDK 9.1</p></td>
+<td><p>SDK 9.1</p></td>
+</tr>
+<tr class="row-even"><td><p>OFSDK release</p></td>
+<td><p>2.0.23</p></td>
+<td><p>2.0.23</p></td>
+<td><p>2.0.23</p></td>
+<td><p>2.0.23</p></td>
+<td><p>2.0.23</p></td>
+</tr>
+<tr class="row-odd"><td><p>GStreamer release</p></td>
+<td><p>GStreamer 1.16.2</p></td>
+<td><p>GStreamer 1.16.2</p></td>
+<td><p>GStreamer 1.16.3</p></td>
+<td><p>GStreamer 1.16.3</p></td>
+<td><p>GStreamer 1.20.3</p></td>
+</tr>
+<tr class="row-even"><td><p>OpenCV release</p></td>
+<td><p>OpenCV 4.2.0</p></td>
+<td><p>OpenCV 4.2.0</p></td>
+<td><p>OpenCV 4.2.0</p></td>
+<td><p>OpenCV 4.2.0</p></td>
+<td><p>OpenCV 4.5.4</p></td>
+</tr>
+<tr class="row-odd"><td><p>Docker image</p></td>
+<td><p>deepstream:6.1</p></td>
+<td><p>deepstream:6.1.1</p></td>
+<td><p>deepstream:6.2</p></td>
+<td><p>deepstream:6.3</p></td>
+<td><p>deepstream:6.4</p></td>
+</tr>
+<tr class="row-even"><td><p>NVAIE release</p></td>
+<td><p>NA</p></td>
+<td><p>NA</p></td>
+<td><p>NVAIE-3.x</p></td>
+<td><p>NVAIE-3.x</p></td>
+<td><p>NVAIE-4.x</p></td>
+</tr>
+</tbody>
+</table>
+
+[在docker中准备环境](https://docs.nvidia.com/metropolis/deepstream/dev-guide/text/DS_docker_containers.html#a-docker-container-for-dgpu)：
+
+[查找不同版本的deepstream的容器镜像](https://catalog.ngc.nvidia.com/orgs/nvidia/containers/deepstream/tags)
+
+```bash
+docker pull nvcr.io/nvidia/deepstream:6.4-gc-triton-devel
+# gc：gpu container
+# triton：Triton Inference Server集成的版本
+# "triton" 是指 NVIDIA Triton Inference Server（前身是TensorRT Inference Server）。Triton是一个用于部署深度学习模型的推理服务器，它提供了一个高性能、可扩展、多模型、多版本的推理服务平台。
+# 具有以下主要特点：
+#    多模型支持： Triton可以同时部署和管理多个深度学习模型，使得在同一服务器上可以运行不同任务的推理服务。
+#    多版本支持： Triton支持在同一模型上部署多个不同版本，方便进行模型更新和回滚。
+#    高性能： Triton通过与NVIDIA TensorRT等硬件加速库的集成，实现对深度学习推理任务的高性能加速。
+#    容器化部署： Triton提供了基于Docker容器的部署方式，方便在容器化环境中进行推理服务的部署和管理。
+#    RESTful API： Triton通过RESTful API提供推理服务，这使得客户端可以通过HTTP/HTTPS协议与服务器进行通信。
+
+# 运行镜像
+docker run -it -p 6522:22 -v /home/buntu/docker:/var/docker --gpus all nvcr.io/nvidia/deepstream:6.4-gc-triton-devel /bin/bash
+
+
+```
+
+
+
 # 1 运行
 
 ## 1.1 以配置文件的方式运行deepstream

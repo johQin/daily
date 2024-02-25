@@ -1352,7 +1352,7 @@ cmake -D CMAKE_BUILD_TYPE=RELEASE \
       -D WITH_QT=ON \
       -D WITH_OPENGL=ON \
       -D WITH_FFMPEG=ON \
-      -D DIR_OPENCV_ROOT=/home/buntu/opencv-4.8.0
+      -D DIR_OPENCV_ROOT=/home/buntu/opencv-4.8.0		# 这一行指定opencv的编译根目录，在后面需要修改的cmake中都有用到
       ..
  
  
@@ -1366,7 +1366,7 @@ cmake -D CMAKE_BUILD_TYPE=RELEASE \
                  "${OPENCV_IPPICV_URL}"
                  "$ENV{OPENCV_IPPICV_URL}"
 		 # "https://raw.githubusercontent.com/opencv/opencv_3rdparty/${IPPICV_COMMIT}/ippicv/"
-		 "file:///var/docker/opencv-4.8.0/3rdparty/ippicv/"
+		 "file://${DIR_OPENCV_ROOT}/3rdparty/ippicv/"
                DESTINATION_DIR "${THE_ROOT}"
                ID IPPICV
                STATUS res
@@ -1394,7 +1394,7 @@ foreach(id ${ids})
                    "${OPENCV_BOOSTDESC_URL}"
                    "$ENV{OPENCV_BOOSTDESC_URL}"
 		   # "https://raw.githubusercontent.com/opencv/opencv_3rdparty/${OPENCV_3RDPARTY_COMMIT}/"
-		   "file:///var/docker/opencv-4.8.0/opencv_contrib-4.8.0/modules/xfeatures2d/src/"
+		   "file://${DIR_OPENCV_ROOT}/opencv_contrib-4.8.0/modules/xfeatures2d/src/"
                  DESTINATION_DIR ${dst_dir}
                  ID "xfeatures2d/boostdesc"
                  RELATIVE_URL
@@ -1414,7 +1414,7 @@ ocv_download(
     URL
       "${OPENCV_FACE_ALIGNMENT_URL}"
       "$ENV{OPENCV_FACE_ALIGNMENT_URL}"
-      "file:///var/docker/opencv-4.8.0/opencv_contrib-4.8.0/modules/face/"
+      "file://${DIR_OPENCV_ROOT}/opencv_contrib-4.8.0/modules/face/"
     DESTINATION_DIR "${CMAKE_BINARY_DIR}/${OPENCV_TEST_DATA_INSTALL_PATH}/cv/face/"
     ID "data"
     RELATIVE_URL
