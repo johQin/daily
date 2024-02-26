@@ -534,15 +534,57 @@
 9. [使用 apt-get update 命令提示 ...中被配置了多次](https://blog.csdn.net/dideng8675/article/details/102227406)
 
    - 要切实解决这个问题，才能解决安装其他的keyring（密钥环、钥匙链）,并配置软件源
+
    - [密钥环概念](https://zhuanlan.zhihu.com/p/128133025)
+
    - [密钥存储在过时的 trusted.gpg密钥环中 ](https://blog.csdn.net/m0_67517854/article/details/133034521)
 
-10. apt --fix-broken install
+   - [apt-get update出现由于没有公钥，无法验证下列签名](https://blog.csdn.net/weixin_45095113/article/details/131083258)
+
+     - ```bash
+       # 修改最后的公钥为自己的
+       sudo apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 5F16B97C1AD28806
+       ```
+
+10. apt安装的archive 源和 ports 源的区别
+
+    - 当开发者使用编辑器更改 **/etc/apt/sources.list** 文件里面的软件源地址，细心的人会发现在不同的主板上出现的默认源地址不一样，分别为**http://archive.ubuntu.com**和**http://ports.ubuntu.com**。那么这两种源有什么区别呢？
+
+    - **archive** 源和 **ports** 源是根本完全不一样的，其涉及到处理器的架构。**如果两个源混用的话，会造成一些不可描述的错误和BUG。**
+
+      - 软件源**http://archive.ubuntu.com**收录的架构为 **AMD64 (x86_64)** 和 **Intel x86**。
+      - 软件源**http://ports.ubuntu.com**收录的架构为 **arm64**，**armhf**，**PowerPC**，**ppc64el** 和 **s390x**。
+
+    - 由于 **Ubuntu** 的默认软件源地址服务器在欧洲，国内使用速度大概 **10 KB/s** 左右，所以需要把默认软件源地址换成国内软件源地址。下面收录了几种国内的软件源地址。
+
+    - Ubuntu 中国官方源
+
+          archive 源：http://cn.archive.ubuntu.com/ubuntu/
+          ports   源：http://cn.ports.ubuntu.com/ubuntu-ports/
+          Ubuntu 中国官方源好像用的是阿里云，换源说明请参考阿里源和中科大源的换源说明。
+
+    - 中科大源
+
+      ​		archive 源：https://mirrors.ustc.edu.cn/ubuntu/
+      ​		ports   源：https://mirrors.ustc.edu.cn/ubuntu-ports/
+      ​		换 源介 绍：https://mirrors.ustc.edu.cn/help/ubuntu.html（ archive 源 ）
+                 		 https://mirrors.ustc.edu.cn/help/ubuntu-ports.html（ ports 源 ）
+
+      ​		中国科学技术大学开源镜像站对两种源的换源过程是介绍得非常清楚的。
+
+    - 阿里源
+
+          archive 源：https://mirrors.aliyun.com/ubuntu/
+          ports   源：https://mirrors.aliyun.com/ubuntu-ports/
+          换 源介 绍：https://developer.aliyun.com/mirror/ubuntu（ archive 源 ）
+          阿里云只有 archive 源的换源说明，其实 archive 源和 ports 源的换源步骤都是一样的，只是源地址不一样。
+
+11. apt --fix-broken install
 
     - 命令用于修复系统中已安装的软件包之间的依赖关系问题。当安装或卸载软件包时，可能会出现依赖关系错误，这可能导致其他软件包无法正常工作或安装。使用该命令可以尝试解决这些依赖关系问题，并尽可能安装所需的软件包。它会自动处理依赖关系冲突，安装缺失的依赖项或删除不需要的依赖项。 
     - 
 
-11. 在pycharm中使用root身份运行脚本
+12. 在pycharm中使用root身份运行脚本
 
     - [参考1](https://www.coder.work/article/167100)，[参考2](https://blog.csdn.net/weixin_44387411/article/details/132958610)
 
@@ -574,7 +616,7 @@
 
     ![](./legend/pycharm中以root身份运行脚本.png)
 
-12. [sudoers文件说明 - sudo免密码 - 限制sudo执行特殊命令](https://zhuanlan.zhihu.com/p/632737024?utm_id=0)
+13. [sudoers文件说明 - sudo免密码 - 限制sudo执行特殊命令](https://zhuanlan.zhihu.com/p/632737024?utm_id=0)
 
     ```bash
     # /etc/sudoers
@@ -587,7 +629,7 @@
 
     ![img](legend/v2-0ed918b6d0907ae0f4fb258e3ba9a668_720w.webp)
 
-13. [查看进程中的线程](https://blog.csdn.net/AnChenliang_1002/article/details/131359525)
+14. [查看进程中的线程](https://blog.csdn.net/AnChenliang_1002/article/details/131359525)
 
     ```bash
     # 实时显示指定线程内各个线程情况
@@ -596,7 +638,7 @@
 
     
 
-14. [环境变量相关脚本执行时机和作用范围](https://blog.csdn.net/NRWHF/article/details/131285014)
+15. [环境变量相关脚本执行时机和作用范围](https://blog.csdn.net/NRWHF/article/details/131285014)
 
     - /etc/profile
       用于设置系统级的环境变量和启动程序，在这个文件下配置会**对所有用户生效**。**当用户登录(login)时，文件会被执行**，并从/etc/profile.d目录的配置文件中查找shell设置。如果对/etc/profile修改的话必须重启才会生效
@@ -609,7 +651,7 @@
     - ~/.bash_logout
       当每次退出系统(退出bash shell)时,执行该文件，通常存放清理工作的命令。
 
-15. 
+16. 
 
 
 
