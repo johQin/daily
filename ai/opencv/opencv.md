@@ -1512,7 +1512,11 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_FORCE_INLINES")
 
 ```
 
+## 8.2 [FFmpeg/opencv + C++ 实现直播拉流和直播推流（对视频帧进行处理）](https://blog.csdn.net/weixin_43482623/article/details/130921255)
 
+
+
+[使用ffmpeg将opencv捕获的摄像头数据推流到本地rtsp器上](https://www.cnblogs.com/wensi-eric/p/17771807.html)
 
 # log
 

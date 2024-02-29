@@ -2440,7 +2440,9 @@ enum AVHWDeviceType {
 };
 ```
 
+## 5.5 ffmpeg硬编码
 
+[FFmpeg/opencv + C++ 实现直播拉流和直播推流（对视频帧进行处理）](https://blog.csdn.net/weixin_43482623/article/details/130921255)
 
 # 6 RTMP推拉流
 
@@ -3205,4 +3207,38 @@ for pipe in pipeList:
 
 
 
+
+
 1. [FFmpeg解码后的帧 转OpenCV Mat显示](https://blog.csdn.net/guyuealian/article/details/79607568)
+
+2. ffmpeg在avformat_write_header时，因为一些原因导致写入失败。
+
+   - 想要通过av_err2str查看原因，但编译器会报错error: taking address of temporary array av_make_error_string，这里时因为源代码将临时变量作为返回值，因此报错。
+
+   - [`error: taking address of temporary array av_make_error_string((char[AV_ERROR_MAX_STRING_SI`](https://blog.csdn.net/weicaijiang/article/details/123108773)
+
+   - [引入ffmpeg编译错误taking address of temporary array](https://blog.csdn.net/fantasy_ARM9/article/details/112252009)
+
+   - ```c
+      
+      
+      
+     /**
+      * Convenience macro, the return value should be used only directly in
+      * function arguments but never stand-alone.
+      */
+     //#define av_err2str(errnum) \
+      //   av_make_error_string((char[AV_ERROR_MAX_STRING_SIZE]){0}, AV_ERROR_MAX_STRING_SIZE, errnum)
+      
+     //修改如下
+      
+      
+     av_always_inline char* av_err2str(int errnum)
+     {
+         static char str[AV_ERROR_MAX_STRING_SIZE];
+         memset(str, 0, sizeof(str));
+         return av_make_error_string(str, AV_ERROR_MAX_STRING_SIZE, errnum);
+     }
+     ```
+
+   - 
