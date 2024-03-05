@@ -2417,6 +2417,24 @@ chrpath -l my_executeable
 
    
 
+1. [“DSO missing from command line”解决及其原理](https://blog.csdn.net/zrq293/article/details/105969423)
+
+   - DSO是动态共享对象（Dynamic Shared Object）的缩写，也称为共享库（Shared Library）或共享对象库（Shared Object）
+
+   - `error adding symbols: DSO missing from command line`，原因：你所依赖的动态库依赖了其它动态库，需要显式指定。
+
+   - 自从binutils 2.22版本以后，如果你在程序中使用了你依赖的动态库所依赖的动态库中的函数时，**你就必须显式的指定你依赖的动态库所依赖的动态库**
+
+   - binutils在2.22版本以后，默认把–no-copy-dt-needed-entries这个选项打开了。当打开了这个选项的时候，编译器在链接的时候是不会递归的去获取依赖动态库的依赖项的，于是就会出现上述的问题。
+
+   - 跟在–no-copy-dt-needed-entries它后面的库都不会遍历其依赖项，使用–copy-dt-needed-entries则相反。也就是使用下面的指令来编译mian.cpp就可以避免该问题了。
+
+   - ```cmake
+     target_link_libraries(target_a PUBLIC -Wl,--copy-dt-needed-entries)
+     ```
+
+   - 
+
 1. 
 
    

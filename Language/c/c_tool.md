@@ -75,26 +75,40 @@ $ gcc test.o -o test
 | `-Wl,<options> `                            | `Pass comma-separated <options> on to the linker`，<br />将逗号分割的选项传递给链接器（指定运行阶段，要引入的库目录） |
 | `-Wp,<options>`                             | `Pass comma-separated <options> on to the preprocessor`      |
 | `-Wa,<options>`                             | `Pass comma-separated <options> on to the assembler`         |
+| **`--as-needed`**                           | 动态库在需要时才被链接                                       |
+| **--no-as-needed **                         | 无论库是否被需要都会被链接                                   |
 
--D 参数的应用场景:
+- -D 参数的应用场景:
 
-- 在发布程序的时候，一般都会要求将程序中所有的 log 输出去掉，如果不去掉会影响程序的执行效率，很显然删除这些打印 log 的源代码是一件很麻烦的事情，解决方案是这样的：
+  - 在发布程序的时候，一般都会要求将程序中所有的 log 输出去掉，如果不去掉会影响程序的执行效率，很显然删除这些打印 log 的源代码是一件很麻烦的事情，解决方案是这样的：
 
-- ```c
-  // 如果DEBUG宏存在，那么就打印，输出日志
-  #ifdef DEBUG
-      printf("我是一个程序猿, 我不会爬树...\n");
-  #endif
+  - ```c
+    // 如果DEBUG宏存在，那么就打印，输出日志
+    #ifdef DEBUG
+        printf("我是一个程序猿, 我不会爬树...\n");
+    #endif
+    ```
+
+  - ```bash
+    # -D,用于假定DEBUG这个宏存在
+    $ gcc test.c -o app -D DEBUG
+    ```
+
+  - 将所有的打印 log 的代码都写到一个宏判定中，可以模仿上边的例子
+    在编译程序的时候指定 -D 就会有 log 输出
+    在编译程序的时候不指定 -D, log 就不会输出
+
+- --as-needed和--no-as-needed 
+
+  ```bash
+  gcc -o my_program my_program.o -lmy_library --as-needed -ldependency1 --no-as-needed -ldependency2
   ```
 
-- ```bash
-  # -D,用于假定DEBUG这个宏存在
-  $ gcc test.c -o app -D DEBUG
-  ```
+- 
 
-- 将所有的打印 log 的代码都写到一个宏判定中，可以模仿上边的例子
-  在编译程序的时候指定 -D 就会有 log 输出
-  在编译程序的时候不指定 -D, log 就不会输出
+
+
+
 
 ### gcc指定Rpath
 
