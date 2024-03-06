@@ -478,7 +478,7 @@ NOTE: The CUDA Samples are not meant for performance measurements. Results may v
 # 	 CMAKE_C_COMPILER
 
 # 所以加全应该是如下
--DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPILER=/usr/bin/g++ -DCMAKE_CUDA_COMPILER:PATH=/usr/local/cuda-12.0/bin/nvcc
+-DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPILER=/usr/bin/g++ -DCMAKE_CUDA_COMPILER:PATH=/usr/local/cuda/bin/nvcc
 
 ```
 
