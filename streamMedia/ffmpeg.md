@@ -1,5 +1,14 @@
 # 3 ffmpeg命令
 
+ffmpeg的命令行参数非常多，可以分成五个部分。
+
+```bash
+$ ffmpeg {1} {2} -i {3} {4} {5}
+$ ffmpeg [全局参数]  [输入文件参数]  -i [输入文件]  [输出文件参数]  [输出文件]
+```
+
+
+
 ## 3.1 ffmpeg
 
 **ffmpeg**：Hyper fast Audio and Video encoder **超快音视频编码器**（**类似爱剪辑**）

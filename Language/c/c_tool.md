@@ -72,11 +72,11 @@ $ gcc test.o -o test
 | -fPIC/fpic                                  | 生成与位置无关的代码，<br />代码在加载到内存时使用相对地址，所有对固定地址的访问都通过全局偏移表(GOT)来实现。 |
 | -shared                                     | 生成共享目标文件。通常用在建立共享库时                       |
 | -std                                        | 指定 C 方言，如:-std=c99，gcc 默认的方言是 GNU C             |
-| `-Wl,<options> `                            | `Pass comma-separated <options> on to the linker`，<br />将逗号分割的选项传递给链接器（指定运行阶段，要引入的库目录） |
+| `-Wl,<options> `                            | `Pass comma-separated <options> on to the linker`，<br />将逗号分割的选项传递给链接器 |
 | `-Wp,<options>`                             | `Pass comma-separated <options> on to the preprocessor`      |
 | `-Wa,<options>`                             | `Pass comma-separated <options> on to the assembler`         |
-| **`--as-needed`**                           | 动态库在需要时才被链接                                       |
-| **--no-as-needed **                         | 无论库是否被需要都会被链接                                   |
+|                                             |                                                              |
+|                                             |                                                              |
 
 - -D 参数的应用场景:
 
@@ -104,7 +104,60 @@ $ gcc test.o -o test
   gcc -o my_program my_program.o -lmy_library --as-needed -ldependency1 --no-as-needed -ldependency2
   ```
 
-- 
+### Wl参数
+
+将-Wl参数后以逗号分割的选项传递给链接器
+
+- [-soname(简单共享名，Short for shared object name)](https://blog.csdn.net/dielucui7698/article/details/101400429)，会影响生成动态库属性中的soname，一般用来将简短软链接指定到具体版本的库。
+
+- [--as-needed和--no-as-needed](https://www.cnblogs.com/OCaml/archive/2012/06/18/2554086.html#sec-1-4-1)
+
+  - **--as-needed**，动态库在需要时才被链接，只给用到的动态库设置DT_NEEDED（会影响生成的elf文件中的NEEDED标签）。
+  - **--no-as-needed **，无论库是否被需要都会被链接
+
+  ```bash
+  g++ -shared  PyGalaxy.o -lGalaxyParser -lxxx  -lrt  -o PyGalaxy.so
+  # 这样链接一个PyGalaxy.so的时候，假设PyGalaxy.so里面用到了libGalaxyParser.so但是没 有用到libxxx.so。查看依赖关系如下：
+  readelf -d PyGalaxy.so 
+  
+  Dynamic section at offset 0x7dd8 contains 26 entries:
+    Tag        Type                         Name/Value
+   0x0000000000000001 (NEEDED)             Shared library: [libGalaxyParser.so]
+   0x0000000000000001 (NEEDED)             Shared library: [libxxx.so]
+   # 发现没有用到的libxxx.so也被打上了NEEDED标签。
+   
+   
+   g++ -shared  -Wl,--as-needed PyGalaxy.o -lGalaxyParser -lxxx  -lrt  -o PyGalaxy.so
+   # 开启–as-needed的时候
+   readelf -d PyGalaxy.so 
+  
+  Dynamic section at offset 0x7dd8 contains 26 entries:
+    Tag        Type                         Name/Value
+   0x0000000000000001 (NEEDED)             Shared library: [libGalaxyParser.so]
+   # 发现NEEDED标签中已经没有libxxx.so了，说明needed生效。
+   # –as-needed就是忽略链接时没有用到的动态库，只将用到的动态库set NEEDED。
+   
+   
+   # 开启–as-needed的一些常见的问题：
+   # 1. 链接主程序模块或者是静态库的时的‘undefined reference to: xxx’
+   g++ -Wl,--as-needed -lGalaxyRT -lc -lm -ldl -lpthread   -L/home/ocaml/lib/  -lrt -o mutex mutex.o
+   # 假设mutex依赖libGalaxyRT.so中的东西。想想，因为gcc对库的顺序要求 和–as-needed（因为libGalaxyRT.so在mutex.o的左边，所以gcc认为没有 用到它，–as-needed将其忽略），ld忽略libGalaxyRT.so，定位mutex.o的 符号的时候当然会找不到符号的定义！所以‘undefined reference to’这个 错误是正常地
+   # 故正确的写法是：
+   g++ -Wl,--as-needed mutex.o -lGalaxyRT -lc -lm -ldl -lpthread   -L/home/ocaml/lib/  -lrt -o mutex
+   
+   # 对链接顺序导致问题的解决方案。
+   # 在项目开发过层中尽量让lib是垂直关系，避免循环依赖；越是底层的库，越是往后面写
+   g++ ...  obj($?) -l(上层逻辑lib) -l(中间封装lib) -l(基础lib) -l(系统lib)  -o $@
+   # 这样写可以避免很多问题，这个是在搭建项目的构建环境的过程中需要考虑 清楚地，在编译和链接上浪费太多的生命不值得
+  ```
+
+  
+
+- --copy-dt-needed-entries和--no-copy-dt-needed-entries
+
+  - 可执行文件会有它的依赖库（直接的，一级的）。而这些依赖库也有它自己的依赖库（可执行文件的间接的，二级的）
+  - 链接器通常不会将二级依赖添加进入可执行文件的NEEDED列表中去，然而，在命令行上指定--copy-dt-needed-entries后，任何在命令行中跟随在此参数后面的库，都将添加NEEDED
+  -  使用 --copy-dt-needed-entries 将递归搜索命令行上提到的动态库，遵循其 DT_NEEDED 标签到其他库，以便解析输出二进制文件所需的符号。 
 
 
 
@@ -412,7 +465,12 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/mylib/lib/
 - 在用源码安装时，用--prefix指定安装路径为/usr/lib。这样的话也就不用配置PKG_CONFIG_PATH
 - 直接将路径/usr/local/lib路径加入到文件/etc/ld.so.conf文件的中。在文件/etc/ld.so.conf中末尾直接添加：/usr/local/lib（这个方法给力！），然后执行ldconfig命令，将动态库
 
-**ldconfig**
+### 2.2.4 **ldconfig**
+
+ ldconfig是linux提供的动态库配置工具，主要用来完成两个工作：
+
+- 配置动态库的搜索路径。
+- 加载动态库到系统缓存。
 
 ldconfig这个程序，位于/sbin下，它的作用是将文件/etc/ld.so.conf列出的路径下的库文件缓存到/etc/ld.so.cache（**此文件保存有已排好序的动态链接库名字列表。**）以供使用，因此当安装完一些库文件，或者修改/etc/ld.so.conf增加了库的新的搜索路径，需要运>行一下ldconfig，使所有的库文件都被缓存到文件/etc/ld.so.cache中，如果没做，可能会找不到刚安装的库。
 
@@ -452,7 +510,33 @@ ldconfig -p | grep yolov8
 (12) - 或 --help 或 –usage：这三个选项作用相同，都是让ldconfig打印出其帮助信息（使用方法），而后退出。
 ```
 
+#### eg
 
+```bash
+# 参考：https://blog.csdn.net/weixin_34202952/article/details/91871191
+
+# 示例：
+# 有三个动态库文件 libtest.1.so，libtest.2.so，libtest.3.so，并且这三个动态库的SONAME(简单共享名，Short for shared object name)都是 libtest.so。
+# 默认情况下：执行 $ ，会搜索 /etc/ld.so.conf 文件下配置的所有路径，更新软链，并更新 /etc/ld.so.cache 文件。
+ldconfig
+
+# -n directory，扫描指定目录directory下的所有so，根据文件名中的最新版本号，更新软链，并更新 /etc/ld.so.cache文件。
+ldconfig -n ./    # 生成 libtest.so，libtest.so是一个软链接，指向版本号最大的动态库 libtest.3.so
+ ls -al
+-rwxrwxr-x 1 yepanl yepanl 8612 Oct  8 11:38 libtest.1.so
+-rwxrwxr-x 1 yepanl yepanl 8612 Oct  8 11:38 libtest.2.so
+-rwxrwxr-x 1 yepanl yepanl 8612 Oct  8 11:38 libtest.3.so
+lrwxrwxrwx 1 yepanl yepanl 12 Oct  9 16:56 libtest.so -> libtest.3.so
+
+# -l src dest选项：重新指定软链的连接目标，手动指定
+ldconfig -l libtest.so libtest.2.so    # 指定 libtest.so 链接到 libtest.2.so
+ls -al
+-rwxrwxr-x 1 yepanl yepanl 8612 Oct  8 11:38 libtest.1.so
+-rwxrwxr-x 1 yepanl yepanl 8612 Oct  8 11:38 libtest.2.so
+-rwxrwxr-x 1 yepanl yepanl 8612 Oct  8 11:38 libtest.3.so
+lrwxrwxrwx 1 yepanl yepanl 12 Oct  9 16:59 libtest.so -> libtest.2.so
+
+```
 
 
 
@@ -1271,6 +1355,8 @@ target_include_directories(my_target PUBLIC ${MYLIB_INCLUDE_DIRS})
 target_link_libraries(my_target ${MYLIB_LIBRARIES})
 ```
 
+
+
 # log
 
 1. [程序执行时无法找到库（动态库）](https://blog.csdn.net/djfjkj52/article/details/131243531)
@@ -1289,4 +1375,26 @@ target_link_libraries(my_target ${MYLIB_LIBRARIES})
 
    - 法三：修改LD_LIBRARY_PATH
 
-2. 
+2. [**编译时**报：“undefined reference to XXX”，**运行时**报：“undefined symbol:xxx”](https://blog.csdn.net/prettyshuang/article/details/48676815)
+
+   - 编译源代码时，链接的时候查找顺序（编译时）是:
+     -  **-L 指定的路径, 从左到右依次查找**
+     - 由环境变量 LIBRARY_PATH 指定的路径,使用":"分割从左到右依次查找
+     - /etc/ld.so.conf 指定的路径顺序
+     - /lib 和 /usr/lib (64位下是/lib64和/usr/lib64)
+   - 动态库调用的查找顺序（运行时）:
+     - ld的-rpath参数指定的路径, 这是写死在代码中的
+     - ld脚本指定的路径
+     - LD_LIBRARY_PATH 指定的路径
+     - /etc/ld.so.conf 指定的路径
+     - /lib和/usr/lib(64位下是/lib64和/usr/lib64)
+
+3. [LD_LIBRARY_PATH和LIBRARY_PATH的区别](https://www.cnblogs.com/lixiaomeng/p/18013728)
+
+   - LIBRARY_PATH
+     - 作用于程序编译阶段，告诉编译器（如 gcc）在编译时寻找动态链接库（.so 文件）的附加搜索路径。
+       当编译一个程序，并且该程序依赖于某些非标准路径下的共享库时，设置 LIBRARY_PATH 可以确保编译器能找到这些库并正确链接到可执行文件中。
+   - LD_LIBRARY_PATH
+     - 作用于程序运行阶段，指定了动态链接器（ld.so）在加载已编译好的可执行文件时，查找动态链接库的额外路径。
+       当一个可执行文件需要加载系统默认路径之外的共享库来运行时，设置 LD_LIBRARY_PATH 能让操作系统在运行时能够找到并加载那些非标准位置的动态链接库。
+   - LIBRARY_PATH 是编译时用到的环境变量，用于解决编译时链接问题；而 LD_LIBRARY_PATH 是运行时环境变量，用来解决运行时动态链接库的加载问题。

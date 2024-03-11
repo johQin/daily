@@ -1455,11 +1455,14 @@ private:
 animal an{1,10.5}//hah，可以看来它是调用了构造函数，而不是直接对变量赋值，等价于an(1, 10.5)
 an.toString();	//a = 1 b = 10.5
 
-struct Date
+struct MyStruct
 {
-    int day, month, year;
+    int num;
+    char ch;
 };
-Date birthday = {23, 8, 1983};		//大括号内的值按定义顺序分配给其成员
+MyStruct ss{}				// 初始化为0，'\0'
+MyStruct s = {23, 'A'};		// 大括号内的值按定义顺序分配给其成员
+MyStruct bs{ .num = 42, .ch = 'A'};
     
   
 ```
@@ -9480,6 +9483,10 @@ gdb --version
 搜索选中resync
 
 ![image-20231220213232130](legend/image-20231220213232130.png)
+
+## [在clion中使用Valgrind](https://blog.csdn.net/wyll19980812/article/details/127210821)
+
+
 
 # log
 
