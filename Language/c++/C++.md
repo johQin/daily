@@ -9472,17 +9472,37 @@ gdb --version
 
 #### 引用同步
 
-**到这里还没完，当远程Linux环境下安装第三方库的时候，本地是引用不到的，此时可以手动点击Tools ->Resync with Remote Hosts**（主界面的tab页上）
+**到这里还没完，当远程Linux环境下安装第三方库的时候，本地是引用不到的。**
 
-![](./legend/clion手动引用.png)
+先对引用同步进行设置：
 
-当然还可以设置为自动引入，Help->Find Action，输入
+Help -> Find Action，打开搜索栏, 接着输入 `Registry`，搜索找到如图所示选项： clion.remote.tar.dereference，勾选。
+
+这个选项clion的remote引用同步是将远程Liunx下的相关头文件缓存到本地，而这个缓存是先使用tar打包，然后下载到本地，然而Linux上的一些头文件实际上是软链接，tar打包的时候会按软链接打包，下载到本地解压后自然无法解析。勾选clion.remote.tar.dereference是让tar命令 Enable dereference (-h) and ‘–hard-dereference’ tar arguments这样就可以解析软链接到对应文件，下载到本地的就是文件而不是软链接。
+
+如果不勾选这个选项，那么当你在CMakeLists.txt中，include_directory如果是一个软链接，那么下载到本地后，你在External libraries->header search paths会看到对应引用文件被下载到本地，但是被引用的.h文件被显示为红色。
+
+![img](legend/62bcdefe-008c-4f74-9348-eb3aae29804d.png)
+
+![img](legend/8a1f69ec-6b02-4d41-b0a3-e08b911694bf.png)
+
+
+
+**设置了，dereference选项后，可以手动点击Tools ->Resync with Remote Hosts**（主界面的tab页上），**手动同步**远程服务器上的引用到本地。
+
+![img](legend/e47aebdd-6476-4931-a25e-a41dfa4e31cf.png)
+
+
+
+当然还可以设置为**自动引入**，Help->Find Action，输入
 
 ![image-20231220213114672](legend/image-20231220213114672.png)
 
-搜索选中resync
+搜索（Ctrl + F，有的无法搜索，可能是快捷键冲突）选中resync。
 
 ![image-20231220213232130](legend/image-20231220213232130.png)
+
+如果设置完自动引用，Tools -> Resync with Remote Hosts将会从**选项中消失**，除非关闭clion.remote.resync.system.cache
 
 ## [在clion中使用Valgrind](https://blog.csdn.net/wyll19980812/article/details/127210821)
 

@@ -1349,6 +1349,73 @@ out-of-source外部构建，一个最大的好处就是，对于原有的工程�
 
 - `-j`：生成时要使用的最大并发进程数
 
+### 4.3.1 add_compile_options
+
+在CMAKE脚本中，**设置编译选项**可以通过add_compile_options命令，也可以通过set命令修改变量CMAKE_CXX_FLAGS或CMAKE_C_FLAGS。
+
+**add_compile_options命令添加的编译选项是针对所有编译器的(包括c和c++编译器)**，而set命令设置CMAKE_C_FLAGS或CMAKE_CXX_FLAGS变量则是分别只针对c（gcc）和c++编译器（g++）的。
+
+`target_compile_options`命令。它会将编译选项应用于指定的目标。
+
+```cmake
+CMAKE_MINIMUM_REQUIRED(VERSION 3.22)
+PROJECT(compile_options_test)
+
+ADD_COMPILE_OPTIONS(-Wunused-variable)
+
+ADD_EXECUTABLE(main main.cpp)
+```
+
+```c++
+int main(int argc, char** argv)
+{
+    // 在编译时，可以看到编译器发出了“ warning: unused variable ‘not_use_var’ [-Wunused-variable]”警告：
+    const char* not_use_var = "Hello world!";
+    return 0;
+}
+```
+
+
+
+### 4.3.2 add_compile_definitions
+
+`add_definitions` 和 `add_compile_definitions` 是 CMake 中用于**添加编译时宏定义**的两个命令
+
+`add_definitions` 是较早版本的 CMake 中使用的命令，适用于 CMake 2.x 和 3.x。
+
+`add_compile_definitions` 是在 CMake 3.12 引入的，作为替代 `add_definitions` 的新命令。
+
+用于向整个项目添加全局性的编译时宏定义，会影响所有的目标（可执行文件、库等）。会将定义添加到当前目录中的目标的编译器命令行，无论这个命令是在添加目标之前还是之后调用的，以及在此命令调用后添加的子目录中的目标。
+
+`target_compile_definitions(<target> <INTERFACE|PUBLIC|PRIVATE> [items1])  `，为指定target增加编译时宏。
+
+```cmake
+add_definitions(-DENABLE_FEATURE_A)  
+# add_compile_definitions不用加-D
+add_compile_definitions(ENABLE_FEATURE_A) 
+add_executable(my_executable main.cpp)
+target_compile_definitions(my_executable PUBLIC ENABLE_FEATURE_A) 
+```
+
+```c++
+// main.cpp
+
+#include <iostream>
+
+int main() {
+#ifdef ENABLE_FEATURE_A
+    std::cout << "Feature A is enabled.\n";
+#else
+    std::cout << "Feature A is disabled.\n";
+#endif
+
+    return 0;
+}
+
+```
+
+
+
 ## 4.3 [cmake指定编译器](https://blog.csdn.net/kv110/article/details/119121255)
 
 - 法一：在CMakeLists.txt指定
@@ -1520,8 +1587,6 @@ add_custom_command(
 )
 ```
 
-
-
 ### 4.5.2 为已有构建目标添加自定义命令
 
 向目标（如库或可执行文件）添加自定义命令。这对于在构建目标之前或之后执行操作非常有用。
@@ -1631,7 +1696,7 @@ CMAKE_TOOLCHAIN_FILE 		# CMake 的一个内定变量，它指定了一个文件�
 - CMAKE_BUILD_WITH_INSTALL_RPATH
   - 当值为 `TRUE` 时，CMake 在构建阶段使用与安装阶段相同的 RPATH 设置。
   - 当 值为 `FALSE` 时（默认值），构建阶段会使用默认的 RPATH 设置，而不考虑安装阶段的设置。
-- CMAKE_SKIP_BUILD_RAPTH：
+- CMAKE_SKIP_BUILD_RPATH：
   -  控制是否在构建阶段跳过为目标设置 RPATH。如果设置为 `TRUE`，则在构建时不会设置 RPATH。这意味着在构建目标时，将不会包含指定的运行时库搜索路径。默认情况下，它是 `FALSE`。
 - CMAKE_SKIP_INSTALL_RPATH：当值为 `TRUE` 时，CMake 不会在安装目标时设置任何 RPATH。
 
