@@ -9698,7 +9698,11 @@ Help -> Find Action，打开搜索栏, 接着输入 `Registry`，搜索找到如
 
   ![](./legend/文件映射.png)
 
-- 
+- 最后在tools->deployments->download from...（下载自...），upload to...（上传到...)，然后选择服务器。
+
+  - 也可以在本地项目的根目录上右击，deployments->download from...（下载自...），upload to...
+
+  ![](./legend/选择上传代码到服务器还是下载代码到本地.png)
 
 ## [在clion中使用Valgrind](https://blog.csdn.net/wyll19980812/article/details/127210821)
 
