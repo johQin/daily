@@ -2755,6 +2755,12 @@ pr_debug("Tom");
 //能被正确的编译，被替换为替换为printf("OK","Tom");，##使得“Tom”后面的“,”消失了，所以编译正确
 ```
 
+```c++
+#define INFO_LOG(fmt, ...) fprintf(stdout, "[INFO]  " fmt "\n", ##__VA_ARGS__)
+
+INFO_LOG("%s save image,%s, %s function, %d line", filePath, __FILE__, __FUNCTION__, __LINE__);
+```
+
 
 
 ## 9.2 包含头文件的宏

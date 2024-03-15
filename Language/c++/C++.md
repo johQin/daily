@@ -7795,6 +7795,178 @@ void InitLogger(bool daemonized)
 
 ### 11.2.2 [让Log4CPLUS每个CPP记一个日志文件](https://blog.csdn.net/Augusdi/article/details/8989918)
 
+## 11.3 [log4cpp](https://log4cpp.sourceforge.net/)
+
+
+
+```bash
+tar -xzf log4cpp-1.1.4.tar.gz
+cd log4cpp
+
+./configure
+# 
+# 开发环境：ARMv8 64位环境，Ubuntu 18.04系统，如果有报错
+UNAME_MACHINE = aarch64
+UNAME_RELEASE = 4.9.253-tegra
+UNAME_SYSTEM = Linux
+UNAME_VERSION = #0 SMP PREEMPT Tue Nov 30 15:41:10 CST 2021
+configure: error: cannot guess build type; you must specify one
+
+# 就指明架构信息
+./configure --build=arm-linux
+
+make
+make check
+make install
+# 默认安装到/usr/local，库文件置于/usr/local/lib，头文件置于/usr/local/include
+```
+
+```cmake
+add_executable(main_helmet ${APP_SOURCES} ${APP_HDRS} ${LIB_HDRS})
+target_link_libraries(main_helmet liblog4cpp.a)
+```
+
+```c++
+// common.h
+namespace utils{
+    int getExeAbspath(char * path, int length);
+    int getExeWd(char *wd, int wd_size);
+    int getExecName(char *name,int name_size);
+}
+// common.cpp
+int utils::getExeAbspath(char * path, int length){
+    bzero(path,length);
+    int ret = readlink("/proc/self/exe",path,length);   // 返回值是实际可执行文件绝对路径的长度
+    if(ret == -1)
+    {
+        printf("----get exec abspath fail!!\n");
+        return -1;
+    }
+    path[ret]= '\0';
+    return 1;
+}
+int utils::getExeWd(char *wd, int wd_size){
+    char path[1024]={0};
+    if(getExeAbspath(path,1024) == -1){
+        return -1;
+    }
+    char * ptr = strrchr(path, '/');
+    if(ptr == NULL){
+        return -1;
+    }
+    int a = ptr - path;
+    if (wd_size<a){
+        printf("---wd length is shorter than result");
+        return -1;
+    }
+    strncpy(wd,path,a);
+    return 1;
+}
+int utils::getExecName(char *name,int name_size)
+{
+    char path[1024]={0};
+    if(getExeAbspath(path,1024) == -1){
+        return -1;
+    }
+    char *ptr = strrchr(path,'/');      // char *strrchr(const char *str, int c) 在参数 str 所指向的字符串中搜索最后一次出现字符 c（一个无符号字符）的位置。
+    if(ptr == NULL){
+        return -1;
+    }
+    bzero(name,name_size);              //清空缓存区
+    strncpy(name,ptr+1,name_size-1);    // char *strncpy(char *dest, const char *src, size_t n) 把 src 所指向的字符串复制到 dest，最多复制 n 个字符。当 src 的长度小于 n 时，dest 的剩余部分将用空字节填充。
+    return 1;
+}
+
+
+
+//logger.h
+#ifndef YOLOV8_LOGGER_H
+#define YOLOV8_LOGGER_H
+#include <log4cpp/Category.hh>
+#include <log4cpp/RollingFileAppender.hh>
+#include <log4cpp/Priority.hh>
+#include <log4cpp/PatternLayout.hh>
+#include "common.h"
+
+extern void createLogger(const std::string& logfilename = "appEntity");
+extern log4cpp::Category& mLogger;
+#endif //YOLOV8_LOGGER_H
+
+
+
+// logger.cpp
+#include "logger.h"
+bool create_directory(const std::string& path) {
+    if (mkdir(path.c_str(), 0777) == 0) {
+        return true; // 创建成功
+    } else {
+        if (errno == EEXIST) {
+            return true; // 目录已经存在
+        } else {
+            return false; // 创建失败
+        }
+    }
+}
+
+bool create_directories(const std::string& path) {
+    size_t pos = 1;
+    std::string dir;
+    bool created = true;
+    if(path.size() <1){
+        std::cerr<< "输入不能为空" <<std::endl;
+        return false;
+    }
+    // 逐级创建目录
+    while ((pos = path.find_first_of('/', pos)) != std::string::npos) {
+        dir = path.substr(0, pos++);
+        if (!create_directory(dir)) {
+            std::cerr << "Failed to create directory: " << dir << std::endl;
+            created = false;
+            break;
+        }
+    }
+    if (created) {
+        // 创建最后一个目录
+        created = create_directory(path);
+    }
+    return created;
+}
+void createLogger(const std::string& logfilename){
+    char exeWd[150] = {0};
+    int ret = utils::getExeWd(exeWd,150);
+    if(ret == -1) throw "can not acquire app working directory";
+    create_directories(std::string(exeWd) + "/log");
+    std::string logpath = std::string(exeWd) + "/log/" + logfilename + ".log";
+    log4cpp::FileAppender* osAppender = new log4cpp::RollingFileAppender("osAppender", logpath, 10 * 1024);
+
+    log4cpp::PatternLayout* pLayout = new log4cpp::PatternLayout();
+    pLayout->setConversionPattern("%d: %p %c %x: %m%n");
+    osAppender->setLayout(pLayout);
+
+    log4cpp::Category& root = log4cpp::Category::getRoot();
+    log4cpp::Category& infoCategory = root.getInstance("infoCategory");
+
+    infoCategory.addAppender(osAppender);
+    infoCategory.setPriority(log4cpp::Priority::INFO);
+};
+log4cpp::Category& mLogger = log4cpp::Category::getRoot().getInstance("infoCategory");
+
+// 在main.cpp使用createLogger之后就可以使用，mlogger
+// main.cpp
+#include "logger.h"
+int main(int argc, char **argv)
+{
+    char logname[200] = {};
+    sprintf(logname, "%s_%s", "helmet_dect", g_currTimeToString().data());
+    createLogger(std::string(logname));
+    mLogger.info("日志成功");
+}
+
+// 以后在使用到的cpp文件里面只需要include "logger.h"，就可以使用mLogger
+```
+
+
+
 ## 11.3 string
 
 ```c++
@@ -9511,6 +9683,22 @@ Help -> Find Action，打开搜索栏, 接着输入 `Registry`，搜索找到如
 如果设置完自动引用，Tools -> Resync with Remote Hosts将会从**选项中消失**，除非关闭clion.remote.resync.system.cache
 
 
+
+### 代码在远程主机而不在本地
+
+首先还是需要在本地创建一个新项目，**将本地项目中的所有文件都删干净，为远程主机的文件腾出空间。**
+
+然后在setting中配置
+
+- tools->ssh configurations，
+
+- build,execution,deployment->toolchain，cmake。
+
+- 重点：build,execution,deployment->deployment，一定记住在excluded path那里写远程项目（项目根目录）的相对地址，否则不生效（就会下载远程项目内的所有文件）
+
+  ![](./legend/文件映射.png)
+
+- 
 
 ## [在clion中使用Valgrind](https://blog.csdn.net/wyll19980812/article/details/127210821)
 

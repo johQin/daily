@@ -56,11 +56,26 @@
    - `find ./ -name '*2021-11-01*'`，查看当前文件夹（及子目录中）下，文件名包含2021-11-01的文件
    - `find ./ -name '*2021-11-01*' -maxdepth 1 `，查看当前文件夹下
 
-8. [xargs](https://www.runoob.com/linux/linux-comm-xargs.html)：是给命令传递参数的一个过滤器，也是组合多个命令的一个工具。
+8. 查看系统信息
+
+   - uname命令是一个用于显示系统信息的工具
+   - “-s”：显示操作系统名称。
+   - “-n”：显示网络节点主机名。
+   - “-r”：显示内核版本。
+   - “-m”：显示硬件架构。
+   - “-v”：显示操作系统版本。
+   - “-a”：显示所有可用的系统信息。
+
+   ```bash
+   # 
+   uname -m
+   ```
+
+9. [xargs](https://www.runoob.com/linux/linux-comm-xargs.html)：是给命令传递参数的一个过滤器，也是组合多个命令的一个工具。
 
    `find /sbin -perm +700 |xargs ls -l`，将前一个命令find的std ，通过xargs，输出给ls作参数。
 
-9. 查找运行的进程中是否包含某个进程
+10. 查找运行的进程中是否包含某个进程
 
    ```bash
    # 查看父进程ID，进程ID，进程组ID，会话ID
@@ -76,7 +91,7 @@
    root          19  0.0  0.0 180268 24552 ?        Sl   Aug02   2:41 ./shangDong_Model_position
    ```
 
-10. [service和systemctl的区别](https://blog.csdn.net/juanxiaseng0838/article/details/124123822)
+11. [service和systemctl的区别](https://blog.csdn.net/juanxiaseng0838/article/details/124123822)
 
    - service命令其实是去/etc/init.d目录下，去执行相关程序
    - systemctl是一个systemd工具，主要负责控制systemd系统和服务管理器。在/lib/systemd/system

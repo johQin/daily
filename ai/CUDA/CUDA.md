@@ -486,7 +486,11 @@ NOTE: The CUDA Samples are not meant for performance measurements. Results may v
 
 ```cmake
 cmake_minimum_required(VERSION 3.25)
-project(cudaDemo CUDA)
+project(cudaDemo LANGUAGES C CXX CUDA)
+# 如果在project这里不加LANGUAGES CUDA
+# CMake Error: CMake can not determine linker language for target: XXXXX
+# 如果在cu文件里使用c++，也要添加CXX
+
 
 set(CMAKE_CUDA_STANDARD 17)
 include_directories(/usr/include /usr/local/cuda-12.0/include)

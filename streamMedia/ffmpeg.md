@@ -270,7 +270,13 @@ ffmpeg -i http://ivi.bupt.edu.cn/hls/cctv1hd.m3u8 -acodec aac -vcodec libx264 cc
 # 推流
 # 将一个文件推流到rmtp上
 ffmpeg -re -i out.mp4 -c copy flv rtmp://server/live/streamName
+# 将一个视频文件一直循环推流到指定地址
+ffmpeg -re -stream_loop -1 -i c3_720.mp4 -vcodec copy -acodec copy -b:v 2M -f rtsp -rtsp_transport tcp rtsp://192.168.100.56:554/live/test/0
 ```
+
+![码率与帧尺寸的关系](legend/4bed2e738bd4b31cf7c1d0c0d144fc789f2ff862.jpeg)
+
+
 
 ### 3.1.9 过滤器（滤镜）
 
