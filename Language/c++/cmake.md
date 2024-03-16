@@ -1928,6 +1928,13 @@ file(STRINGS "example.txt" content NEWLINE_CONSUME)
 
 ```
 
+## 6.5 路径操作
+
+```cmake
+# 将一个相对地址修改为一个绝对地址
+get_filename_component(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../out ABSOLUTE)
+```
+
 
 
 
