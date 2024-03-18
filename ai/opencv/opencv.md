@@ -1,5 +1,7 @@
 # OpenCV
 
+[C++ 官方文档](https://docs.opencv.org/4.8.0/index.html)
+
 ```python
 pip install opencv-python
 ```

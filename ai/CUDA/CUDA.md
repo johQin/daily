@@ -571,6 +571,71 @@ struct cudaDeviceProp {
 }
 ```
 
+### 0.2.3 在c++中使用自己编写的cu文件
+
+```c++
+// nvCvt.cu
+
+#include "nvCvt.h"
+__global__
+void bgra2yuv_kernel(const uchar4* src, uchar* y, uchar* u, uchar* v, int width, int height) {
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y_idx = blockIdx.y * blockDim.y + threadIdx.y;
+    int idx = y_idx * width + x;
+
+    if (x < width && y_idx < height) {
+        uchar4 pixel = src[idx];
+
+        // BGRA to YUV conversion
+        y[idx] = (uchar)(0.299f * pixel.x + 0.587f * pixel.y + 0.114f * pixel.z);
+        u[idx] = (uchar)(-0.147f * pixel.x - 0.289f * pixel.y + 0.436f * pixel.z + 128);
+        v[idx] = (uchar)(0.615f * pixel.x - 0.515f * pixel.y - 0.100f * pixel.z + 128);
+    }
+}
+
+void bgra2yuv(cv::cuda::GpuMat& bgra, cv::cuda::GpuMat& yuv) {
+    // Allocate memory for Y, U, V channels
+    cv::cuda::GpuMat y(bgra.size(), CV_8UC1);
+    cv::cuda::GpuMat u(bgra.size(), CV_8UC1);
+    cv::cuda::GpuMat v(bgra.size(), CV_8UC1);
+
+    // Launch CUDA kernel
+    dim3 block(32, 32);
+    dim3 grid((bgra.cols + block.x - 1) / block.x, (bgra.rows + block.y - 1) / block.y);
+    bgra2yuv_kernel<<<grid, block>>>(reinterpret_cast<uchar4*>(bgra.data), y.data, u.data, v.data, bgra.cols, bgra.rows);
+    cudaDeviceSynchronize();
+
+    // Merge Y, U, V channels into YUV I420 format
+    std::vector<cv::cuda::GpuMat> channels = {y, u, v};
+    cv::cuda::merge(channels,yuv);
+}
+```
+
+```c++
+// nvCvt.h
+// 头文件中不能暴露核函数的声明。bgra2yuv_kernel这个函数就不能写在.h文件中，否则会报错，有些类型无法识别
+#ifndef HELLO_NVCVT_H
+#define HELLO_NVCVT_H
+#include <opencv2/opencv.hpp>
+#include <opencv2/cudaimgproc.hpp>
+#include <opencv2/core/cuda.hpp>
+#include <opencv2/cudaarithm.hpp>
+#include <opencv2/cudacodec.hpp>
+#include "stdint.h"
+void bgra2yuv(cv::cuda::GpuMat& bgra, cv::cuda::GpuMat& yuv);
+#endif //HELLO_NVCVT_H
+```
+
+```c++
+// mian
+#include "nvCvt.h"
+int main(){
+	cv::cuda::GpuMat gpuMat;
+    cv::cuda::GpuMat yuv(gpuMat.rows, gpuMat.cols * 3 / 2, CV_8UC1);
+    bgra2yuv(gpuMat, yuv);
+}
+```
+
 
 
 ## 0.3 [初识和相关概念](https://zhuanlan.zhihu.com/p/34587739)

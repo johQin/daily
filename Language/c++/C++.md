@@ -7806,6 +7806,7 @@ cd log4cpp
 ./configure
 # 
 # 开发环境：ARMv8 64位环境，Ubuntu 18.04系统，如果有报错
+# 参考：https://www.cnblogs.com/strongbug/p/17216272.html
 UNAME_MACHINE = aarch64
 UNAME_RELEASE = 4.9.253-tegra
 UNAME_SYSTEM = Linux
