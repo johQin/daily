@@ -9687,7 +9687,7 @@ Help -> Find Action，打开搜索栏, 接着输入 `Registry`，搜索找到如
 
 
 
-### 代码在远程主机而不在本地
+### [代码在远程主机而不在本地](https://subingwen.cn/env-config/clion-remote/#:~:text=%E6%8C%87%E5%AE%9A%E7%9A%84%E8%BF%9C%E7%A8%8B%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%9B%AE%E5%BD%95%E4%B8%AD%E6%9C%89%E6%BA%90%E7%A0%81%EF%BC%8C%E6%9C%AC%E5%9C%B0%E9%A1%B9%E7%9B%AE%E6%B2%A1%E6%9C%89%E6%BA%90%E7%A0%81)
 
 首先还是需要在本地创建一个新项目，**将本地项目中的所有文件都删干净，为远程主机的文件腾出空间。**
 

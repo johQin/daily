@@ -571,7 +571,9 @@ struct cudaDeviceProp {
 }
 ```
 
-### 0.2.3 在c++中使用自己编写的cu文件
+### 0.2.3 在c++ cuda混合编程
+
+[Cmake C++ cuda 混合编程 入门](https://blog.csdn.net/qq_43331089/article/details/131103281)
 
 ```c++
 // nvCvt.cu

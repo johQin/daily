@@ -89,6 +89,11 @@
    USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
    root          18  0.0  0.0 178084 16832 ?        Sl   Aug02   0:44 ./shangDong_Model_position
    root          19  0.0  0.0 180268 24552 ?        Sl   Aug02   2:41 ./shangDong_Model_position
+   
+   # 实时查看某个进程实时运行情况
+   top -p $(pidof Gather)				# pidof process_name进程名称，查找进程名称对应的进程id
+   # 实时查看某个进程的所有线程的运行情况。
+   top -H -p PID
    ```
 
 11. [service和systemctl的区别](https://blog.csdn.net/juanxiaseng0838/article/details/124123822)
