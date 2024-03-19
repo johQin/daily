@@ -627,7 +627,7 @@ void bgra2yuv(cv::cuda::GpuMat& bgra, cv::cuda::GpuMat& yuv);
 ```
 
 ```c++
-// mian
+// mian.cpp
 #include "nvCvt.h"
 int main(){
 	cv::cuda::GpuMat gpuMat;
