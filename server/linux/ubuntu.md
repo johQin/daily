@@ -697,7 +697,12 @@
     - ~/.bash_logout
       当每次退出系统(退出bash shell)时,执行该文件，通常存放清理工作的命令。
 
-17. 
+17. Ubuntu强制关闭图形窗口
+
+    - 有时候Ubuntu中的某些界面会卡死，比如`Goland`或`Clion`等[Jetbrains](https://so.csdn.net/so/search?q=Jetbrains&spm=1001.2101.3001.7020)系列软件,此时鼠标点击关闭也没有用，并且使用ps命令也会发现其pid一直在改变，导致使用kill命令也杀不掉。这时候就可以在命令行中输入`xkill`（Ubuntu默认安装了xkill）
+    - 运行它之后，你的光标会变成x符号。  点击相应的图形程序的窗口就可以杀死该程序(alt tab到指定窗口，然后点击)。  如果你中途要放弃操作，你可以点击鼠标右键取消。  
+
+18. 
 
 
 
