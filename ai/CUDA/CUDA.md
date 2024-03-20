@@ -17,6 +17,21 @@ https://developer.nvidia.com/cuda-gpus
 
 ### 0.1.1 tensorRT提醒
 
+```bash
+# 查看是否安装过tensorRT
+# 如果是通过deb包安装的，则在下面的文件夹里查找
+# 头文件
+/usr/include/x86_64-linux-gnu
+# 库
+/usr/lib/x86_64-linux-gnu
+# libnvinfer开头的
+
+# 如果没有通过deb而是通过tar包安装的，则
+find / -name tensorrt*
+```
+
+
+
 #### [tar包安装](https://blog.csdn.net/zong596568821xp/article/details/86077553)
 
 选择tar包 [TensorRT 8.6 GA for Linux x86_64 and CUDA 12.0 and 12.1 TAR Package](https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/secure/8.6.1/tars/TensorRT-8.6.1.6.Linux.x86_64-gnu.cuda-12.0.tar.gz) 下载
@@ -37,6 +52,7 @@ LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/TensorRT-8.6.1.6/lib
 # TensorRT路径下，将头文件和库放到指定位置，方便在程序中引入
 sudo cp -r ./lib/* /usr/lib
 sudo cp -r ./include/* /usr/include
+
 ```
 
 
@@ -69,7 +85,6 @@ sudo apt-get install python3-libnvinfer-dev
 sudo apt-get install onnx-graphsurgeon
 # 如果转换 TensorFlow 模型
 sudo apt-get install uff-converter-tf
-
 
 # 安装位置
 # 头文件

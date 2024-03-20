@@ -559,6 +559,11 @@
 
    - [密钥存储在过时的 trusted.gpg密钥环中 ](https://blog.csdn.net/m0_67517854/article/details/133034521)
 
+     - ```
+       cd /etc/apt
+       sudo cp trusted.gpg trusted.gpg.d
+       ```
+
    - [apt-get update出现由于没有公钥，无法验证下列签名](https://blog.csdn.net/weixin_45095113/article/details/131083258)
 
      - ```bash
@@ -599,12 +604,33 @@
           换 源介 绍：https://developer.aliyun.com/mirror/ubuntu（ archive 源 ）
           阿里云只有 archive 源的换源说明，其实 archive 源和 ports 源的换源步骤都是一样的，只是源地址不一样。
 
-11. apt --fix-broken install
+11. add-apt-repository 添加以及移除源
+
+    ```bash
+    # # software-properties-common 的作用是安装软件包管理器的常用工具，包括add-apt-repository
+    apt install software-properties-common
+    # 紧接着就使用了software-properties-common 带来的add-apt-repository 命令工具
+    
+    # 添加源
+    add-apt-repository "deb http://security.ubuntu.com/ubuntu xenial-security main"
+    
+    # 删除源
+    cd /etc/apt/sources.list.d
+    # 找到对应的源删除即可
+    sudo rm -rf xxx.list
+    
+    #
+    apt update
+    ```
+
+    
+
+12. apt --fix-broken install
 
     - 命令用于修复系统中已安装的软件包之间的依赖关系问题。当安装或卸载软件包时，可能会出现依赖关系错误，这可能导致其他软件包无法正常工作或安装。使用该命令可以尝试解决这些依赖关系问题，并尽可能安装所需的软件包。它会自动处理依赖关系冲突，安装缺失的依赖项或删除不需要的依赖项。 
     - 
 
-12. 在pycharm中使用root身份运行脚本
+13. 在pycharm中使用root身份运行脚本
 
     - [参考1](https://www.coder.work/article/167100)，[参考2](https://blog.csdn.net/weixin_44387411/article/details/132958610)
 
@@ -636,7 +662,7 @@
 
     ![](./legend/pycharm中以root身份运行脚本.png)
 
-13. [sudoers文件说明 - sudo免密码 - 限制sudo执行特殊命令](https://zhuanlan.zhihu.com/p/632737024?utm_id=0)
+14. [sudoers文件说明 - sudo免密码 - 限制sudo执行特殊命令](https://zhuanlan.zhihu.com/p/632737024?utm_id=0)
 
     ```bash
     # /etc/sudoers
@@ -649,7 +675,7 @@
 
     ![img](legend/v2-0ed918b6d0907ae0f4fb258e3ba9a668_720w.webp)
 
-14. [查看进程中的线程](https://blog.csdn.net/AnChenliang_1002/article/details/131359525)
+15. [查看进程中的线程](https://blog.csdn.net/AnChenliang_1002/article/details/131359525)
 
     ```bash
     # 实时显示指定线程内各个线程情况
@@ -658,7 +684,7 @@
 
     
 
-15. [环境变量相关脚本执行时机和作用范围](https://blog.csdn.net/NRWHF/article/details/131285014)
+16. [环境变量相关脚本执行时机和作用范围](https://blog.csdn.net/NRWHF/article/details/131285014)
 
     - /etc/profile
       用于设置系统级的环境变量和启动程序，在这个文件下配置会**对所有用户生效**。**当用户登录(login)时，文件会被执行**，并从/etc/profile.d目录的配置文件中查找shell设置。如果对/etc/profile修改的话必须重启才会生效
@@ -671,7 +697,7 @@
     - ~/.bash_logout
       当每次退出系统(退出bash shell)时,执行该文件，通常存放清理工作的命令。
 
-16. 
+17. 
 
 
 

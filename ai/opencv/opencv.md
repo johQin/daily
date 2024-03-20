@@ -1063,10 +1063,11 @@ cv2.destroyAllWindows()
 
 ```bash
 # 它不包含GPU部分
-apt install libopencv-dev
+apt install libopencv-dev=4.8.0
+# 验证安装是否成功，通过apt安装才会有下面的命令
+whereis opencv_version
+opencv_version
 ```
-
-
 
 [ffmpeg和opencv的版本匹配](https://blog.csdn.net/Damon_Sandy/article/details/131995799)
 
@@ -1286,13 +1287,24 @@ apt install pkg-config
 ```bash
 # 
 sudo apt install libopenexr-dev libgtk2.0-dev libavcodec-dev libavformat-dev libjpeg-dev libtiff-dev libswscale-dev libpng-dev
+
+# Ubuntu18.04下安装OpenCv依赖包libjasper-dev无法安装的问题：https://blog.csdn.net/weixin_41053564/article/details/81254410
+# 需要先安装源，安装源需要通过add-apt-repository指令添加，而用这个指令的话，需要先安装software-properties-common
+# 
 # software-properties-common 的作用是安装软件包管理器的常用工具，包括add-apt-repository
 apt install software-properties-common
 # 紧接着就使用了software-properties-common 带来的add-apt-repository 命令工具
 add-apt-repository "deb http://security.ubuntu.com/ubuntu xenial-security main"
+# 如果是在arm64的主机上要添加port源而不是archive源（https://blog.csdn.net/iamjingong/article/details/117959778）
+# 如果不小心把源添加错了，就按如下操作
+cd /etc/apt/sources.list.d
+# 找到要删除的源文件使用sudo rm -rf xxx.list删除
+
 # 报错 GPG 错误：http://security.ubuntu.com/ubuntu xenial-security InRelease: 由于没有公钥，无法验证下列签名： NO_PUBKEY 40976EAF437D05B5 NO_PUBKEY 3B4FE6ACC0B21F32
 # 下面可以解决报错
 sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 3B4FE6ACC0B21F32
+
+
 apt update
 apt install libjasper1 libjasper-dev
 ```
@@ -1335,7 +1347,7 @@ cd build
 # CUDA_ARCH_BIN需要按照你的GPU的计算能力来指定，查计算能力：https://developer.nvidia.com/zh-cn/cuda-gpus#compute
 # 当您使用 CMake 构建项目并运行 make install 时，CMake 会根据您设置的 CMAKE_INSTALL_PREFIX 值，将项目的文件、库、头文件等复制到指定的安装路径。
 cmake -D CMAKE_BUILD_TYPE=RELEASE \
-      -D CMAKE_INSTALL_PREFIX=/usr/local/opencv-4.8.0 \
+      -D CMAKE_INSTALL_PREFIX=/usr/local/opencv-4.8.0 \			# 指定最后安装的位置
       -D WITH_TBB=ON \
       -D BUILD_TBB=ON  \
       -D ENABLE_FAST_MATH=1 \
@@ -1349,8 +1361,8 @@ cmake -D CMAKE_BUILD_TYPE=RELEASE \
       -D WITH_GTK_2_X=ON \
       -D WITH_NVCUVID=ON \
       -D WITH_NVCUVENC=ON \
-      -D CUDA_ARCH_BIN=8.6 \
-      -D OPENCV_EXTRA_MODULES_PATH=../opencv_contrib-4.8.0/modules \
+      -D CUDA_ARCH_BIN=8.6 \											# 需要查询GPU的计算能力
+      -D OPENCV_EXTRA_MODULES_PATH=../opencv_contrib-4.8.0/modules \	# 需要指定扩展包相对的位置
       -D WITH_QT=ON \
       -D WITH_OPENGL=ON \
       -D WITH_FFMPEG=ON \
