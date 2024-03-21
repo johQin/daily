@@ -2493,4 +2493,38 @@ CUDA内存管理包含GPU内存分配、释放、数据在主机和设备（GPU�
    - 可能原因二：图片的尺寸是否符合要求。
    - [其它](https://blog.csdn.net/yyywxk/article/details/132773782)
 
-4. 
+4. tensorRT在运行时报`[W] [TRT] CUDA lazy loading is not enabled. Enabling it can significantly reduce device memory usage and speed up TensorRT initialization. See "Lazy Loading" section of CUDA documentation `
+
+   - https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#lazy-loading
+
+   - 懒加载无法启动，使能它可以显著的降低设备的内存占用加速tensortRT的初始化。
+
+   - 因为我运行的时候，报这个警告，我会发现我的程序所占用的设备内存（480MB）比没有报这个警告的时候所占用的设备内存（194MB）要差不多大一半，所以我必须解决这个警告。
+
+   - ![](legend/warningandnowarning.png)
+
+   - 首先cuda toolkit必须大于11.7，其次需要设置环境变量CUDA_MODULE_LOADING = LAZY，然后再次运行就不会报警告，设备内存的占用也恢复正常。
+
+   - ```bash
+     vim ~/.bashrc
+     export CUDA_MODULE_LOADING="LAZY"
+     
+     source ~/.bashrc
+     
+     # 看到结果，发现设置成功
+     env | grep CUDA_MODULE_LOADING
+     CUDA_MODULE_LOADING=LAZY
+     
+     # 再次运行TensorRT程序就不会报警告了
+     ```
+
+   - 参考：[CUDA lazy loading is not enabled. Enabling it can significantly reduce device memory usage and speed](https://blog.csdn.net/s1_0_2_4/article/details/135026761)
+
+
+# [nvidia 编码数量限制]()
+
+[突破NVIDIA NVENC并发Session数目限制](https://blog.csdn.net/charleslei/article/details/105761627)
+
+[Docker取消Video Encoding Sessions并发数目限制(OpenEncodeSessionEx failed: out of memory)](https://www.553668.com/manong/427655.html)
+
+[Video Encode and Decode GPU Support Matrix](https://developer.nvidia.com/video-encode-and-decode-gpu-support-matrix-new#Encoder)

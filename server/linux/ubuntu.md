@@ -25,11 +25,27 @@
 # 2 常用命令
 1. 查看操作系统版本：`lsb_release -a 或 cat /proc/version`
 
-2. 查看文件或文件夹大小（MB）：**ls -hl    or    ls -hl filename**
+2. 查看主机配置
 
-3. ubuntu最小系统通过apt-get安装包前，需要县apt-get update更新一下源，然后才可查找包并安装相关包
+   ```bash
+   # 查看GPU
+   lspci | grep -i vga
+   # 查看cpu
+   lscpu
+   # 查看内存大小
+   free -h
+   # 查看硬盘情况
+   lsblk
+   df -h	# 显示文件系统的磁盘使用情况。
+   ```
 
-4. [从命令行打开文件浏览器：nautilus命令](https://www.cnblogs.com/Tom-Ren/p/10024280.html)
+   
+
+3. 查看文件或文件夹大小（MB）：**ls -hl    or    ls -hl filename**
+
+4. ubuntu最小系统通过apt-get安装包前，需要县apt-get update更新一下源，然后才可查找包并安装相关包
+
+5. [从命令行打开文件浏览器：nautilus命令](https://www.cnblogs.com/Tom-Ren/p/10024280.html)
 
    - ```bash
      nautilus .   #打开当前文件夹
@@ -39,9 +55,9 @@
      nautilus /your/path    #打开指定文件夹
      ```
 
-5. [apt-get详细](https://blog.csdn.net/qq_44885775/article/details/124278721)
+6. [apt-get详细](https://blog.csdn.net/qq_44885775/article/details/124278721)
 
-6. [tar](https://www.runoob.com/w3cnote/linux-tar-gz.html)
+7. [tar](https://www.runoob.com/w3cnote/linux-tar-gz.html)
 
    ```bash
    # 将所有 .jpg 的文件打成一个 tar 包，并且将其用 gzip 压缩，生成一个 gzip 压缩过的包，包名为 all.tar.gz。
@@ -51,12 +67,12 @@
    tar -xzf all.tar.gz
    ```
 
-7. [linux查询文件名 或 文件内容中 包含特定字符串的所有文件](https://blog.csdn.net/weixin_40482816/article/details/121425903)
+8. [linux查询文件名 或 文件内容中 包含特定字符串的所有文件](https://blog.csdn.net/weixin_40482816/article/details/121425903)
 
    - `find ./ -name '*2021-11-01*'`，查看当前文件夹（及子目录中）下，文件名包含2021-11-01的文件
    - `find ./ -name '*2021-11-01*' -maxdepth 1 `，查看当前文件夹下
 
-8. 查看系统信息
+9. 查看系统信息
 
    - uname命令是一个用于显示系统信息的工具
    - “-s”：显示操作系统名称。
@@ -71,11 +87,11 @@
    uname -m
    ```
 
-9. [xargs](https://www.runoob.com/linux/linux-comm-xargs.html)：是给命令传递参数的一个过滤器，也是组合多个命令的一个工具。
+10. [xargs](https://www.runoob.com/linux/linux-comm-xargs.html)：是给命令传递参数的一个过滤器，也是组合多个命令的一个工具。
 
    `find /sbin -perm +700 |xargs ls -l`，将前一个命令find的std ，通过xargs，输出给ls作参数。
 
-10. 查找运行的进程中是否包含某个进程
+11. 查找运行的进程中是否包含某个进程
 
    ```bash
    # 查看父进程ID，进程ID，进程组ID，会话ID

@@ -9707,6 +9707,10 @@ Help -> Find Action，打开搜索栏, 接着输入 `Registry`，搜索找到如
 
   ![](./legend/选择上传代码到服务器还是下载代码到本地.png)
 
+## [clion使用动态模板](https://blog.csdn.net/weixin_45636061/article/details/124864422)
+
+![image-20211126172303593](legend/a895b28788f17bab26ed12a99a3b0562.png)
+
 ## [在clion中使用Valgrind](https://blog.csdn.net/wyll19980812/article/details/127210821)
 
 
@@ -10064,10 +10068,6 @@ Help -> Find Action，打开搜索栏, 接着输入 `Registry`，搜索找到如
 19. [C++设计模式之单例模式Singleton 模式与全局变量区别](https://blog.csdn.net/yangxueyangxue/article/details/122945326)
 
     - 我认为一个比较关键的点在于，这个实例必须是这个类的静态成员变量（static），而非这个类对象的实例变量
-
-20. [clion使用动态模板](https://blog.csdn.net/weixin_45636061/article/details/124864422)
-
-    ![image-20211126172303593](legend/a895b28788f17bab26ed12a99a3b0562.png)
 
 21. 取绝对值
 

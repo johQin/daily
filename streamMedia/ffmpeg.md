@@ -272,6 +272,7 @@ ffmpeg -i http://ivi.bupt.edu.cn/hls/cctv1hd.m3u8 -acodec aac -vcodec libx264 cc
 ffmpeg -re -i out.mp4 -c copy flv rtmp://server/live/streamName
 # 将一个视频文件一直循环推流到指定地址
 ffmpeg -re -stream_loop -1 -i c3_720.mp4 -vcodec copy -acodec copy -b:v 2M -f rtsp -rtsp_transport tcp rtsp://192.168.100.56:554/live/test/0
+
 ```
 
 ![码率与帧尺寸的关系](legend/4bed2e738bd4b31cf7c1d0c0d144fc789f2ff862.jpeg)
@@ -2025,6 +2026,8 @@ public:
     char* output_url;
     StreamInfo input_si;
     cv::Ptr<cv::cudacodec::VideoReader> d_reader;
+    int gpuId;
+    AVBufferRef* hw_device_ctx;
     AVFormatContext *out_ctx;
     AVCodec *codec;
     AVCodecContext *codec_ctx;
@@ -2066,13 +2069,22 @@ int StreamPreAndPostProcess::init(){
         av_register_all();
         avcodec_register_all();
         avformat_network_init();
+    
 
-
+		// 如果在拥有多个GPU的设备上，需要将GPU上下文设置一致，否则一个进程占用多个GPU设备的上下文，
+		// 设置GPU硬件上下文
+    	char device[128] = {0};
+        sprintf(device, "%d", this->gpuId);
+        av_hwdevice_ctx_create(&hw_device_ctx, AV_HWDEVICE_TYPE_CUDA, device, nullptr, 0);
+    	// 在创建hw_device_ctx后，还需要绑定到codec_ctx->hw_device_ctx
+    	
+    
         avformat_alloc_output_context2(&out_ctx, nullptr, "flv", output_url);
         if (!out_ctx) {
             std::cerr << "Error creating output context" << std::endl;
             return -1;
         }
+    
 
         codec = avcodec_find_encoder_by_name("h264_nvenc");
         if (!codec) {
@@ -2089,6 +2101,9 @@ int StreamPreAndPostProcess::init(){
             std::cerr << "Error allocating codec context" << std::endl;
             return -1;
         }
+    	
+    	// 设置硬件设备上下文，如果在拥有多个GPU的设备上，需要将GPU上下文设置一致，否则一个进程占用多个GPU设备的上下文
+    	codec_ctx->hw_device_ctx = av_buffer_ref(hw_device_ctx);
 
         // 设置编码参数 (replace with your desired parameters)
         codec_ctx->bit_rate = 500000; // Adjust as needed
@@ -2212,10 +2227,12 @@ int StreamPreAndPostProcess::sendFrameToStream(cv::Mat &cv_frame){
 int StreamPreAndPostProcess::CVMatToAVFrame(cv::Mat &mat, AVFrame *frame){
 
         // Allocate frame data
-        if (av_frame_get_buffer(frame, 32) < 0) {       // align 参数表示要求内存对齐的字节数。
-            std::cerr << "Error allocating frame data" << std::endl;
-            return -1;
-        }
+        // if (av_frame_get_buffer(frame, 32) < 0) {       // align 参数表示要求内存对齐的字节数。
+        //    std::cerr << "Error allocating frame data" << std::endl;
+        //    return -1;
+        // }
+    	 //         // 调用多次av_frame_get_buffer，就要调用多次av_frame_free，否则会造成内存泄漏
+    
         int cvtFormat = cv::COLOR_BGR2YUV_I420;
         cv::cvtColor(mat, mat, cvtFormat);
 
@@ -2295,7 +2312,38 @@ int main(){
 }
 ```
 
+### [ffmpeg硬编码指定GPU硬件设备](https://blog.csdn.net/wyw0000/article/details/132868271#:~:text=2.-,ffmpeg%E7%A1%AC%E7%BC%96%E7%A0%81%E6%8C%87%E5%AE%9AGPU%E7%A1%AC%E4%BB%B6%E8%AE%BE%E5%A4%87,-%E5%9C%A8%E4%BD%BF%E7%94%A8FFmpeg)
 
+在使用FFmpeg的C API进行硬编码时，你可以通过设置编码器上下文的hw_device_ctx字段来指定使用哪个GPU设备。
+
+首先，你需要使用av_hwdevice_ctx_create函数创建一个硬件设备上下文，并指定设备类型和设备索引。然后，你可以将这个硬件设备上下文设置到编码器上下文的hw_device_ctx字段。
+
+```c++
+AVBufferRef* hw_device_ctx = NULL;
+int device_id = 0;  // 设备索引号
+char device[128] = {0};
+
+// 创建硬件设备上下文
+sprintf(device, "%d", device_id);
+int ret = av_hwdevice_ctx_create(&hw_device_ctx, AV_HWDEVICE_TYPE_CUDA, device, NULL, 0);
+if (ret < 0) {
+    // 错误处理
+}
+
+// 创建编码器上下文
+AVCodecContext* enc_ctx = avcodec_alloc_context3(encoder);
+if (!enc_ctx) {
+    // 错误处理
+}
+
+// 设置硬件设备上下文
+enc_ctx->hw_device_ctx = av_buffer_ref(hw_device_ctx);
+
+// 其他编码器设置和编码操作...
+
+```
+
+ffmpeg
 
 # log
 
@@ -2305,15 +2353,11 @@ int main(){
     av_log_set_level(AV_LOG_DEBUG);
    ```
 
-   
-
-2. `[flv @ 000001C821CAC340] Using AVStream.codec to pass codec parameters to muxers is deprecated, use AVStream.codecpar instead. `
-
-   `[flv @ 000001C821CAC340] dimensions not set`
+2. `[flv @ 000001C821CAC340] Using AVStream.codec to pass codec parameters to muxers is deprecated, use AVStream.codecpar instead.[flv @ 000001C821CAC340] dimensions not set`
 
    [参考地址](https://avmedia.0voice.com/?id=42397)
 
-   ```c
+   ```c++
    AVStream *video_stream = avformat_new_stream(out_ctx, codec);
        if (!video_stream) {
            std::cerr << "Error creating video stream" << std::endl;
@@ -2325,7 +2369,36 @@ int main(){
    //    video_stream->codecpar->height = codec_ctx->height;
    ```
 
+3. [使用av_err2str的时候，报：error: taking address of temporary array av_make_error_string](https://blog.csdn.net/weicaijiang/article/details/123108773)
+
+   ```c++
+    /**
+    * Convenience macro, the return value should be used only directly in
+    * function arguments but never stand-alone.
+    */
+   //#define av_err2str(errnum) \
+    //   av_make_error_string((char[AV_ERROR_MAX_STRING_SIZE]){0}, AV_ERROR_MAX_STRING_SIZE, errnum)
+    
+   //修改如下
+    
+    
+   av_always_inline char* av_err2str(int errnum)
+   {
+       static char str[AV_ERROR_MAX_STRING_SIZE];
+       memset(str, 0, sizeof(str));
+       return av_make_error_string(str, AV_ERROR_MAX_STRING_SIZE, errnum);
+   }
    
+   // libavutil/error.h:132改成如上
+   ```
+
+   [参考引入ffmpeg编译错误taking address of temporary array](https://blog.csdn.net/fantasy_ARM9/article/details/112252009)
+
+4. NVIDIA NVENC并发Session数目限制
+
+   ![](./legend/NVIDIA_NVENC并发Session数目限制.png)
+
+5. 
 
    
 
