@@ -2347,6 +2347,68 @@ ffmpeg
 
 # log
 
+## NVIDIA NVENC并发Session数目限制
+
+![](./legend/NVIDIA_NVENC并发Session数目限制.png)
+
+每个nvidia的gpu，它所限制编码的路数不同。[具体限制可参考](https://developer.nvidia.com/video-encode-and-decode-gpu-support-matrix-new#Encoder)。
+
+- [nvidia限制的原理理解：突破NVIDIA NVENC并发Session数目限制](https://blog.csdn.net/charleslei/article/details/105761627)
+  - 在libnvcuvid.so的汇编代码中，有关于路数的限制代码，把它改掉就ok了。
+- 在把宿主机中的libnvidia-encode.so.xxx.xx.xx，libnvcuvid.so.xxx.xx.xx，copy到容器中后。
+- 然后[下载补丁代码，补丁官方介绍](https://github.com/keylase/nvidia-patch#docker-support)。
+- 将补丁代码中的patch.sh和docker-entrypoint.sh，拷贝到/usr/local/bin中，然后加可执行权限
+- 然后执行docker-entrypoint.sh，补丁即可运行成功
+
+```bash
+cp patch.sh /usr/local/bin
+cp docker-entrypoint.sh /usr/local/bin
+cd /usr/local/bin
+chmod +x docker-entrypoint.sh
+chmod +x patch.sh
+./docker-entrypoint.sh
+
+# 测试脚本
+# 声明一个可以存放ffmpeg进程的进程id数组
+declare -a ffpidlist
+# 开启十路编码推流程序
+for i in `seq 1 10`
+do
+  echo "e${i}"
+  ffmpeg -re -stream_loop -1 -i c3.mp4 -vcodec h264_nvenc -acodec copy -b:v 2M -f rtsp -rtsp_transport tcp rtsp://192.168.100.56:554/live/test/${i} 2> /dev/null &
+  if [ $? == 0 ]; then
+      echo "启动成功pid="$!
+      ffpidlist[$i]=$!
+  fi
+  sleep 1
+done
+sleep 10
+
+# 查看10个ffmpeg的运行情况，如果运行成功，即证明已经突破了编码限制
+ps aux | head -1 && ps aux | grep "ffmpeg -re"
+sleep 5
+
+# 然后杀进程
+for ind in `seq 1 ${#ffpidlist[@]}`
+do
+    echo "${ind} : ${ffpidlist[ind]}"
+    kill -9 ${ffpidlist[ind]} 2> /dev/null
+    sleep 1
+done
+echo "after kill"
+ps aux | head -1 && ps aux | grep "ffmpeg -re"
+```
+
+参考:
+
+- https://github.com/keylase/nvidia-patch#docker-support
+- [突破NVIDIA NVENC并发Session数目限制](https://blog.csdn.net/charleslei/article/details/105761627)
+- [docker中如何操作](https://www.553668.com/manong/427655.html)
+
+
+
+## 其它
+
 1. 调整ffmpeg日志调试等级
 
    ```c
@@ -2394,11 +2456,11 @@ ffmpeg
 
    [参考引入ffmpeg编译错误taking address of temporary array](https://blog.csdn.net/fantasy_ARM9/article/details/112252009)
 
-4. NVIDIA NVENC并发Session数目限制
+4. 
 
-   ![](./legend/NVIDIA_NVENC并发Session数目限制.png)
+5. - 
 
-5. 
+6. 
 
    
 
