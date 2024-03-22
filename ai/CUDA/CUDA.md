@@ -2402,6 +2402,11 @@ CUDA内存管理包含GPU内存分配、释放、数据在主机和设备（GPU�
 
 ## [nvidia 编码数量限制]()
 
+每个nvidia的gpu，它所限制编码的路数不同。[具体限制可参考](https://developer.nvidia.com/video-encode-and-decode-gpu-support-matrix-new#Encoder)。
+
+- [nvidia限制的原理理解：突破NVIDIA NVENC并发Session数目限制](https://blog.csdn.net/charleslei/article/details/105761627)
+  - 在libnvcuvid.so的汇编代码中，有关于路数的限制代码，把它改掉就ok了。
+
 [突破NVIDIA NVENC并发Session数目限制](https://blog.csdn.net/charleslei/article/details/105761627)
 
 [Docker取消Video Encoding Sessions并发数目限制(OpenEncodeSessionEx failed: out of memory)](https://www.553668.com/manong/427655.html)
@@ -2412,10 +2417,27 @@ NVIDIA NVENC并发Session数目限制
 
 ![](legend/NVIDIA_NVENC并发Session数目限制.png)
 
-每个nvidia的gpu，它所限制编码的路数不同。[具体限制可参考](https://developer.nvidia.com/video-encode-and-decode-gpu-support-matrix-new#Encoder)。
+### 主机中
 
-- [nvidia限制的原理理解：突破NVIDIA NVENC并发Session数目限制](https://blog.csdn.net/charleslei/article/details/105761627)
-  - 在libnvcuvid.so的汇编代码中，有关于路数的限制代码，把它改掉就ok了。
+```bash
+# 下载补丁库
+git clone --depth=1 git@github.com:keylase/nvidia-patch.git
+cd nvidia-patch/
+
+# 查看补丁是否支持此版本的驱动
+./patch.sh -c 535.54.03
+# 查看脚本的帮助信息
+./patch.sh -h
+# 打补丁
+./patch.sh		# 修改驱动
+# 如果过程有错误，可以执行-r，以恢复驱动
+./patch.sh -r
+```
+
+
+
+### docker中
+
 - 在把宿主机中的libnvidia-encode.so.xxx.xx.xx，libnvcuvid.so.xxx.xx.xx，copy到容器中后。
 - 然后[下载补丁代码，补丁官方介绍](https://github.com/keylase/nvidia-patch#docker-support)。
 - 将补丁代码中的patch.sh和docker-entrypoint.sh，拷贝到/usr/local/bin中，然后加可执行权限
@@ -2428,6 +2450,7 @@ cd /usr/local/bin
 chmod +x docker-entrypoint.sh
 chmod +x patch.sh
 ./docker-entrypoint.sh
+
 
 # 测试脚本
 # 声明一个可以存放ffmpeg进程的进程id数组
