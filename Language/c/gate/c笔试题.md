@@ -92,6 +92,33 @@
        // 结构体的首地址自动对齐至能被对齐字节数大小所整除。
        // 结构体每个成员在结构体内的偏移地址都是成员大小的整数倍，否则, 在前方填充byte。
        // 结构体的总大小为结构体对齐字节数大小的整数倍
+       
+       
+       std::cout << "----sizeof 字符------" << std::endl;
+       char c = 'a';							// 小心, char和'a'在被=动作前, 是两个独立类型, 没关联
+       std::cout<< sizeof(c) <<std::endl;      // 结果:1, char类型是1字节
+       std::cout<< sizeof('a') <<std::endl;    // C99的标准，    'a'是整型字符常量，常量!常量!常量!被看成是int型， 所以占4字节。
+                                               // ISO C++的标准，'a'是字符字面量  ，被看成是char型，所以占1字节。
+       
+       std::cout << "----sizeof 字符串------" << std::endl;
+       std::cout<< sizeof("abc") <<std::endl;  // 4，双引号会在尾部自动添加转义字符'\0',即数据0X00, 所以是4
+       // 双引号作用: (1)字符串尾部加0, (2)开辟内存空间, (3)提取地址
+       
+       std::cout << "----sizeof 指针------" << std::endl;
+       char *p="老师,早上好!";
+       std::cout<< sizeof(p) <<std::endl;       // 8, 
+       std::cout<< sizeof(*p) <<std::endl;       // 1,
+       char *a[4];
+       std::cout<< sizeof(a)<<std::endl;          // 4 * 8
+       std::cout<< sizeof(*(a + 1))<<std::endl;    // 8
+       std::cout<< sizeof(**(a + 1))<<std::endl;   // 1
+       
+       std::cout << "----sizeof 数值------" << std::endl;
+       char c=8;
+       int  i=32;
+       std::cout<< sizeof(c    ) <<std::endl;      // 1, 因为char就是1字节
+       std::cout<< sizeof(c+i  ) <<std::endl;      // 4, i是4字节, 运算时c值被隐式转换成int, 运算值是4字节
+       std::cout<< sizeof(c=c+i  ) <<std::endl;    // 1, 等同于(c), 编译时, 因为=不被执行, 所以=的右边只是个屁
    }
    ```
 

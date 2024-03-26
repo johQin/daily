@@ -18,7 +18,21 @@ ROS主要设计了如下目标：
 
 ROS 目前已经发布了ROS1 的终极版本: noetic，并建议后期过渡至 ROS2 版本。
 
+[ros1的发行版和维护时间](http://wiki.ros.org/Distributions)
+
+[ROS2的发行版和维护时间](https://docs.ros.org/en/foxy/Releases.html)
+
 ## 0 绪论
+
+## 0.1 ROS1和ROS2
+
+[区别](https://blog.51cto.com/u_16099273/8716312)
+
+![ROS和ROS docker版的区别 ros和ros2区别_linux](./legend/resize,m_fixed,w_1184.webp)
+
+中间层：通信机制，DDS（Data Distribution Sevice）
+
+
 
 ## 0.1 安装ROS
 
