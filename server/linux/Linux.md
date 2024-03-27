@@ -171,7 +171,7 @@ windows操作系统将用户名和密码放在：C:\Windows\System32\config\SAM�
 `-rw-r--r-- 1 root root 42304 Sep 4 18:26 install.log`
 
 1. 第一列第一个字符：文件类型
-   - d是目录，-为文件，l为连接文件，b为接口设备
+   - d是目录，-为文件，l为连接文件，b为接口设备，c为字符设备，b为块设备，p管道，l符号链接，s套接字
 2. 第一列接下来每3位一组的九个字符：文件的权限，每三位对应一个**rwx**——可读可写可执行（具体解释，参看p147）
    - 第一个三位：文件拥有者（User），第二个三位：用户组（Group），第三个三位：其他用户（Others），
 3. 第二列表示有多少文件名连接到此节点inode
@@ -1735,6 +1735,10 @@ fname one two three
 ### 10.1.1 用户属性/etc/passwd
 
 ```bash
+# 查看系统用户名列表。
+# 使用cat命令读取 /etc/passwd 文件，并使用cut命令选取文件中的第一个字段（即用户名）输出。
+cat /etc/passwd | cut -d: -f1
+
 #/etc/passwd中的内容
 
 #系统管理员

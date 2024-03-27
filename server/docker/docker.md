@@ -2125,3 +2125,132 @@ docker start fb2f614a6861275
 
 
 
+## [修改docker 默认镜像和容器存储位置](https://blog.csdn.net/weixin_43412762/article/details/134571411)
+
+Docker 默认安装的情况下，会使用 `/var/lib/docker/` 目录作为存储目录，用以存放拉取的镜像和创建的容器等。不过由于此目录一般都位于系统盘，遇到系统盘比较小，而镜像和容器多了后就容易尴尬，这里说明一下如何修改 Docker 的存储目录。
+
+**前提需要了解**：
+
+- Docker 当前使用的**默认存位**
+- Docker 当前使用的**存储驱动程序**
+- 镜像和容器要存放的**新存储空间**
+
+```bash
+docker info
+
+Client:
+ Context:    default
+ Debug Mode: false
+
+Server:
+ Containers: 0
+  Running: 0
+  Paused: 0
+  Stopped: 0
+ Images: 0
+ Server Version: 20.10.2
+ Storage Driver: overlay2														# 存储驱动
+  Backing Filesystem: extfs
+  Supports d_type: true
+  Native Overlay Diff: false
+ Logging Driver: json-file
+ Cgroup Driver: cgroupfs
+ Cgroup Version: 1
+ Plugins:
+  Volume: local
+  Network: bridge host ipvlan macvlan null overlay
+  Log: awslogs fluentd gcplogs gelf journald json-file local logentries splunk syslog
+ Swarm: inactive
+ Runtimes: io.containerd.runc.v2 io.containerd.runtime.v1.linux runc
+ Default Runtime: runc
+ Init Binary: docker-init
+ containerd version: 
+ runc version: 
+ init version: 
+ Security Options:
+  seccomp
+   Profile: default
+ Kernel Version: 5.10.0+
+ Operating System: Ubuntu 18.04.5 LTS (containerized)
+ OSType: linux
+ Architecture: aarch64
+ CPUs: 4
+ Total Memory: 7.576GiB
+ Name: davinci-mini
+ ID: Z55Q:YMDF:TP7K:FHSG:SG2V:ZVZN:UCHZ:O5FO:WPB7:T3DB:YUSY:LG4Y
+ Docker Root Dir: /var/lib/docker												# 默认存储镜像和容器的位置
+ Debug Mode: false
+ Registry: https://index.docker.io/v1/
+ Labels:
+ Experimental: false
+ Insecure Registries:
+  127.0.0.0/8
+ Live Restore Enabled: false
+```
+
+### [存储驱动](https://blog.csdn.net/Dontla/article/details/130756391)
+
+aufs、overlay2、btrfs、zfs在Docker中被称为存储驱动，而不是文件系统。存储驱动是Docker用来管理镜像和容器存储的组件，它负责将镜像和容器的数据存储到物理磁盘上，并提供了一些高级功能，如镜像层的共享、增量备份、快照等。
+
+存储驱动可以使用不同的文件系统来存储数据，例如aufs、overlay2、btrfs、zfs等。这些文件系统都是Linux系统中的文件系统，它们都提供了不同的特性和性能，可以根据实际需求进行选择。
+
+在Docker中，存储驱动和文件系统是两个不同的概念，存储驱动是Docker用来管理存储的组件，而文件系统是存储驱动使用的一种存储方式。因此，aufs、overlay2等既可以称为存储驱动，也可以称为文件系统，但是它们更准确的称呼应该是存储驱动。
+
+在 Linux 上，读者可以通过修改 `/etc/docker/daemon.json` 文件来修改存储引擎配置，修改完成之后需要重启 Docker 才能够生效。
+
+```
+{ "storage-driver": "overlay2" }
+```
+
+如果读者修改了正在运行 Docker 主机的存储引擎类型，则现有的镜像和容器在重启之后将不可用，这是因为每种存储驱动在主机上存储镜像层的位置是不同的（通常在 `/var/lib/docker/<storage-driver>/...` 目录下）。修改了存储驱动的类型，Docker 就无法找到原有的镜像和容器了。切换到原来的存储驱动，之前的镜像和容器就可以继续使用了。
+
+### 修改
+
+
+
+```bash
+# 查看存储驱动和镜像和容器储存位置的默认配置
+docker info
+...
+Storage Driver: overlay
+...
+Docker Root Dir: /var/lib/docker
+...
+
+# 停止docker服务
+systemctl stop docker.service
+
+# 在你需要存储的位置挂载磁盘，这一步自行百度
+
+# 迁移历史镜像和容器到目标磁盘挂载的文件节点上
+cp -r /var/lib/docker/* /mnt/docker/
+
+# 修改docker的配置文件，默认情况下这个配置文件是没有的，这里实际也就是新建一个
+vim /etc/docker/daemon.json
+{
+  "data-root": "/mnt/docker"
+}
+
+# 修改服务配置
+vim /etc/systemd/system/multi-user.target.wants/docker.service
+# 将ExecStart=/usr/bin/dockerd -H fd:// --containerd=/run/containerd/containerd.sock修改以下内容：
+ExecStart=/usr/bin/dockerd --graph=/mnt/docker --storage-driver=overlay
+
+# 重启docker服务
+sudo systemctl daemon-reload
+sudo systemctl restart docker
+sudo systemctl status docker
+● docker.service - Docker Application Container Engine
+   Loaded: loaded (/lib/systemd/system/docker.service; enabled; vendor preset: enabled)
+   Active: active (running) since Wed 2024-03-27 14:39:21 CST; 8s ago
+     Docs: https://docs.docker.com
+ Main PID: 19933 (dockerd)
+    Tasks: 13
+   CGroup: /system.slice/docker.service
+           └─19933 /usr/bin/dockerd --graph=/mnt/sdcard-zhulin/docker --storage-driver=overlay2   # 看这里
+
+# 查看信息变更
+docker info
+
+```
+

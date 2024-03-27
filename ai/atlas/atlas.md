@@ -144,7 +144,7 @@ Ascend-cann-toolkit 主要用于模型开发和优化阶段，而 Ascend-cann-nn
 1. **Ascend-cann-toolkit**:
    - 这个工具包通常用于开发人员和研究人员，提供了一系列的开发工具和库，以便他们可以利用Atlas 200系列硬件进行深度学习模型的开发和优化。
    - Ascend-cann-toolkit 提供了针对华为Ascend AI芯片的软件开发工具链，包括编译器、**模型转换工具**、性能分析工具等，使开发者可以在Atlas 200上开发和部署深度学习模型。
-2. **Ascend-cann-nnrt**:
+2. **Ascend-cann-nnrt**: runtime
    - 这个工具包是华为提供的运行时环境，用于在Atlas 200设备上执行深度学习推理任务。
    - Ascend-cann-nnrt 提供了用于在Atlas 200设备上部署和执行深度学习模型的运行时库和工具，使用户可以在Atlas 200上实现高性能的推理任务。
 
@@ -174,3 +174,97 @@ Mindx 应用使能核心包含四大组件(2+1+X)：
 ![](./legend/MindX生态.png)
 
 ## 0.5 [ascend 容器](https://ascendhub.huawei.cn/#/index)
+
+### 0.5.1 [Ascend Docker Runtime](https://www.hiascend.com/document/detail/zh/mindx-dl/50rc2/dockerruntime/dockerruntimeug/dlruntime_ug_001.html)
+
+```bash
+# 下载Ascend-docker-runtime_5.0.RC1.1_linux-aarch64.run，大小只有5M
+# 加可执行权限
+chmod +x Ascend-docker-runtime_5.0.RC1.1_linux-aarch64.run
+# 检查包完整性
+./Ascend-docker-runtime_5.0.RC1.1_linux-aarch64.run --check
+Verifying archive integrity... ./Ascend-docker-runtime_5.0.RC1.1_linux-aarch64.run does not contain an embedded SHA256 checksum.
+ ./Ascend-docker-runtime_5.0.RC1.1_linux-aarch64.run does not contain an embedded MD5 checksum.
+ ./Ascend-docker-runtime_5.0.RC1.1_linux-aarch64.run does not contain a CRC checksum.
+ All good.
+Verifying archive integrity... All good.
+Uncompressing ascend-docker-runtime  100%
+
+# 安装
+./Ascend-docker-runtime_5.0.RC1.1_linux-aarch64.run --install 
+Verifying archive integrity... All good.
+Uncompressing ascend-docker-runtime  100%  
+installing ascend docker runtime
+install executable files success
+[INFO]     2024/03/27 17:29:57.995431 1       hwlog/api.go:108    installer.log's logger init success
+[INFO]     2024/03/27 17:29:57.996334 1       main.go:78    uid: 0 tty: /dev/pts/1  start running script
+[INFO]     2024/03/27 17:29:58.002693 1       main.go:91    uid: 0 tty: /dev/pts/1  run install success
+create damom.json success
+[INFO]: Ascend Docker Runtime has been installed in: /usr/local/Ascend/Ascend-Docker-Runtime
+[INFO]: The version of Ascend Docker Runtime is: v5.0.RC1.1
+please reboot daemon and container engine to take effect
+
+# 重启docker服务
+systemctl daemon-reload && systemctl restart docker
+```
+
+[Ascend Docker Runtime会根据实际环境情况默认以只读方式挂载以下目录和文件到容器中。](https://www.hiascend.com/document/detail/zh/mindx-dl/50rc2/dockerruntime/dockerruntimeug/dlruntime_ug_022.html#:~:text=%E6%8C%82%E8%BD%BD%E5%86%85%E5%AE%B9-,%E9%BB%98%E8%AE%A4%E6%8C%82%E8%BD%BD%E5%86%85%E5%AE%B9,-%E6%9B%B4%E6%96%B0%E6%97%B6%E9%97%B4%EF%BC%9A2023)
+
+<table cellpadding="4" cellspacing="0" id="ZH-CN_TOPIC_0000001659560758__zh-cn_topic_0000001538584750_table11867194212594" frame="border" border="1" rules="all" data-header="2" class="is-header-top">
+    <thead align="left">
+   <tr id="ZH-CN_TOPIC_0000001659560758__zh-cn_topic_0000001538584750_row188668424598">
+    <th align="left" class="cellrowborder is-top-col table-top-left-cell col-first col-index-0 table-header top-header" valign="top" width="42.94%" id="mcps1.3.1.3.2.3.1.1"><p id="ZH-CN_TOPIC_0000001659560758__zh-cn_topic_0000001538584750_p1786664285920">路径</p></th>
+    <th align="left" class="cellrowborder is-top-col table-top-right-cell col-index-1 col-last table-header top-header" valign="top" width="57.06%" id="mcps1.3.1.3.2.3.1.2"><p id="ZH-CN_TOPIC_0000001659560758__zh-cn_topic_0000001538584750_p1186614245917">说明</p></th>
+   </tr>
+  </thead>
+  <tbody>
+   <tr id="ZH-CN_TOPIC_0000001659560758__zh-cn_topic_0000001538584750_row18866174214591">
+    <td class="cellrowborder col-first col-index-0" valign="top" width="42.94%" headers="mcps1.3.1.3.2.3.1.1 "><p id="ZH-CN_TOPIC_0000001659560758__zh-cn_topic_0000001538584750_p11866194245916">/dev/davinci<em id="ZH-CN_TOPIC_0000001659560758__zh-cn_topic_0000001538584750_i6866154214591">X</em></p></td>
+    <td class="cellrowborder col-index-1 col-last" valign="top" width="57.06%" headers="mcps1.3.1.3.2.3.1.2 "><p id="ZH-CN_TOPIC_0000001659560758__zh-cn_topic_0000001538584750_p19866442115914">NPU设备，X是ID号。例如：davinci0。</p></td>
+   </tr>
+   <tr id="ZH-CN_TOPIC_0000001659560758__zh-cn_topic_0000001538584750_row686710426597">
+    <td class="cellrowborder col-first col-index-0" valign="top" width="42.94%" headers="mcps1.3.1.3.2.3.1.1 "><p id="ZH-CN_TOPIC_0000001659560758__zh-cn_topic_0000001538584750_p1286619426598">/dev/davinci_manager</p></td>
+    <td class="cellrowborder col-index-1 col-last" valign="top" width="57.06%" headers="mcps1.3.1.3.2.3.1.2 "><p id="ZH-CN_TOPIC_0000001659560758__zh-cn_topic_0000001538584750_p4867204213598">管理设备。</p></td>
+   </tr>
+   <tr id="ZH-CN_TOPIC_0000001659560758__zh-cn_topic_0000001538584750_row686744245910">
+    <td class="cellrowborder col-first col-index-0" valign="top" width="42.94%" headers="mcps1.3.1.3.2.3.1.1 "><p id="ZH-CN_TOPIC_0000001659560758__zh-cn_topic_0000001538584750_p20867742205912">/usr/local/Ascend/driver/tools</p></td>
+    <td class="cellrowborder col-index-1 col-last" valign="top" width="57.06%" headers="mcps1.3.1.3.2.3.1.2 "><p id="ZH-CN_TOPIC_0000001659560758__zh-cn_topic_0000001538584750_p13867342115914">目录，驱动提供的工具包。</p></td>
+   </tr>
+   <tr id="ZH-CN_TOPIC_0000001659560758__zh-cn_topic_0000001538584750_row14867184211597">
+    <td class="cellrowborder col-first col-index-0" valign="top" width="42.94%" headers="mcps1.3.1.3.2.3.1.1 "><p id="ZH-CN_TOPIC_0000001659560758__zh-cn_topic_0000001538584750_p286724217596">/usr/local/Ascend/driver/lib64</p></td>
+    <td class="cellrowborder col-index-1 col-last" valign="top" width="57.06%" headers="mcps1.3.1.3.2.3.1.2 "><p id="ZH-CN_TOPIC_0000001659560758__zh-cn_topic_0000001538584750_p15867114213595">目录，驱动提供的用户态库。</p></td>
+   </tr>
+   <tr id="ZH-CN_TOPIC_0000001659560758__zh-cn_topic_0000001538584750_row0867114235920">
+    <td class="cellrowborder col-first col-index-0" valign="top" width="42.94%" headers="mcps1.3.1.3.2.3.1.1 "><p id="ZH-CN_TOPIC_0000001659560758__zh-cn_topic_0000001538584750_p1486744211591">/usr/local/sbin/npu-smi</p></td>
+    <td class="cellrowborder col-index-1 col-last" valign="top" width="57.06%" headers="mcps1.3.1.3.2.3.1.2 "><p id="ZH-CN_TOPIC_0000001659560758__zh-cn_topic_0000001538584750_p1867194217591">文件，NPU-SMI工具。</p></td>
+   </tr>
+   <tr id="ZH-CN_TOPIC_0000001659560758__zh-cn_topic_0000001538584750_row3867184285913">
+    <td class="cellrowborder col-first col-index-0" valign="top" width="42.94%" headers="mcps1.3.1.3.2.3.1.1 "><p id="ZH-CN_TOPIC_0000001659560758__zh-cn_topic_0000001538584750_p16867242195910">/etc/hdcBasic.cfg</p></td>
+    <td class="cellrowborder col-index-1 col-last" valign="top" width="57.06%" headers="mcps1.3.1.3.2.3.1.2 "><p id="ZH-CN_TOPIC_0000001659560758__zh-cn_topic_0000001538584750_p1867342195912">文件，hdc基础文件。</p></td>
+   </tr>
+   <tr id="ZH-CN_TOPIC_0000001659560758__zh-cn_topic_0000001538584750_row6867742185918">
+    <td class="cellrowborder col-first col-index-0 is-bottom-col table-bottom-left-cell" valign="top" width="42.94%" headers="mcps1.3.1.3.2.3.1.1 "><p id="ZH-CN_TOPIC_0000001659560758__zh-cn_topic_0000001538584750_p10867194295913">/etc/sys_version.conf</p></td>
+    <td class="cellrowborder col-index-1 col-last is-bottom-col table-bottom-right-cell" valign="top" width="57.06%" headers="mcps1.3.1.3.2.3.1.2 "><p id="ZH-CN_TOPIC_0000001659560758__zh-cn_topic_0000001538584750_p1886764211596">文件，驱动的版本信息。</p></td>
+   </tr>
+  </tbody>
+ </table>
+
+### 0.5.2 下载容器
+
+容器下载时，让你提供凭证，就按下图设置。
+
+![](./legend/docker镜像的下载-凭证设置.png)
+
+
+
+## 0.6 开发套件
+
+Atlas 200 AI加速模块仅仅是一款高性能的AI智能计算模块。它就像一块集成CPU的GPU，要真正能应用起来，还需要主板，IO口，嵌入其它设备。
+
+Atlas 200DK 是第一代的开发板，Atlas 200I DK A2是第二代的开发板。他们就是可以独立应用起来的"主机"。
+
+相较于1代，2代算力会弱一点，价格便宜很多。
+
+## 0.7 环境部署
+
+[华为Atlas200DK的环境部署与运行demo（人脸识别）](https://blog.csdn.net/weixin_42800966/article/details/122587832)

@@ -25,6 +25,8 @@
 # 2 常用命令
 1. 查看操作系统版本：`lsb_release -a 或 cat /proc/version`
 
+   - lsb是Linux Standard Base
+
 2. 查看主机配置
 
    ```bash
@@ -361,7 +363,18 @@
 
 3. [安装docker](https://blog.csdn.net/u012563853/article/details/125295985)
 
-   - [普通用户执行docker无需sudo办法]()
+   - [**linux arm64安装docker**](https://blog.51cto.com/u_16175462/9979101)
+
+   - 设置docker仓库时
+
+     ```bash
+     # 如果是x86_64架构，[arch=amd64]
+     sudo add-apt-repository "deb [arch=amd64] http://mirrors.aliyun.com/docker-ce/linux/ubuntu $(lsb_release -cs) stable"
+     # 如果是aarch64架构，[arch=arm64]
+     sudo add-apt-repository "deb [arch=arm64] http://mirrors.aliyun.com/docker-ce/linux/ubuntu $(lsb_release -cs) stable"
+     ```
+
+     [普通用户执行docker无需sudo办法]()
 
    - ```bash
      # docker 命令只能由 root 用户或 docker 组中的用户运行，该组是在 Docker 安装过程中自动创建的。如果您想避免在运行 docker 命令时输入 sudo，请将您的用户名添加到 docker 组
@@ -453,8 +466,22 @@
 # 7 系统
 
 1. [linux发行版中的i386/i686/x86-64/有什么区别](https://zhidao.baidu.com/question/2276228239712472948.html)
+
+   linux发行版中的i386/i686/x86-64各自含义：
+
+   - i386通常被用来作为对Intel（英特尔）32位微处理器的统称；
+
+   - i386的子集包含i686，i686适用于Pentium  Pro，也适用于K7架构的Athlon；
+
+   - x86-64，又称“AMD64”或“x64”，是一种64位元的电脑处理器架构。它是建基于现有32位元的x86架构，由AMD公司所开发。
+
 2. [Ubuntu18.04 陷入登录循环的问题解决历程（输入正确密码后无限重回登录界面）](https://blog.csdn.net/lj164567487/article/details/128692851)
+
 3. [systemctl 无法使用（System has not been booted with systemd as init system (PID 1). Can‘t operate.），可使用service](https://blog.csdn.net/qq_43685040/article/details/112056242)
+
+4. amd64：一般指X86-64。 x86-64（ 又称x64，即英文词64-bit extended，64位拓展 的简写）是x86架构的64位拓展，向后兼容于16位及32位的x86架构。x64于1999年由AMD设计，AMD首次公开64位集以扩展给x86，称为“*AMD64*”。其后也为英特尔所采用。
+
+5. 
 
 # log
 
@@ -629,6 +656,10 @@
     
     # 添加源
     add-apt-repository "deb http://security.ubuntu.com/ubuntu xenial-security main"
+    # 有的系统可能会报：usr/bin/add-apt-repository ModuleNotFoundError: No module named 'softwareproperties'
+    # 将/usr/bin/add-apt-repository的第一行，#!/usr/bin/python3 修改为其它版本的python解释器，你的电脑上可能存在多个python解释器，有的解释器查找的路径里面没有softwareproperties包，所以你需要去试一下多个解释器，直到找到不报错的解释器。
+    # 我当前的python3指向的是python3.7，当我把#!/usr/bin/python3修改为#!/usr/bin/python3.6的时候就正确了，并且/usr/bin/python3.6也存在。
+    # 参考：https://blog.csdn.net/yangguangqizhi/article/details/81276075
     
     # 删除源
     cd /etc/apt/sources.list.d
