@@ -1884,6 +1884,15 @@ for i in ${!sex[@]}
 do
     echo "$i : ${sex[$i]}"
 done
+
+
+uuser=(HwHiAiUser, HwDmUser, HwBaseUser, HwSysUser)
+
+for ind in `seq 0 $((${#uuser[@]}-1))`
+do
+    echo "${ind} : ${uuser[ind]}"
+    sleep 1
+done
 ```
 
 ### 4.3.2 统计shell类型的数量
@@ -1898,9 +1907,10 @@ do
     let shells[$type]++
 done </etc/passwd
 
-for i in ${!shells[@]}
+for ind in `seq 1 ${#shells[@]}`
 do
-    echo "$i : ${shells[$i]}"
+    echo "${ind} : ${shells[ind]}"
+    sleep 1
 done
 ```
 

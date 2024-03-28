@@ -257,6 +257,87 @@ systemctl daemon-reload && systemctl restart docker
 
 
 
+### 0.5.3 启动容器
+
+[华为官方参考：Atlas 200I SoC A1 核心板 6.0.0 NPU驱动和固件安装指南 03](https://support.huawei.com/enterprise/zh/doc/EDOC1100288841/25832de7)
+
+[DLAP221基于mxVision 容器内推理](https://blog.csdn.net/shiner_chen/article/details/128610084)
+
+```bash
+# 宿主机设置所有芯片的容器共享模式(推荐)
+npu-smi set -t device-share -i 0 -d 1
+# 设置设备0中编号为0的芯片的容器共享模式为使能。
+npu-smi set -t device-share -i 0 -c 0 -d 1
+```
+
+
+
+启动容器的命令，宿主机没有的目录需要自己建一个，入口脚本的名字需要后下面的脚本名相同，镜像名要修改为指定的镜像：
+
+```bash
+docker run -it \
+-u root \
+--device=/dev/davinci0 \
+--device=/dev/davinci_manager \
+--device=/dev/ascend_manager \
+--device=/dev/svm0 \
+--device=/dev/log_drv \
+--device=/dev/event_sched \
+--device=/dev/upgrade \
+--device=/dev/hi_dvpp \
+--device=/dev/ts_aisle \
+-v /usr/local/Ascend/driver/tools:/usr/local/Ascend/driver/tools \
+-v /usr/local/Ascend/driver/lib64:/usr/local/Ascend/driver/lib64 \
+-v /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi \
+-v /usr/lib64/aicpu_kernels:/usr/lib64/aicpu_kernels \
+-v /var/hdc_ppc:/var/hdc_ppc \
+-v /etc/hdcBasic.cfg:/etc/hdcBasic.cfg \
+-v /sys:/sys \
+-v /etc/sys_version.conf:/etc/sys_version.conf \
+-v /var/dmp_daemon:/var/dmp_daemon \
+-v /var/slogd:/var/slogd \
+-v /var/log/npu/conf/slog/slog.conf:/var/log/npu/conf/slog/slog.conf \
+-v /mnt/sdcard-zhulin/buntu/docker:/var/docker \
+-p 7322:22 \
+f01b18f3bd8d \
+/bin/bash -c "/usr/local/Ascend/driver/tools/dok_cont_ascend_pre1.sh;/bin/bash"
+```
+
+
+
+启动后的入口脚本，必须赋予可执行权限（否则要出错），并且要将其复制到容器的某个地方或放在主机需要映射的容器卷中：
+
+```bash
+#!/bin/bash
+[ -d /usr/lib64 ] || mkdir -p /usr/lib64
+[ -d /var ] || mkdir -p /var
+[ -d /var/driver ] || mkdir -p /var/driver
+[ -d /usr/slog ] || mkdir -p /usr/slog
+[ -d /run/driver ] || mkdir -p /run/driver
+[ -d /var/dmp ] || mkdir -p /var/dmp
+[ -d /home/root/hdc_ppc ] || mkdir -p /home/root/hdc_ppc
+[ -d /home/HwHiAiUser/hdc_ppc ] || mkdir -p /home/HwHiAiUser/hdc_ppc
+
+cp -arf /usr/local/Ascend/driver/lib64/* /usr/lib64/
+# cp -arf /usr/local/Ascend/driver/tools/* /var/
+
+######
+chmod 755 /usr/lib64
+chown -h HwHiAiUser:HwHiAiUser /usr/slog
+chown -h HwHiAiUser:HwHiAiUser /var/dmp
+chown -h HwHiAiUser:HwHiAiUser /home/HwHiAiUser/hdc_ppc
+
+if [ ! -f /usr/lib64/libcrypto.so.1.1 ] && [ ! -L /usr/lib64/libcrypto.so.1.1 ]; then
+    cp -arf /usr/local/Ascend/driver/lib64/inner/libcrypto.so.1.1 /usr/lib64/
+fi
+
+/var/slogd &
+sleep 2
+/var/dmp_daemon -I -U 8087 &
+```
+
+在容器中执行，`npu-smi info`看是否成功。
+
 ## 0.6 开发套件
 
 Atlas 200 AI加速模块仅仅是一款高性能的AI智能计算模块。它就像一块集成CPU的GPU，要真正能应用起来，还需要主板，IO口，嵌入其它设备。
@@ -268,3 +349,58 @@ Atlas 200DK 是第一代的开发板，Atlas 200I DK A2是第二代的开发板�
 ## 0.7 环境部署
 
 [华为Atlas200DK的环境部署与运行demo（人脸识别）](https://blog.csdn.net/weixin_42800966/article/details/122587832)
+
+[华为昇腾服务器 ubuntu20.04 Atlas中心推理卡 23.0.RC3 NPU驱动和固件安装指南 02（Atlas 300V pro）（Ascend 310P）（cann）安装流程记录](https://blog.csdn.net/Dontla/article/details/135009119)
+
+[下载CANN](https://support.huawei.com/enterprise/zh/software/259237969-ESW2000688936)
+
+
+
+# 1 [软件开发](https://support.huawei.com/enterprise/zh/doc/EDOC1100107781)
+
+昇腾AI软件栈组件
+
+| 组件                            | 说明                                                         | 参考文档                                                     |
+| ------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| 框架管理器（Framework ）        | 将原始神经网络模型转换成昇腾AI处理器支持的形态，并将转换的模型与昇腾AI处理器相融合，引导神经网络运行并高效发挥其性能。 | [Framework API参考](https://support.huawei.com/enterprise/zh/doc/EDOC1100107781/85d0f640#ZH-CN_TOPIC_0233103640) |
+| 流程编排器（Matrix）            | 负责完成神经网络在昇腾AI处理器上的落地与实现，统筹整个神经网络生效的过程。 | [Matrix API参考](https://support.huawei.com/enterprise/zh/doc/EDOC1100107781/e751c1fc#ZH-CN_TOPIC_0233103559) |
+| 数字视觉处理模块（DVPP）        | Davinci架构对输入数据有固定的格式要求，如果数据未满足架构规定的输入格式、分辨率等要求，需要调用DVPP进行格式转换，从而保证后续的推理业务。 | [DVPP API参考](https://support.huawei.com/enterprise/zh/doc/EDOC1100107781/6cb35375#ZH-CN_TOPIC_0233103646) |
+| 数据回传工具（IDE-daemon-hiai） | 提供接口给Matrix和Framework调用，用于DVPP预处理数据和神经网络数据回传。 | [IDE-daemon-client命令参考](https://support.huawei.com/enterprise/zh/doc/EDOC1100107781/bd965011#ZH-CN_TOPIC_0233103631) |
+
+## 1.1 [Matrix](https://support.huawei.com/enterprise/zh/doc/EDOC1100107781/16a96329)
+
+Matrix框架核心为Graph和Engine。
+
+Engine为业务的基本功能单元，允许用户自定义Engine的实现（输入图片数据、对图片进行分类处理、输出对图片数据的分类预测结果等）。每个Engine默认对应一个线程运行处理。
+
+Graph管理若干Engine组成的业务流。每个Graph在Ascend 310拉起一个进程实现对应业务。Graph描述了Engine及Engine的数据传输关系。
+
+![img](./legend/download.jpeg)
+
+业务软件的逻辑框架如下图所示：
+
+- Matrix为通用业务流程执行引擎，提供Ascend 310芯片功能接口、完成与APP进行控制命令和处理数据的交互、根据配置文件完成业务流程的建立、根据命令完成业务流程的销毁、Engine调用DVPP的API接口实现媒体预处理以及Engine调用模型管家的API接口实现模型推理。
+- DVPP Excutor提供了API接口实现视频编解码、图片编解码以及视觉预处理（包括裁剪、缩放等）功能。
+- Framework为离线模型框架，提供接口实现离线模型转换、离线模型执行以及自定义算子实现。
+- CCE为加速库，通过API的方式，为上层应用（Framework或者Matrix）提供加速。
+- Runtime运行于APP进程空间，为APP提供了Ascend 310设备的Memory管理、Device管理、Stream管理、Event管理以及Kernel执行等功能。
+
+![img](./legend/download-1711618263060-5.png)
+
+## 1.2 [dvpp](https://support.huawei.com/enterprise/zh/doc/EDOC1100107781/6cb35375)
+
+DVPP是Ascend 310芯片提供的图像预处理硬件加速模块，该模块集成的六个功能如下所示，接口介绍和使用方法请参考《DVPP API参考》。
+
+- 格式转换，抠图与缩放（VPC）
+- H264/H265视频解码（VDEC）
+- H264/H265视频编码 （VENC）
+- Jpeg图片解码（JPEGD）
+- Jpeg图片编码（JPEGE）
+- Png图片解码（PNGD）
+
+## 1.3 [AIPP](https://support.huawei.com/enterprise/zh/doc/EDOC1100107781/9a68b2eb)
+
+AIPP（AI Preprocessing）用于在AI Core上完成图像预处理，包括改变图像尺寸、色域转换（转换图像格式）、减均值/乘系数（改变图像像素）。
+
+AIPP区分为静态AIPP和动态AIPP。您只能选择静态AIPP或动态AIPP方式来处理图片，不能同时配置静态AIPP和动态AIPP两种方式。
+

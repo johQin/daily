@@ -166,13 +166,15 @@
     # 修改root密码
     echo 'root:12345' | chpasswd
     
-    # 2. # 开启ssh服务
+    # 2. ssh设为自启动
+    systemctl enable ssh
+    
+    # 3. 开启ssh服务
     service ssh status
     service ssh start
-    # 3. 连接指定ip的服务器
+    # 4. 连接指定ip的服务器
     ssh zhilan@192.168.0.125
-    # 4. ssh设为自启动
-    systemctl enable ssh
+    
     
     # 连接指定服务器中docker的ssh，将docker容器的22端口，和宿主机的端口8022进行映射
     docker run -dit -p 8022:22 --name test1 ubuntu:16.04
