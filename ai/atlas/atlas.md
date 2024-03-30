@@ -404,3 +404,7 @@ AIPP（AI Preprocessing）用于在AI Core上完成图像预处理，包括改�
 
 AIPP区分为静态AIPP和动态AIPP。您只能选择静态AIPP或动态AIPP方式来处理图片，不能同时配置静态AIPP和动态AIPP两种方式。
 
+## 1.4 [ATC模型转换](https://www.hiascend.com/document/detail/zh/canncommercial/60RC1/inferapplicationdev/atctool/atctool_0001.html)
+
+## 1.5 [昇腾仓库](https://gitee.com/ascend)
+

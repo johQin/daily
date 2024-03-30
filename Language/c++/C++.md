@@ -9144,12 +9144,20 @@ void threadFunc() {
 }
 ```
 
-# 13 文件系统
+# 13 常用类库
+
+## 13.1 文件系统
 
 ```c++
 // C++ 17 才有
 #include <filesystem>
 std::filesystem::create_directories(std::string(exeWd) + "/log");
+```
+
+## 13.2 DIR
+
+```c++
+#include<dirent>
 ```
 
 

@@ -1,5 +1,13 @@
 # 3 ffmpeg命令
 
+安装：
+
+```bash
+apt install ffmpeg
+```
+
+
+
 ffmpeg的命令行参数非常多，可以分成五个部分。
 
 ```bash

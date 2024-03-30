@@ -59,7 +59,7 @@
 
 6. [apt-get详细](https://blog.csdn.net/qq_44885775/article/details/124278721)
 
-7. [tar](https://www.runoob.com/w3cnote/linux-tar-gz.html)
+7. [tar](https://www.runoob.com/w3cnote/linux-tar-gz.html)，unrar
 
    ```bash
    # 将所有 .jpg 的文件打成一个 tar 包，并且将其用 gzip 压缩，生成一个 gzip 压缩过的包，包名为 all.tar.gz。
@@ -67,6 +67,9 @@
    tar -czf all.tar.gz *.jpg
    # x——解压
    tar -xzf all.tar.gz
+   
+   # 解压rar文件
+   unrar x a.rar
    ```
 
 8. [linux查询文件名 或 文件内容中 包含特定字符串的所有文件](https://blog.csdn.net/weixin_40482816/article/details/121425903)
