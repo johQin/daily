@@ -1522,8 +1522,6 @@ CUDA 12.0 放弃了对旧纹理引用的支持。 因此，任何使用旧版纹
 # 在opencv的根目录的CMakelists.txt的开头加一句
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_FORCE_INLINES")
 
-
-
 ```
 
 ## 8.2 [FFmpeg/opencv + C++ 实现直播拉流和直播推流（对视频帧进行处理）](https://blog.csdn.net/weixin_43482623/article/details/130921255)

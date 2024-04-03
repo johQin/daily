@@ -1122,6 +1122,9 @@ bar.o : bar.c
 cpu_num=`cat /proc/stat | grep cpu[0-9] -c`
 echo "make -j${cpu_num}"
 make -j${cpu_num}
+
+# 也可以直接用nproc
+make -j$(nproc)
 ```
 
 

@@ -27,6 +27,14 @@
 
    - lsb是Linux Standard Base
 
+   - [解决：ModuleNotFoundError: No module named ‘lsb_release‘](https://blog.csdn.net/qq_45445740/article/details/131019389)
+
+     ```bash
+     sudo cp /usr/lib/python3/dist-packages/lsb_release.py /usr/bin/
+     ```
+
+     
+
 2. 查看主机配置
 
    ```bash
@@ -754,7 +762,11 @@
     - 有时候Ubuntu中的某些界面会卡死，比如`Goland`或`Clion`等[Jetbrains](https://so.csdn.net/so/search?q=Jetbrains&spm=1001.2101.3001.7020)系列软件,此时鼠标点击关闭也没有用，并且使用ps命令也会发现其pid一直在改变，导致使用kill命令也杀不掉。这时候就可以在命令行中输入`xkill`（Ubuntu默认安装了xkill）
     - 运行它之后，你的光标会变成x符号。  点击相应的图形程序的窗口就可以杀死该程序(alt tab到指定窗口，然后点击)。  如果你中途要放弃操作，你可以点击鼠标右键取消。  
 
-18. 
+18. 安装新版本的可执行命令后，遇到系统仍旧调用旧版本的问题：
+
+    - 原因：通常是由于系统中的执行路径缓存导致的。Linux 系统会缓存执行路径，以提高执行效率。你可以通过执行`hash -r`来清除这些缓存。
+
+19. 
 
 
 

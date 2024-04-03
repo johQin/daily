@@ -2464,9 +2464,15 @@ ps aux | head -1 && ps aux | grep "ffmpeg -re"
 
    [参考引入ffmpeg编译错误taking address of temporary array](https://blog.csdn.net/fantasy_ARM9/article/details/112252009)
 
-4. 
+4. [ffmpeg默认情况下编译的库是静态的，如果我们想编译动态的，那么就可以加上这个选项。](https://blog.csdn.net/huweijian5/article/details/104369194)
 
-5. - 
+   ```bash
+   ./configure --enable-shared
+   ```
+
+   
+
+5. 
 
 6. 
 
