@@ -115,5 +115,29 @@ HAL库学完，进阶可以再去学LL库，抛弃掉标准库（它学习曲线
 
 ### 0.1.7 开发环境
 
+#### [工具](https://blog.csdn.net/weixin_45880844/article/details/133930223)
 
+STM32CubeMX和Keil uVision5是两个不同的软件工具，但它们可以一起使用来开发STM32微控制器的应用程序。
 
+##### STM32CubeMX
+
+STM32CubeMX是STMicroelectronics提供的一款图形化配置工具，用于生成初始化代码和配置文件，文件后缀通常是“.c”和“.h”，这些文件是C语言源代码文件，用于配置和控制STM32微控制器的各种硬件特性和外设。它可以帮助程序员根据需求选择微控制器型号，并配置其硬件接口，如GPIO、ADC、DAC、UART、SPI等，并生成用于KeiluVision5的项目文件。
+
+##### Keil uVision5
+
+Keil uVision5是一款集成开发环境（IDE），用于编写、编译和调试嵌入式应用程序。它支持多种编程语言，包括C和汇编语言。Keil uVision5 **可以导入STM32CubeMX生成的项目文件**，并提供代码编辑、编译、调试和仿真功能。
+
+##### 总结
+
+综上所述，**STM32CubeMX**和Keil uVision5是两个可以协同工作的软件工具，前者用于生成初始化代码和配置文件，后者用于编写、编译和调试嵌入式应用程序，前者**生成的代码和配置文件可以轻松地导入到Keil uVision5中，以便进行进一步的开发和调试**。
+
+- Q1：STM32CubeMX生成的初始化代码和配置文件为什么还需要Keil uVision5进行进一步的开发和调试
+  - 因为STM32CubeMX生成的初始化代码和配置文件只是用于设置微控制器的硬件和基本操作，并不包含具体的业务逻辑。因此，需要使用Keil uVision5等集成开发环境（IDE）进行进一步的开发和调试。
+- Q2：二者如何配合最后生成可执行文件
+  - 在具体的开发过程中，开发人员需要在Keil uVision5中创建项目，编写应用程序代码，然后将代码与STM32CubeMX生成的初始化代码和配置文件进行链接和编译，最终生成可在目标板上运行的可执行文件。
+
+#### [kiel5安装](https://blog.csdn.net/qq_59111928/article/details/132661448)
+
+#### [STM32CubeMX安装](https://blog.csdn.net/weixin_68016945/article/details/130575044)
+
+1. [取消自动更新检查](https://blog.csdn.net/Summer_taotao/article/details/130800817)
