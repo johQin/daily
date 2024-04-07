@@ -2472,7 +2472,18 @@ ps aux | head -1 && ps aux | grep "ffmpeg -re"
 
    
 
-5. 
+5. 推流地址被占用
+
+   ```bash
+   ffmpeg -re -stream_loop -1 -i c3.mp4 -vcodec copy -acodec copy -b:v 2M -f rtsp -rtsp_transport tcp rtsp://192.168.100.56:554/live/test/0
+   
+   # 当重复的向同一地址推流时，会报以下错误
+   [rtsp @ 0x5630a4103100] method ANNOUNCE failed: 406 Not Acceptable
+   Could not write header for output file #0 (incorrect codec parameters ?): Server returned 4XX Client Error, but not one of 40{0,1,3,4}
+   Error initializing output stream 0:0 --
+   ```
+
+   
 
 6. 
 

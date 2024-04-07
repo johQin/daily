@@ -1365,7 +1365,16 @@ git config --list
 
      
 
-10. 
+10. git 配置代理
+
+    ```bash
+    git config --global http.proxy http://127.0.0.1:7890
+    git config --global https.proxy https://127.0.0.1:7890
+    ```
+
+    
+
+11. 
 
 
 
