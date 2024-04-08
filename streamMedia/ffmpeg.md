@@ -1433,7 +1433,7 @@ FLV body由⼀ 对对的(Previous Tag Size字段 + tag)组成。
 
 
 
-### 5.2.6 解码
+### 5.2.6 [解码](https://blog.csdn.net/qq_36060661/article/details/115359867)
 
 单纯处理 **解复用** 后的码流。
 
