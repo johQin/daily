@@ -1684,6 +1684,15 @@ CMAKE_TOOLCHAIN_FILE 		# CMake 的一个内定变量，它指定了一个文件�
 							# 为了简化这个过程，CMake 提供了 CMAKE_TOOLCHAIN_FILE 这个变量，允许开发者为每个目标平台提供一个预定义的工具链文件。这样，当你需要为不同的平台编译时，只需指定相应的工具链文件，而不是手动配置每个工具链参数。
 ```
 
+## 版本有关的变量
+
+```cmake
+CMAKE_MAJOR_VERSION				# cmake 主版本号
+CMAKE_MINOR_VERSION				# cmake 次版本号
+```
+
+
+
 ## [CMAKE_INSTALL_RPATH](https://www.cnblogs.com/rickyk/p/3884257.html)
 
 `CMAKE_INSTALL_RPATH` 是用于**设置安装后**的运行时库搜索路径（RPATH）

@@ -281,6 +281,8 @@ ffmpeg -re -i out.mp4 -c copy flv rtmp://server/live/streamName
 # 将一个视频文件一直循环推流到指定地址
 ffmpeg -re -stream_loop -1 -i c3_720.mp4 -vcodec copy -acodec copy -b:v 2M -f rtsp -rtsp_transport tcp rtsp://192.168.100.56:554/live/test/0
 
+# 将一张图片循环推流到服务器
+ffmpeg -loop 1 -i woman.png -c:v libx264 -tune stillimage -f rtsp -rtsp_transport tcp rtsp://192.168.100.56:554/live/test/5
 ```
 
 ![码率与帧尺寸的关系](legend/4bed2e738bd4b31cf7c1d0c0d144fc789f2ff862.jpeg)
