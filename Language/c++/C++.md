@@ -9162,7 +9162,317 @@ std::filesystem::create_directories(std::string(exeWd) + "/log");
 
 
 
-# 其他
+# 14 IO
+
+## 14.1 I/O stream共通基础
+
+C++ I/O由stream完成。所谓stream就是一条数据流，字符序列在其中川流不息。
+
+- Class **istream**定义input stream，用来读数据
+- Class **ostream**定义output stream，用来写数据
+
+IOStream程序库定义了数个类型为istream和ostream的**全局对象**。
+
+- cin，隶属于istream，是供使用者输入用的标准通道，对应于C中的stdin。操作系统通常将它和键盘连接。
+- cout，ostream，输出用的标准通道，对应与C中的stdout
+- cerr，ostream，是所有报错信息所使用的标准报错通道，对应于C中的stderr，默认将它与监视器（屏幕）连接，默认无缓冲
+- clog，ostream，标准日志通道，默认情况下，操作系统将它连接于cerr所连接的设备，但clog有缓冲。
+- 以上四个还有对应的宽字符全局对象，wcin，wcout，wcerr，wclog。
+
+stream 操作符Operator >> 和 Operator << 被相应的stream class重载，分别用于输入输出。
+
+- output操作符<<，basic_ostream将<<定义为output操作符，对所有基础（语言内建）类型均重载，不包括void和nullptr_t，但包括char* 和void*
+- input操作符>>，basic_istream将>>定义为output操作符，对所有基础（语言内建）类型均重载，不包括void和nullptr_t，但包括char* 和void*
+
+在**大部分输出语句**的末尾，我们都会写`std::endl`，它被称为**操控器（manipulator）**，IOStream程序库中最重要的一些操控器：
+
+| 操控器 | 类      | 意义                                   |
+| ------ | ------- | -------------------------------------- |
+| endl   | ostream | - 输出 ‘\n’ <br />- 并刷新output缓冲区 |
+| ends   | ostream | 输出 ‘ \0’                             |
+| flush  | ostream | 刷新output缓冲区                       |
+| ws     | istream | 读入并忽略空白字符                     |
+
+## 14.2 Stream Class
+
+![image-20240416110456584](./legend/image-20240416110456584.png)
+
+![在这里插入图片描述](./legend/20210611000104284.png)
+
+stream buffer类提供实际的读/写动作。
+
+basic_ios派生类只处理数据的格式化，他们会维护一个stream buffer类，由这个buffer类提供实际的读写动作。
+
+### 头文件
+
+各个stream class的定义分散于以下数个头文件
+
+- `<iosfwd>`，内含stream class 的前置声明，用于引用IO类的前置声明，以减少编译时间和头文件之间的相互依赖。
+- `<streambuf>`，内含stream buffer base class的定义
+- `<istream>`，内含两种class定义，一种仅basic_istream<>，另一种同时支持input和output的basic_iostream<>
+- `<ostream>`，内含output stream class的定义
+- `<iostream>`，内含全局性stream对象
+
+[如果只需要前置声明来声明指针或引用，可以使用`<iosfwd>`来减少编译时间和依赖性。如果需要使用IO类的完整功能，需要包含`<iostream>`来获取完整的定义。](https://blog.csdn.net/dghcs18/article/details/130834912)
+
+某些其它特殊的stream性质，例如参数化的操控器，file stream，string stream，需要包含其它文件：`<iomanip> <fstream> <sstream> <strstream>`
+
+## 14.3 标准I/O函数
+
+
+
+```c++
+// 下面的istream只是一个占位符，表示一个“用于读取”的stream class，可能是istream， wistream或template class basic_istream<>的其它实例化实现
+// 下面的ostream只是一个占位符，表示一个“用于涂写”的stream class，可能是istream， wistream或template class basic_istream<>的其它实例化实现
+// char也是一个占位符，表示相应的字符类型，例如char 之于 istream 或wchar_t 之于 wstream
+
+// Input相关函数
+int istream::get();
+istream& istream::get(char& c);
+istream& istream::get(char* str, streamsize count);
+istream& istream::get(char* str, streamsize count, char delim);
+
+istream& istream::getline(char* str, streamsize count);
+istream& istream::getline(char* str, streamsize count, char delim);
+
+istream& istream::read(char* str, streamsize count);
+istream& istream::readsome(char* str, streamsize count);
+
+streamsize istream::gcount() const;
+istream& istream::ignore();
+istream& istream::ignore(streamsize count);
+istream& istream::ignore(streamsize count, int delim);
+
+int istream::peek();
+istream& istream::unget();
+istream& istream::putback(char c);
+
+
+// output相关函数
+ostream& ostream::put(char c);
+ostream& ostream::write(char c);
+ostream& ostream::flush();
+
+// 还有操控读取和写入位置的函数
+// tellg和seekg（读取get）
+// tellp和seekp（涂写put）
+```
+
+## 14.4 操控器
+
+在**大部分输出语句**的末尾，我们都会写`std::endl`，它被称为**操控器（manipulator）**，IOStream程序库中最重要的一些操控器：
+
+| 操控器 | 类      | 意义                                   |
+| ------ | ------- | -------------------------------------- |
+| endl   | ostream | - 输出 ‘\n’ <br />- 并刷新output缓冲区 |
+| ends   | ostream | 输出 ‘ \0’                             |
+| flush  | ostream | 刷新output缓冲区                       |
+| ws     | istream | 读入并忽略空白字符                     |
+
+还有带有实参的操控器（Manipulator with Argument），它包含在`#include <iomanip>`
+
+### 操控器如何运作
+
+操控器其实就是一个被I/O操作符调用的函数。
+
+针对ostream的output操作符，基本上被重载如下：
+
+```c++
+ostream& ostream::operator<<(ostream& (*op)(ostream&));		// 被重载的<<操作符，它的参数是一个函数指针op，这个函数的实参是一个ostream
+
+// 操控器std::endl
+std::ostream& std::endl(std::ostream& strm){
+    // 换行
+    strm.put('\n');
+    // 刷新buffer
+    strm.flush();
+    // 返回strm，允许链式调用
+    return strm;
+}
+```
+
+也可以**自定义操控器**。有需要的自行研究。
+
+## 14.5 文件访问
+
+![image-20240417113903407](./legend/image-20240417113903407.png)
+
+和c的文件访问机制相比，C++ file stream class最大的好处就是文件的自动管理，文件可在构造时期自动打开，析构时期自动关闭。
+
+**ostream提供了一个output操作符<<。istream提供了一个input iterator，可接受一个指向stream 的rvalue reference**
+
+```c++
+#include <string>       // for strings
+#include <iostream>     // for I/O
+#include <fstream>      // for file I/O
+#include <iomanip>      // for setw()
+#include <cstdlib>      // for exit()
+using namespace std;
+
+// forward declarations
+void writeCharsetToFile (const string& filename);
+void outputFile (const string& filename);
+
+int main ()
+{
+    writeCharsetToFile("charset.out");
+    outputFile("charset.out");
+}
+// 写文件
+void writeCharsetToFile (const string& filename)
+{
+    // open output file
+    ofstream file(filename);
+
+    // file opened?
+    if (! file) {
+        // NO, abort program
+        cerr << "can't open output file \"" << filename << "\""
+             << endl;
+        exit(EXIT_FAILURE);
+    }
+
+    // 写入字符到文件
+    for (int i=32; i<256; ++i) {
+        // ostream提供了一个output操作符<<
+        file << "value: " << setw(3) << i << "   "
+             << "char:  " << static_cast<char>(i) << endl;
+    }
+
+}   // closes file automatically
+
+// 读文件
+void outputFile (const string& filename)
+{
+    // open input file
+    ifstream file(filename);
+
+    // file opened?
+    if (! file) {
+        // NO, abort program
+        cerr << "can't open input file \"" << filename << "\""
+             << endl;
+        exit(EXIT_FAILURE);
+    }
+
+    // copy file contents to cout
+    char c;
+    // istream提供了一个input iterator
+    while (file.get(c)) {	// 除了将文件中的字符逐一复制，我们还可以使用单一语句读出所有内容std::cout<<file.rdbuf();
+        cout.put(c);
+    }
+    //
+
+}   // closes file automatically
+
+```
+
+除了将文件中的字符逐一复制，我们还可以使用单一语句读出所有内容std::cout<<file.rdbuf();
+
+### Rvalue和move语义
+
+```c++
+#include <iostream>
+#include <fstream>
+#include <string>
+
+//
+std::ofstream openFile(const std::string& filename){
+    std::ofstream file(filename);
+    ...
+    return file;	// move语义，这里会触发move assignment
+}
+int main()
+{
+    std::string s("hello");
+    // 向右值ofstream写入string s
+    std::ofstream("fstream2.tmp") << s << std::endl;
+
+    // 向右值ofstream写入c-string
+    // 在c++11之前，将会写入一个指针值。 下面的第二个参数为文件标志（打开模式）std::ios::app，以appending方式打开文件
+    std::ofstream("fstream2.tmp", std::ios::app) << "world" << std::endl;
+    
+    std::ofstream file;
+    // 移动语义
+    file = openFile("xyz.tmp");
+    file << "hello world" << std::endl;
+}
+
+```
+
+### 打开模式（flag文件标志）
+
+![](./legend/文件打开模式.png)
+
+```c++
+std::ofstream file("zyz.out", std::ios::out | std::ios::app);
+```
+
+究竟文件为read或write而开，这和相应的stream object class无关——ifstream或ofstream只是在第二实参缺席的情况下，定义出的默认开启模式。开启的模式传递给相应的stream buffer class，而buffer才是真正打开文件的class。当然，作用于文件对象的操作，则是由stream class决定的。
+
+C++也提供了四个成员函数，用于显式开闭stream。
+
+```c++
+#include <fstream>
+#include <iostream>
+using namespace std;
+
+// for all filenames passed as command-line arguments
+// - open, print contents, and close file
+int main (int argc, char* argv[])
+{
+    ifstream file;
+
+    // for all command-line arguments
+    for (int i=1; i<argc; ++i) {
+
+        // open file
+        file.open(argv[i]);
+
+        // write file contents to cout
+        char c;
+        while (file.get(c)) {
+            cout.put(c);
+        }
+        
+        // stream对象可由多个文件共享，open不会清除stream对象身上的state flag
+        // 因此调用clear可以清除文件尾端的flag
+        file.clear();
+
+        // close file
+        file.close();
+    }
+}
+```
+
+stream对象可由多个文件共享，stream::clear可以清除文件尾端的状态，因此无论是打开新文件还是重头开始读（调用了改变读取和写入位置的函数）都需要clear一下。
+
+### 随机访问
+
+```c++
+basic_istream<> tellg();		//g,get，返回读取位置
+basic_istream<> seekg(pos);		// 设置绝对读取位置
+basic_istream<> seekg(offset, rpos);	// 设置相对读取位置
+
+basic_ostream<> tellp();
+basic_ostream<> seekp(pos);
+basic_ostream<> seekp(offset, rpos);
+
+std::ios::pos_type pos = file.tellg();		// 也可以把返回值类型修改为std::streampos pos
+file.seekg(pos);
+
+// rpos的值：
+// std::ios::beg，std::ios::cur，std::ios::end
+
+```
+
+## 14.6 String Stream
+
+![image-20240419153019131](./legend/image-20240419153019131.png)
+
+
+
+# 其他 
 
 ## 1 [const详解](https://blog.csdn.net/qq_40337086/article/details/125519833)
 
