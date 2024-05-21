@@ -1,5 +1,9 @@
 # STM32
 
+STM32F103xE 性能线路块图表
+
+![](./legend/STM32F103xE性能线路块图表.png)
+
 # 0 绪论
 
 ## 0.1 介绍
@@ -62,13 +66,13 @@ FLASH：闪存，相当于硬盘，编写的代码都放这里面。
 
 <img src="./legend/stm32最小系统.png" style="zoom:30%;" />
 
-### 0.1.4 STM32F103ZET6 开发板
+## 0.2 STM32F103ZET6 开发板
 
 开发板的核心由 STM32F103ZET6 微控制器构成，它被各类接口和模块环绕，旨在提供一站式的开发体验。
 
 ![image-20240330145001236](./legend/image-20240330145001236.png)
 
-### 0.1.5 开发方式
+## 0.3 开发方式
 
 #### 语言
 
@@ -85,7 +89,7 @@ FLASH：闪存，相当于硬盘，编写的代码都放这里面。
    - ST 公司为 STM32 提供了官方的固件库，这些库封装了对硬件的操作，简化了编程过程。
    - 通过使用这些固件库，开发者可以更容易地实现对微控制器功能的控制，而不必深入到底层的硬件细节。
 
-### 0.1.6 固件库
+## 0.4 固件库
 
 在 STM32 微控制器的开发领域中，有多种固件库可供选择，每种库都有其独特的特点和优势。
 
@@ -113,7 +117,7 @@ STM32CubeIDE 集成了代码生成器，可以自动生成基于 HAL的初始化
 
 HAL库学完，进阶可以再去学LL库，抛弃掉标准库（它学习曲线太陡峭了）。
 
-### 0.1.7 开发环境
+## 0.5 开发环境
 
 #### [工具](https://blog.csdn.net/weixin_45880844/article/details/133930223)
 
@@ -142,7 +146,25 @@ Keil uVision5是一款集成开发环境（IDE），用于编写、编译和调�
 
 1. [取消自动更新检查](https://blog.csdn.net/Summer_taotao/article/details/130800817)
 
+## 0.6 快速开始
 
+1. 打开stm32 CubeMX，File --> New Project 
+
+   ![image-20240517095242410](./legend/image-20240517095242410.png)
+
+2. 选择芯片型号
+
+   ![image-20240517101258645](./legend/image-20240517101258645.png)
+
+3. a
+
+4. 工程文件解析
+
+   - 为了能让不同的芯片公司生产的Cortex-M4芯片能在软件上基本兼容，和芯片生产商共同提出了一套标准CMSIS标准(Cortex Microcontroller Software Interface Standard) ,翻译过来是“ARM Cortex™ 微控制器软件接口标准”。
+
+   ![image-20240517104502625](./legend/image-20240517104502625.png)
+
+5. 
 
 
 
@@ -230,6 +252,92 @@ GPIO 是通过寄存器操作来实现电平信号输入输出的，对于输入
 
 9. 
 
+## 1.3 GPIO接口
+
+```c
+// 初始化GPIOx引脚按照GPIO_Init指定的参数。
+void HAL_GPIO_Init(GPIO_TypeDef* GPIOx, GPIO_InitTypeDef* GPIO_Init);
+// 将GPIOx引脚重置为默认状态。
+void HAL_GPIO_DeInit(GPIO_TypeDef* GPIOx, uint32_t GPIO_Pin);
+// 读取指定GPIO端口的引脚状态。
+GPIO_PinState HAL_GPIO_ReadPin(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin);		// 返回引脚状态GPIO_PIN_SET 或 GPIO_PIN_RESET
+// 设置或清除选定的GPIO端口引脚。
+void HAL_GPIO_WritePin(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin, GPIO_PinState PinState);
+// 切换指定GPIO端口的引脚状态。
+void HAL_GPIO_TogglePin(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin);
+//锁定GPIO引脚的配置，直到下一次复位。
+HAL_StatusTypeDef HAL_GPIO_LockPin(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin);
+// 处理外部中断/事件请求。
+void HAL_GPIO_EXTI_IRQHandler(uint16_t GPIO_Pin);
+// 外部中断/事件线的回调函数。
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin);
+
+// 在指定时间内阻塞。
+void HAL_Delay(uint32_t Delay);
+
+```
+
+### LED闪烁
+
+```c
+GPIO_InitTypeDef GPIO_InitStruct = {0};
+/*Configure GPIO pin : PB5 */
+GPIO_InitStruct.Pin = GPIO_PIN_5;
+GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+GPIO_InitStruct.Pull = GPIO_NOPULL;
+GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+// led闪烁˸
+// 查看原理图后，led灯低电平亮，高电平暗		
+HAL_GPIO_WritePin(GPIOB,GPIO_PIN_5,GPIO_PIN_RESET);
+HAL_Delay(1000);
+HAL_GPIO_WritePin(GPIOB,GPIO_PIN_5,GPIO_PIN_SET);
+HAL_Delay(1000);
+```
+
+读key调整led
+
+```c
+// 配置GPIO
+GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+/* GPIO Ports Clock Enable */
+__HAL_RCC_GPIOE_CLK_ENABLE();
+__HAL_RCC_GPIOB_CLK_ENABLE();
+
+/*Configure GPIO pin Output Level */
+HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, GPIO_PIN_SET);
+
+/*Configure GPIO pin : PE3 */
+GPIO_InitStruct.Pin = GPIO_PIN_3;
+GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+GPIO_InitStruct.Pull = GPIO_PULLUP;
+HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+
+/*Configure GPIO pin : PB5 */
+GPIO_InitStruct.Pin = GPIO_PIN_5;
+GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+GPIO_InitStruct.Pull = GPIO_PULLUP;
+GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+
+  while (1)
+  {
+// led闪烁˸
+// 查看原理图后，led灯低电平亮，高电平暗		
+    if(HAL_GPIO_ReadPin(GPIOE,GPIO_PIN_3) == GPIO_PIN_RESET){
+        HAL_Delay(100);
+        if(HAL_GPIO_ReadPin(GPIOE,GPIO_PIN_3) == GPIO_PIN_RESET){
+            HAL_GPIO_TogglePin(GPIOB,GPIO_PIN_5);
+        }
+    }
+  }
+```
+
+
+
 # 2 系统时钟树
 
 系统时钟树是微控制器内部运作的心脏，它决定了处理器和外设的工作频率。
@@ -241,3 +349,275 @@ GPIO 是通过寄存器操作来实现电平信号输入输出的，对于输入
 理解系统时钟的配置和分配是优化性能和功耗的关键，同时也对保证系统稳定运行至关重要。
 
 对STM32的系统时钟树进行分析，可以帮助开发者更好地把握时钟管理的细节，确保硬件组件在正确的频率下高效运行。此外，时钟树的配置也直接影响到系统的响应速度和处理能力，是微控制器编程中不可忽视的重要组成部分。
+
+## 2.1 时钟源
+
+三种不同的时钟源可被用来驱动系统时钟(SYSCLK)：
+
+- HSI振荡器时钟（高速系统内部时钟）
+  - RC振荡器，频率为8MHZ
+- HSE振荡器时钟（高速系统外部时钟）
+  - 可接石英谐振器、陶瓷谐振器，或者接外部时钟源，其频率范围为4MHZ~16MHZ。
+- PLL时钟（Phase-Locked Loop，锁相环时钟）
+  - 是一种控制系统的结构
+  - 在微控制器和嵌入式系统中，PLL被用作时钟系统的一部分，能够生成频率比输入时钟（通常是内部的低速时钟或者外部的晶体振荡器提供的时钟）更高的时钟信号（用作**倍频**）。
+  - 倍频输出。其时钟输入源可选择为HSI/2、HSE或者HSE/2。倍频选择2~16倍，但是其输出频率最大不得超过72MHZ。
+
+也包含2种二级时钟源
+
+- LSI低速内部时钟。RC振荡器，频率为40KHZ。
+- LSE低速外部时钟。接频率为32.768KHZ的石英晶体。
+
+# 3 中断NVIC
+
+NVIC（Nest Vector Interrupt Controller），嵌套向量中断控制器，作用是管理中断嵌套，核心任务是管理中断优先级。
+
+特点：
+
+1. 68个可屏蔽中断通道(不包含16个Cortex-M3的中断线)
+2. 16个可编程的优先等级(使用了4位中断优先级)
+3. 低延迟的异常和中断处理
+4. 电源管理控制
+5. 系统控制寄存器的实现
+
+## 3.1 优先级
+
+NVIC给每个中断赋予**抢占优先级和响应优先级**。
+
+抢占优先级决定了中断是否能够打断其他正在执行的中断。具有高抢占优先级的中断可以打断低抢占优先级的中断，形成中断嵌套。
+
+响应优先级则是在抢占优先级相同的情况下用来决定哪个中断先被处理的。
+
+关系如下：
+
+1. 拥有较高抢占优先级的中断可以打断抢占优先级较低的中断
+2. 若两个**抢占优先级相同**的中断同时挂起，则优先执行**响应优先级较高**的中断
+3. 若两个**响应优先级相同**的中断同时挂起，则优先执行位于**中断向量表中位置较高**的中断
+4. **响应优先级**不会造成中断嵌套，也就是说中断嵌套是由**抢占优先级决定的**
+
+## 3.2 [外部中断](https://blog.csdn.net/qq_44016222/article/details/123539693)
+
+### 外部中断线
+
+- STM32的每个IO都可以作为外部中断输入。	
+- STM32的中断控制器支持19个外部中断/事件请求（19个外部中断线）：
+  - 线0~15：对应外部IO口的输入中断。
+  - 线16：连接到PVD输出。
+  - 线17：连接到RTC闹钟事件。
+  - 线18：连接到USB唤醒事件。
+- 每个外部中断线可以独立的配置触发方式（上升沿，下降沿或者双边沿触发），触发/屏蔽，专用的状态位。
+
+### 外部中断线与IO引脚对应关系
+
+如下图：
+
+![img](legend/外部中断.png)
+
+
+
+### 中断向量与服务函数
+
+是不是16个中断线就可以分配16个中断服务函数呢？IO口外部中断在中断向量表中只分配了7个中断向量，也就是只能使用7个中断服务函数
+
+![img](./legend/中短线与服务函数.png)
+
+
+
+从表中可以看出，外部中断线5~9分配一个中断向量，共用一个服务函数外部中断线10~15分配一个中断向量，共用一个中断服务函数。
+
+
+
+![image-20240521145030191](./legend/image-20240521145030191.png)
+
+每个中断源都需要被指定这两种优先级，Cortex-M3核定义了8个bit用于设置中断源的优先级。
+
+但是Cortex-M3允许具有较少中断源时使用较少的寄存器位指定中断源的优先级，因此STM32中断优先级的寄存器位只用到AIRCR高四位。
+
+```c
+// 配置中断优先级，数字越低，中断优先级越高
+HAL_NVIC_SetPriority(IRQn_Type IRQn, uint32_t PreemptPriority, uint32_t SubPriority);
+// 参数：
+typedef enum { 
+    	/****** Cortex-M3 Processor Exceptions Numbers ***************************************************/ 
+    	NonMaskableInt_IRQn = -14, /*!< 2 不可屏蔽中断 */
+    	HardFault_IRQn = -13, /*!< 3 Cortex-M3 硬故障中断 */
+        MemoryManagement_IRQn = -12, /*!< 4 Cortex-M3 内存管理中断 */ 
+        BusFault_IRQn = -11, /*!< 5 Cortex-M3 总线故障中断 */
+        UsageFault_IRQn = -10, /*!< 6 Cortex-M3 使用故障中断 */ 
+        SVCall_IRQn = -5, /*!< 11 Cortex-M3 SV 调用中断 */ 
+        DebugMonitor_IRQn = -4, /*!< 12 Cortex-M3 调试监视器中断 */
+        PendSV_IRQn = -2, /*!< 14 Cortex-M3 Pend SV 中断 */ 
+        SysTick_IRQn = -1, /*!< 15 Cortex-M3 系统滴答定时器中断 */ 
+        
+        /****** STM32 specific Interrupt Numbers *********************************************************/ 
+        WWDG_IRQn = 0, /*!< 窗口看门狗中断 */
+        PVD_IRQn = 1, /*!< PVD 通过 EXTI 线检测中断 */
+        TAMPER_IRQn = 2, /*!< 篡改中断 */
+        RTC_IRQn = 3, /*!< RTC 全局中断 */
+        FLASH_IRQn = 4, /*!< FLASH 全局中断 */
+        RCC_IRQn = 5, /*!< RCC 全局中断 */
+        EXTI0_IRQn = 6, /*!< EXTI 线0 中断 */
+        EXTI1_IRQn = 7, /*!< EXTI 线1 中断 */
+        EXTI2_IRQn = 8, /*!< EXTI 线2 中断 */
+        EXTI3_IRQn = 9, /*!< EXTI 线3 中断 */
+        EXTI4_IRQn = 10, /*!< EXTI 线4 中断 */
+        DMA1_Channel1_IRQn = 11, /*!< DMA1 通道1全局中断 */
+        DMA1_Channel2_IRQn = 12, /*!< DMA1 通道2全局中断 */
+        DMA1_Channel3_IRQn = 13, /*!< DMA1 通道3全局中断 */
+        DMA1_Channel4_IRQn = 14, /*!< DMA1 通道4全局中断 */
+        DMA1_Channel5_IRQn = 15, /*!< DMA1 通道5全局中断 */
+        DMA1_Channel6_IRQn = 16, /*!< DMA1 通道6全局中断 */
+        DMA1_Channel7_IRQn = 17, /*!< DMA1 通道7全局中断 */
+        ADC1_2_IRQn = 18, /*!< ADC1 和 ADC2全局中断 */
+        USB_HP_CAN1_TX_IRQn = 19, /*!< USB 设备高优先级或CAN1 TX 中断 */
+        USB_LP_CAN1_RX0_IRQn = 20, /*!< USB 设备低优先级或CAN1 RX0 中断 */
+        CAN1_RX1_IRQn = 21, /*!< CAN1 RX1 中断 */
+        CAN1_SCE_IRQn = 22, /*!< CAN1 SCE 中断 */
+        EXTI9_5_IRQn = 23, /*!< 外部线[9:5]中断 */
+        TIM1_BRK_IRQn = 24, /*!< TIM1 Break 中断 */
+        TIM1_UP_IRQn = 25, /*!< TIM1 Update 中断 */
+        TIM1_TRG_COM_IRQn = 26, /*!< TIM1 Trigger and Commutation 中断 */
+        TIM1_CC_IRQn = 27, /*!< TIM1 Capture Compare 中断 */
+        TIM2_IRQn = 28, /*!< TIM2全局中断 */
+        TIM3_IRQn = 29, /*!< TIM3全局中断 */
+        TIM4_IRQn = 30, /*!< TIM4全局中断 */
+        I2C1_EV_IRQn = 31, /*!< I2C1 事件中断 */
+        I2C1_ER_IRQn = 32, /*!< I2C1 错误中断 */
+        I2C2_EV_IRQn = 33, /*!< I2C2 事件中断 */
+        I2C2_ER_IRQn = 34, /*!< I2C2 错误中断 */
+        SPI1_IRQn = 35, /*!< SPI1全局中断 */
+        SPI2_IRQn = 36, /*!< SPI2全局中断 */
+        USART1_IRQn = 37, /*!< USART1全局中断 */
+        USART2_IRQn = 38, /*!< USART2全局中断 */
+        USART3_IRQn = 39, /*!< USART3全局中断 */
+        EXTI15_10_IRQn = 40, /*!< 外部线[15:10]中断 */
+        RTC_Alarm_IRQn = 41, /*!< RTC闹钟通过 EXTI 线中断 */
+        USBWakeUp_IRQn = 42, /*!< USB 设备从待机状态通过 EXTI 线中断唤醒 */
+        TIM8_BRK_IRQn = 43, /*!< TIM8 Break 中断 */
+        TIM8_UP_IRQn = 44, /*!< TIM8 Update 中断 */
+        TIM8_TRG_COM_IRQn = 45, /*!< TIM8 Trigger and Commutation 中断 */
+        TIM8_CC_IRQn = 46, /*!< TIM8 Capture Compare 中断 */ 
+        ADC3_IRQn = 47, /*!< ADC3全局中断 */
+        FSMC_IRQn = 48, /*!< FSMC全局中断 */
+        SDIO_IRQn = 49, /*!< SDIO全局中断 */
+        TIM5_IRQn = 50, /*!< TIM5全局中断 */
+        SPI3_IRQn = 51, /*!< SPI3全局中断 */
+        UART4_IRQn = 52, /*!< UART4全局中断 */
+        UART5_IRQn = 53, /*!< UART5全局中断 */
+        TIM6_IRQn = 54, /*!< TIM6全局中断 */
+        TIM7_IRQn = 55, /*!< TIM7全局中断 */
+        DMA2_Channel1_IRQn = 56, /*!< DMA2 通道1全局中断 */
+        DMA2_Channel2_IRQn = 57, /*!< DMA2 通道2全局中断 */
+        DMA2_Channel3_IRQn = 58, /*!< DMA2 通道3全局中断 */
+        DMA2_Channel4_5_IRQn = 59 /*!< DMA2 通道4和通道5全局中断 */
+} IRQn_Type;
+uint32_t PreemptPriority; // 抢占优先级，根据优先级分组确定。 
+uint32_t SubPriority);  // 响应优先级，根据优先级分组确定。
+
+// 在NVIC中启用特定于设备的中断
+void HAL_NVIC_EnableIRQ(IRQn_Type IRQn);
+// 在NVIC中禁用特定于设备的中断
+void HAL_NVIC_DisableIRQ(IRQn_Type IRQn);
+```
+
+### 开关灯
+
+key1按下开灯，key0按下关灯
+
+![](./legend/中断开关灯.png)
+
+```c
+// gpio.c
+void MX_GPIO_Init(void)
+{
+
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+  /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOE_CLK_ENABLE();
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOE, GPIO_PIN_5, GPIO_PIN_RESET);
+
+  /*Configure GPIO pins : PE3 PE4 */
+  GPIO_InitStruct.Pin = GPIO_PIN_3|GPIO_PIN_4;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PE5 */
+  GPIO_InitStruct.Pin = GPIO_PIN_5;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI3_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI3_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI4_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI4_IRQn);
+
+}
+
+// stm32f1xx_it.c
+// @brief This function handles EXTI line3 interrupt.
+void EXTI3_IRQHandler(void)
+{
+  /* USER CODE BEGIN EXTI3_IRQn 0 */
+
+  /* USER CODE END EXTI3_IRQn 0 */
+  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_3);		// go to definition Of HAL_GPIO_EXTI_IRQHandler， 可以在stm32f1xx_hal_gpio.c找到这个函数
+  /* USER CODE BEGIN EXTI3_IRQn 1 */
+
+  /* USER CODE END EXTI3_IRQn 1 */
+}
+// @brief This function handles EXTI line4 interrupt.
+void EXTI4_IRQHandler(void)
+{
+  /* USER CODE BEGIN EXTI4_IRQn 0 */
+
+  /* USER CODE END EXTI4_IRQn 0 */
+  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_4);
+  /* USER CODE BEGIN EXTI4_IRQn 1 */
+
+  /* USER CODE END EXTI4_IRQn 1 */
+}
+
+// 可以从stm32f1xx_hal_gpio.c中的HAL_GPIO_EXTI_IRQHandler，看到HAL_GPIO_EXTI_Callback，并且在HAL_GPIO_EXTI_IRQHandler函数的下面看到HAL_GPIO_EXTI_Callback的定义，我们需要对它进行重写，写在main.c中
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+	if(GPIO_Pin == GPIO_PIN_3){	// key1
+        // 开灯
+		HAL_GPIO_WritePin(GPIOE,GPIO_PIN_5,GPIO_PIN_RESET);
+	}else if(GPIO_Pin == GPIO_PIN_4){ // key0
+        // 关灯
+		HAL_GPIO_WritePin(GPIOE,GPIO_PIN_5,GPIO_PIN_SET);
+	}
+}
+```
+
+# 4 定时器
+
+STM32的定时器是单片机内部的硬件外设，它们嵌入在STM32芯片的硅片中，不是外部组件。这里提到的“外设”一词是指这些定时器是相对于微控制器的核心CPU而言的，它们是微控制器的一部分，提供了额外的功能，但它们并不是物理上独立于STM32芯片的外部设备。
+
+STM32微控制器的设计集成了多种外设，包括但不限于定时器、ADC（模数转换器）、DAC（数模转换器）、UART（通用异步收发传输器）、SPI（串行外设接口）、I2C（集成电路总线）、USB（通用串行总线）等。这些外设都集成在STM32芯片内部，可以在不需要外部组件的情况下实现多种功能，从而简化了电路设计和降低了成本。
+
+STM32总共有8个定时器，分别是2个高级定时器（TIM1、TIM8），4个通用定时器（TIM2、TIM3、TIM4、TIM5）和2个基本定时器（TIM5、TIM6）。
+
+每个定时器都是一个可编程预分频器驱动的16位自动装载计数器构成 每个定时器都是完全独立的，没有互相共享任何资源。
+
+![image-20240521204955925](./legend/image-20240521204955925.png)
+
+
+
+# 其它
+
+1. 代码跳转需要先编译后才能跳转
+2. [cubemx在Pinout view中选错了引脚，不知道怎么取消](https://blog.csdn.net/qq_52932171/article/details/132240143)
+   - 左键要取消的引脚，再点击一次之前设置的模式就可取消
+   - ![img](./legend/8878a0509b0949f3bccfb53bc22d8892.png)
+3. [internal commend error](https://blog.csdn.net/qq_60341895/article/details/127629430)
+4. [快捷键](https://blog.csdn.net/qq_44250317/article/details/125635828)
