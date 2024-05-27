@@ -397,6 +397,8 @@ NVIC给每个中断赋予**抢占优先级和响应优先级**。
 
 ## 3.2 [外部中断](https://blog.csdn.net/qq_44016222/article/details/123539693)
 
+注：IRQ 中断请求（Interrupt ReQuest）
+
 ### 外部中断线
 
 - STM32的每个IO都可以作为外部中断输入。	
@@ -599,7 +601,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 }
 ```
 
-# 4 定时器
+# 4 [定时器](https://blog.csdn.net/qq_44016222/article/details/123507270)
 
 STM32的定时器是单片机内部的硬件外设，它们嵌入在STM32芯片的硅片中，不是外部组件。这里提到的“外设”一词是指这些定时器是相对于微控制器的核心CPU而言的，它们是微控制器的一部分，提供了额外的功能，但它们并不是物理上独立于STM32芯片的外部设备。
 
@@ -611,13 +613,1114 @@ STM32总共有8个定时器，分别是2个高级定时器（TIM1、TIM8），4�
 
 ![image-20240521204955925](./legend/image-20240521204955925.png)
 
+## 4.1 [定时器计数计算](https://blog.csdn.net/weixin_46430043/article/details/125815328)
+
+![img](./legend/84bdfa352e654ffbb5ab071010a4a00c.png)
+
+- TIM溢出时间：需要定时的时间，单位：s
+- Fck_psc一般为72Mhz
+
+## 4.2 计数器模式
+
+通用定时器可以向上计数、向下计数、向上向下双向计数模式。
+
+- 向上计数模式：计数器从0计数到自动加载值(TIMx_ARR)，然后重新从0开始计数并且产生一个计数器溢出事件。
+- 向下计数模式：计数器从自动装入的值(TIMx_ARR)开始向下计数到0，然后从自动装入的值重新开始，并产生一个计数器向下溢出事件。
+- 向上/向下双向计数模式（中心对齐计数）：计数器从0开始计数到自动装入的值-1，产生一个计数器溢出事件，然后向下计数到1并且产生一个计数器溢出事件；然后再从0开始重新计数。
+
+![img](./legend/计数器模式.png)
+
+## 4.3 时钟工作原理
+
+框图可以分为四个大部分（用红色笔表示出），分别是：
+
+- ①时钟产生器部分
+- ②时基单元部分
+- ③输入捕获部分（**IC**，Input Capture）
+- ④输出比较部分（**OC**, Output Compare）
+
+![img](legend/时钟工作原理框图.png)
+
+### 时钟产生器
+
+STM32定时器有四种时钟源选择（图中蓝色笔标识）：
+
+- 内部时钟(CK_INT)
+- 外部时钟模式：外部触发输入(ETR)
+- 内部触发输入(ITRx)：使用一个定时器作为另一个定时器的预分频器，如可以配置一个定时器Timer1而作为另一个定时器Timer2的预分频器。
+- 外部时钟模式：外部输入脚(TIx)
+
+### 时基单元
+
+它包括三个寄存器，分别是：计数器寄存器（TIMx_CNT)、预分频器寄存器（TIMx_PSC)和自动装载寄存器（TIMx_ARR)
+
+- 计数器寄存器（TIMx_CNT)：向上计数、向下计数或者中心对齐计数
+- 预分频器寄存器（TIMx_PSC)：可将时钟频率按1到65535之间的任意值进行分频，可在运行时改变其设置值
+- 自动装载寄存器（TIMx_ARR)：计数器溢出后，自动装载arr值
+
+
+
+### 输入捕获
+
+- IC1、2和IC3、4可以分别通过软件设置将其映射到TI1、TI2和TI3、TI4;
+
+### 输出比较
+
+
+
+## 4.4 定时器结构体
+
+```c
+typedef struct { 
+    TIM_TypeDef *Instance; // 定时器的寄存器基地址 
+    TIM_Base_InitTypeDef Init; // 定时器基本初始化所需的参数 
+    HAL_TIM_ActiveChannel Channel; // 当前激活的定时器通道 
+    DMA_HandleTypeDef *hdma[7]; // DMA处理器的数组，用于定时器的DMA操作
+    HAL_LockTypeDef Lock; // 用于锁定的对象，防止资源冲突 
+    __IO HAL_TIM_StateTypeDef State; // 定时器的当前操作状态 
+    __IO HAL_TIM_ChannelStateTypeDef ChannelState[4]; // 各个定时器通道的当前操作状态 
+    __IO HAL_TIM_ChannelStateTypeDef ChannelNState[4]; // 定时器互补通道的当前操作状态 
+    __IO HAL_TIM_DMABurstStateTypeDef DMABurstState; // DMA突发操作的当前状态 
+    // 如果定义了USE_HAL_TIM_REGISTER_CALLBACKS，则包含以下回调函数
+    #if (USE_HAL_TIM_REGISTER_CALLBACKS == 1)
+    	typedef struct __TIM_HandleTypeDef
+    #else 
+        typedef struct 
+    #endif 
+            /* USE_HAL_TIM_REGISTER_CALLBACKS */ 
+    { 
+      		TIM_TypeDef *Instance; // 定时器寄存器基地址
+			TIM_Base_InitTypeDef Init; // 定时器基础初始化参数 
+            HAL_TIM_ActiveChannel Channel; // 激活的通道 
+            DMA_HandleTypeDef *hdma[7]; // DMA处理句柄数组 
+            HAL_LockTypeDef Lock; // 锁定对象 
+            __IO HAL_TIM_StateTypeDef State; // 定时器操作状态 
+            __IO HAL_TIM_ChannelStateTypeDef ChannelState[4]; // 定时器通道操作状态 
+            __IO HAL_TIM_ChannelStateTypeDef ChannelNState[4]; // 定时器补充通道操作状态 
+            __IO HAL_TIM_DMABurstStateTypeDef DMABurstState; // DMA突发操作状态 
+            #if (USE_HAL_TIM_REGISTER_CALLBACKS == 1) 
+            void (* Base_MspInitCallback)(struct __TIM_HandleTypeDef *htim); // 基础模式Msp初始化回调
+            void (* Base_MspDeInitCallback)(struct __TIM_HandleTypeDef *htim); // 基础模式Msp去初始化回调
+            void (* IC_MspInitCallback)(struct __TIM_HandleTypeDef *htim); // 输入捕获Msp初始化回调
+            void (* IC_MspDeInitCallback)(struct __TIM_HandleTypeDef *htim); // 输入捕获Msp去初始化回调 
+            void (* OC_MspInitCallback)(struct __TIM_HandleTypeDef *htim); // 输出比较Msp初始化回调
+            void (* OC_MspDeInitCallback)(struct __TIM_HandleTypeDef *htim); // 输出比较Msp去初始化回调
+            void (* PWM_MspInitCallback)(struct __TIM_HandleTypeDef *htim); // PWM Msp初始化回调
+            void (* PWM_MspDeInitCallback)(struct __TIM_HandleTypeDef*htim); // PWM Msp去初始化回调
+            void (* OnePulse_MspInitCallback)(struct __TIM_HandleTypeDef *htim); // 单脉冲Msp初始化回调 
+            void (* OnePulse_MspDeInitCallback)(struct __TIM_HandleTypeDef *htim); // 单脉冲Msp去初始化回调 
+            void (* Encoder_MspInitCallback)(struct __TIM_HandleTypeDef *htim); // 编码器Msp初始化回调 
+            void (* Encoder_MspDeInitCallback)(struct __TIM_HandleTypeDef *htim); // 编码器Msp去初始化回调
+            void (* HallSensor_MspInitCallback)(struct __TIM_HandleTypeDef *htim); // 霍尔传感器Msp初始化回调 
+            void (* HallSensor_MspDeInitCallback)(struct __TIM_HandleTypeDef *htim); // 霍尔传感器Msp去初始化回调
+            void (* PeriodElapsedCallback)(struct __TIM_HandleTypeDef *htim); // 周期结束回调
+            void (* PeriodElapsedHalfCpltCallback)(struct __TIM_HandleTypeDef *htim); // 周期结束半完成回调
+            void (* TriggerCallback)(struct __TIM_HandleTypeDef *htim); // 触发回调
+            void (* TriggerHalfCpltCallback)(struct __TIM_HandleTypeDef *htim); // 触发半完成回调
+            void (* IC_CaptureCallback)(struct __TIM_HandleTypeDef *htim); // 输入捕获回调
+            void (* IC_CaptureHalfCpltCallback)(struct __TIM_HandleTypeDef *htim); // 输入捕获半完成回调
+            void (* OC_DelayElapsedCallback)(struct __TIM_HandleTypeDef *htim); // 输出比较延迟结束回调 
+            void (* PWM_PulseFinishedCallback)(struct __TIM_HandleTypeDef *htim); // PWM脉冲完成回调
+            void (* PWM_PulseFinishedHalfCpltCallback)(struct __TIM_HandleTypeDef *htim);// PWM脉冲半完成回调 
+            void (* ErrorCallback)(struct __TIM_HandleTypeDef *htim); // 错误回调 
+            void (* CommutationCallback)(struct __TIM_HandleTypeDef *htim); // 换相回调 
+            void (* CommutationHalfCpltCallback)(struct __TIM_HandleTypeDef *htim); // 换相半完成回调 
+            void (* BreakCallback)(struct __TIM_HandleTypeDef *htim); // 断开（Break）事件时的回调函数 
+            #endif 
+     } TIM_HandleTypeDef;
+    
+// 其中结构体TIM_TypeDef为寄存器相关
+    typedef struct {
+        __IO uint32_t CR1; // TIM 控制寄存器 1, 地址偏移: 0x00 
+        __IO uint32_t CR2; // TIM 控制寄存器 2, 地址偏移: 0x04 
+        __IO uint32_t SMCR; // TIM 从模式控制寄存器, 地址偏移: 0x08 
+        __IO uint32_t DIER; // TIM DMA/中断使能寄存器, 地址偏移: 0x0C 
+        __IO uint32_t SR; // TIM 状态寄存器, 地址偏移: 0x10
+        __IO uint32_t EGR; // TIM 事件生成寄存器, 地址偏移: 0x14 
+        __IO uint32_t CCMR1; // TIM 捕获/比较模式寄存器 1, 地址偏移: 0x18 
+        __IO uint32_t CCMR2; // TIM 捕获/比较模式寄存器 2, 地址偏移: 0x1C
+        __IO uint32_t CCER; // TIM 捕获/比较使能寄存器, 地址偏移: 0x20 
+        __IO uint32_t CNT; // TIM 计数器寄存器, 地址偏移: 0x24 
+        __IO uint32_t PSC; // TIM 预分频寄存器, 地址偏移: 0x28 
+        __IO uint32_t ARR; // TIM 自动重载寄存器, 地址偏移: 0x2C
+        __IO uint32_t RCR; // TIM 重复计数器寄存器, 地址偏移: 0x30
+        __IO uint32_t CCR1; // TIM 捕获/比较寄存器 1, 地址偏移: 0x34
+        __IO uint32_t CCR2; // TIM 捕获/比较寄存器 2, 地址偏移: 0x38
+        __IO uint32_t CCR3; // TIM 捕获/比较寄存器 3, 地址偏移: 0x3C 
+        __IO uint32_t CCR4; // TIM 捕获/比较寄存器 4, 地址偏移: 0x40
+        __IO uint32_t BDTR; // TIM 断开和死区时间寄存器, 地址偏移: 0x44
+        __IO uint32_t DCR; // TIM DMA 控制寄存器, 地址偏移: 0x48
+        __IO uint32_t DMAR; // TIM DMA 全传输地址寄存器, 地址偏移: 0x4C
+        __IO uint32_t OR; // TIM 选项寄存器, 地址偏移: 0x50 
+    } TIM_TypeDef;
+    
+    // 其中结构体TIM_Base_InitTypeDef为基础配置
+    typedef struct {
+        uint32_t Prescaler; // 预分频器值，用于分频TIM时钟。范围：Min_Data = 0x0000, Max_Data = 0xFFFF
+        uint32_t CounterMode; // 计数器模式 uint32_t Period; // 装载到下一个更新事件的有效自动重载寄存器的周期值。范围：Min_Data = 0x0000, Max_Data = 0xFFFF 
+        uint32_t ClockDivision; // 时钟分频。 
+        uint32_t RepetitionCounter; // 重复计数器值。 
+        uint32_t AutoReloadPreload; // 自动重载预装载。 
+    } TIM_Base_InitTypeDef;
+```
+
+
+
+## 4.5 时间基准模式
+
+时间基准模式的工作原理是基于内部或外部时钟源，定时器内部包含一个计数器，该计数器会根据时钟源的脉冲信号递增或递减。定时器的预分频器（Prescaler）允许调整时钟脉冲的频率，从而控制计数器的计数速度。此外，定时器的自动重装载寄存器（ARR）定义了计数器的上限值，一旦计数器的值达到这个上限，它可以自动重置为零，并可选择性地触发中断或事件。
+
+基本参数：
+
+1. 预分频器（Prescaler, PSC - 16 bits value）
+   - 预分频器用于分频，它可以将定时器的输入时钟频率除以1至65536之间的任意因子。这是通过一个16位的计数器实现的，控制通过一个16位的寄存器（TIMx_PSC寄存器）进行。预分频器的值可以动态更改，新的预分频比例将在下一个更新事件时生效。
+2. 计数器模式（Counter Mode）
+   - 定时器可以在不同的计数模式下工作，例如向上计数或向下计数。在“向上”模式中，每个时钟周期计数器的值增加1。
+3. 计数周期（Counter Period）:
+   - 自动重装载寄存器（ARR）定义了计数器的最大值。当计数器达到这个值时，它将重新开始从0计数，并可能触发中断或其他事件。
+4. 内部时钟分频（Internal Clock Division, CKD）
+   - 这个设置用于进一步分频定时器的时钟源，但通常不是主要关注的焦点。
+5. 重复计数器（Repetition Counter, RCR - 8 bits value）
+   - 重复计数器用于确定在触发更新事件之前定时器需要完成多少计数周期。
+6. 自动重装载预加载（auto-reload preload）
+   - 自动重装载预加载功能允许预先加载ARR寄存器的值
+7. 中断列表
+   - TIM1 Break Interrupt（TIM1 断开中断）
+   - TIM1 Update Interrupt（TIM1 更新中断）：Update中断通常用于处理计数器溢出/下溢或计数器初始化（通过软件或内部/外部触发）的情况。
+   - TIM1 Trigger and Commutation Interrupts（TIM1 触发和换相中断）
+   - TIM1 Capture Compare Interrupt（TIM1 捕获比较中断）
+
+### 相关api
+
+```c
+// 根据TIM_HandleTypeDef中指定的参数初始化TIM Time base单元，并创建关联的句柄。
+HAL_StatusTypeDef HAL_TIM_Base_Init(TIM_HandleTypeDef *htim);
+// 反初始化TIM Base外设
+HAL_StatusTypeDef HAL_TIM_Base_DeInit(TIM_HandleTypeDef *htim);
+// 初始化TIM Base MSP
+void HAL_TIM_Base_MspInit(TIM_HandleTypeDef *htim);
+// 反初始化TIM Base MSP。
+void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef *htim);
+// 启动TIM Base
+HAL_StatusTypeDef HAL_TIM_Base_Start(TIM_HandleTypeDef *htim);
+// 停止TIM Base。
+HAL_StatusTypeDef HAL_TIM_Base_Stop(TIM_HandleTypeDef *htim);
+// 以中断模式启动TIM Base
+HAL_StatusTypeDef HAL_TIM_Base_Start_IT(TIM_HandleTypeDef *htim);
+// 以中断模式停止TIM Base。
+HAL_StatusTypeDef HAL_TIM_Base_Stop_IT(TIM_HandleTypeDef *htim);
+// 以DMA模式启动TIM Base
+HAL_StatusTypeDef HAL_TIM_Base_Start_DMA(TIM_HandleTypeDef *htim, uint32_t *pData, uint16_t Length);
+// 以DMA模式停止TIM Base。
+HAL_StatusTypeDef HAL_TIM_Base_Stop_DMA(TIM_HandleTypeDef *htim);
+// 宏功能：获取TIM计数器的当前值。
+#define __HAL_TIM_GetCounter(__HANDLE__) ((__HANDLE__)->Instance->CNT)
+// 宏功能：设置TIM计数器的计数值
+#define __HAL_TIM_SetCounter(__HANDLE__, __COUNTER__) ((__HANDLE__)->Instance->CNT = (__COUNTER__))
+```
+
+
+
+### 利用定时器使led灯闪烁
+
+1. CubeMX配置，生成基本代码
+
+   - ![image-20240523113855318](./legend/image-20240523113855318.png)
+
+2. 在tim.c中，生成定时器配置函数
+
+   ```c
+   void MX_TIM1_Init(void)
+   {
+   
+    	/* USER CODE BEGIN TIM1_Init 0 */ 
+       // 用户代码区域，用于初始化之前的自定义代码。 
+       /* USER CODE END TIM1_Init 0 */ 
+       // 定义时钟源配置结构体，并初始化为零。
+       TIM_ClockConfigTypeDef sClockSourceConfig = {0}; 
+       // 定义主控制器配置结构体，并初始化为零。 
+       TIM_MasterConfigTypeDef sMasterConfig = {0}; 
+       /* USER CODE BEGIN TIM1_Init 1 */ 
+       // 用户代码区域，用于初始化之前的自定义代码。 
+       /* USER CODE END TIM1_Init 1 */
+       
+       // 设置TIM1为定时器实例。 
+       htim1.Instance = TIM1;
+       // 设置预分频器值为7199。 
+       htim1.Init.Prescaler = 7199; 
+       // 设置计数模式为向上计数。 
+       htim1.Init.CounterMode = TIM_COUNTERMODE_UP; 
+       // 设置定时器周期为9999。 
+       htim1.Init.Period = 9999; 
+       // 设置时钟分频因子为无分频。 
+       htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1; 
+       // 设置重复计数器值为0。 
+       htim1.Init.RepetitionCounter = 0;
+       // 设置自动重载预装载为禁用。
+       htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+       // 初始化TIM Base并检查返回状态。
+       if (HAL_TIM_Base_Init(&htim1) != HAL_OK) { 
+           // 错误处理程序。 Error_Handler();
+       } 
+       // 设置时钟源为内部时钟。
+       sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL; 
+       // 配置时钟源并检查返回状态。 
+       if (HAL_TIM_ConfigClockSource(&htim1, &sClockSourceConfig) != HAL_OK) { 
+           // 错误处理程序。
+           Error_Handler();
+       } 
+       // 设置主输出触发为重置。 
+       sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+       // 设置主从模式为禁用。 
+       sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+       // 配置主控制器同步并检查返回状态。
+       if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK) {
+           // 错误处理程序。 
+           Error_Handler();
+       } 
+       /* USER CODE BEGIN TIM1_Init 2 */ 
+       // 用户代码区域，用于初始化之后的自定义代码。 
+       /* USER CODE END TIM1_Init 2 */
+   }
+   ```
+
+   
+
+3. 在stm32103f1xx_it.c文件中，生成了更新中断服务函数
+
+   ```c
+   void TIM1_UP_IRQHandler(void)
+   {
+     /* USER CODE BEGIN TIM1_UP_IRQn 0 */
+   
+     /* USER CODE END TIM1_UP_IRQn 0 */
+     HAL_TIM_IRQHandler(&htim1);			// 找到这个函数，并进入定义，从其中找到TIM Update event
+     /* USER CODE BEGIN TIM1_UP_IRQn 1 */
+   
+     /* USER CODE END TIM1_UP_IRQn 1 */
+   }
+   
+   // 找到后，可以看到tim溢出的回调函数
+   
+     /* TIM Update event */
+     if (__HAL_TIM_GET_FLAG(htim, TIM_FLAG_UPDATE) != RESET)
+     {
+       if (__HAL_TIM_GET_IT_SOURCE(htim, TIM_IT_UPDATE) != RESET)
+       {
+         __HAL_TIM_CLEAR_IT(htim, TIM_IT_UPDATE);
+   #if (USE_HAL_TIM_REGISTER_CALLBACKS == 1)
+         htim->PeriodElapsedCallback(htim);
+   #else
+         HAL_TIM_PeriodElapsedCallback(htim);
+   #endif /* USE_HAL_TIM_REGISTER_CALLBACKS */
+       }
+     }
+   ```
+
+4. 在main重新定义HAL_TIM_PeriodElapsedCallback这个函数
+
+   ```c
+   /* USER CODE BEGIN 4 */
+   void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
+   	if (htim->Instance == TIM1)
+   		{ 
+   			// 切换E5引脚的状态
+   			HAL_GPIO_TogglePin(GPIOE, GPIO_PIN_5);
+   		}
+   }
+   /* USER CODE END 4 */
+   ```
+
+5. 在main.c中开启定时器
+
+   ```c
+   /* USER CODE BEGIN 2 */ 
+   HAL_TIM_Base_Start_IT(&htim1); 
+   /* USER CODE END 2 */
+   ```
+
+   
+
+## 4.6 输出比较模式
+
+特点：
+
+- 输出比较可以通过比较CNT（计数器）与CCR（捕获/比较）寄存器值的关系，来对输出电平进行置1、置0或翻转的操作，用于输出一定频率和占空比的PWM波形。
+- 每个高级定时器和通用定时器都拥有4个输出比较通道
+- 高级定时器的前3个通道额外拥有死区生成和互补输出的功能（用于驱动三相无刷电机），通用定时器：均有4个通道
+
+**PWM（Pulse Width Modulation）脉冲宽度调制**，它是通过对一系列脉冲的宽度进行调制，等效出所需要的波形（包含形状以及幅值），对模拟信号电平进行数字编码，也就是说通过调节占空比的变化来调节信号、能量等的变化。
+
+**占空比**就是指在一个周期内，信号处于高电平的时间占据整个信号周期的百分比，例如方波的占空比就是50%。
+
+ 在STM32单片机中，可以使用定时器的输出比较功能来产生PWM波。
+
+**PWM模式可以产生一个由TIMx_ARR寄存器确定频率、由TIMx_CCRx寄存器确定占空比的信号。**
+
+
+
+![img](legend/输出比较.png)
+
+
+
+横坐标是时间变量，纵坐标是CNT计数值，CNT计数值随着时间的推进会不断经历从0到ARR，清零复位再到ARR的这一过程。这之中还有一个数值是CCRx即比较值，通过比较值和输出配置可以使之输出高低电平逻辑，这样就产生了PWM波形。通过调节ARR的值可以调节PWM的周期，调节CCRx的值大小可以调节PWM占空比。
+
+![img](legend/输出比较通道1示例.png)
+
+从最左边进入的是时钟源，由内部时钟(CNT)或者外部触发时钟(ETRF)输入，进入输入模式控制器，通过OCMR1寄存器的OC1M[2:0]位来配置PWM模式，之后进入一个选择器，由CCER寄存器的CC1P位来设置输出极性，最后由CCER寄存器的CC1E位来使能输出，然后通过OC1来输出PWM波。
+
+PWM有PWM模式1和模式2两种模式，PWM模式1的情况下，当前值小于比较值为有效电平；PWM模式2的情况下，当前值大于比较值为有效电平。
+
+### 相关api
+
+```c
+// 根据TIM_HandleTypeDef中指定的参数初始化TIM PWM。
+HAL_StatusTypeDef HAL_TIM_PWM_Init(TIM_HandleTypeDef *htim);
+// 反初始化TIM_PWM外设。
+HAL_StatusTypeDef HAL_TIM_PWM_DeInit(TIM_HandleTypeDef *htim);
+// 初始化TIM_PWM_MSP。
+void HAL_TIM_PWM_MspInit(TIM_HandleTypeDef *htim);
+// 反初始化TIM_PWM_MSP。
+void HAL_TIM_PWM_MspDeInit(TIM_HandleTypeDef *htim);
+// 启动PWM信号生成。
+HAL_StatusTypeDef HAL_TIM_PWM_Start(TIM_HandleTypeDef *htim, uint32_t Channel);
+// 停止PWM信号生成。
+HAL_StatusTypeDef HAL_TIM_PWM_Stop(TIM_HandleTypeDef *htim, uint32_t Channel);
+// 以中断模式启动PWM信号生成。
+HAL_StatusTypeDef HAL_TIM_PWM_Start_IT(TIM_HandleTypeDef *htim, uint32_t Channel);
+// 以中断模式停止PWM信号生成。
+HAL_StatusTypeDef HAL_TIM_PWM_Stop_IT(TIM_HandleTypeDef *htim, uint32_t Channel);
+// 以DMA模式启动TIM PWM信号生成
+HAL_StatusTypeDef HAL_TIM_PWM_Start_DMA(TIM_HandleTypeDef *htim, uint32_t Channel, const uint32_t *pData, uint16_t Length);
+// 以DMA模式停止TIM PWM信号生成。
+HAL_StatusTypeDef HAL_TIM_PWM_Stop_DMA(TIM_HandleTypeDef *htim, uint32_t Channel);
+```
+
+
+
+### 呼吸灯
+
+1. 使用cubeMX，生成基本代码
+
+   ![image-20240523145944909](./legend/image-20240523145944909.png)
+
+2. tim.c生成tim3初始化函数
+
+   ```c
+   void MX_TIM3_Init(void) { 
+       /* USER CODE BEGIN TIM3_Init 0 */
+       // 用户自定义代码区域，通常用于变量定义或者预处理。
+       /* USER CODE END TIM3_Init 0 */ 
+       // 定义时钟配置结构体，并初始化为0。 
+       TIM_ClockConfigTypeDef sClockSourceConfig = {0}; 
+       // 定义主配置结构体，并初始化为0。 
+       TIM_MasterConfigTypeDef sMasterConfig = {0}; 
+       // 定义输出比较配置结构体，并初始化为0。 
+       TIM_OC_InitTypeDef sConfigOC = {0};
+       /* USER CODE BEGIN TIM3_Init 1 */ 
+       // 用户自定义代码区域，通常用于初始化前的准备工作。 
+       /* USER CODE END TIM3_Init 1 */ 
+       // 设置TIM3为该函数处理的定时器实例。 
+       htim3.Instance = TIM3;
+       
+       // 配置TIM3的预分频器，计数模式，周期，时钟分频和自动重载预装载设置。
+       htim3.Init.Prescaler = 71; 
+       htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
+       htim3.Init.Period = 5000; 
+       htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+       htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
+       // 初始化TIM3基本计时部分。
+       if (HAL_TIM_Base_Init(&htim3) != HAL_OK) { 
+           Error_Handler(); // 错误处理函数 
+       } 
+       // 配置TIM3的时钟源为内部时钟。 
+       sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL; 
+       if (HAL_TIM_ConfigClockSource(&htim3, &sClockSourceConfig) != HAL_OK) { 
+           Error_Handler(); // 错误处理函数 
+       } 
+       // 初始化TIM3的PWM功能。 
+       if (HAL_TIM_PWM_Init(&htim3) != HAL_OK) { 
+           Error_Handler(); 
+           // 错误处理函数
+       } 
+       // 配置TIM3的主输出触发和主从模式。
+       sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET; 
+       sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+       if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK) {
+           Error_Handler(); // 错误处理函数 
+       } 
+       // 配置TIM3的PWM通道2。 
+       sConfigOC.OCMode = TIM_OCMODE_PWM1;
+       sConfigOC.Pulse = 0;
+       sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+       sConfigOC.OCFastMode = TIM_OCFAST_ENABLE;
+       if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_2) != HAL_OK) {
+           Error_Handler(); // 错误处理函数
+       }
+       /* USER CODE BEGIN TIM3_Init 2 */ 
+       // 用户自定义代码区域，通常用于初始化后的额外配置或处理。 
+       /* USER CODE END TIM3_Init 2 */ 
+       // 调用后处理函数，进一步初始化。 
+       HAL_TIM_MspPostInit(&htim3); 
+   }
+   ```
+
+   
+
+3. 修改main.c
+
+   ```c
+   /* USER CODE BEGIN 2 */
+   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_2);
+   /* USER CODE END 2 */
+   
+   
+   while (1) { 
+       /* USER CODE END WHILE */ 
+       /* USER CODE BEGIN 3 */ 
+       // 呼吸灯效果：逐渐增加亮度 
+       for (uint16_t i = 0; i < 5000; i++) {
+           htim3.Instance->CCR2 = i; // 直接设置TIM3通道2的CCR寄存器 
+           HAL_Delay(1); // 延时以调整变化速度 
+       } 
+       // 呼吸灯效果：逐渐减少亮度 
+       for (uint16_t i = 5000; i > 0; i--) { 
+           htim3.Instance->CCR2 = i; // 直接设置TIM3通道2的CCR寄存器
+           HAL_Delay(1); // 延时以调整变化速度 } 
+       }
+       /* USER CODE END 3 */ 
+      
+       // 此外，也可以通过宏来实现__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, i);
+   ```
+
+   
+
+4. 
+
+## 4.7 输入捕获模式
+
+STM32的定时器输入捕获模式允许微控制器捕获外部信号的时间信息，从而能够测量频率、周期和脉冲宽度等参数。这个模式对于那些需要精确测量外部事件时间的应用尤为重要。
+
+相关参数：
+
+1. 极性选择（Polarity Selection）：这个参数设置的是TIMx_CCER->CCxP，用于配置捕获触发的信号极性，即决定是在信号的上升沿还是下降沿进行捕获。
+2. IC 选择（IC Selection）：该设置涉及TIMx_CCMR->CCxS，用于配置通道的方向（输入或输出）以及输入脚的选择。例如，Direct表示CCx通道配置为输入，ICx映射到TI1上。
+3. 预分频比（Prescaler Division Ratio）：此参数设置的是TIMx_CCMR->ICxPSC，用于配置输入捕获的预分频系数。预分频系数决定了捕获操作的频率，从而可以影响捕获精度和反应时间。
+4. 输入过滤器（Input Filter）：该设置涉及TIMx_CCMR->ICxF，用于配置输入捕获的滤波器。输入过滤器的作用是对输入信号进行去噪或防抖处理，特别有用于处理机械开关或类似的高噪声信号源。
+
+### 相关api
+
+```c
+// 根据TIM_HandleTypeDef中指定的参数初始化TIM输入捕获。
+HAL_StatusTypeDef HAL_TIM_IC_Init(TIM_HandleTypeDef *htim);
+// 反初始化TIM外设
+HAL_StatusTypeDef HAL_TIM_IC_DeInit(TIM_HandleTypeDef *htim);
+// 初始化TIM输入捕获MSP。
+void HAL_TIM_IC_MspInit(TIM_HandleTypeDef *htim);
+// 启动TIM输入捕获测量
+HAL_StatusTypeDef HAL_TIM_IC_Start(TIM_HandleTypeDef *htim, uint32_t Channel);
+// 停止TIM输入捕获测量。
+HAL_StatusTypeDef HAL_TIM_IC_Stop(TIM_HandleTypeDef *htim, uint32_t Channel);
+// 以中断模式启动TIM输入捕获测量。
+HAL_StatusTypeDef HAL_TIM_IC_Start_IT(TIM_HandleTypeDef *htim, uint32_t Channel);
+// 以中断模式停止TIM输入捕获测量。
+HAL_StatusTypeDef HAL_TIM_IC_Stop_IT(TIM_HandleTypeDef *htim, uint32_t Channel);
+// 以DMA模式启动TIM输入捕获测量
+HAL_StatusTypeDef HAL_TIM_IC_Start_DMA(TIM_HandleTypeDef *htim, uint32_t Channel, uint32_t *pData, uint16_t Length);
+// 以DMA模式停止TIM输入捕获测量。
+HAL_StatusTypeDef HAL_TIM_IC_Stop_DMA(TIM_HandleTypeDef *htim, uint32_t Channel);
+```
+
+### tpad开关led灯
+
+1. 配置cubemx
+
+   ![](./legend/捕获上升沿输入.png)
+
+2. 在keil下Application/User/Core 生成tpad.c和tpad.h（也就是在文件管理器的Core/Inc，Core/Src）
+
+   ```c
+   // tpad.h
+   #ifndef __TPAD_H__
+   #define __TPAD_H__
+   
+   #include "main.h"
+   #include "tim.h"
+   
+   void tpad_init(void);
+   uint8_t tpad_scan(void);
+   
+   #endif
+   ```
+
+   ```c
+   // tpad.c
+   
+   #include "tpad.h"
+   
+   uint16_t tpad_default_val; // 存放初始无接触时的读数
+   
+   
+   /*tpad复位*/
+   // 函数功能：给引脚放电，开启定时器捕获比较
+   void tpad_reset(){
+   	// 引脚放电，设置为推挽输出
+   	GPIO_InitTypeDef GPIO_InitStruct = {0};
+   	
+   	GPIO_InitStruct.Pin = GPIO_PIN_1;
+     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+     GPIO_InitStruct.Pull = GPIO_PULLUP;
+     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+   	
+   	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_RESET);
+   	
+   	// 开启定时器的输入捕获
+   	htim2.Instance->SR = 0; // 状态寄存器清零
+   	htim2.Instance->CNT = 0; // 计数值清零
+   	
+   	// 配置捕获输入时的引脚模式
+   	GPIO_InitStruct.Pin = GPIO_PIN_1;
+   	GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+   	GPIO_InitStruct.Pull = GPIO_NOPULL;
+   	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+   	
+   	// 设置上升沿捕获
+   	__HAL_TIM_SET_CAPTUREPOLARITY(&htim2, TIM_CHANNEL_2, TIM_INPUTCHANNELPOLARITY_RISING);
+   	
+   	// 开启定时器捕获
+   	HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_2);
+   	
+   }
+   
+   uint16_t temp;		// 每次读取后存放
+   uint8_t it_triggle_flag; // 中断触发标志位，用于标志中断是否触发
+   
+   // 重写在定时器溢出中断的回调函数
+   // 从stm32f1xx_it.c找到TIM2_IRQHandler，
+   // 然后跟进HAL_TIM_IRQHandler，然后跟进Capture compare 2 event，然后跟进Input capture event
+   // 然后就找到了HAL_TIM_IC_CaptureCallback函数
+   void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim){
+   	// 先关停一下定时器，否则一直会触发捕获
+   	HAL_TIM_IC_Stop(&htim2, TIM_CHANNEL_2);
+   	// 读取值
+   	temp = HAL_TIM_ReadCapturedValue(&htim2, TIM_CHANNEL_2);
+   	// it_triggle_flag 置1，表示读取完成
+   	it_triggle_flag = 1;
+   }
+   
+   /* 读取瞬时PA1的值函数*/
+   void tpad_get_val(){
+   	tpad_reset();
+   	
+   	// 阻塞等待中断完成
+   	while(it_triggle_flag==0){
+   		HAL_Delay(1);
+   	}
+   	// 中断完成后，标志位置0
+   	it_triggle_flag = 0;
+   }
+   
+   
+   /* 在一个时间段内，多次读取PA1的值，然后取最大值函数*/
+   // 函数功能：获取PA1的值，多次读取取平均或最大
+   uint16_t tpad_get_maxval(){
+   	uint16_t maxval = 0;		// 存放最大值	
+   	uint8_t i = 8;		// 读8次
+   	
+   	while(i>0){
+   		tpad_get_val();
+   		if(temp > maxval){
+   			maxval = temp;
+   		}
+   		i--;
+   	}
+   	return maxval;
+   }
+   
+   /* 触摸按键扫描函数 */
+   // 函数功能：获取PA1的值，与阈值比较，如果大于阈值，返回1，否则，返回0
+   uint8_t tpad_scan(){
+   	uint8_t res = 0;		// 返回值
+   	uint16_t rval = 0;	// 用来存放获取到的PA1
+   	// 获取PA1的值
+   	rval = tpad_get_maxval();
+   	
+   	// 比较
+   	if(rval > tpad_default_val){
+   		res = 1;
+   	}
+   	
+   	return res;
+   }
+   
+   /*触摸按键初始化函数*/
+   // 函数功能：获取tpad无接触时的值
+   void tpad_init(){
+   	tpad_default_val = tpad_get_maxval();
+   }
+   ```
+
+   ![](./legend/在使用tpad设置上升沿捕获宏出现的问题.png)
+
+3. main.c中
+
+   ```c
+     MX_TIM2_Init();
+     /* USER CODE BEGIN 2 */
+   	tpad_init();
+     /* USER CODE END 2 */
+     while (1)
+     {
+       /* USER CODE END WHILE */
+   
+       /* USER CODE BEGIN 3 */
+   		if(tpad_scan() == 1){
+   			 HAL_GPIO_TogglePin(GPIOE,GPIO_PIN_5);
+   		}
+   		HAL_Delay(100);
+   		
+     }
+   ```
+
+   
+
+4. 
+
+# 5 [串口通信](https://blog.csdn.net/qq_44016222/article/details/123280806)
+
+串口通信是MCU最基本的通信方式
+
+|          | 传输原理           | 优点           | 缺点           |
+| -------- | ------------------ | -------------- | -------------- |
+| 并行通信 | 数据各个位同时传输 | 速度快         | 占用引脚资源多 |
+| 串行通信 | 数据按位顺序传输   | 占用引脚资源少 | 速度慢         |
+
+串口通信属于串行通信
+
+串行通信按照数据的传送方向可以分为：单工，半双工，全双工
+
+另一种分类方式是根据通信是否有时钟信号来划分的，分为同步通信和异步通信。
+
+- 同步通信指的是带有时钟同步信号，比如：SPI通信、IIC通信；
+- 异步通信指的是不带时钟同步信号比如：UART（通用异步收发器），单总线。
+
+注：
+
+- UART：通用同步  接收/发送器Universal Asynchronous Receiver/Transmitter
+- USART：通用同步/异步 接收/发送器Universal Synchronous/Asynchronous Receiver/Transmitter
+- 简单区分同步和异步就是看通信时需不需要对外提供时钟输出。
+
+![img](./legend/串口通信分类.png)
+
+
+
+## 5.1 串口通信时序
+
+串行通信一般是以帧格式传输数据，一个数据帧包括一个起始位、数据位、校验位和停止位。
+
+USART 就是对这些传输参数有具体规定，当然也不是只有唯一一个参数值，很多参数值都可以自定义设置，只是增强它的兼容性。
+
+
+
+![image-20240524152316304](./legend/image-20240524152316304.png)
+
+起始位：占用1Bit，低电平有效
+
+数据位：可以是5bit、6Bit、7Bit、8Bit，其中最常用是8Bit
+
+校验位：奇校验、偶校验、无校验，占用1bit，无校验位时不占用。
+
+停止位：占用1Bit、1.5Bit、2Bit，高电平有效
+
+
+
+## 5.2 波特率和比特率
+
+波特率：单位时间内传输符号的个数（**传符号率**），是码元传输速率单位
+
+比特率：单位时间内传输的数据位数，是信息量传送速率单位。
+
+一个符号可能编码多于1bit的数据，那么比特率会大于波特率，例如：QPSK、16-QAM等，一个信号符号可能代表2比特、4比特或更多。
+
+波特率与比特率的关系为：比特率 = 波特率 X 单个调制状态对应的二进制数
+$$
+I = S * log_2 N
+$$
+***I*** 为比特率，***S*** 为波特率，***N*** 为每个符号负载的信息量，eg：QPSK调制，N就为4。
+
+ 对于串口通信，只有两个电平代表0,1，所以bit率和baud率是一样的。
+
+常用的串口通讯速率：2400bps、4800bps、9600bps、19200bps、38400bps、115200bps。现在最常用的应该是115200bps的速率。
+
+参考：
+
+- [波特率与比特率](https://blog.csdn.net/u011041241/article/details/103356695)
+- [波特率 比特率 定义 区别 解释 应用](https://zhuanlan.zhihu.com/p/31529472)
+
+
+
+## 5.3 串口通信结构体详解
+
+```c
+typedef struct __UART_HandleTypeDef { 
+    USART_TypeDef *Instance; /*!< UART寄存器基地址 */
+    UART_InitTypeDef Init; /*!< UART通信参数 */
+    const uint8_t *pTxBuffPtr; /*!< 指向UART Tx传输缓冲区的指针 */ 
+    uint16_t TxXferSize; /*!< UART Tx传输大小 */
+    __IO uint16_t TxXferCount; /*!< UART Tx传输计数器 */
+    uint8_t *pRxBuffPtr; /*!< 指向UART Rx传输缓冲区的指针 */
+    uint16_t RxXferSize; /*!< UART Rx传输大小 */
+    __IO uint16_t RxXferCount; /*!< UART Rx传输计数器 */
+    __IO HAL_UART_RxTypeTypeDef ReceptionType; /*!< 正在进行的接收类型 */
+    __IO HAL_UART_RxEventTypeTypeDef RxEventType; /*!< Rx事件类型 */
+    DMA_HandleTypeDef *hdmatx; /*!< UART Tx DMA处理参数 */
+    DMA_HandleTypeDef *hdmarx; /*!< UART Rx DMA处理参数 */
+    HAL_LockTypeDef Lock; /*!< 锁定对象 */
+    __IO HAL_UART_StateTypeDef gState; /*!< 与全局句柄管理和Tx操作相关的UART状态信息 此参数可以是@ref HAL_UART_StateTypeDef的一个值 */
+    __IO HAL_UART_StateTypeDef RxState; /*!< 与Rx操作相关的UART状态信息 此参数可以是@ref HAL_UART_StateTypeDef的一个值 */
+    __IO uint32_t ErrorCode; /*!< UART错误代码 */
+    #if (USE_HAL_UART_REGISTER_CALLBACKS == 1) 
+        void (* TxHalfCpltCallback)(struct __UART_HandleTypeDef *huart); /*!< UART Tx半完成回调 */
+        void (* TxCpltCallback)(struct __UART_HandleTypeDef *huart); /*!< UART Tx完成回调 */
+        void (* RxHalfCpltCallback)(struct __UART_HandleTypeDef *huart); /*!< UART Rx半完成回调 */
+        void (* RxCpltCallback)(struct __UART_HandleTypeDef *huart); /*!< UART Rx完成回调 */
+        void (* ErrorCallback)(struct __UART_HandleTypeDef *huart); /*!< UART错误回调 */
+        void (* AbortCpltCallback)(struct __UART_HandleTypeDef *huart); /*!< UART中止完成回调 */
+        void (* AbortTransmitCpltCallback)(struct __UART_HandleTypeDef *huart); /*!< UART中止传输完成回调 */ 
+        void (* AbortReceiveCpltCallback)(struct __UART_HandleTypeDef *huart); /*!< UART中止接收完成回调 */
+        void (* WakeupCallback)(struct __UART_HandleTypeDef *huart); /*!< UART唤醒回调 */
+        void (* RxEventCallback)(struct __UART_HandleTypeDef *huart, uint16_t Pos); /*!< UART接收事件回调 */
+        void (* MspInitCallback)(struct __UART_HandleTypeDef *huart); /*!< UART Msp初始化回调 */ 
+        void (* MspDeInitCallback)(struct __UART_HandleTypeDef *huart); /*!< UART Msp去初始化回调 */ 
+    #endif /* USE_HAL_UART_REGISTER_CALLBACKS */ 
+} UART_HandleTypeDef;
+
+
+// 其中相关寄存器相关结构体如下
+
+/** * @brief 通用同步异步接收器发射器（USART） */
+typedef struct {
+    __IO uint32_t SR; /* USART状态寄存器，地址偏移：0x00 */
+    __IO uint32_t DR; /* USART数据寄存器，地址偏移：0x04 */
+    __IO uint32_t BRR; /* USART波特率寄存器，地址偏移：0x08 */
+    __IO uint32_t CR1; /* USART控制寄存器1，地址偏移：0x0C */
+    __IO uint32_t CR2; /* USART控制寄存器2，地址偏移：0x10 */
+    __IO uint32_t CR3; /* USART控制寄存器3，地址偏移：0x14 */ 
+    __IO uint32_t GTPR; /* USART保护时间和预分频器寄存器，地址偏移：0x18 */ 
+} USART_TypeDef;
+
+// 其中UART通信参数结构体如下
+typedef struct { 
+    uint32_t BaudRate; // 此成员配置UART通信的波特率。
+    uint32_t WordLength; // 指定在一帧中传输或接收的数据位数。
+    uint32_t StopBits; // 指定传输的停止位数。 
+    uint32_t Parity; // 指定奇偶校验模式。 
+    uint32_t Mode; // 指定接收或发送模式是否启用或禁用。 
+    uint32_t HwFlowCtl; // 指定硬件流控制模式是否启用或禁用。 
+    uint32_t OverSampling; // 指定是否启用过采样8以实现更高速度
+} UART_InitTypeDef;
+```
+
+
+
+## 5.4 相关api
+
+```c
+// 以阻塞模式发送数据。
+HAL_StatusTypeDef HAL_UART_Transmit(UART_HandleTypeDef *huart, const uint8_t *pData, uint16_t Size, uint32_t Timeout);
+// 以阻塞模式接收数据。
+HAL_StatusTypeDef HAL_UART_Receive(UART_HandleTypeDef *huart, uint8_t *pData, uint16_t Size, uint32_t Timeout);
+// 以非阻塞模式发送数据
+HAL_StatusTypeDef HAL_UART_Transmit_IT(UART_HandleTypeDef *huart, const uint8_t *pData, uint16_t Size);
+// 以非阻塞模式接收数据。
+HAL_StatusTypeDef HAL_UART_Receive_IT(UART_HandleTypeDef *huart, uint8_t *pData, uint16_t Size);
+
+// 以DMA模式发送数据
+HAL_StatusTypeDef HAL_UART_Transmit_DMA(UART_HandleTypeDef *huart, const uint8_t *pData, uint16_t Size);
+// 以DMA模式接收数据。
+HAL_StatusTypeDef HAL_UART_Receive_DMA(UART_HandleTypeDef *huart, uint8_t *pData, uint16_t Size);
+// 暂停DMA传输。
+HAL_StatusTypeDef HAL_UART_DMAPause(UART_HandleTypeDef *huart);
+// 恢复DMA传输。
+HAL_StatusTypeDef HAL_UART_DMAResume(UART_HandleTypeDef *huart);
+// 停止DMA传输。
+HAL_StatusTypeDef HAL_UART_DMAStop(UART_HandleTypeDef *huart);
+
+// 以阻塞模式接收数据，直到接收到指定数量的数据或发生IDLE事件。
+HAL_StatusTypeDef HAL_UARTEx_ReceiveToIdle(UART_HandleTypeDef *huart, uint8_t *pData, uint16_t Size, uint16_t *RxLen, uint32_t Timeout);
+// 以中断模式接收数据，直到接收到指定数量的数据或发生IDLE事件。
+HAL_StatusTypeDef HAL_UARTEx_ReceiveToIdle_IT(UART_HandleTypeDef *huart, uint8_t *pData, uint16_t Size);
+// 以DMA模式接收数据，直到接收到指定数量的数据或发生IDLE事件。
+HAL_StatusTypeDef HAL_UARTEx_ReceiveToIdle_DMA(UART_HandleTypeDef *huart, uint8_t *pData, uint16_t Size);
+// 获取导致RxEvent回调执行的Rx事件类型。
+HAL_UART_RxEventTypeTypeDef HAL_UARTEx_GetRxEventType(UART_HandleTypeDef *huart);
+// 中断模式下中止正在进行的传输。
+HAL_StatusTypeDef HAL_UART_Abort(UART_HandleTypeDef *huart);
+// 中断模式下中止正在进行的发送传输。
+HAL_StatusTypeDef HAL_UART_AbortTransmit(UART_HandleTypeDef *huart);
+// 中断模式下中止正在进行的接收传输。
+HAL_StatusTypeDef HAL_UART_AbortReceive(UART_HandleTypeDef *huart);
+// 中断模式下中止正在进行的传输。
+HAL_StatusTypeDef HAL_UART_Abort_IT(UART_HandleTypeDef *huart);
+// 中断模式下中止正在进行的发送传输。
+HAL_StatusTypeDef HAL_UART_AbortTransmit_IT(UART_HandleTypeDef *huart);
+// 中断模式下中止正在进行的接收传输。
+HAL_StatusTypeDef HAL_UART_AbortReceive_IT(UART_HandleTypeDef *huart);
+// 处理UART中断请求。
+void HAL_UART_IRQHandler(UART_HandleTypeDef *huart);
+
+// Tx传输完成回调
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart);
+// Tx半传输完成回调。
+void HAL_UART_TxHalfCpltCallback(UART_HandleTypeDef *huart);
+// Rx传输完成回调。
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart);
+// Rx半传输完成回调
+void HAL_UART_RxHalfCpltCallback(UART_HandleTypeDef *huart);
+// UART错误回调。
+void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart);
+// UART中止完成回调。
+void HAL_UART_AbortCpltCallback(UART_HandleTypeDef *huart);
+// UART中止发送完成回调。
+void HAL_UART_AbortTransmitCpltCallback(UART_HandleTypeDef *huart);
+// UART中止接收完成回调。
+void HAL_UART_AbortReceiveCpltCallback(UART_HandleTypeDef *huart);
+// 接收事件回调（在使用高级接收服务后调用的Rx事件通知）
+void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size);
+```
+
+## 5.5 阻塞模式接发
+
+![image-20240524173335682](./legend/串口uart配置.png)
+
+```c
+// uart.c 
+void MX_USART1_UART_Init(void)
+{
+  
+  huart1.Instance = USART1;							// 设置USART1为该函数的实例
+  huart1.Init.BaudRate = 115200;					// 波特率
+  huart1.Init.WordLength = UART_WORDLENGTH_8B;		// 设置帧实际内容长度为8
+  huart1.Init.StopBits = UART_STOPBITS_1;			// 设置停止位为1个停止位
+  huart1.Init.Parity = UART_PARITY_NONE;			// 设置无奇偶校验
+  huart1.Init.Mode = UART_MODE_TX_RX;				// 设置无奇偶校验
+  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;		// 设置无硬件流控制
+  huart1.Init.OverSampling = UART_OVERSAMPLING_16;	// 设置过采样为16
+  if (HAL_UART_Init(&huart1) != HAL_OK)				// 初始化配置的UART，并在初始化失败时调用错误处理函数
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART1_Init 2 */
+
+  /* USER CODE END USART1_Init 2 */
+
+}
+```
+
+
+
+```c
+uint8_t data;
+// main.c
+while (1) { 
+     // 尝试从 UART1 接收一个字节的数据，将其存储在 data 中。如果接收成功（即 HAL_UART_Receive 返回 HAL_OK），则执行 if 语句块。
+     if(HAL_UART_Receive(&huart1,&data,1,0)==HAL_OK){ 
+         // 将接收的字符发送至串口1 
+         HAL_UART_Transmit(&huart1,&data,1,0); 
+     }
+ }
+```
+
+这个过程可以通过板子上的ch340芯片，通过usb线，并配合串口调试助手uartAsist.exe来查看收发的东西。
+
+![](./legend/uart调试助手.png)
+
+## 5.6 中断模式接收
+
+### 定长内容接收中断
+
+接收到：led:1，开灯
+
+接收到：led:0，关灯
+
+![](./legend/串口中断模式配置.jpg)
+
+```c
+// uart.c中
+HAL_NVIC_SetPriority(USART1_IRQn, 0, 0);		// 设置中断优先级
+HAL_NVIC_EnableIRQ(USART1_IRQn);				// 使能中断
+```
+
+```c
+// main.c
+uint8_t rx_buffer[6];
+
+int main(void)
+{
+    MX_GPIO_Init();
+    MX_USART1_UART_Init();
+    HAL_UART_Receive_IT(&huart1, rx_buffer, 5);
+}
+
+// stm32f1xxx_it.c，找到USART1_IRQHandler，跟进HAL_UART_IRQHandler，跟进UART_Receive_IT，最后找到HAL_UART_RxCpltCallback，再进行重写
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+	HAL_UART_Transmit(huart,rx_buffer,5,100);
+	if(strncmp((char *) rx_buffer, "led:1", 5) == 0){
+		HAL_GPIO_WritePin(GPIOE, GPIO_PIN_5, GPIO_PIN_RESET);		// 开灯
+	} else if(strncmp((char *) rx_buffer, "led:0", 5) == 0){
+		HAL_GPIO_WritePin(GPIOE, GPIO_PIN_5, GPIO_PIN_SET);			// 关灯
+	}
+	HAL_UART_Receive_IT(huart, rx_buffer, 5);
+}
+```
+
+### 不定长内容接收中断
+
+接收到led:on，开灯
+
+接收到led:off，关灯
+
+以\r\n作为结束符
+
+```c
+// main.c
+
+/* USER CODE BEGIN PTD */ 
+#define USART_REC_LEN 256 // 定义接收数据的最大长度 
+/* USER CODE END PTD */
+
+/* USER CODE BEGIN PV */ 
+uint16_t USART_RX_STA = 0; // 定义USART接收状态标志 
+char USART_RX_BUF[USART_REC_LEN]; // 定义USART接收缓冲
+uint8_t rxData; // 用于单字节接收 
+/* USER CODE END PV */
+
+int main(void)
+{
+    MX_GPIO_Init();
+    MX_USART1_UART_Init();
+    HAL_UART_Receive_IT(&huart1, &rxData, 1);
+}
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+    if(huart->Instance == USART1) {
+        if((USART_RX_STA & 0x8000) == 0) // 未完成接收 
+        { 
+            if(USART_RX_STA & 0x4000) // 已经接收到0x0d 
+            { 
+                if(rxData != 0x0a) // 0x0a是\n的ascii码
+                { 
+                    USART_RX_STA = 0; // 接收错误，重新开始
+                } else { 
+                    USART_RX_STA |= 0x8000; // 标记接收完成
+                } 
+            } 
+            else 
+            { 
+                if(rxData == 0x0d)	// 0x0d是\r的ascii码
+                { 
+                    USART_RX_STA |= 0x4000; // 接收到0x0d，等待0x0a
+                }
+                else { 
+                    USART_RX_BUF[USART_RX_STA & 0X3FFF] = rxData; 
+                    USART_RX_STA++; 
+                    if(USART_RX_STA > (USART_REC_LEN - 1)) USART_RX_STA = 0; // 如果接收数据超出缓冲长度，重新开始 
+                }
+            } 
+        }
+
+        // 如果接收数据完成 
+        if (USART_RX_STA & 0x8000) { 
+            // LED控制逻辑 
+            if (strncmp((char *)USART_RX_BUF, "ON", 2) == 0) { 
+                HAL_GPIO_WritePin(GPIOE, GPIO_PIN_5, GPIO_PIN_RESET); // 低电平亮 
+            } else if (strncmp((char *)USART_RX_BUF, "OFF", 3) == 0) {
+                HAL_GPIO_WritePin(GPIOE, GPIO_PIN_5, GPIO_PIN_SET); // 高电平熄灭
+            } 
+            HAL_UART_Transmit(&huart1, (uint8_t*)USART_RX_BUF, USART_RX_STA & 0X3FFF, 1000); // 1000ms
+            USART_RX_STA = 0; // 重置状态，准备下次接收 
+        }
+
+        // 重新启动异步接收，接收一个字节 
+        HAL_UART_Receive_IT(huart, &rxData, 1); 
+    }
+}
+```
+
+## 5.7 DMA模式收发
+
+
+
+# 6 DMA
+
+DMA（Direct Memory Access，直接存储器访问）操作方式是提高CPU效率的有效途径。
+
+可以简单的理解为，大量重复性工作经过CPU“牵线搭桥”后，剩下的工作就由它自己重复进行，不用时刻关注。
+
+DMA传输无需CPU直接控制传输，也没有中断处理方式那样保留现场和恢复现场的过程，通过硬件为RAM与I/O设备开辟一条直接传送数据的通路，这样可以解放CPU。
+
+![](./legend/DMA内部结构框图.png)
+
+1. DMA请求：DMA传输数据，先向DMA控制器发送请求
+2. DMA通道：不同外设向DMA的不同通道发送请求。DMA1有7个通道，DMA2有5个通道。
+3. DMA优先级：多个DMA通道同时发来请求时，由仲裁器管理
+
 
 
 # 其它
 
 1. 代码跳转需要先编译后才能跳转
+
 2. [cubemx在Pinout view中选错了引脚，不知道怎么取消](https://blog.csdn.net/qq_52932171/article/details/132240143)
+
    - 左键要取消的引脚，再点击一次之前设置的模式就可取消
    - ![img](./legend/8878a0509b0949f3bccfb53bc22d8892.png)
+
 3. [internal commend error](https://blog.csdn.net/qq_60341895/article/details/127629430)
+
 4. [快捷键](https://blog.csdn.net/qq_44250317/article/details/125635828)
+
+5. stm32项目指定查找头文件所包含的路径
+
+   ![](./legend/stm32项目指定查找头文件所包含的路径.png)
+
+6. 创建文件并添加到项目
+
+   - 方式1在文件夹中创建文件，然后在keil5中添加文件到项目
+
+     ![](./legend/添加文件到项目.png)
+
+   - 方式2直接在keil5中添加文件
+
+     ![](./legend/直接在keil5中创建文件.png)
+
+   - 
+
+7. [../Core/Inc/tpad.h(7): warning:  #1295-D: Deprecated declaration tpad_init - give arg types](https://blog.csdn.net/killer_milk/article/details/123070458)
+
+   ```c
+   // 无参数函数，在头文件里面声明时，需要在参数位置加void
+   #ifndef __TPAD_H__
+   #define __TPAD_H__
+   
+   #include "main.h"
+   #include "tim.h"
+   
+   void tpad_init(void);
+   uint8_t tpad_scan(void);
+   
+   #endif
+   ```
+
+   
+
+8. [warning: #1-D: last line of file ends without a newline](https://blog.csdn.net/qq_66413444/article/details/134108336)
+
+   ![image-20240523204711586](./legend/image-20240523204711586.png)
+
+   
+
+9. 
