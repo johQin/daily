@@ -2487,7 +2487,19 @@ ps aux | head -1 && ps aux | grep "ffmpeg -re"
 
    
 
-6. 
+6. ffmpeg裁剪音频
+
+   ```bash
+   # 裁剪
+   ffmpeg -i 0.mp3 -ss 00:00:00 -to 00:01:17 -acodec copy 1.mp3
+   ffmpeg -i 0.mp3 -ss 00:01:47 -to 00:04:35 -acodec copy 2.mp3
+   # 拼接
+   ffmpeg -i "concat:1.mp3|2.mp3" -acodec copy output.mp3
+   ```
+
+   
+
+7. 
 
    
 
