@@ -16,7 +16,7 @@ ARM分成三个系列：
 - Cortex-R：针对对实时性和性能有一定要求的场景
 - Cortex-M：针对低功耗高性能的场景
 
-stm32它是一个soc（System On Chips，片上集成系统），它集成很多模块。其中最重要的就是cpu核心，它的核心选择的就是Cortex-M。
+stm32它是一个soc（System On Chips，片上集成系统），它集成很多模块。其中最重要的就是cpu核心，它的核心选择的就是Cortex-M（MCU，Microcontroller Unit）。soc除开MCU，其余就是片内资源（也称外设，Peripheral），包括RCC，GPIO，timer，ADC等等
 
 ARM采用的是一个精简指令集。
 
