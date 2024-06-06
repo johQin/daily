@@ -53,6 +53,10 @@ Qt扩展模块：
 
 # 0 基础
 
+## 0.0 环境搭建
+
+[安装qt 5.15.2](https://zhuanlan.zhihu.com/p/697911596)
+
 ## 0.1 [helloworld](https://www.bilibili.com/read/cv18834817)
 
 ### 0.1.1 创建项目步骤
@@ -66,6 +70,7 @@ Qt扩展模块：
    - 创建路径：项目存放的路径
 3. build System：
    - qmake
+   - cmake
 4. details
    - Class Name：一栏中，可以输入主窗口的类名，可以自定义一个名字,例如“MyWidget”。
    - Base class
@@ -93,7 +98,12 @@ Qt扩展模块：
    - main.cpp：主函数文件，应用程序的入口
    - mainwindow.cpp主窗口类文件，与headers中的同名.h文件相对应
 4. Forms文件夹：窗体设计文件
+   - **双击mainwindow.ui即可在设计选项卡设计ui**
 5. Other files：用来存放国际化等
+
+**在实际文件目录中，是没有上面这个文件层级结构的。cpp和h文件都放在同一个文件夹中的。**
+
+
 
 ## 0.2 信号与槽机制
 
@@ -144,21 +154,328 @@ signals和slots是QT开发当中在C++语言基础上扩展的关键词，专门
 
 ### 0.2.2 练习
 
-Qt Widgets Application ->dialog
 
-就算圆球体积的dialog
+
+输入半径，计算对应圆的面积
+
+New Project -> Application -> Qt Widgets Application
+
+Location（项目名称，存放路径）-> 构建系统（选择Cmake）-> Details （基类选择QDialog） -> Translation(国际化，基本上不用) -> 构建套件MinGW 64 bit（使用debug就行）
+
+#### 使用Qt designer实现
+
+##### designer工具栏
+
+![](./legend/qt_designer_设计工具栏.png)
+
+1. [编辑伙伴](https://blog.csdn.net/LaoYuanPython/article/details/101909730)：Edit Buddies（编辑伙伴关系）子菜单，该菜单的作用是将一个Label与其他控件关联起来，当Label控件设置了快捷键时，通过Label的快捷键就可以直接使关联控件获得焦点。
+2. 水平和垂直布局：先选中多个组件，然后在点击布局，这多个组件就会按照需要进行布局
+
+##### 编写代码与注解
+
+1. main.cpp解析：项目自动添加，main函数就是此工程的入口
+
+   ```c++
+   // main.cpp
+   #include "dialog.h"
+   #include <QApplication>         // Application类的定义，在每个使用Qt图形化应用程序中都必须使用一个QApplication对象
+   
+   int main(int argc, char *argv[])        // 应用程序入口
+   {
+       QApplication a(argc, argv);
+       Dialog w;
+       w.show();       // 当创建一个窗口部件的时候，默认它不可见，必须调用show函数，使其变为可见
+       return a.exec();            // 程序进入消息循环，等待可能得输入进行响应。这里将main函数的控制权交由Qt，Qt接收并处理用户和系统的事件并且将它们传递给适当的窗口部件
+   }
+   ```
+
+2. 双击dialog.ui，对界面进行设计
+
+   ```ui
+   <?xml version="1.0" encoding="UTF-8"?>
+   <ui version="4.0">
+    <class>Dialog</class>
+    <widget class="QDialog" name="Dialog">
+     <property name="geometry">
+      <rect>
+       <x>0</x>
+       <y>0</y>
+       <width>800</width>
+       <height>600</height>
+      </rect>
+     </property>
+     <property name="windowTitle">
+      <string>Dialog</string>
+     </property>
+     <widget class="QPushButton" name="pushButton">
+      <property name="geometry">
+       <rect>
+        <x>190</x>
+        <y>150</y>
+        <width>71</width>
+        <height>24</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>计算</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label">
+      <property name="geometry">
+       <rect>
+        <x>90</x>
+        <y>70</y>
+        <width>54</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>半径：</string>
+      </property>
+     </widget>
+     <widget class="QLineEdit" name="button_edit">
+      <property name="geometry">
+       <rect>
+        <x>140</x>
+        <y>70</y>
+        <width>121</width>
+        <height>21</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_2">
+      <property name="geometry">
+       <rect>
+        <x>70</x>
+        <y>110</y>
+        <width>54</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>圆的面积：</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="button_res">
+      <property name="geometry">
+       <rect>
+        <x>140</x>
+        <y>110</y>
+        <width>121</width>
+        <height>20</height>
+       </rect>
+      </property>
+      <property name="frameShape">
+       <enum>QFrame::Panel</enum>
+      </property>
+      <property name="frameShadow">
+       <enum>QFrame::Sunken</enum>
+      </property>
+      <property name="text">
+       <string/>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_4">
+      <property name="geometry">
+       <rect>
+        <x>110</x>
+        <y>30</y>
+        <width>131</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>button触发计算事件</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_5">
+      <property name="geometry">
+       <rect>
+        <x>450</x>
+        <y>30</y>
+        <width>131</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>输入框内容变化触发</string>
+      </property>
+     </widget>
+     <widget class="QLineEdit" name="input_change">
+      <property name="geometry">
+       <rect>
+        <x>440</x>
+        <y>70</y>
+        <width>121</width>
+        <height>21</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_3">
+      <property name="geometry">
+       <rect>
+        <x>390</x>
+        <y>70</y>
+        <width>54</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>半径：</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="input_res">
+      <property name="geometry">
+       <rect>
+        <x>440</x>
+        <y>110</y>
+        <width>121</width>
+        <height>20</height>
+       </rect>
+      </property>
+      <property name="frameShape">
+       <enum>QFrame::Panel</enum>
+      </property>
+      <property name="frameShadow">
+       <enum>QFrame::Sunken</enum>
+      </property>
+      <property name="text">
+       <string/>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_6">
+      <property name="geometry">
+       <rect>
+        <x>370</x>
+        <y>110</y>
+        <width>54</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>圆的面积：</string>
+      </property>
+     </widget>
+    </widget>
+    <resources/>
+    <connections/>
+   </ui>
+   
+   ```
+
+   
+
+   ![image-20240605154530577](legend/image-20240605154530577.png)
+
+3. 右击ui控件（转到槽），设置槽函数
+
+   ```c++
+   // dialog.h
+   #ifndef DIALOG_H
+   #define DIALOG_H
+   
+   #include <QDialog>
+   
+   QT_BEGIN_NAMESPACE
+   namespace Ui {
+   class Dialog;
+   }
+   QT_END_NAMESPACE
+   
+   class Dialog : public QDialog
+   {
+       Q_OBJECT
+   
+   public:
+       Dialog(QWidget *parent = nullptr);
+       ~Dialog();
+   
+   private slots:
+       // 槽函数命名：on_objectName_signalName
+       void on_pushButton_clicked();
+   
+       void on_input_change_textChanged(const QString &arg1);
+   
+   private:
+       Ui::Dialog *ui;
+   };
+   #endif // DIALOG_H
+   
+   
+   
+   
+   // dialog.cpp
+   #include "dialog.h"
+   #include "./ui_dialog.h"
+   #define M_PI 3.14
+   
+   Dialog::Dialog(QWidget *parent)
+       : QDialog(parent)
+       , ui(new Ui::Dialog)
+   {
+       // 在构造函数中，使用该句进行界面初始化  
+       ui->setupUi(this);
+   }
+   
+   Dialog::~Dialog()
+   {
+       delete ui;
+   }
+   
+   // 按钮点击槽函数
+   void Dialog::on_pushButton_clicked()
+   {
+       bool ok;
+       QString areaStr;
+       QString radusStr = ui->button_edit->text();
+       int radius = radusStr.toInt(&ok);
+       double area = radius * radius * M_PI;
+       ui->button_res->setText(areaStr.setNum(area));
+   }
+   
+   // 输入框内容变化槽函数
+   void Dialog::on_input_change_textChanged(const QString &arg1)
+   {
+       bool ok;
+       QString areaStr;
+       QString radusStr = ui->input_change->text();
+       int radius = radusStr.toInt(&ok);
+       double area = radius * radius * M_PI;
+       ui->input_res->setText(areaStr.setNum(area));
+   }
+   ```
+
+   
+
+4. 点击右下角，运行就可以看到效果
+
+
+
+#### 使用代码实现简单实例
+
+上面的例子是通过设计ui，生成一个类似于XML文档，然后由QT解析此文档，生成对应的ui对象，绑定槽函数。
+
+下面将通过完全代码的方式构建ui，然后绑定槽函数。
 
 ```c++
 // dialog.h
+
 #ifndef DIALOG_H
 #define DIALOG_H
 
 #include <QDialog>
+#include <QLabel>
+#include <QLineedit.h>
+#include<QPushButton>
+#include<QGridLayout>
+#include<QFrame>
+#define M_PI 3.14
 
-// 引入标签，命令按钮等对应头文件
-#include<qlabel.h>
-#include<qpushbutton.h>
-#include<qlineedit.h>
+QT_BEGIN_NAMESPACE
+namespace Ui {
+class Dialog;
+}
+QT_END_NAMESPACE
 
 class Dialog : public QDialog
 {
@@ -169,60 +486,70 @@ public:
     ~Dialog();
 
 private:
-    QLabel *lab1,*lab2;
-    QLineEdit *lEdit;
-    QPushButton *pbt;
-
+    Ui::Dialog *ui;
+    QLabel *radiusLabel;
+    QLabel *circleArea;
+    QLineEdit *radiusInput;
+    QPushButton *computeButton;
 private slots:
-    void CalculateVolume();//计算圆球的体积
+    void computeCircleArea();
+
 };
 #endif // DIALOG_H
 
 ```
 
 ```c++
+// dialog.cpp
+
 #include "dialog.h"
-#include<QGridLayout>
-const static double PI = 3.1415;
+#include "./ui_dialog.h"
+
 Dialog::Dialog(QWidget *parent)
     : QDialog(parent)
+    , ui(new Ui::Dialog)
 {
-    lab1 = new QLabel(this);
-    lab1->setText(tr("请输入圆球半径"));
+    radiusLabel = new QLabel(this);
+    radiusInput = new QLineEdit(this);
+    computeButton = new QPushButton(this);
+    circleArea = new QLabel(this);
 
-    lab2 = new QLabel(this);
+    radiusLabel->setText("半径：");
 
-    lEdit = new QLineEdit(this);
-    pbt =new QPushButton(this);
-    pbt->setText(tr("计算圆球的体积"));
-    QGridLayout *mLay = new QGridLayout(this);
-    mLay->addWidget(lab1,0,0);
-    mLay->addWidget(lEdit,0,1);
-    mLay->addWidget(lab2,1,0);
-    mLay->addWidget(pbt,1,1);
+    computeButton->setText("计算对应圆的面积");
+    circleArea->setMaximumHeight(50);
+    circleArea->setFrameShape(QFrame::Panel);
+    circleArea->setFrameShadow(QFrame::Sunken);
 
-    connect(lEdit,SIGNAL(textChanged(QString)), this,SLOT(CalculateVolume()));
+    QGridLayout* gridLayout = new QGridLayout(this);
+    gridLayout->addWidget(radiusLabel,0,0);
+    gridLayout->addWidget(radiusInput,0,1);
+    gridLayout->addWidget(circleArea,1,0);
+    gridLayout->addWidget(computeButton,1,1);
+
+    // 绑定槽函数api connect
+    connect(computeButton,SIGNAL(clicked()), this, SLOT(computeCircleArea()));
+
+    ui->setupUi(this);
 }
-
+void Dialog::computeCircleArea(){
+    bool ok;
+    QString areaStr;
+    QString radiusStr = radiusInput->text();
+    int radius = radiusStr.toInt(&ok);
+    double area = radius * radius * M_PI;
+    circleArea->setText(areaStr.setNum(area));
+}
 Dialog::~Dialog()
 {
-    delete lab1;
-    delete lab2;
-    delete lEdit;
-    delete pbt;
-}
-
-void Dialog::CalculateVolume()
-{
-    bool isLoop;
-    QString tempStr;
-    QString valueStr = lEdit->text();
-    int valueInt = valueStr.toInt(&isLoop);
-    double dv = 4 *PI* valueInt * valueInt * valueInt /3;
-    lab2->setText(tempStr.setNum(dv));
+    delete ui;
 }
 
 ```
+
+
+
+
 
 ## 0.3 Qt基本数据类型
 
@@ -638,6 +965,8 @@ MainWindow::~MainWindow()
 
 # 1 常用控件
 
+
+
 ## 1.1 Button
 
 常用button：
@@ -724,23 +1053,28 @@ QListWidget继承于QListView，这就提供了视图的操作功能。
 
 ## 1.5 Containers
 
+Widget对应QWidget。
+
+QWidget是所有Qt GUI界面类的基类，每种类型的组件都是由QWidget的特殊子类提供的。而QWidget又是QObject的子类。
+
+```c++
+// QWidget的构造函数
+QWidget(QWidget* parent=0, Qt::WindowFlags f=0);
+// parent参数：用于指定组件的父窗口，拥有父窗口的Widget对象是一个子窗口组件，而没有父窗口的Widget对象则自成一个窗口
+// 窗口标识f参数：它定义了窗口类型（窗口的系统属性）和窗口提示（定义了顶层窗口的外观），Qt::WindowFlags是枚举类，可以通过位或的操作，同时设定好几个flags
+// QWidget参数可以调用QWidget::setWindowFlags()和QWidget::setParent()函数去设置上面两个在构造函数中的参数
+```
+
+对于QObject，可使用父对象创建Widget以表明其所属关系，每个子类都显示在其父级所拥有的屏幕区域内，当删除父窗口对象时，其包含的所有Widget也都被自动删除。
+
 ## 1.6 Input & Display
 
 ## 1.7 [布局Layout](https://www.pianshen.com/article/9051976084/)
 
-![](./legend/布局类.png)
 
-- QBoxLayout：直线布局，可以规定排序的方向是从左到右还是从右到左，从上到下还是从下到上布局  
 
-  - QHBoxLayout  ：水平布局
+- 
 
-  - QVBoxLayout  ：垂直布局
-
-- QGridLayout  ： 将空间划分为若干个行和列，并把子窗口部件放置到划分成的一个个小空间中
-
-- QFormLayout ：表格布局把布局空间划分为两列，一列一般放标签，另一列一般用于放置LableEdit之类的窗口部件。  
-
-- QStackedLayout：把一系列窗口部件排列成堆叠的形式，每次只能顶部的部件是可见的。
 
 ### 1.1.1 QGridLayout
 
@@ -841,9 +1175,9 @@ Widget::~Widget()
 
 ```
 
-### QSplitter（窗口分割）
 
-QSplitter用来进行分裂布局，QSpliter派生于QFrame
+
+
 
 ### QDockWidgets（窗口停靠）
 
@@ -860,3 +1194,245 @@ QDialog类的子类主要有QMessageBox，QFileDialog，QColorDialog，QFontDial
 QFile，QDir，QFileInfo
 
 QSettings
+
+# 2 布局管理
+
+## 2.1 分割窗口QSpliter类
+
+QSplitter用来进行分裂布局，QSpliter派生于QFrame
+
+![image-20240606173858827](legend/image-20240606173858827.png)
+
+```c++
+#include <QApplication>         // Application类的定义，在每个使用Qt图形化应用程序中都必须使用一个QApplication对象
+#include<QSplitter>
+#include<QTextEdit>
+#include<QTextCodec>
+
+int main(int argc, char *argv[])        // 应用程序入口
+{
+    QApplication a(argc, argv);
+    QFont font("ZYSong18030",12);								 //指定显示字体
+    a.setFont(font);
+
+    //主分割窗口
+    QSplitter *splitterMain =new QSplitter(Qt::Horizontal,0);	//(a)
+    QTextEdit *textLeft =new QTextEdit(QObject::tr("Left Widget"), splitterMain);																	//(b)
+    textLeft->setAlignment(Qt::AlignCenter);					//(c)
+
+    // 右分割窗口													//(d)
+    QSplitter *splitterRight =new QSplitter(Qt::Vertical,splitterMain);
+    splitterRight->setOpaqueResize(false);						//(e)
+    QTextEdit *textUp =new QTextEdit(QObject::tr("Top Widget"), splitterRight);
+    textUp->setAlignment(Qt::AlignCenter);
+
+    QTextEdit *textBottom =new QTextEdit(QObject::tr("Bottom Widget"),splitterRight);
+    textBottom->setAlignment(Qt::AlignCenter);
+    splitterMain->setStretchFactor(1,1);						//(f)
+    splitterMain->setWindowTitle(QObject::tr("Splitter"));
+    splitterMain->show();
+    //MainWindow w;
+    //w.show();
+    return a.exec();            // 程序进入消息循环，等待可能得输入进行响应。这里将main函数的控制权交由Qt，Qt接收并处理用户和系统的事件并且将它们传递给适当的窗口部件
+}
+```
+
+## 2.2 窗口停靠QDockWidgets
+
+创建
+
+```c++
+// main.cpp
+
+#include <QApplication>         // Application类的定义，在每个使用Qt图形化应用程序中都必须使用一个QApplication对象
+#include"dockwindows.h"
+
+int main(int argc, char *argv[])        // 应用程序入口
+{
+    QApplication a(argc, argv);
+    DockWindows dw;
+    dw.show();
+    return a.exec();            // 程序进入消息循环，等待可能得输入进行响应。这里将main函数的控制权交由Qt，Qt接收并处理用户和系统的事件并且将它们传递给适当的窗口部件
+}
+```
+
+```c++
+// dockwindows.h
+
+#ifndef DOCKWINDOWS_H
+#define DOCKWINDOWS_H
+#include<QMainWindow>
+#include<QDockWidget>
+#include<QTextEdit>
+class DockWindows:public QMainWindow
+{
+    Q_OBJECT
+public:
+    DockWindows(QWidget *parent=0);
+    ~DockWindows();
+};
+
+#endif // DOCKWINDOWS_H
+
+```
+
+
+
+```c++
+// dockwindows.cpp
+
+#include "dockwindows.h"
+
+DockWindows::DockWindows(QWidget *parent) : QMainWindow(parent)
+{
+    setWindowTitle(tr("DockWindows"));	//设置主窗口的标题栏文字
+
+    QTextEdit *te=new QTextEdit(this);	//定义一个QTextEdit对象作为主窗口
+    te->setText(tr("Main Window"));
+    te->setAlignment(Qt::AlignCenter);
+    setCentralWidget(te);          		//将此编辑框设为主窗口的中央窗体
+
+    //停靠窗口1
+    QDockWidget *dock=new QDockWidget(tr("DockWindow1"),this);		//创建停靠窗
+    
+    dock->setFeatures(QDockWidget::DockWidgetMovable);	// 可移动，指定停靠窗口特性
+    dock->setAllowedAreas(Qt::LeftDockWidgetArea|Qt::RightDockWidgetArea);	// 设置停靠窗口可以停靠的区域
+
+    QTextEdit *te1 =new QTextEdit();
+    te1->setText(tr("Window1,The dock widget can be moved between docks by the user" ""));
+    dock->setWidget(te1);		// 在停靠窗体内添加组件
+    addDockWidget(Qt::RightDockWidgetArea,dock);	// 将停靠窗口插入QMainWindow，就是当前窗体
+
+
+    //停靠窗口2
+    dock=new QDockWidget(tr("DockWindow2"),this);
+    dock->setFeatures(QDockWidget::DockWidgetClosable|QDockWidget::DockWidgetFloatable); 										//可关闭、可浮动
+    QTextEdit *te2 =new QTextEdit();
+    te2->setText(tr("Window2,The dock widget can be detached from the main window,""and floated as an independent window, and can be closed"));
+    dock->setWidget(te2);
+    addDockWidget(Qt::RightDockWidgetArea,dock);
+
+
+    //停靠窗口3
+    dock=new QDockWidget(tr("DockWindow3"),this);
+    dock->setFeatures(QDockWidget::AllDockWidgetFeatures);   //全部特性
+    QTextEdit *te3 =new QTextEdit();
+    te3->setText(tr("Window3,The dock widget can be closed, moved, and floated"));
+    dock->setWidget(te3);
+    addDockWidget(Qt::RightDockWidgetArea,dock);
+}
+DockWindows::~DockWindows(){
+}
+
+```
+
+![image-20240606175757353](./legend/image-20240606175757353.png)
+
+## 2.3 堆栈QStackedWidget窗体
+
+效果：当选择左侧列表框（QListWidget）中不同的选项时，右侧显示所选的不同窗体。
+
+![image-20240606185916857](legend/image-20240606185916857.png)
+
+```c++
+// stackdlg.h
+
+#ifndef STACKDLG_H
+#define STACKDLG_H
+#include<QDialog>
+#include<QWidget>
+#include<QListWidget>
+#include<QLabel>
+#include<QStackedWidget>
+#include<QHBoxLayout>
+
+class StackDlg:public QDialog
+{
+    Q_OBJECT
+public:
+    StackDlg(QWidget *parent=0);
+    ~StackDlg();
+private:
+    QListWidget* list;
+    QStackedWidget* stack;
+    QLabel* label1;
+    QLabel* label2;
+    QLabel* label3;
+};
+
+#endif // STACKDLG_H
+
+```
+
+```c++
+// stackdlg.cpp
+
+#include "stackdlg.h"
+
+StackDlg::StackDlg(QWidget *parent) : QDialog(parent)
+{
+    setWindowTitle(tr("StackedWidget"));
+    // 列表框
+    list =new QListWidget(this);	//新建一个QListWidget控件对象
+    //在新建的QListWidget控件中插入三个条目，作为选择项
+    list->insertItem(0,tr("Window1"));
+    list->insertItem(1,tr("Window2"));
+    list->insertItem(2,tr("Window3"));
+
+
+    //创建三个QLabel标签控件对象，作为堆栈窗口需要显示的三层窗体
+    label1 =new QLabel(tr("WindowTest1"));
+    label2 =new QLabel(tr("WindowTest2"));
+    label3 =new QLabel(tr("WindowTest3"));
+
+    //新建一个QStackedWidget堆栈窗体对象
+    stack =new QStackedWidget(this);
+
+    //将创建的三个QLabel标签控件依次插入堆栈窗体中
+    stack->addWidget(label1);
+    stack->addWidget(label2);
+    stack->addWidget(label3);
+
+    QHBoxLayout *mainLayout =new QHBoxLayout(this);
+        //对整个对话框进行布局
+    mainLayout->setMargin(5);		//设定对话框（或窗体）的边距为5
+    mainLayout->setSpacing(5);		//设定各个控件之间的间距为5
+
+    mainLayout->addWidget(list);
+    mainLayout->addWidget(stack,0,Qt::AlignHCenter);
+    mainLayout->setStretchFactor(list,1);		//(a)
+    mainLayout->setStretchFactor(stack,3);
+
+    connect(list,SIGNAL(currentRowChanged(int)),stack,SLOT(setCurrentIndex (int)));											//(b)
+}
+
+StackDlg::~StackDlg(){}
+
+```
+
+## 2.4 基本布局
+
+![](./legend/布局类.png)
+
+- QBoxLayout：直线布局，可以规定排序的方向是从左到右还是从右到左，从上到下还是从下到上布局  
+
+  - QHBoxLayout  ：水平布局
+
+  - QVBoxLayout  ：垂直布局
+
+- QGridLayout  ： 将空间划分为若干个行和列，并把子窗口部件放置到划分成的一个个小空间中
+
+- QFormLayout ：表格布局把布局空间划分为两列，一列一般放标签，另一列一般用于放置LableEdit之类的窗口部件。  
+
+- QStackedLayout：把一系列窗口部件排列成堆叠的形式，每次只能顶部的部件是可见的。
+
+在QBoxLayout和QGridLayout中，都存在addWidget()和addLayout()
+
+- addWidget：用于向布局中添加组件
+- addLayout：用于向布局中添加子布局
+
+而QFormLayout和QStackedLayout，只存在addWidget方法。
+
+```c++
+```
+
