@@ -36,9 +36,33 @@ node.js是基于chrome v8引擎的js运行环境。
 chrome v8**是什么**：chrome提供的能把js语言编译成系统能够识别的语言，至于v8就是第八个版本。
 
 ## 3.1 nvm
-    node-version-manage node版本管理工具
-- nvm ls 查看已安装的node 所有版本  
-- nvm use v10.8.0 切换到对应版本
+
+nvm英文全程也叫node.js version management，是一个[nodejs](https://github.com/coreybutler/nvm-windows/releases)的版本管理工具。nvm和npm都是node.js版本管理工具，但是为了解决node各种不同之间版本存在不兼容的问题，因此可以通过nvm安装和切换不同版本的node。
+
+[安装包下载](https://github.com/coreybutler/nvm-windows/releases/tag/1.1.10)
+
+- 
+
+```bash
+# 查看nvm是否安装成功
+nvm -v
+#
+nvm install <version> [arch] 
+# 可选参数arch指定安装32位还是64位版本，默认是系统位数。
+#  version是特定版本也可以是最新稳定版本latest，eg：12，或者12.22.12
+# 比如我想要安装12版本的，可以执行以下命令
+nvm install 12
+# 也可以指定具体版本号
+nvm install 12.22.12
+
+# 查看已安装的node 所有版本  
+nvm ls
+# 切换到对应版本
+nvm use 12.22.12
+```
+
+- [【NVM】使用nvm报错“Could not retrieve https://npm.taobao.org/mirrors/node/index.json.”](https://blog.csdn.net/weixin_44490021/article/details/139328507)
+
 ## 3.2 REPL
 ```bash
 Read Eval Print Loop 读取，解析，打印，循环

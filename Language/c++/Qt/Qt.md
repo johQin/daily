@@ -551,13 +551,15 @@ Dialog::~Dialog()
 
 
 
-## 0.3 Qt基本数据类型
+## 0.3 [数据类型](https://blog.csdn.net/yaolcc/article/details/119395584)
 
-定义在：`#include<QtGlobal>`
+定义在：`#include<QtGlobal>`，QtGlobal头文件包括基本的全局声明。 它包含在大多数其他 Qt 头文件中。
 
+### 0.3.1 基本数据类型
 
+<table><thead><tr><th>类型名称</th><th>注释</th><th>备注</th></tr></thead><tbody><tr><td>qint8</td><td>signed char</td><td>有符号8位数据类型</td></tr><tr><td>qint16</td><td>signed short</td><td>有符号16位数据类型</td></tr><tr><td>qint32</td><td>signed int</td><td>有符号32位数据类型</td></tr><tr><td>qint64</td><td>long long int（或__int64）</td><td>有符号64位数据类型</td></tr><tr><td>qintptr</td><td>qint32 或 qint64</td><td>指针类型，用于带符号整型。 （32位系统为qint32、64位系统为qint64）</td></tr><tr><td>qlonglong</td><td>long long int 或(__int64)</td><td>和qint64定义一样</td></tr><tr><td>qptrdiff</td><td>qint32 或 qint64</td><td>表示指针差异的整型。32位系统为qint32、64位系统为qint64</td></tr><tr><td>qreal</td><td>double</td><td>除非配置了-qreal float选项，否则默认为double</td></tr><tr><td>quint8</td><td>unsigned char</td><td>无符号8位数据类型</td></tr><tr><td>quint16</td><td>unsigned short</td><td>无符号16位数据类型</td></tr><tr><td>quint32</td><td>unsigned int</td><td>无符号32位数据类型</td></tr><tr><td>quint64</td><td>unsigned long long int 或 (unsigned __int64)</td><td>无符号64位数据类型，Windows中定义为unsigned __int64</td></tr><tr><td>quintptr</td><td>quint32 或 quint64</td><td>指针类型，用于无符号整型。32位系统为quint32、64位系统为quint64</td></tr><tr><td>qulonglong</td><td>unsigned long long int 或 (unsigned __int64)</td><td>和quint64定义一样</td></tr><tr><td>uchar</td><td>unsigned char</td><td>无符号字符类型</td></tr><tr><td>uint</td><td>unsigned int</td><td>无符号整型</td></tr><tr><td>ulong</td><td>unsigned long</td><td>无符号长整型</td></tr><tr><td>ushort</td><td>unsigned short</td><td>无符号短整型</td></tr></tbody></table>
 
-## 0.4 常用容器类
+### 0.3.2 常用容器类
 
 如果希望自定义数据类型能存储在 Qt 数据容器里面，那么自定义类型必须至少满足三个条件：
 
@@ -567,7 +569,7 @@ Dialog::~Dialog()
 
 
 
-### 0.3.1 [QString](https://blog.csdn.net/qq_41802658/article/details/121490656)
+####  [QString](https://blog.csdn.net/qq_41802658/article/details/121490656)
 
 1. 组合（操作）字符串方法：
    - 后向追加append/push_back，前向追加prepend/push_front
@@ -647,14 +649,14 @@ int main(int argc, char *argv[])
 
 ```
 
-### 0.3.2 QDateTime
+#### QDateTime
 
 ```c++
     QDateTime dt;
     QString dtStr = dt.currentDateTime().toString("yyyy-MM-dd HH:mm:ss");	//"2023-04-19 15:59:56"
 ```
 
-### 0.3.3 [QByteArray](https://blog.csdn.net/kenfan1647/article/details/120326901)
+#### [QByteArray](https://blog.csdn.net/kenfan1647/article/details/120326901)
 
 ```c++
 QString qstrData;
@@ -669,7 +671,7 @@ ui->textBrowser->setText(qstrData);
 
 
 
-### 0.3.4 QVector
+#### QVector
 
 ```c++
 #include <QCoreApplication>
@@ -707,7 +709,7 @@ int main(int argc, char *argv[])
 
 ```
 
-### 0.3.5 [QList与QLinkedList](https://blog.csdn.net/Newmamahaha/article/details/123277360)
+#### [QList与QLinkedList](https://blog.csdn.net/Newmamahaha/article/details/123277360)
 
 `QList`
 
@@ -776,7 +778,7 @@ int main(int argc, char *argv[])
 
 
 
-### 0.3.6 QMap与QHash
+#### QMap与QHash
 
 
 
@@ -893,7 +895,7 @@ int main(int argc, char *argv[])
 - QMap是按照键的顺序进行存储的，QHash是任意顺序存储的。
 - **QMap的键必须提供 "<" 运算符，而QHash的键必须提供 "==" 运算符，和一个名为qHash的全局散列函数**
 
-### 0.3.7 QVariant
+#### QVariant
 
 QVariant 可以保存很多Qt的数据类型，包括QBrush、QColor、QCursor、QDateTime、QFont、QKeySequence、 QPalette、QPen、QPixmap、QPoint、QRect、QRegion、QSize和QString，并且还有C++基本类型，如 int、float等。
 
@@ -1021,7 +1023,7 @@ Widget::Widget(QWidget *parent)
 
 ![](./legend/容器控件.png)
 
-## 1.3 项目视图item views
+## 1.3 [项目视图item views](https://blog.csdn.net/jason_thinking/article/details/138041232)
 
 model-based
 
@@ -1035,9 +1037,42 @@ model-based
 
 `#include <QStandardItemModel>`
 
+QListView是一个基于模型-视图架构的控件，用于展示列表形式的数据。它本身并不存储数据，而是依赖于一个QAbstractListModel或其子类（如QStandardItemModel）来提供数据。使用时需创建模型，填充数据，然后将模型设置给QListView
+
+```c++
+#include <QApplication>
+#include <QListView>
+#include <QStandardItemModel>
+
+int main(int argc, char *argv[])
+{
+    QApplication app(argc, argv);
+
+    // 创建模型
+    QStandardItemModel model;
+    for (int i = 0; i < 5; ++i) {
+        QStandardItem *item = new QStandardItem(QString("Item %1").arg(i));
+        model.appendRow(item);
+    }
+
+    // 创建并配置QListView
+    QListView listView;
+    listView.setModel(&model);
+    listView.setWindowTitle("QListView Example");
+
+    // 显示窗口
+    listView.show();
+
+    return app.exec();
+}
+
+```
+
+
+
 ![](./legend/视图控件.png)
 
-## 1.4 项目控件item widgets
+## 1.4 [项目控件item widgets](https://blog.csdn.net/jason_thinking/article/details/138041232)
 
 item-based
 
@@ -1049,7 +1084,7 @@ QListWidget继承于QListView，这就提供了视图的操作功能。
 2. Tree Widget：树形控件。 
 3. Table Widget：表。
 
-[项目视图与项目控件的区别](https://blog.csdn.net/qq_38813056/article/details/88804711?utm_medium=distribute.pc_relevant.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7Edefault-5.control&depth_1-utm_source=distribute.pc_relevant.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7Edefault-5.control)
+[项目视图与项目控件的区别](https://blog.csdn.net/qq_38813056/article/details/88804711)
 
 ## 1.5 Containers
 
@@ -1435,4 +1470,193 @@ StackDlg::~StackDlg(){}
 
 ```c++
 ```
+
+## 2.5 QSizePolicy
+
+基于 [QWidget](https://so.csdn.net/so/search?q=QWidget&spm=1001.2101.3001.7020) 的控件都会继承 sizePolicy 属性（ QSizePolicy 类型），这个属性包括两个大的方面内容：**伸展因子 （Stretch Factor）和 伸展策略（Policy）**，这些都会影响到界面最终的布局显示。
+
+在Qt中，布局管理器（如`QHBoxLayout`, `QVBoxLayout`, `QGridLayout`等）本身是没有`QSizePolicy`属性的。`QSizePolicy`是一个用于控件（如`QWidget`及其子类）的属性，用于指定控件在布局管理器中的大小调整行为。
+
+布局管理器的任务是管理它包含的子控件的布局和大小，并根据子控件的`QSizePolicy`和父控件的约束来分配空间。因此，布局管理器本身没有直接的`QSizePolicy`，而是通过包含的控件的`QSizePolicy`来进行大小调整。
+
+### 2.5.1 布局管理器的工作原理
+
+当添加控件到布局器时，布局器的工作原理如下：
+
+1. 所有的控件初始时，布局器根据布局内子控件自己的 QWidget::sizePolicy() 和 QWidget::sizeHint()，分配相应的空间给各个控件。
+
+   - sizePolicy() 就是控件的尺寸调整策略，比如 QSizePolicy::Fixed 就是不拉伸，空间就是固定的，而 QSizePolicy::Expanding 就是尽可能占据空间，死劲拉伸。
+   - sizeHint() 就是控件本身的建议尺寸，或叫最佳尺寸，这个建议尺寸是 Qt 类库自己根据需要显示的内容计算的，所有的控件和窗体都能自己计算建议尺寸。
+
+2. 如果有控件自己设置了大于零的伸展因子（stretch factors），那么在主界面窗口变大时，新增的空闲区域按照控件的伸展因子比例进行分配。
+
+   - 如果有控件的伸展因子设置为 0，那么这个控件会尽量不占用窗口变大后的空闲区域，如果其他控件都不想要空闲区域，伸展因子为 0 的控件才会去尝试占据窗口变大后的空闲区域。
+   - 默认情况下，所有控件的伸展因子其实都是 0，这时候布局器会优先拉伸尺寸策略为 QSizePolicy::Expanding 的控件。
+
+3. 当窗口缩小时，布局器会根据控件的最小尺寸限定控件尺寸下限，控件到达它的最小尺寸后就不会继续缩小。
+
+   - 最小尺寸可以是 minimumSize 指定的最小尺寸，如果没设置 minimumSize ，那么最小尺寸是 minimumSizeHint 指定的最小建议尺寸，minimumSizeHint 是 Qt 类库自己计算的，一般不需要程序员设置。（有些特殊情况，如果控件尺寸仅仅由伸展因子 stretch factor 决定，那么就没有最小尺寸和最小建议尺寸）。
+
+   - ```c++
+     void setMinimumSize(const QSize &);       //最小尺寸
+     
+     void setMinimumSize(int minw, int minh);  //最小尺寸
+     ```
+
+4. 当窗口变大时，布局器会根据控件的最大尺寸限定控件的尺寸上限，控件达到它的最大尺寸后就不再增长。
+
+   - 最大尺寸由控件的 maximumSize 指定。（有些特殊情况，如果控件尺寸仅仅由伸展因子 stretch factor 决定，那么就没有最大尺寸）。
+
+   - ```c++
+     void setMaximumSize(const QSize &);       //最大尺寸
+     
+     void setMaximumSize(int maxw, int maxh);  //最大尺寸
+     ```
+
+     
+
+### 2.5.2 伸展因子
+
+控件和水平布局器、垂直布局器、网格布局器都可以设置**伸展因子**。
+
+窗口拉伸时，布局器会根据每个控件或子布局器的水平和垂直方向的伸展因子，分配新增的空闲空间。例外的是如果控件设置了 sizePolicy 属性里的策略为 QSizePolicy::Fixed 固定高度或固定宽度，**那就不拉伸控件，只拉伸控件之间的间隙。**对于固定宽度或高度的控件，没什么好讨论，因为它们不拉伸。我们下面考虑会拉伸的情形。
+
+如果把 "One" 按钮的 "水平伸展" 设为 2，"Two" 按钮的 "水平伸展" 设为 4，"Three" 按钮的 "水平伸展" 设为 0，那么在窗口拉大时，分配规律就是：先计算伸展因子之和 2+4+0 == 6，新的空间按照 2/6 ，4/6，0/6 的比例划分给这三个按钮。
+
+![](./legend/strech_factor.png)
+
+#### 控件自身设置伸展因子
+
+```c++
+void QSizePolicy::setHorizontalStretch(int stretchFactor);
+void QSizePolicy::setVerticalStretch(int stretchFactor);
+// stretchFactor 的取值范围是 0 到 255，负数就当做 0，大于 255 就当做 255
+
+//获取旧的尺寸策略作为底板，修改需要变动的伸展因子
+QSizePolicy sp = ui->pushButton1->sizePolicy();
+sp.setHorizontalStretch(2); //水平伸展因子
+sp.setVerticalStretch(0);   //垂直伸展因子
+//把新策略设置给按钮1
+ui->pushButton1->setSizePolicy(sp);
+```
+
+#### 布局器设置伸展因子
+
+除了控件自身可以设置伸展因子，布局器也可以为内部直属的控件或子布局器设置伸展因子。
+
+如果布局器和内部直属的控件都设置了伸展因子，那么**布局器的设置会覆盖直属控件的伸展因子**。因此不建议直接设置控件自己的伸展因子属性，而是通过布局器来设置各个子控件或子布局器的伸展因子。
+
+```c++
+// 设置序号为 index 的控件或子布局的伸展因子。
+void setStretch(int index, int stretch);
+// 设置布局器内部 widget 控件的伸展因子, 仅仅设置直属的子控件，该布局器的子布局器内部的孙子控件是不管的。
+bool setStretchFactor(QWidget * widget, int stretch);
+// 设置内部子布局器 layout 的伸展因子, 仅仅置直属的子布局器，而在子布局器内部的孙子布局器是不管的
+bool setStretchFactor(QLayout * layout, int stretch);
+
+// 获取伸展因子
+int stretch(int index) const
+```
+
+##### 网格布局的伸展因子设置
+
+网格布局器本身是二维的，它会始终保持控件在行和列上的对齐。**不建议直接设置网格布局器内部控件的伸展因子属性**，因为改变一个控件的伸展因子属性就会影响到全部的网格布局。应该通过网格布局器的函数或属性来设置行或列的伸展因子。
+
+```c++
+void setRowStretch(int row, int stretch);       //设置整行的伸展因子
+
+void setColumnStretch(int column, int stretch); //设置整列的伸展因子
+
+// 另外还可以设置某个整行的最小高度，或者设置某个整列的最小宽度：
+
+void setRowMinimumHeight(int row, int minSize);      //第 row 行最小高度设置为 minSize
+
+void setColumnMinimumWidth(int column, int minSize); //第 column 列的最小宽度设置为 minSize
+```
+
+### 2.5.3 伸展策略
+
+QSizePolicy 关于伸展策略的内容可以分为两个层级：
+
+1. 策略的基本标志位
+
+   - 由 QSizePolicy::PolicyFlag 类型枚举
+
+   - | **枚举标志位**              | **数值** | **描述**                                                     |
+     | --------------------------- | -------- | ------------------------------------------------------------ |
+     | **QSizePolicy::GrowFlag**   | 1        | 可增长标志，如果有必要的话，可以在建议尺寸之外继续增长。     |
+     | **QSizePolicy::ExpandFlag** | 2        | 尽量扩展标志，能占多大空间就占多大。                         |
+     | **QSizePolicy::ShrinkFlag** | 4        | 可收缩标志，如果有必要的话，可以在缩小到建议尺寸之后继续缩小。 |
+     | **QSizePolicy::IgnoreFlag** | 8        | 忽略建议尺寸，这个增长方式最野蛮，能占多大空间就占多大空间   |
+
+     控件通常不会直接设置策略的基本标志位，因为没有这方面的设置函数。基本标志位的用途，是为了组合成为实用的策略枚举常量，也就是下面第二层级的内容。
+
+2. 策略的枚举常量
+
+   - 伸展策略的枚举常量由 QSizePolicy::Policy 类型枚举，有七个定义好的常量，用于设置控件的水平和垂直伸展策略：
+
+   - | **枚举常量**                      | **数值**                             | **拉伸特点** | **描述**                                                     |
+     | --------------------------------- | ------------------------------------ | ------------ | ------------------------------------------------------------ |
+     | **QSizePolicy::Fixed**            | 0                                    | 固定         | 以建议尺寸固定住，对于水平方向是固定宽度，垂直方向是固定高度。 |
+     | **QSizePolicy::Minimum**          | GrowFlag                             | 被动拉大     | 以建议尺寸为最小尺寸，如果有多余的空间就拉伸，没有多余的空间就保持建议尺寸。被动扩张。 |
+     | **QSizePolicy::Maximum**          | ShrinkFlag                           | 被动缩小     | 以建议尺寸为最大尺寸，窗口缩小时，如果其他控件需要，该控件可以尽量缩小为其他控件腾出空间。 |
+     | **QSizePolicy::Preferred**        | GrowFlag \| ShrinkFlag               | 被动伸缩     | 以建议尺寸为最佳尺寸，能屈能伸，窗口缩小时可以为其他控件腾出空间，窗口变大时，也可以占据其他控件不需要的空闲空间。基类 QWidget 默认是这种策略。被动扩张。 |
+     | **QSizePolicy::Expanding**        | GrowFlag \| ShrinkFlag \| ExpandFlag | 主动扩张     | 建议尺寸仅仅是明智的建议，但控件基本不采用。这个模式也是能屈能伸，但它倾向于主动扩张，它会尽可能占据新增的区域。 |
+     | **QSizePolicy::MinimumExpanding** | GrowFlag \| ExpandFlag               | 主动扩张     | 以建议尺寸作为最小尺寸，主动扩张，尽可能占据新增的区域。     |
+     | **QSizePolicy::Ignored**          | ShrinkFlag \| GrowFlag \| IgnoreFlag | 野蛮扩张     | 忽略建议尺寸，虽然能屈能伸，但是它会尽最大可能占据空间。     |
+
+     ```c++
+     void QSizePolicy::setHorizontalPolicy(Policy policy)  //设置水平策略
+     
+     void QSizePolicy::setVerticalPolicy(Policy policy)    //设置垂直策略
+     ```
+
+     
+
+### 2.5.4 宽高相关性
+
+多数情况下建议尺寸 sizeHint() 的高度和宽度是不相关的，但有些特殊情况，比如能够自动换行的标签控件、菜单栏（后面章节讲解），比如一行长文本自动换行变成两行时，高度是双倍的，如果把标签拉宽，当两 行文本恢复成一行的时候，高度就变成单行的。这种控件越宽，它高度相对低一些，越窄，高度就高一些。因此这些控件的建议尺寸计算时，高度和宽度是相关的。
+
+```c++
+void QSizePolicy::setHeightForWidth(bool dependent);   //设置高度依赖宽度
+bool QSizePolicy::hasHeightForWidth() const;        //判断高度是否依赖宽度
+
+void QSizePolicy::setWidthForHeight(bool dependent);  //设置宽度依赖高度
+bool QSizePolicy::hasWidthForHeight() const;          //判断宽度是否依赖高度
+```
+
+### 2.5.5 控件隐藏空间是否释放
+
+程序运行时，控件都可以通过函数 hide() 隐藏自己。在控件隐藏时，控件是否还占据布局器里的空间，这是可以设置的：
+
+```c++
+void QSizePolicy::setRetainSizeWhenHidden(bool retainSize)  //设置控件在隐藏时是否仍占据布局器空间
+
+bool QSizePolicy::retainSizeWhenHidden() const     //判断隐藏控件是否占据布局器空间
+```
+
+
+
+# 3 对话框和主窗口
+
+[Qt QWidget、QDialog、QMainWindow的区别](https://blog.csdn.net/wzz953200463/article/details/134119220)
+
+**QWidget**
+
+- QWidget是所有Qt GUI界面类的基类，每种类型的组件都是由QWidget的特殊子类提供的。而QWidget又是QObject的子类。
+- 是Qt框架中最基础的窗口类，可以理解为用户界面的最基本单元。
+- QWidget类提供了一个**空白窗口**，可以通过继承该类来创建自定义的窗口类。
+- QWidget类提供了基本的窗口属性和方法，如大小、位置、标题、图标等。
+
+**QDialog**
+
+- 是QWidget类的子类，用于**创建对话框窗口**。
+- 对话框是指与用户进行交互的特殊窗口，例如提示信息、选择项、输入框等。
+- QDialog类提供了一些常用的对话框窗口样式，如消息框、输入框、文件选择框等。
+
+**QMainWindow**
+
+- 同样是QWidget类的子类，用于**创建主窗口**。
+- 主窗口一般是应用程序的顶级窗口，通常包含菜单栏、工具栏、状态栏等控件。
+- QMainWindow类提供了一些用于创建主窗口的特殊功能，如设置中心部件、状态栏、工具栏等。
 
