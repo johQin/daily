@@ -93,6 +93,9 @@ Qt扩展模块：
 ![](./legend/helloworld项目结构.png)
 
 1. helloworld.pro：项目管理文件
+   - 这是使用qmake作为构建工具才会用到.pro文件
+   - 如果使用cmake作为构建工作会用到CMakefilelist.txt
+   - 在高版本的qt中，qt creator提供了cmake作为构建工具，并逐渐放弃qmake。我在5.15.2可以看到这两个工具都还存在。
 2. Headers文件夹：项目内部的所有头文件
 3. Sources文件夹：项目源文件
    - main.cpp：主函数文件，应用程序的入口
@@ -105,15 +108,20 @@ Qt扩展模块：
 
 
 
-## 0.2 信号与槽机制
+## 0.2 [信号与槽机制](https://blog.csdn.net/qq_54169998/article/details/125982843)
 
-信号槽是观察者模式的一种使用。
+**信号（Signals）** ：是Qt独有的一种机制，用于**对象之间的通信**。信号由对象发出，其他对象可以连接（connect）到这个信号，以便在信号发出时被通知。
 
-信号：本质就是事件，当某一事件发生以后，则发出一个信号。
-
-槽：就是对信号响应的函数。槽函数可以与一个信号关联，当信号被发射的时候，关联的槽函数被自动执行处理。
+**槽（Slots）**：就是对信号响应的函数。槽函数可以与一个信号关联，当信号被发射的时候，关联的槽函数被自动执行处理。
 
 信号与槽关联是使用**`QObject::connect()`**，QObject是所有QT类的基类。
+
+**要使用信号与槽机制必须在类里添加Q_OBJECT宏**
+
+**使用场景**：
+
+- 用户交互响应：当用户在界面上执行某些操作（如点击按钮）时，发出信号以通知应用程序进行响应。
+- 内部状态变化通知：当对象的某些内部状态发生变化时，可以发出信号通知其他对象。例如，当模型数据改变时，通知视图进行更新。
 
 ### 0.2.1 原理
 
@@ -121,8 +129,75 @@ Qt扩展模块：
 
 - 每个信号都可以用函数来表示，称为**信号函数**，每个槽也可以用函数表示，称为**槽函数**。
 - 信号函数**只需要声明**（不需要定义和实现），而槽函数**需要定义实现**
+- **使用emit关键字发送信号**，我们可以在任何地方使用emit关键字发送信号，包括在槽方法内
+- 信号与槽连接：在**构造函数**中，通过connect将信号与定义的槽方法绑定起来 
 
 signals和slots是QT开发当中在C++语言基础上扩展的关键词，专门用于指明信号函数和槽函数。 
+
+[槽函数常用写法](https://blog.csdn.net/LF__plus/article/details/136917892)
+
+```c++
+QT_BEGIN_NAMESPACE
+namespace Ui {
+class Dialog;
+}
+QT_END_NAMESPACE
+
+// dialog.h
+class Dialog : public QDialog
+{
+    Q_OBJECT
+
+public:
+    Dialog(QWidget *parent = nullptr);
+    ~Dialog();
+
+private:
+    Ui::Dialog *ui;
+// 定义信号函数
+signals:
+    void testFun(QString& str); //信号不能也无需实现
+    void Common(QString& str);
+// 声明槽函数    
+private slots:
+    void on_whBtn_clicked();
+    void on_zgBtn_clicked();
+    void CommonGuys(QString& str);
+};
+
+Dialog::Dialog(QWidget *parent)
+    : QDialog(parent)
+    , ui(new Ui::Dialog)
+{
+
+	//信号与槽connect法一：
+    connect(this,&Dialog::Common,this,&Dialog::CommonGuys);
+    //信号与槽connect法二：
+    connect(computeButton,SIGNAL(Common()), this, SLOT(CommonGuys()));
+
+    ui->setupUi(this);
+}
+
+
+
+void Dialog::on_whBtn_clicked()
+{
+    QString str="武汉";
+    emit Common(str);
+}
+ 
+void Dialog::on_zgBtn_clicked()
+{
+    QString str="中国";
+    emit Common(str);
+}
+void Dialog::CommonGuys(QString& str)
+{
+    // ....
+}
+```
+
+
 
 ```c++
 [static] QMetaObject::Connection QObject::connect(const QObject *sender, const char *signal, const QObject *receiver, const char *method, Qt::ConnectionType type = Qt::AutoConnection);
@@ -132,6 +207,11 @@ signals和slots是QT开发当中在C++语言基础上扩展的关键词，专门
 //2. signal: 订阅sender对象的什么信号
 //3. receiver：信号接收者
 //4. method：信号接收者的槽函数，对对应信号做出响应。
+
+// 信号和槽连接方式一：采用SIGNAL()及SLOT()，这里的函数原型只能写出类型，不能有任何参数名，否则连接将会失败。
+connect(this,SIGNAL(Commeon(QString&)),this,SLOT(CommeonGuys(QString&)));
+// 信号和槽连接方式二：不使用SIGNAL和SLOT，直接信号和槽的地址
+connect(this,&Dialog::Common,this,&Dialog::CommonGuys);
 ```
 
 信号与槽机制连接方式：
@@ -151,6 +231,8 @@ signals和slots是QT开发当中在C++语言基础上扩展的关键词，专门
   - 多线程的时候，信号可能需要排队等待。
   - 编组和解组传递的参数
   - 需要定位接收信号的对象，将信号与之相关的所有槽安全的关联。
+
+
 
 ### 0.2.2 练习
 
@@ -547,19 +629,665 @@ Dialog::~Dialog()
 
 ```
 
+## 0.3 事件
+
+**事件（Events）** 是一种用于处理用户输入（如键盘、鼠标事件）和其他异步事件（如定时器事件）的机制。
+
+事件通常在事件循环中分发，控件可以通过重实现事件处理函数来响应这些事件。
+
+- Qt 程序需要在main()函数创建一个QApplication对象，然后调用它的exec()函数。这个函数就是开始 Qt 的事件循环。在执行exec()函数之后，程序将进入事件循环来监听应用程序的事件。
+- 当事件发生时，Qt 将创建一个事件对象。Qt 中所有事件类都继承于QEvent。在事件对象创建完毕后，Qt 将这个事件对象首先传递给目标对象QObject，目标对象内的处理函数决定是否将事件转发给父控件（**相当于js事件的冒泡模式，由内而外**）。
+- 如果目标对象有事件过滤器eventFilter，则先判定事件是否被过滤，如果没有被过滤，那么紧接着执行目标对象的event函数。如果被过滤，那么不会执行目标对象event函数）。event()函数并不直接处理事件，而是按照事件对象的类型分派给特定的事件处理函数（event handler），每个类可以对特定的事件处理函数进行重载。
 
 
 
+使用场景：
 
-## 0.3 [数据类型](https://blog.csdn.net/yaolcc/article/details/119395584)
+1. 用户输入处理：处理用户的鼠标点击、键盘输入等事件。
+2. 定时器事件：使用定时器触发定时任务。
+3. 自定义事件
+
+事件和信号是两个不同的概念，信号与事件的区别：
+
+1. 事件指代程序运行中发生的动作或状态改变，通常由操作系统或框架生成和处理。
+2. 信号是一种对象间通信机制，用于实现松耦合的消息传递和响应。
+3. 它们在编程中有不同的使用场景和目的。
+
+### 0.3.1 [Qt事件相关函数的两种通信方式](https://blog.csdn.net/xiaoyink/article/details/79398953)
+
+1. 通过返回值，通常是boolean类型
+   - 返回值决定的事件传递是在同一目标对象的各个事件处理函数之间（eventFilter()，event() ）
+2. 通过accept和ignore
+   - 事件accept属性（通过event->isAccepted()获取）对应的accept()函数和ignore()函数，他们决定的事件传递是发生在父子控件之间，决定事件是否转发给父控件。**事件是否转发并不取决于accept属性。**
+   - 在各个事件处理函数（eventFilter()，event() ）中都可以调用ignore()和accept()，以最后一个调用这两个函数的事件处理函数设置的accept属性值为最终值。
+   - 如果在当前目标控件的事件函数处理过程中使用了accept函数，那么事件将不会转发给父控件
+   - 如果在当前目标控件的事件函数处理过程中没有使用accept和ignore函数，那么事件将转发给父控件
+   - 一旦事件进入到event函数，或者具体事件的处理函数（不论是子控件的还是父控件的事件处理函数），那么event->isAccepted()获取到的值都是true，也就是说，每次事件被event()函数、xxxEvent()(特定事件处理函数)接收到时，事件的accept属性都已经在传入之前被重置为true。
+
+```c++
+// 父控件
+// mainwindow.h
+#include"mylabel.h"
+#include <QDebug>
+QT_BEGIN_NAMESPACE
+namespace Ui {
+class MainWindow;
+}
+QT_END_NAMESPACE
+
+class MainWindow : public QMainWindow
+{
+    Q_OBJECT
+
+public:
+    MainWindow(QWidget *parent = nullptr);
+    ~MainWindow();
+protected:
+    //重载的事件过滤函数eventFilter
+    bool eventFilter(QObject *watched, QEvent *event) override;
+    // 重载的事件处理函数handle，它被event函数调用
+    void mousePressEvent(QMouseEvent *event) override;
+    // event函数内部通过switch(event->type())，对于不同的事件类型，执行不同的handle分支
+    // 我们也可以对event函数进行重写，监听当前控件的所有事件，对部分需要处理的事件做出自定义的行为
+    // bool event(QEvent *e);
+    
+private:
+    Ui::MainWindow *ui;
+    // 子控件
+    MyLabel* ml;
+};
+
+
+// mainwindow.cpp
+#include "mainwindow.h"
+#include "./ui_mainwindow.h"
+
+MainWindow::MainWindow(QWidget *parent)
+    : QMainWindow(parent)
+    , ui(new Ui::MainWindow)
+{
+    ml = new MyLabel("press",this);
+    // 允许对象使用自定义的事件过滤器。允许对象在处理其自身事件之前拦截这些事件，并有机会对其进行自定义处理或修改。
+    installEventFilter(this);
+    
+    // ml->installEventFilter(this);
+    // 如果子控件mylabel的自定义事件过滤器和父控件的自定义过滤器相同，那么在这里执行这一段代码就行
+    // 子控件如果在这里使用了installEventFilter，那么就不要在子控件的构造器里再使用installEventFilter，
+    // 否则子控件会执行两个事件过滤器，先执行父控件的过滤器，再执行子控件的过滤器
+    
+    
+}
+
+MainWindow::~MainWindow()
+{
+    delete ui;
+}
+
+bool MainWindow::eventFilter(QObject *watched, QEvent *event) {
+    if (event->type() == QEvent::MouseButtonPress) {
+        qDebug() << "ParentWidget eventFilter: Mouse button pressed.";
+        // qDebug()<< event->isAccepted();
+        event->ignore();	
+        // 使用ignore或者 没有使用ignore（并且不使用accept），这个事件的accept属性将会被置为false
+        // 当在当前对象内执行完剩余该执行的函数后，向父控件转发该事件
+        return false;  
+        // 返回为false，表示该事件没有被过滤，原本下一个在当前对象内该执行的event()函数将会被执行
+        // 返回为true，表示事件被过滤，原本下一个在当前对象内该执行的event()函数将不会被执行
+    }
+    return QWidget::eventFilter(watched, event); // 默认处理
+}
+
+void MainWindow::mousePressEvent(QMouseEvent *event) {
+    qDebug() << "ParentWidget mousePressEvent: Mouse button pressed.";
+}
+```
+
+```c++
+// 子控件
+// malabel.h
+
+#ifndef MYLABEL_H
+#define MYLABEL_H
+
+#include <QObject>
+#include <QWidget>
+#include<QLabel>
+#include <QDebug>
+#include<QEvent>
+#include<QMouseEvent>
+
+class MyLabel: public QLabel
+{
+    Q_OBJECT
+public:
+    MyLabel(QString text,QWidget *parent = nullptr);
+    bool eventFilter(QObject *watched, QEvent *event) override;
+    void mousePressEvent(QMouseEvent *event) override;
+};
+
+#endif // MYLABEL_H
+
+
+// mylabel.cpp
+#include "mylabel.h"
+
+MyLabel::MyLabel(QString text,QWidget *parent):QLabel(text, parent) {
+    installEventFilter(this);
+}
+
+bool MyLabel::eventFilter(QObject *watched, QEvent *event)  {
+    if (event->type() == QEvent::MouseButtonPress) {
+        qDebug() << "ChildWidget eventFilter: Mouse button pressed.";
+        event->ignore();
+        return false;  
+    }
+    return QWidget::eventFilter(watched, event); // 默认处理
+}
+
+void MyLabel::mousePressEvent(QMouseEvent *event) {
+    qDebug() << "ChildWidget mousePressEvent: Mouse button pressed.";
+    event->ignore();
+}
+```
+
+### 0.3.2 事件队列
+
+事件循环的简单模型可以描述为Qt程序在while循环中一直调用processEvent()函数，processEvent()函数会处理事件并删除，所以事件循环队列会减少，但在处理事件的过程中Qt程序可能调用postEvent()函数添加新的事件到事件循环队列中去，同时操作系统也会添加事件到事件循环队列中去，所以程序才能一直响应用户请求，sendEvent()函数不添加事件到队列中去，但是它可以看成是应用程序处理当前事件的延长，即在本次processEvent()调用中插入了一个事件，处理完插入的事件，才能继续返回处理本次processEvent()调用要处理的本来事件，并最终又回到事件循环队列中去，而不用像postEvent()那样，将传递的事件放到以后的processEvent()函数调用中去处理。所以sendEvent()可以看成传递的事件被立即处理（同步），postEvent()不能掌控它所传递事件到底什么时候被处理，因为它不知道事件循环队列中排在它所传递的事件之前还有多少个事件（异步）。
+
+
+
+假设我们在主窗口类的某一个槽函数allTransactionDone()中调用了QMessageBox::information()函数，我们都知道，这会产生一个模态的对话框，对话框弹出后，我们不能操作主窗口，并且，此槽函数将阻塞到我们做出操作，按照上述逻辑，我们的第一反应是，在槽函数返回前程序都无法维护事件循环队列，主窗口发生的事件将得不到响应，例如主窗口有一个定时器一直触发其相应的槽函数去更新主窗口的图像，那么，我们肯定认为，此时主窗口的图像将停止更新，其实不然，如果按照这种思维，那么当我们去操作弹出的MessageBox时所产生的事件也将无法得到响应，那么程序将无法进行下去，真实的情况是QMessageBox::information()函数最终调用了QMessageBox::exec()来维护事件循环队列，否则，按照上述逻辑，我们同样不能操作弹出的模态对话框，QMessageBox::exec()程序维护的事件循环队列和QApplication::exec()维护的是同一个事件循环队列，并且Qt程序仅此一个事件循环队列，这就像是Qt程序在处理某个事件时，调用了processEvent()函数来将主线程的控制权交出去，去处理其他事件，处理完成后在收回控制权继续处理当前事件，当前事件处理完成后最终将控制权返回给主循环。
+
+
+## 0.4 项目构建
+
+在使用Qt 5.15.2 的时候，我采用qmake构建整个项目，
+
+通过对CMakeList.txt分析，着重探讨项目构建上的相关问题。
+
+cmake构建示例（简化版）：
+
+``` cmake
+cmake_minimum_required(VERSION 3.5)
+
+project(MyProject VERSION 0.1 LANGUAGES CXX)
+
+set(CMAKE_AUTOMOC ON)
+# 自动处理Qt的元对象编译
+# 当设置为ON时，CMake会自动调用moc（Meta-Object Compiler）工具，处理带有Qt元对象系统相关宏（如Q_OBJECT）的头文件，生成相应的MOC文件。
+# 目的：处理信号和槽机制、属性系统和Qt的其他元对象功能。
+
+
+set(CMAKE_AUTORCC ON)
+# 自动处理Qt的资源文件（.qrc）
+# 当设置为ON时，CMake会自动调用rcc（Resource Compiler）工具，将资源文件（.qrc）编译为C++代码。
+# 目的：将应用程序的资源（如图像、UI文件、其他资源）嵌入到可执行文件中。
+
+set(CMAKE_AUTOUIC ON)
+# 自动处理Qt Designer生成的.ui文件
+# 控制内容：当设置为ON时，CMake会自动调用uic（User Interface Compiler）工具，将.ui文件转换为对应的C++头文件。
+# 目的：将用户界面文件（.ui）转换为可以在C++代码中使用的ui_classname.h。
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
+
+set(UI_FILES
+    mainwindow.ui
+)
+set(SOURCE_FILES
+    main.cpp
+    mainwindow.cpp
+)
+set(HEADER_FILES
+    mainwindow.h
+)
+
+add_executable(MyProject ${SOURCE_FILES} ${HEADER_FILES} ${UI_FILES})
+
+target_link_libraries(MyProject PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
+```
+
+
+
+### 0.4.1 如何将.ui文件集成到项目中
+
+#### 通过ui生成c++代码
+
+##### 构建工具自动生成
+
+Qt Creator使用的`.ui`文件是基于XML格式的文件，用于描述用户界面的布局和组件。
+
+1. 在QT Creator的ide集成环境中，使用使用Qt Designer创建或编辑UI文件（如：mainwindow.ui）
+2. uic工具生成头文件（由构建工具【cmake or qmake】自动完成）
+   - Qt提供了一个名为`uic`（User Interface Compiler）的工具，它将`.ui`文件转换为C++头文件。通常生成的文件名格式为`ui_classname.h`。
+3. 在CMake或qmake中添加规则
+   - 项目构建系统（如CMake或qmake）会配置规则，开启set(CMAKE_AUTOUIC ON)
+   - 以便在构建时自动调用`uic`工具，生成所需的C++头文件，并将其包含在项目中。
+   - 生成的头文件通常会在My_project/build/Deskop_xxxxxxxxx-Debug/My_project_autogen/include中
+
+```c++
+// 在ui_mainwindow.h中，会生成两个类
+// 一个类Ui_MainWindow
+// 一个类namespace Ui {
+//    class MainWindow: public Ui_MainWindow {};
+// } 
+
+/********************************************************************************
+** Form generated from reading UI file 'mainwindow.ui'
+**
+** Created by: Qt User Interface Compiler version 5.15.2
+**
+** WARNING! All changes made in this file will be lost when recompiling UI file!
+********************************************************************************/
+
+#ifndef UI_MAINWINDOW_H
+#define UI_MAINWINDOW_H
+
+#include <QtCore/QVariant>
+#include <QtWidgets/QApplication>
+#include <QtWidgets/QMainWindow>
+#include <QtWidgets/QMenuBar>
+#include <QtWidgets/QStatusBar>
+#include <QtWidgets/QWidget>
+
+QT_BEGIN_NAMESPACE
+
+class Ui_MainWindow
+{
+public:
+    QWidget *centralwidget;
+    QMenuBar *menubar;
+    QStatusBar *statusbar;
+
+    void setupUi(QMainWindow *MainWindow)
+    {
+        if (MainWindow->objectName().isEmpty())
+            MainWindow->setObjectName(QString::fromUtf8("MainWindow"));
+        MainWindow->resize(800, 600);
+        centralwidget = new QWidget(MainWindow);
+        centralwidget->setObjectName(QString::fromUtf8("centralwidget"));
+        MainWindow->setCentralWidget(centralwidget);
+        menubar = new QMenuBar(MainWindow);
+        menubar->setObjectName(QString::fromUtf8("menubar"));
+        menubar->setGeometry(QRect(0, 0, 800, 21));
+        MainWindow->setMenuBar(menubar);
+        statusbar = new QStatusBar(MainWindow);
+        statusbar->setObjectName(QString::fromUtf8("statusbar"));
+        MainWindow->setStatusBar(statusbar);
+
+        retranslateUi(MainWindow);
+
+        QMetaObject::connectSlotsByName(MainWindow);
+    } // setupUi
+
+    void retranslateUi(QMainWindow *MainWindow)
+    {
+        MainWindow->setWindowTitle(QCoreApplication::translate("MainWindow", "MainWindow", nullptr));
+    } // retranslateUi
+
+};
+
+namespace Ui {
+    class MainWindow: public Ui_MainWindow {};
+} // namespace Ui
+
+QT_END_NAMESPACE
+
+#endif // UI_MAINWINDOW_H
+```
+
+
+
+##### [手动生成](https://blog.csdn.net/qq_41359157/article/details/122217975)
+
+当然这个.ui文件转化为ui_classname.h的这个过程，也可以手动完成。
+
+![](./legend/qt命令行.png)
+
+```bash
+# 打开qt的命令行工具，输入以下命令即可生成ui对应的头文件。
+uic -o ui_classname.h classname.ui
+```
+
+
+
+#### [从类中访问ui实例](https://blog.csdn.net/e5Max/article/details/9869977)
+
+在Qt中，当你使用Qt Designer创建一个UI文件（.ui）并将其转换为C++代码（头文件）后，需要**包含到**对应的类中，然后才能使用。这会涉及到自动生成的代码和手动编写的代码之间的接口问题。也就是**`Ui`命名空间和`setupUi`方法**。
+
+```c++
+// mainwindow.h
+
+#ifndef MAINWINDOW_H
+#define MAINWINDOW_H
+
+#include <QMainWindow>
+
+QT_BEGIN_NAMESPACE
+namespace Ui {
+class MainWindow;
+}
+QT_END_NAMESPACE
+
+class MainWindow : public QMainWindow
+{
+    Q_OBJECT
+
+public:
+    MainWindow(QWidget *parent = nullptr);
+    ~MainWindow();
+
+private:
+    Ui::MainWindow *ui;
+};
+
+#endif // MAINWINDOW_H
+
+
+// mainwindow.cpp
+#include "mainwindow.h"
+// 将ui_classname.h包括到对应的类
+#include "ui_mainwindow.h"	
+// 如果是自己手动生成的ui_mainwindow.h，那么需要找到位置自行包括进入就行
+// 如果是构建工具cmake自动生成的，那么只需要"ui_classname.h"即可，或者"./ui_classname.h"
+MainWindow::MainWindow(QWidget *parent) :
+    QMainWindow(parent),
+    ui(new Ui::MainWindow)
+{
+    ui->setupUi(this); // 初始化界面
+}
+
+MainWindow::~MainWindow()
+{
+    delete ui;
+}
+```
+
+`ui->setupUi(this)` 应该在构造函数中调用，这是因为：
+
+- **初始化时机**：在构造函数中调用可以确保在对象创建时，所有UI组件都被正确地初始化和设置。
+- **设置父子关系**：**将UI文件中定义的组件正确地添加到窗口或对话框中**，并设置它们的**父子关系**。
+
+通过这种方式，你的C++类可以访问和操作由Qt Designer创建的UI组件。例如，**您可以在构造函数或其他成员函数中使用`ui`指针来访问这些被定义在.ui文件中的组件。**
+
+当然还有其他的访问方案，可以参考：[在Qt中如何使用QtDesigner创建的UI文件](https://blog.csdn.net/e5Max/article/details/9869977)
+
+ 除了在编译时处理ui文件外，Qt还提供了在运行时动态加载ui文件的机制。通过QtUiTools模块的QUiLoader可以在运行时加载ui文件。可参考：[链接](https://blog.csdn.net/e5Max/article/details/9872309)
+
+### 0.4.2 元对象
+
+`CMAKE_AUTOMOC` 处理的元对象（Meta-Object）是Qt的元对象系统的一部分。元对象系统是Qt实现其信号和槽机制、属性系统和其他高级功能的核心技术之一。
+
+了解`CMAKE_AUTOMOC`和Qt的元对象系统，需要了解以下几个关键概念：
+
+#### 元对象系统
+
+Qt的元对象系统是一个反射系统，提供了在运行时查询和操作对象信息的能力。它包含以下主要功能：
+
+1. **信号和槽机制**：用于对象间的通信。
+2. **属性系统**：支持对象属性的动态查询和设置。
+3. **反射机制**：允许在运行时查询对象的信息，如类名、信号、槽、属性等。
+
+##### Q_OBJECT
+
+**任何需要使用元对象系统的Qt类都必须包含 `Q_OBJECT` 宏。**
+
+**如果一个对象需要使用到信号和槽机制等元对象系统功能，那么它必须包含 `Q_OBJECT`宏**
+
+```c++
+class MainWindow : public QMainWindow
+{
+    Q_OBJECT
+
+public:
+    MainWindow(QWidget *parent = nullptr);
+    ~MainWindow();
+
+private:
+    Ui::MainWindow *ui;
+    
+signals:
+    void mySignal();
+
+public slots:
+    void mySlot();
+};
+```
+
+##### MOC（Meta-Object Compiler）
+
+MOC是Qt的元对象编译器，用于处理包含`Q_OBJECT`宏的类，生成与元对象系统相关的代码。具体来说，MOC会生成一个包含元对象信息的C++源文件（通常是`moc_<classname>.cpp`），该文件包含以下内容：
+
+- 信号和槽的实现
+- 元对象的静态元数据
+- 动态属性和方法的实现
+
+##### 元对象构建
+
+在项目的CMakeLists.txt中，必须**`set(CMAKE_AUTOMOC ON)`**，这样构建器才能对属于元对象的类进行编译。这样之后，CMake 会自动处理包含 `Q_OBJECT` 宏的类并生成相应的 MOC 文件。
+
+#### 属性系统
+
+##### 动态属性
+
+Qt 的属性系统允许你为任何 `QObject` 派生类的对象动态添加属性，而不需要在类定义中提前声明这些属性。
+
+这种动态属性可以随时设置和查询，无需在类定义中声明。它们的存在仅限于运行时，并且不会影响类的实际结构或预定义属性。
+
+特点：
+
+1. **无需提前声明**：动态属性不需要在类定义中声明，可以在运行时随时添加。
+2. **灵活性**：可以根据需要动态调整和使用属性，而不需要修改类的定义。
+3. **临时性**：动态属性的生命周期与对象的生命周期一致，当对象销毁时，这些属性也会消失。
+
+**定义方式**：在运行时使用 `setProperty` 和 `property` 方法动态添加和查询属性。
+
+**适用场景**：
+
+- 适合临时需要的属性，不需要在类定义中显式声明。
+- 用于插件系统、脚本系统或需要在运行时动态调整配置的场景。
+- 灵活性高，但缺乏编译时检查和元数据支持。
+
+```c++
+QWidget *widget = new QWidget();
+widget->setProperty("myProperty", 42);
+QVariant value = widget->property("myProperty");
+
+// 临时定义属性
+widget->setProperty("customTitle", "My Custom Widget");
+widget->setProperty("customWidth", 300);
+widget->setProperty("customHeight", 200);
+// 通过这些自定义的属性，拿到值然后赋值给其他属性
+QString title = widget->property("customTitle").toString();
+int width = widget->property("customWidth").toInt();
+int height = widget->property("customHeight").toInt();
+widget->setWindowTitle(title);
+widget->resize(width, height);
+```
+
+##### Q_PROPERTY
+
+**定义方式**：在类定义中使用 `Q_PROPERTY` 宏显式声明。
+
+`Q_PROPERTY` 宏定义类的属性，使得这些属性可以被元对象系统识别和处理。这些属性在运行时和设计时都可以使用，并且可以在对象的元数据中反映出来。
+
+**适用场景**：
+
+- 适合需要在设计时就明确的属性，提供更好的类型安全和编译时检查。
+- 支持更多的特性，比如只读属性、写入通知、绑定信号等。
+- 生成元数据，可以被Qt的元对象系统识别，用于属性系统、反射、Qt Designer等。
+- **信号和槽**：`Q_PROPERTY` 可以与信号和槽机制结合使用，提供属性变化通知的机制，这在数据绑定和动态用户界面更新中非常有用。
+
+语法：
+
+```c++
+Q_PROPERTY(type name 
+           READ getter 
+           [WRITE setter] 
+           [RESET resetter] 
+           [NOTIFY notifier] 
+           [REVISION int] 
+           [DESIGNABLE bool] 
+           [SCRIPTABLE bool] 
+           [STORED bool] 
+           [USER bool] 
+           [CONSTANT]
+           [FINAL])
+
+```
+
+使用示例：
+
+```c++
+class MyClass : public QObject {
+    Q_OBJECT
+    Q_PROPERTY(int value READ value WRITE setValue NOTIFY valueChanged)
+    // Q_PROPERTY 声明了一个名为 value 的属性。
+    // READ 指定了读取属性的函数 value()。
+    // WRITE 指定了写入属性的函数 setValue(int)
+    // NOTIFY 指定了属性变化时发出的信号 valueChanged(int)
+
+public:
+    MyClass(QObject *parent = nullptr) : QObject(parent), m_value(0) {}
+	
+    // 读取value属性的函数 
+    int value() const { return m_value; }
+    // 写value属性的函数
+    void setValue(int value) {
+        if (m_value != value) {
+            m_value = value;
+            emit valueChanged(m_value);
+        }
+    }
+
+signals:
+    // value属性发生变化时，触发什么信号
+    void valueChanged(int newValue);
+
+private:
+    int m_value;
+};
+
+```
+
+#### 反射机制
+
+##### 元对象系统的核心组件
+
+1. **Q_OBJECT 宏**：在类定义中包含 `Q_OBJECT` 宏，使得该类能够生成元数据。这些元数据包括类名、属性、信号和槽等信息。
+2. **QMetaObject**：包含了有关类的元数据，可以用于查询类的信息，例如属性、方法、信号和槽等。
+3. **QMetaProperty**、**QMetaMethod**、**QMetaEnum** 等：提供对类属性、方法和枚举的访问接口。
+
+性能：反射操作比直接调用方法和访问属性稍慢，应避免在性能关键的代码中频繁使用。
+
+类型安全：反射操作通常通过字符串进行，不如直接调用类型安全，使用时需谨慎。
+
+
+
+##### 主要功能
+
+###### 查询类的元数据
+
+通过 `QMetaObject`，可以查询类的元数据，例如类名、属性、信号、槽等。
+
+```c++
+#include <QCoreApplication>
+#include <QObject>
+#include <QMetaObject>
+#include <QMetaProperty>
+#include <QDebug>
+
+class MyClass : public QObject {
+    Q_OBJECT
+    Q_PROPERTY(int value READ value WRITE setValue NOTIFY valueChanged)
+
+public:
+    MyClass(QObject *parent = nullptr) : QObject(parent), m_value(0) {}
+
+    int value() const { return m_value; }
+    void setValue(int value) {
+        if (m_value != value) {
+            m_value = value;
+            emit valueChanged(m_value);
+        }
+    }
+
+signals:
+    void valueChanged(int newValue);
+
+private:
+    int m_value;
+};
+
+int main(int argc, char *argv[]) {
+    QCoreApplication app(argc, argv);
+
+    MyClass obj;
+    const QMetaObject *metaObj = obj.metaObject();
+
+    qDebug() << "Class name:" << metaObj->className();
+    qDebug() << "Property count:" << metaObj->propertyCount();
+
+    for (int i = metaObj->propertyOffset(); i < metaObj->propertyCount(); ++i) {
+        QMetaProperty prop = metaObj->property(i);
+        qDebug() << "Property name:" << prop.name();
+        qDebug() << "Property type:" << prop.typeName();
+    }
+
+    return app.exec();
+}
+
+```
+
+###### 动态调用方法
+
+可以使用反射机制动态调用对象的方法，包括槽函数。
+
+```c++
+#include <QCoreApplication>
+#include <QObject>
+#include <QMetaObject>
+#include <QDebug>
+
+class MyClass : public QObject {
+    Q_OBJECT
+
+public:
+    MyClass(QObject *parent = nullptr) : QObject(parent) {}
+
+public slots:
+    void mySlot() {
+        qDebug() << "mySlot called";
+    }
+};
+
+int main(int argc, char *argv[]) {
+    QCoreApplication app(argc, argv);
+
+    MyClass obj;
+    const QMetaObject *metaObj = obj.metaObject();
+
+    metaObj->invokeMethod(&obj, "mySlot");
+
+    return app.exec();
+}
+
+```
+
+
+
+## 0.5 [数据类型](https://blog.csdn.net/yaolcc/article/details/119395584)
 
 定义在：`#include<QtGlobal>`，QtGlobal头文件包括基本的全局声明。 它包含在大多数其他 Qt 头文件中。
 
-### 0.3.1 基本数据类型
+### 0.5.1 基本数据类型
 
 <table><thead><tr><th>类型名称</th><th>注释</th><th>备注</th></tr></thead><tbody><tr><td>qint8</td><td>signed char</td><td>有符号8位数据类型</td></tr><tr><td>qint16</td><td>signed short</td><td>有符号16位数据类型</td></tr><tr><td>qint32</td><td>signed int</td><td>有符号32位数据类型</td></tr><tr><td>qint64</td><td>long long int（或__int64）</td><td>有符号64位数据类型</td></tr><tr><td>qintptr</td><td>qint32 或 qint64</td><td>指针类型，用于带符号整型。 （32位系统为qint32、64位系统为qint64）</td></tr><tr><td>qlonglong</td><td>long long int 或(__int64)</td><td>和qint64定义一样</td></tr><tr><td>qptrdiff</td><td>qint32 或 qint64</td><td>表示指针差异的整型。32位系统为qint32、64位系统为qint64</td></tr><tr><td>qreal</td><td>double</td><td>除非配置了-qreal float选项，否则默认为double</td></tr><tr><td>quint8</td><td>unsigned char</td><td>无符号8位数据类型</td></tr><tr><td>quint16</td><td>unsigned short</td><td>无符号16位数据类型</td></tr><tr><td>quint32</td><td>unsigned int</td><td>无符号32位数据类型</td></tr><tr><td>quint64</td><td>unsigned long long int 或 (unsigned __int64)</td><td>无符号64位数据类型，Windows中定义为unsigned __int64</td></tr><tr><td>quintptr</td><td>quint32 或 quint64</td><td>指针类型，用于无符号整型。32位系统为quint32、64位系统为quint64</td></tr><tr><td>qulonglong</td><td>unsigned long long int 或 (unsigned __int64)</td><td>和quint64定义一样</td></tr><tr><td>uchar</td><td>unsigned char</td><td>无符号字符类型</td></tr><tr><td>uint</td><td>unsigned int</td><td>无符号整型</td></tr><tr><td>ulong</td><td>unsigned long</td><td>无符号长整型</td></tr><tr><td>ushort</td><td>unsigned short</td><td>无符号短整型</td></tr></tbody></table>
 
-### 0.3.2 常用容器类
+### 0.5.2 常用容器类
 
 如果希望自定义数据类型能存储在 Qt 数据容器里面，那么自定义类型必须至少满足三个条件：
 
@@ -1468,10 +2196,118 @@ StackDlg::~StackDlg(){}
 
 而QFormLayout和QStackedLayout，只存在addWidget方法。
 
+### 水平布局
+
+
+
 ```c++
+// main.cpp
+#include "mainframe.h"
+#include <QApplication>
+int main(int argc, char *argv[])
+{
+    QApplication a(argc, argv);
+    MainFrame* w = new MainFrame();
+    w->show();
+    return a.exec();
+}
+// mainFrame.cpp
+MainFrame::MainFrame(QWidget *parent)
+    : QDialog(parent)
+    , ui(new Ui::MainFrame)
+{
+    QHBoxLayout* layout = new QHBoxLayout(this);
+    QListWidget* list = new QListWidget(this);
+    list->addItem("基本信息");
+    list->addItem("联系方式");
+    list->addItem("详情");
+    list->addItem("背景");
+
+    Content * content = new Content(this);
+
+    layout->addWidget(list);
+    layout->addWidget(content);
+
+    // // //设置拉伸比例
+    layout->setStretch(0, 2);
+    layout->setStretch(1, 8);
+
+
+    QSizePolicy qp = this->sizePolicy();
+    qp.setHorizontalPolicy(QSizePolicy::Expanding);
+    qp.setVerticalPolicy(QSizePolicy::Expanding);
+    this->setSizePolicy(qp);
+    this->setStyleSheet("background-color: blue;");
+    this->setLayout(layout);
+    
+}
+
 ```
 
-## 2.5 QSizePolicy
+
+
+为了使`QSplitter`充满整个`MainFrame`，我们需要将`QSplitter`设置为`MainFrame`的主布局。可以通过设置布局管理器来实现。
+
+```c++
+// main.cpp
+#include "mainframe.h"
+#include <QApplication>
+
+int main(int argc, char *argv[])
+{
+    QApplication a(argc, argv);
+    MainFrame* w = new MainFrame();
+    w->show();
+    return a.exec();
+}
+
+// mainframe.cpp
+#include "mainframe.h"
+#include "./ui_mainframe.h"
+
+MainFrame::MainFrame(QWidget *parent)
+    : QDialog(parent)
+    , ui(new Ui::MainFrame)
+{
+
+    QSplitter* splitter = new QSplitter(this);
+
+    QListWidget* list = new QListWidget(this);
+    list->addItem("基本信息");
+    list->addItem("联系方式");
+    list->addItem("详情");
+    list->addItem("背景");
+
+    Content *content = new Content(this);
+
+    splitter->addWidget(list);
+    splitter->addWidget(content);
+    splitter->setStyleSheet("background-color: green;");
+
+    // 创建布局管理器，并将splitter添加到布局中
+    QVBoxLayout *layout = new QVBoxLayout(this);
+    layout->addWidget(splitter);
+    setLayout(layout);
+
+    // 确保MainFrame和splitter的大小策略为Expanding
+    QSizePolicy qp = this->sizePolicy();
+    qp.setHorizontalPolicy(QSizePolicy::Expanding);
+    qp.setVerticalPolicy(QSizePolicy::Expanding);
+    this->setSizePolicy(qp);
+
+    splitter->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    this->setStyleSheet("background-color: blue;");
+}
+
+MainFrame::~MainFrame()
+{
+    delete ui;
+}
+```
+
+
+
+## 2.5 [QSizePolicy](http://www.360doc.com/content/23/1018/16/65283686_1100667935.shtml)
 
 基于 [QWidget](https://so.csdn.net/so/search?q=QWidget&spm=1001.2101.3001.7020) 的控件都会继承 sizePolicy 属性（ QSizePolicy 类型），这个属性包括两个大的方面内容：**伸展因子 （Stretch Factor）和 伸展策略（Policy）**，这些都会影响到界面最终的布局显示。
 
@@ -1660,3 +2496,24 @@ bool QSizePolicy::retainSizeWhenHidden() const     //判断隐藏控件是否占
 - 主窗口一般是应用程序的顶级窗口，通常包含菜单栏、工具栏、状态栏等控件。
 - QMainWindow类提供了一些用于创建主窗口的特殊功能，如设置中心部件、状态栏、工具栏等。
 
+
+
+
+
+
+
+
+
+# log
+
+1. [error: invalid use of incomplete type 'class QMouseEvent'](https://blog.csdn.net/qq_43768296/article/details/116525372)
+
+   ```c++
+   // 出现此类错误的原因一般都是没有使用类的头文件。
+   // 可以通过查询类的头文件，将其包含进来即可。
+   #include<QMouseEvent>
+   ```
+
+   
+
+2. ​       
