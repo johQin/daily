@@ -653,6 +653,8 @@ Dialog::~Dialog()
 2. 信号是一种对象间通信机制，用于实现松耦合的消息传递和响应。
 3. 它们在编程中有不同的使用场景和目的。
 
+
+
 ### 0.3.1 [Qt事件相关函数的两种通信方式](https://blog.csdn.net/xiaoyink/article/details/79398953)
 
 1. 通过返回值，通常是boolean类型
@@ -675,7 +677,7 @@ class MainWindow;
 }
 QT_END_NAMESPACE
 
-class MainWindow : public QMainWindow
+class MainWindow : public QWidget
 {
     Q_OBJECT
 
@@ -703,7 +705,7 @@ private:
 #include "./ui_mainwindow.h"
 
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent)
+    : QWidget(parent)
     , ui(new Ui::MainWindow)
 {
     ml = new MyLabel("press",this);
@@ -790,6 +792,17 @@ void MyLabel::mousePressEvent(QMouseEvent *event) {
 }
 ```
 
+打印结果：
+
+```
+ChildWidget eventFilter: Mouse button pressed.
+ChildWidget mousePressEvent: Mouse button pressed.
+ParentWidget eventFilter: Mouse button pressed.
+ParentWidget mousePressEvent: Mouse button pressed.
+```
+
+
+
 ### 0.3.2 事件队列
 
 事件循环的简单模型可以描述为Qt程序在while循环中一直调用processEvent()函数，processEvent()函数会处理事件并删除，所以事件循环队列会减少，但在处理事件的过程中Qt程序可能调用postEvent()函数添加新的事件到事件循环队列中去，同时操作系统也会添加事件到事件循环队列中去，所以程序才能一直响应用户请求，sendEvent()函数不添加事件到队列中去，但是它可以看成是应用程序处理当前事件的延长，即在本次processEvent()调用中插入了一个事件，处理完插入的事件，才能继续返回处理本次processEvent()调用要处理的本来事件，并最终又回到事件循环队列中去，而不用像postEvent()那样，将传递的事件放到以后的processEvent()函数调用中去处理。所以sendEvent()可以看成传递的事件被立即处理（同步），postEvent()不能掌控它所传递事件到底什么时候被处理，因为它不知道事件循环队列中排在它所传递的事件之前还有多少个事件（异步）。
@@ -852,11 +865,11 @@ target_link_libraries(MyProject PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
 
 
 
-### 0.4.1 如何将.ui文件集成到项目中
+## 0.5 如何将.ui文件集成到项目中
 
-#### 通过ui生成c++代码
+### 0.5.1 通过ui生成c++代码
 
-##### 构建工具自动生成
+#### 构建工具自动生成
 
 Qt Creator使用的`.ui`文件是基于XML格式的文件，用于描述用户界面的布局和组件。
 
@@ -902,7 +915,7 @@ public:
     QMenuBar *menubar;
     QStatusBar *statusbar;
 
-    void setupUi(QMainWindow *MainWindow)
+    void setupUi(QWidget *MainWindow)
     {
         if (MainWindow->objectName().isEmpty())
             MainWindow->setObjectName(QString::fromUtf8("MainWindow"));
@@ -923,7 +936,7 @@ public:
         QMetaObject::connectSlotsByName(MainWindow);
     } // setupUi
 
-    void retranslateUi(QMainWindow *MainWindow)
+    void retranslateUi(QWidget *MainWindow)
     {
         MainWindow->setWindowTitle(QCoreApplication::translate("MainWindow", "MainWindow", nullptr));
     } // retranslateUi
@@ -941,7 +954,7 @@ QT_END_NAMESPACE
 
 
 
-##### [手动生成](https://blog.csdn.net/qq_41359157/article/details/122217975)
+#### [手动生成](https://blog.csdn.net/qq_41359157/article/details/122217975)
 
 当然这个.ui文件转化为ui_classname.h的这个过程，也可以手动完成。
 
@@ -954,7 +967,7 @@ uic -o ui_classname.h classname.ui
 
 
 
-#### [从类中访问ui实例](https://blog.csdn.net/e5Max/article/details/9869977)
+### 0.5.2[从类中访问ui实例](https://blog.csdn.net/e5Max/article/details/9869977)
 
 在Qt中，当你使用Qt Designer创建一个UI文件（.ui）并将其转换为C++代码（头文件）后，需要**包含到**对应的类中，然后才能使用。这会涉及到自动生成的代码和手动编写的代码之间的接口问题。也就是**`Ui`命名空间和`setupUi`方法**。
 
@@ -964,7 +977,7 @@ uic -o ui_classname.h classname.ui
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include <QMainWindow>
+#include <QWidget>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -972,7 +985,7 @@ class MainWindow;
 }
 QT_END_NAMESPACE
 
-class MainWindow : public QMainWindow
+class MainWindow : public QWidget
 {
     Q_OBJECT
 
@@ -994,7 +1007,7 @@ private:
 // 如果是自己手动生成的ui_mainwindow.h，那么需要找到位置自行包括进入就行
 // 如果是构建工具cmake自动生成的，那么只需要"ui_classname.h"即可，或者"./ui_classname.h"
 MainWindow::MainWindow(QWidget *parent) :
-    QMainWindow(parent),
+    QWidget(parent),
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this); // 初始化界面
@@ -1017,13 +1030,13 @@ MainWindow::~MainWindow()
 
  除了在编译时处理ui文件外，Qt还提供了在运行时动态加载ui文件的机制。通过QtUiTools模块的QUiLoader可以在运行时加载ui文件。可参考：[链接](https://blog.csdn.net/e5Max/article/details/9872309)
 
-### 0.4.2 元对象
+## 0.6 元对象
 
 `CMAKE_AUTOMOC` 处理的元对象（Meta-Object）是Qt的元对象系统的一部分。元对象系统是Qt实现其信号和槽机制、属性系统和其他高级功能的核心技术之一。
 
 了解`CMAKE_AUTOMOC`和Qt的元对象系统，需要了解以下几个关键概念：
 
-#### 元对象系统
+### 0.6.1元对象系统
 
 Qt的元对象系统是一个反射系统，提供了在运行时查询和操作对象信息的能力。它包含以下主要功能：
 
@@ -1031,14 +1044,14 @@ Qt的元对象系统是一个反射系统，提供了在运行时查询和操作
 2. **属性系统**：支持对象属性的动态查询和设置。
 3. **反射机制**：允许在运行时查询对象的信息，如类名、信号、槽、属性等。
 
-##### Q_OBJECT
+#### Q_OBJECT
 
 **任何需要使用元对象系统的Qt类都必须包含 `Q_OBJECT` 宏。**
 
 **如果一个对象需要使用到信号和槽机制等元对象系统功能，那么它必须包含 `Q_OBJECT`宏**
 
 ```c++
-class MainWindow : public QMainWindow
+class MainWindow : public QWidget
 {
     Q_OBJECT
 
@@ -1057,7 +1070,7 @@ public slots:
 };
 ```
 
-##### MOC（Meta-Object Compiler）
+#### MOC（Meta-Object Compiler）
 
 MOC是Qt的元对象编译器，用于处理包含`Q_OBJECT`宏的类，生成与元对象系统相关的代码。具体来说，MOC会生成一个包含元对象信息的C++源文件（通常是`moc_<classname>.cpp`），该文件包含以下内容：
 
@@ -1065,13 +1078,13 @@ MOC是Qt的元对象编译器，用于处理包含`Q_OBJECT`宏的类，生成�
 - 元对象的静态元数据
 - 动态属性和方法的实现
 
-##### 元对象构建
+#### 元对象构建
 
 在项目的CMakeLists.txt中，必须**`set(CMAKE_AUTOMOC ON)`**，这样构建器才能对属于元对象的类进行编译。这样之后，CMake 会自动处理包含 `Q_OBJECT` 宏的类并生成相应的 MOC 文件。
 
-#### 属性系统
+### 0.6.2 属性系统
 
-##### 动态属性
+#### 动态属性
 
 Qt 的属性系统允许你为任何 `QObject` 派生类的对象动态添加属性，而不需要在类定义中提前声明这些属性。
 
@@ -1108,7 +1121,7 @@ widget->setWindowTitle(title);
 widget->resize(width, height);
 ```
 
-##### Q_PROPERTY
+#### Q_PROPERTY
 
 **定义方式**：在类定义中使用 `Q_PROPERTY` 宏显式声明。
 
@@ -1173,9 +1186,9 @@ private:
 
 ```
 
-#### 反射机制
+### 0.6.3反射机制
 
-##### 元对象系统的核心组件
+#### 元对象系统的核心组件
 
 1. **Q_OBJECT 宏**：在类定义中包含 `Q_OBJECT` 宏，使得该类能够生成元数据。这些元数据包括类名、属性、信号和槽等信息。
 2. **QMetaObject**：包含了有关类的元数据，可以用于查询类的信息，例如属性、方法、信号和槽等。
@@ -1187,7 +1200,7 @@ private:
 
 
 
-##### 主要功能
+#### 主要功能
 
 ###### 查询类的元数据
 
@@ -1242,7 +1255,7 @@ int main(int argc, char *argv[]) {
 
 ```
 
-###### 动态调用方法
+##### 动态调用方法
 
 可以使用反射机制动态调用对象的方法，包括槽函数。
 
@@ -2495,10 +2508,11 @@ bool QSizePolicy::retainSizeWhenHidden() const     //判断隐藏控件是否占
 - 同样是QWidget类的子类，用于**创建主窗口**。
 - 主窗口一般是应用程序的顶级窗口，通常包含菜单栏、工具栏、状态栏等控件。
 - QMainWindow类提供了一些用于创建主窗口的特殊功能，如设置中心部件、状态栏、工具栏等。
+- 注意在使用QMainWindow作为基类时，**控件一定要将子控件内容放在CentralWidget中**，否则子控件将无法显示完全。（换言之就是，将子控件的所有内容放在一个QWidget中，然后this->setCentralWidget(widget)）
 
+标准基本对话框：
 
-
-
+![在这里插入图片描述](./legend/ab3983bd54f24b2981e9187a2d576789.png)
 
 
 
