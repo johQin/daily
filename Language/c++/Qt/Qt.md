@@ -2486,7 +2486,7 @@ bool QSizePolicy::retainSizeWhenHidden() const     //判断隐藏控件是否占
 
 
 
-# 3 对话框和主窗口
+# 3 对话框
 
 [Qt QWidget、QDialog、QMainWindow的区别](https://blog.csdn.net/wzz953200463/article/details/134119220)
 
@@ -2510,11 +2510,39 @@ bool QSizePolicy::retainSizeWhenHidden() const     //判断隐藏控件是否占
 - QMainWindow类提供了一些用于创建主窗口的特殊功能，如设置中心部件、状态栏、工具栏等。
 - 注意在使用QMainWindow作为基类时，**控件一定要将子控件内容放在CentralWidget中**，否则子控件将无法显示完全。（换言之就是，将子控件的所有内容放在一个QWidget中，然后this->setCentralWidget(widget)）
 
-标准基本对话框：
+[标准基本对话框](https://blog.csdn.net/weixin_44875787/article/details/136136153)：
 
 ![在这里插入图片描述](./legend/ab3983bd54f24b2981e9187a2d576789.png)
 
 ## 3.1 文件/颜色/字体对话框
+
+```c++
+// 标准文件对话框
+QString QFileDialog::getOpenFileName
+(	
+	QWidget* parent=0,             		//标准文件对话框的父窗口
+	const QString & caption=QString(),	//标准文件对话框的标题名
+	const QString & dir=QString(),  	// 默认路径目录名，若目录名指向了文件名则文件默认选中文件
+	const QString & filter=QString(),	// 过滤器，可同时指定多个过滤器，多种过滤器之间通过 ;; 隔开
+	QString * selectedFilter=0, 		//用户选择的过滤器通过此参数返回
+	Options options=0         		//选择显示文件名的格式，默认是同时显示目录与文件名
+)
+// 标准颜色
+QColor QColorDialog::getColor
+(
+	const QColor& initial=Qt::white,   		// 默认颜色
+	QWidget* parent=0             			// 标准颜色对话框的父窗口
+);
+// 标准字体
+QFont QFontDialog::getFont
+(
+	bool* ok,            			//注
+	QWidget* parent=0    		//标准字体对话框的父窗口
+);  
+
+```
+
+
 
 ```c++
 #ifndef MAINWINDOW_H
@@ -2626,14 +2654,293 @@ MainWindow::~MainWindow()
 ## 3.2 标准输入/消息对话框
 
 ```c++
-void InputDlg::ChangeName(){
-    bool ok;
-    QString text = QInputDialog::getText(this, tr("标准字符串输入对话框"), tr("请输入姓名"), QLineEdit::Normal, nameLabel2->text(), &ok);
-    if(ok&& !text.isEmpty){
-        nameLabel2->setText(text);
-    }
+// 标准字符串输入对话框
+QString QInputDialog::getText
+(
+	QWidget* parent,         			//标准输入对话框的父窗口
+	const QString& title,   			//标准输入对话框的标题名
+	const QString& label,   			//标准输入对话框的标签提示
+	QLineEdit::EchoMode mode=QLineEdit::Normal,   //指定标准输入对话框中QLineEdit控件的输入模式
+	const QString& text=QString(),				 //标准字符串输入对话框弹出时QLineEdit控件中默认出现的文字
+	bool* ok=0,                 			//注
+	Qt::WindowFlags flags=0     			//指明标准输入对话框的窗体标识
+);    
+// 标准条目对话框
+QString QInputDialog::getItem
+(
+	QWidget* parent,            	//标准输入对话框的父窗口
+	const QString& title,       	//标准输入对话框的标题名
+	const QString& label,       	//标准输入对话框的标签提示
+	const QStringList& items,  	//注(1)
+	int current=0,               	//注(2) 
+	bool editable=true,       	//指定QComboBox控件中显示的文字是否可编辑
+	bool* ok=0,                  	//注(3)
+	Qt::WindowFlags flags=0     	//指明标准输入对话框的窗体标识
+);
+
+int QInputDialog::getInt
+(
+	QWidget* parent,            	//标准输入对话框的父窗口
+	const QString& title,       	//标准输入对话框的标题名
+	const QString& label,       	//标准输入对话框的标签提示
+	int value=0,          	 	//指定标准输入对话框中QSpinBox控件的默认显示值
+	int min=-2147483647,        	//指定QSpinBox控件的数值范围
+	int max=2147483647,
+	int step=1,                   	//指定QSpinBox控件的步进值
+	bool* ok=0,                   	//注
+	Qt::WindowFlags flags=0    	//指明标准输入对话框的窗口标识
+); 
+
+double QInputDialog::getDouble
+(
+	QWidget* parent,             	//标准输入对话框的父窗口
+	const QString& title,       	//标准输入对话框的标题名
+	const QString& label,   	//标准输入对话框的标签提示
+	double value=0,       	//指定标准输入对话框中QSpinBox控件默认的显示值
+	double min=-2147483647,    	//指定QSpinBox控件的数值范围
+	double max=2147483647,
+	int decimals=1,              	//指定QSpinBox控件的步进值
+	bool* ok=0,                  	//注
+	Qt::WindowFlags flags=0     //指明标准输入对话框的窗口标识
+); 
+
+StandardButton QMessageBox::question
+(
+	QWidget* parent,                       		//消息框的父窗口指针
+	const QString& title,                 		//消息框的标题栏
+	const QString& text,                 			//消息框的文字提示信息
+	StandardButtons buttons=Ok,         		// 希望消息框出现哪些按钮，可以通过位与连接这些枚举值
+    											// QMessageBox::Ok, QMessageBox::Close，QMessageBox::Discard
+	StandardButton defaultButton=NoButton	// 默认焦点落在哪个按钮上
+); 
+
+StandardButton QMessageBox::information
+(
+	QWidget*parent,                   			//消息框的父窗口指针
+	const QString& title,           			//消息框的标题栏
+	const QString& text,             			//消息框的文字提示信息
+	StandardButtons buttons=Ok,      		//同Question消息框的注释内容
+	StandardButton defaultButton=NoButton	//同Question消息框的注释内容
+);
+
+StandardButton QMessageBox::warning
+(
+	QWidget* parent,           			//消息框的父窗口指针
+	const QString& title,     			//消息框的标题栏
+	const QString& text,         			//消息框的文字提示信息
+	StandardButtons buttons=Ok,  		//同Question消息框的注释内容
+	StandardButton defaultButton=NoButton	//同Question消息框的注释内容
+); 
+
+void QMessageBox::about
+(
+	QWidget* parent,           				//消息框的父窗口指针
+	const QString& title,         				//消息框的标题栏
+	const QString& text        				//消息框的文字提示信息
+);
+
+void QMessageBox::aboutQt
+(
+	QWidget* parent,                 			//消息框的父窗口指针
+	const QString& title=QString()      		//消息框的标题栏
+); 
+
+
+```
+
+## 3.3 工具盒/进度条
+
+工具盒类（QToolBox）就是一种列状的层叠窗体，也就是抽屉效果。
+
+进度条（QProgressBar和QProgressDialog）
+
+## 3.4 调色板/电子钟
+
+在实际应用中，经常需要改变某个控件的颜色外观，如背景，文字颜色等等。Qt提供的调色板类QPalette专门用于管理控件的外观显示。
+
+QPalette类的使用方法，该类有两个基本的概念：
+
+- ColorGroup：指的是三种不同的状态
+  - QPalette::Active：获焦
+  - QPalette::Inactive：失焦
+  - QPalette::Disable：不可用
+  - Active状态与Inactive状态在通常情况下，颜色显示是一致的，也可以根据需要设置为不一样的颜色。
+- ColorRole：颜色主题（指的是需要设置的控件某些部位，部分界面外观组合）
+
+```c++
+// 对控件的某个状态，某个部位设置什么颜色
+void QPalette::setColor(ColorGroup group,ColorRole role,const QColor & color);
+// 对控件某个部位设置什么颜色（不区分状态）
+ void QPalette::setColor(ColorRole role,const QColor & color);
+```
+
+Qt之前的版本中有关背景色设置的函数如setBackgroundColor() 或前景色设置的函数如setForegroundColor() 在Qt 5中都被废止，统一由QPalette类进行管理。
+
+```c++
+// 获取控件原本的调色板对象
+QPalette p = xxx->palette();
+// 设置调色板对象
+p.setColor(QPalette::Window,color);
+//p.setBrush(QPalette::Window,brush);	// QPalette类同时还提供了setBrush()函数，通过画刷的设置对显示进行更改，这样就有可能使用图片而不仅是单一的颜色来对主题进行填充。
+
+// 将调色板原有的设置应用于控件上
+xxx->setPalette(p);
+
+```
+
+## 3.5 可扩展对话框
+
+控件在布局中的隐藏除了使用QSizePolicy中的空间隐藏是否释放空间的方式，还可以使用布局的可扩展对话框
+
+```c++
+QWidget detailWidget = new QWidget(this);
+...
+detailWidget.hide();
+layout->setSizeConstraint(QLayout::SetFixedSize);
+
+// 当某个事件被触发时，需要显示被隐藏的空间
+if(detailWidget->isHidden()){
+    detailWidget->show();
+}
+else{ 
+    detailWidget->hide();
 }
 ```
+
+## 3.6 不规则窗体
+
+常见的窗体通常是各种方形的对话框，但有时也需要使用非方形的窗体，如圆形，椭圆形甚至是不规则的对话框。
+
+利用setMask()为窗体设置遮罩，但是不规则窗体，设置遮罩后的窗体尺寸仍是原窗体尺寸，之时被遮罩的地方不可见。
+
+# 4 主窗口
+
+QMainWindow是一个为用户提供主窗口程序的类，包含
+
+- 菜单栏（menu bar）
+  - 是一系列命令的列表，Qt使用动作（Action）来表示这些命令，Qt的菜单就是由一系列的QAction动作对象构成的列表。
+  - 菜单栏则是包容菜单的面板，它位于主窗口标题栏的下面。
+  - 一个主窗口只能有一个菜单栏。
+- 工具栏（tool bars）
+  - 工具栏是由一系列的类似于按钮的动作排列而成的面板，它通常由一些经常使用的命令（动作）组成。
+  - 工具栏位于菜单栏的下面、状态栏的上面，可以停靠在主窗口的上、下、左、右四个方向上。
+  - 一个主窗口可以包含多个工具栏。
+- 锚接部件（dock widgets）
+  - 锚接部件作为一个容器使用，以包容其他窗口部件来实现某些功能。
+  - 例如，Qt设计器的属性编辑器、对象监视器等都是由锚接部件包容其他的Qt窗口部件来实现的。
+  - 它位于工具栏区的内部，可以作为一个窗口自由地浮动在主窗口上面，也可以像工具栏一样停靠在主窗口的上、下、左、右四个方向上。
+  - 一个主窗口可以包含多个锚接部件。
+- 一个状态栏（status bar）
+  - 用户可以在状态栏上添加、使用Qt窗口部件。
+- 一个中心部件（central widget）：
+  - 中心部件处在锚接部件区的内部、主窗口的中心。
+  - 一个主窗口只能有一个中心部件。
+
+![image-20240617112643629](./legend/image-20240617112643629.png)
+
+
+
+
+
+## 4.1 菜单与工具栏
+
+菜单和工具栏都与QAction密切相关，工具栏上的功能与菜单栏中的选项条目相对应，完成相同的功能，使用相同的快捷键与图标。
+
+QAction位用户提供了统一的命令接口，无论是从菜单触发还是工具栏触发，或通过快捷键触发都调用同样的操作接口。
+
+
+
+动作实现
+
+```c++
+// 在创建“打开文件”动作的同时，指定了此动作使用的图标、名称及父窗口。
+openFileAction = new QAction(QIcon("open.png"),tr("打开"),this);
+//设置此动作的组合键为Ctrl+O。
+openFileAction->setShortcut(tr("Ctrl+O"));
+// 设定了状态栏显示，当鼠标光标移至此动作对应的菜单条目或工具栏按钮上时，在状态栏上显示“打开一个文件”的提示。
+openFileAction->setStatusTip(tr("打开一个文件"));//
+```
+
+为Action添加动作事件关联
+
+```c++
+// 添加槽函数
+protected slots:
+	void showNewFile();
+// 连接信号与槽
+connect(openFileAciton, SIGNAL(triggered()), this, SLOT(showNewFile()));
+```
+
+
+
+菜单实现
+
+```c++
+// 直接调用QMainWindow的menuBar()函数即可得到主窗口的菜单栏指针
+// 再调用菜单栏QMenuBar的addMenu()函数，即可完成在菜单栏中插入一个新菜单fileMenu
+// fileMenu为一个QMenu类对象指针。
+fileMenu =menuBar()->addMenu(tr("文件"));
+// 调用QMenu的addAction()函数在菜单中加入菜单条目
+fileMenu->addAction(…);
+// 添加菜单分隔线
+fileMenu->addSeparator();
+```
+
+工具栏实现
+
+```c++
+// 主窗口的工具栏上可以有多个工具条，通常采用一个菜单对应一个工具条的方式，也可根据需要进行工具条的划分。
+
+// 直接调用QMainWindow的addToolBar()函数即可获得主窗口的工具条对象，每新增一个工具条调用一次addToolBar()函数，赋予不同的名称，即可在主窗口中新增一个工具条。
+fileTool =addToolBar("File"); // fileTool为一个QToolBar对象指针
+// 工具条中插入属于本工具条的动作
+fileTool->addAction(…);
+// 添加工具栏分隔线
+fileTool->addSeparator();
+
+// 工具条是一个可移动的窗口，它可停靠的区域由QToolBar的allowAreas决定，包括Qt::LeftToolBarArea、Qt::RightToolBarArea、Qt::TopToolBarArea、Qt::BottomToolBarArea和Qt::AllToolBarAreas。默认为Qt::AllToolBarAreas，启动后默认出现于主窗口的顶部。
+// 可通过调用setAllowAreas()函数来指定工具条可停靠的区域
+fileTool->setAllowedAreas(Qt::TopToolBarArea|Qt::LeftToolBarArea);
+// 指定文件工具条不可移动，只出现于主窗口的顶部
+fileTool->setMovable(false);
+```
+
+
+
+# 5 网络通信
+
+
+
+## 5.1 获取网络基本信息
+
+运用QHostInfo，QNetworkInterface，QNetworkAddressEntry可获取本机的网络信息。
+
+```c++
+// QHostInfo提供了一系列有关网络信息的静态函数，可以根据主机名获取分配的IP地址，也可以根据IP地址获取相应的主机名。
+
+// 获取本机主机名。
+QString localHostName = QHostInfo::localHostName();
+// 根据主机名获取相关主机信息
+QHostInfo hostInfo = QHostInfo::fromName(localHostName); 
+//获取主机的IP地址列表
+QList<QHostAddress> listAddress = hostInfo.addresses();
+
+// 获取网络接口列表
+QList<QNetworkInterface> list=QNetworkInterface::allInterfaces();
+// QNetworkInterface对象
+// name(): 获取网络接口的名称
+// hardwareAddress(): 获取网络接口的硬件地址
+// addressEntries():获取一个QNetworkAddressEntry类，存储了ip地址（ip()），子网掩码（netmask()），广播地址（broadcase()）
+
+```
+
+# 6 多线程
+
+
+
+
+
+
 
 
 
