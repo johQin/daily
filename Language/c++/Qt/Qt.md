@@ -2514,7 +2514,126 @@ bool QSizePolicy::retainSizeWhenHidden() const     //判断隐藏控件是否占
 
 ![在这里插入图片描述](./legend/ab3983bd54f24b2981e9187a2d576789.png)
 
+## 3.1 文件/颜色/字体对话框
 
+```c++
+#ifndef MAINWINDOW_H
+#define MAINWINDOW_H
+
+#include <QDebug>
+#include<QPushButton>
+#include<QGridLayout>
+#include<QLineEdit>
+#include<QFrame>
+#include<QWidget>
+#include<QDialog>
+#include<QFileDialog>
+#include<QColorDialog>
+#include<QFontDialog>
+
+class MainWindow : public QWidget
+{
+    Q_OBJECT
+
+public:
+    MainWindow(QWidget *parent = nullptr);
+    ~MainWindow();
+private:
+    Ui::MainWindow *ui;
+    QWidget* wrapper;
+    QGridLayout* mainLayout;
+    QPushButton* fileBtn;
+    QLineEdit* fileLineEdit;
+    QPushButton* colorBtn;
+    QFrame* colorFrame;
+    QPushButton* fontBtn;
+    QLineEdit* fontLineEdit;
+private slots:
+    void showFile();
+    void showColor();
+    void showFont();
+};
+#endif // MAINWINDOW_H
+
+
+//mainwindow.cpp
+#include "mainwindow.h"
+MainWindow::MainWindow(QWidget *parent)
+    : QWidget(parent)
+{
+    wrapper= new QWidget(this);
+    mainLayout = new QGridLayout(this);
+
+    // 文件
+    fileBtn = new QPushButton(this);
+    fileBtn->setText("请选择文件");
+    fileLineEdit = new QLineEdit(this);
+    mainLayout->addWidget(fileBtn,0,0);
+    mainLayout->addWidget(fileLineEdit,0,1);
+
+    // 颜色
+    colorBtn = new QPushButton(this);
+    colorBtn->setText("请选择颜色");
+    colorFrame = new QFrame(this);
+    colorFrame->setFrameShape(QFrame::Box);
+    colorFrame->setAutoFillBackground(true);
+    mainLayout->addWidget(colorBtn,1,0);
+    mainLayout->addWidget(colorFrame,1,1);
+
+    // 字体
+    fontBtn = new QPushButton(this);
+    fontBtn->setText("请选择字体");
+    fontLineEdit = new QLineEdit(this);
+    fontLineEdit->setText("Welcome");
+    mainLayout->addWidget(fontBtn,2,0);
+    mainLayout->addWidget(fontLineEdit,2,1);
+
+    wrapper->setFixedSize(500,500);
+    wrapper->setLayout(mainLayout);
+
+    connect(fileBtn,&QPushButton::clicked, this, &MainWindow::showFile);
+    connect(colorBtn,&QPushButton::clicked, this, &MainWindow::showColor);
+    connect(fontBtn,&QPushButton::clicked, this, &MainWindow::showFont);
+}
+
+void MainWindow::showFile(){
+    QString s = QFileDialog::getOpenFileName(
+        this,"open file dialog", "/",
+        "png files(*.png);;C files(*.c);;C++ files(*.cpp);;Head files(*.h)"
+        );
+    fileLineEdit->setText(s);
+}
+void MainWindow::showColor(){
+    QColor c = QColorDialog::getColor(Qt::blue);
+    if(c.isValid()){
+        colorFrame->setPalette(QPalette(c));
+    }
+}
+void MainWindow::showFont(){
+    bool ok;
+    QFont f = QFontDialog::getFont(&ok);
+    if(ok){
+        fontLineEdit->setFont(f);
+    }
+}
+
+MainWindow::~MainWindow()
+{
+    delete ui;
+}
+```
+
+## 3.2 标准输入/消息对话框
+
+```c++
+void InputDlg::ChangeName(){
+    bool ok;
+    QString text = QInputDialog::getText(this, tr("标准字符串输入对话框"), tr("请输入姓名"), QLineEdit::Normal, nameLabel2->text(), &ok);
+    if(ok&& !text.isEmpty){
+        nameLabel2->setText(text);
+    }
+}
+```
 
 
 
