@@ -393,7 +393,7 @@ uboot源码获取：
 - 做开发板的厂商，开发板会参考SOC厂商的板子。开发板必然会和官方的板子不一样。因此开发板厂商又会去修改SOC厂商做好的uboot，以适应自己的板子。
 - 官方引导程序由于与硬件平台差异，所以并不能下载直接运行（需要经过修改，调试和移植）
 
-## uboot源码分析
+## uboot目录结构
 
 
 
@@ -718,3 +718,390 @@ boot为标准的两阶段启动bootloader
    ```
 
    
+
+# 2 linux内核
+
+官网：https://www.kernel.org/，
+
+![image-20240625101431509](legend/image-20240625101431509.png)
+
+2.6之后版本如果没有字母即为稳定版，如果带rc——release candidate测试版，eol——end of life分支终结版
+
+## 2.1 linux内核源码结构
+
+Linux内核源代码主要包含以下子目录：
+
+- arch：与体系结构相关的代码，对应于每个支持的体系结构，有一个相应的子目录如x86、arm等与之对应，相应目录下有对应的芯片与之对应
+- drivers：设备驱动代码，占整个内核代码量的一半以上，里面的每个子目录对应一类驱动程序，如: block:块设备、char:字符设备、net:网络设备等
+- fs：文件系统代码，每个支持的文件系统有相应的子目录，如cramfs，yaffs，jffs2等
+- include：包括编译内核所需的大部分头文件
+  - 与平台无关的头文件放在include/linux子目录下
+  - 各类驱动或功能部件的头文件（/media、/mtd、/net等）
+  - 与体系相关的头文件arch/arm/include/
+  - 与平台相关的头文件路径arch/arm/mach-s5p6818/include/mach
+- lib：内核库代码
+- init：内核初始化代码,其中的main.c中的start_kernel函数是系统引导起来后运行的第1个函数
+- ipc：内核进程间通信代码
+- mm：内存管理代码
+- kernel：内核管理的核心代码
+- net：网络部分
+- scripts：脚本
+- Documentations：文档
+- crypto：加密算法
+
+### 内核模块
+
+[内核5.1模块地图](https://makelinux.github.io/kernel/map/)
+
+![https://makelinux.github.io/kernel/map/](./legend/LKM.svg)
+
+## 2.2 内核编译
+
+```bash
+tar xvf kernel-3.4.39_v4_mipi.tar.bz2
+cd kernel-3.4.39
+make distclean
+
+# 一定要有一个配置文件.config，这个文件后面会说到
+cp config_20180626 .config
+
+make uImage
+# 如果提示mkimage command not found，参考：https://blog.csdn.net/dengjin20104042056/article/details/132379562
+# apt install u-boot-tools
+Image Name:   Linux-3.4.39-9tripod
+Created:      Tue Jun 25 14:43:41 2024
+Image Type:   ARM Linux Kernel Image (uncompressed)
+Data Size:    5167808 Bytes = 5046.69 KiB = 4.93 MiB
+Load Address: 40008000
+Entry Point:  40008000
+  Image arch/arm/boot/uImage is ready
+
+```
+
+编译后生成的产物：
+
+- kernel-3.4.39/vmlinux：这是内核编译生成的可执行文件，还不是镜像。大小100M+
+- kernel-3.4.39/arch/arm/boot/Image：它是直接生成的vmlinux去除格式后，且未经压缩的内核镜像。大小11M+
+- kernel-3.4.39/arch/arm/boot/compressed/vmlinux：它是Image压缩后，再拼接上decompress解压程序得到的镜像。大小5M+
+- kernel-3.4.39/arch/arm/boot/zImage：它是compressed/vmlinux经过去格式处理后得到的压缩镜像，可以直接下载运行。大小5M+
+- kernel-3.4.39/arch/arm/boot/uImage：它是zImage的基础上，增加64字节前缀得到的uboot专用镜像。
+
+
+
+## 2.3 内核启动过程
+
+1. 内核解压（汇编 + C）：由镜像中的自解压程序进行解压
+2. 板级引导（汇编）：主要对cpu和体系结构的检查、cpu本身的初始化以及页表的建立等
+3. 通用内核启动阶段（ C ）：
+   - `init/main.c ->start_kernel()`：主要完成内核早期初始化工作
+   - `-> rest_init()`：启动多任务调度，然后创建了两个线程分别执行kernel_init和kthreadd，然后自身进入空闲cpu_idle
+   - `-> kernel_init()`：主要启动多处理器任务调度，以及初始化控制台，然后调用`init_post`
+   - `-> init_post()`：标志着内核启动的结束，并启动了第一用户进程
+     - 结束输出标志：Freeing init memory：248K
+
+## 2.4 内核裁剪
+
+图形裁剪工具命令：`make menuconfig`，在kernel-3.4.39文件夹下执行此命令，通过图形化界面操作裁剪。
+
+```bash
+make menuconfig
+# 这个命令实际上是执行了scripts/kconfig中的相关脚本
+# 当执行make menuconfig时，配置工具会自动根据根目录下的ARCH变量读取arch/$(ARCH)/Kconfig文件来生成配置界面，这个文件是所有文件的总入口，其它目录的Kconfig都由它来引用
+
+# 如遇报错： *** Unable to find the ncurses libraries
+# apt install libncurses5-dev，参考：https://blog.csdn.net/dengjin20104042056/article/details/132381857
+# 如果窗口太小，它也会报：It must be at least 19 lines by 80 columns.
+
+# 然后就可以看到一个由字符构成的一个大的配置引导窗
+# 操作指引：
+# 如果要修改某些输入框内的内容，删除输入框中的部分内容不能直接使用Backspace，而需要使用Ctrl + Backspace
+# 通过esc键可以快速退到上一级菜单
+# 通过顺斜杠（/）键来进行全局搜索
+# 通过空格键选中和取消选项。
+
+
+```
+
+配置内容的存放：
+
+- 首次配置默认的.config来至于：arch/arm/configs/xxx_defconfig
+
+- 启动配置裁剪界面的默认配置选项，也来至于.config
+
+- 裁剪配置结果将保存到.config中
+
+- **系统除了会自动更新.config外，还会将选项以宏的形式保存在内核根目录下的include/generated/autoconf.h（在编译之初，读取.config文件后，就会生成autoconf.h，然后影响某些文件代码片段的编译预处理）文件下**
+
+
+
+### 裁剪配置原理
+
+在Linux2.6以后的版本中，文件的组织是通过Kconfig和Makefile来实现的
+
+通过每层目录的Kconfig和Makefile实现了整个Linux内核的分布式配置
+
+- Kconfig：对应内核模块的配置菜单
+- Makefile：对应内核模块的编译选项
+- **Kconfig和Makefile是成对出现的**
+- **通过新增Kconfig里面的配置项，使得`make menuconfig`界面可以增加对应的配置项。.config保存了我们的配置结果，Makefile根据配置结果实现了对我们代码的条件编译。**
+
+**kconfig的语法**
+
+- config代表一个选项的开始，最终会出现在.config中(会自动增加一个CONFIG_前缀)
+- bool代表此选项仅能选中或不选中,bool后面的字符串代表此选项在make menuconfig中的名字
+- tristate：代表可以选择编译、不编译、编译成模块
+- string：字符串;  hex：16进制的数; int：10进制的数
+- depends on:依赖其余的选项
+- default：默认选项值
+- select：表示当前config被选中时，此选项也被选中
+- menu/endmenu：表示生成一个菜单
+- choice/endchoice：表示选择性的菜单条目
+- comment：注释信息，菜单和.config文件中都会出现
+- source：用于包含其它Kconfig
+
+```
+config VECTORS_BASE
+        hex
+        default 0xffff0000 if MMU || CPU_HIGH_VECTOR
+        default DRAM_BASE if REMAP_VECTORS_TO_RAM
+        default 0x00000000
+        help
+          The base address of exception vectors.
+config ARM_PATCH_PHYS_VIRT
+        bool "Patch physical to virtual translations at runtime" if EMBEDDED
+        default y
+        depends on !XIP_KERNEL && MMU
+        depends on !ARCH_REALVIEW || !SPARSEMEM
+        help
+          Patch phys-to-virt and virt-to-phys translation functions at
+          boot and module load time according to the position of the
+          kernel in system memory.
+
+source "lib/Kconfig"
+```
+
+.config中的配置项如下
+
+```c
+CONFIG_LOCALVERSION="-9tripod"
+# CONFIG_LOCALVERSION_AUTO is not set
+CONFIG_HAVE_KERNEL_GZIP=y
+CONFIG_DCC_TTY=y
+```
+
+而Makefile里面：
+
+```makefile
+obj-$(CONFIG_DCC_TTY) += dcc_tty.o
+# 如果CONFIG_DCC_TTY等于y，obj-y就会多增加一个需要链接的对象，然后就会编译到我们的内核中。
+# 如果CONFIG_DCC_TTY等于空，那么 obj- 就不会影响我们的链接过程
+
+```
+
+.config的配置项与makefile中成对存在的这种方式**用于配置选项 决定 一个整个源文件是否被链接的情况**。
+
+如果只影响某个源文件的**代码片段**，那么这种就不行。很自然的，linux内核已经帮我们考虑到这种情况，系统除了会自动更新.config外，还会将选项以宏的形式保存在内核根目录下的include/generated/autoconf.h，在编译之初，读取.config文件后，就会生成autoconf.h，然后影响某些文件代码片段的编译预处理
+
+### 自定义代码添加到配置选项过程
+
+**如果我们有自己的驱动需要添加到内核的编译裁剪配置当中，这我们又如何操作呢？**
+
+- 找到内核（这里是个驱动程序）代码：00-基础代码\01-v_motor_simple_3.4.39\v_motor_driver.c，拷贝到内核drivers/char/下
+
+  ```c
+  #include <linux/module.h>
+  #include <linux/kernel.h>
+  #include <linux/init.h>
+  #include <linux/gpio.h>
+  #include <linux/io.h>
+  #include <mach/gpio.h>
+  #include <linux/delay.h>
+  #include <linux/fs.h>
+  #include <linux/uaccess.h>
+  #include <linux/device.h>
+  #include <mach/soc.h>
+  #include <mach/platform.h>
+  
+  #define LED_0 0
+  
+  struct class *v_motor_class;
+  struct device *v_motor_device;
+  static int major = 0;
+  
+  static int v_motor_open(struct inode *pnode, struct file *filp)
+  {
+  	return 0;
+  }
+  
+  static ssize_t v_motor_read(struct file *filp, char __user *buff, size_t count, loff_t *offp)
+  {
+  	int value = 0;
+  	
+  	if(count!=1)
+  		return -1;
+  	if(nxp_soc_gpio_get_io_dir(PAD_GPIO_C+14))
+  		value = nxp_soc_gpio_get_out_value(PAD_GPIO_C+14);
+  	else
+  		value = nxp_soc_gpio_get_in_value(PAD_GPIO_C+14);
+  
+  	return sizeof(int)-copy_to_user(buff,&value,sizeof(int));
+  }
+  
+  static ssize_t v_motor_write(struct file *pnode,const char __user *buff,size_t count,loff_t *offp)
+  {
+  	int value = 0;
+  	int len = 0;
+  	
+  	if(count>sizeof(int))
+  		return -1;
+  	len = copy_from_user(&value,buff,sizeof(int));
+   	nxp_soc_gpio_set_out_value(PAD_GPIO_C+14,(!(!value)));
+  	
+  	return (1-len);
+  }
+  
+  static long v_motor_ioctl(struct file *filp, unsigned int cmd, unsigned long data)
+  {
+  	if(cmd)
+  		nxp_soc_gpio_set_out_value(PAD_GPIO_C+14,1);
+  	else
+  		nxp_soc_gpio_set_out_value(PAD_GPIO_C+14,0);
+  	
+  	return 0;
+  }
+  
+  static int v_motor_release(struct inode *pnode, struct file *filp)
+  {
+  	return 0;
+  }
+  
+  static struct file_operations fops = {
+  	.owner = THIS_MODULE,
+  	.read = v_motor_read,
+  	.write = v_motor_write,
+  	.open = v_motor_open,
+  	.unlocked_ioctl = v_motor_ioctl,
+  	.release =  v_motor_release,
+  };
+  
+  static int __init v_motor_init(void) 
+  {
+  	major = register_chrdev(0,"vmotor_drv", &fops);
+  	if(major<0)
+  	{
+  		printk(KERN_CRIT "error register_chrdev\n");
+  		goto err_reg;
+  	}
+  	v_motor_class=class_create(THIS_MODULE, "vmotor_cls");
+  	if(IS_ERR(v_motor_class))
+  	{
+  		printk(KERN_CRIT "error class_create\n");
+  		goto err_cls;
+  	}
+  	v_motor_device=device_create(v_motor_class, NULL,MKDEV(major,0),NULL,"vmotor");
+  	if(IS_ERR(v_motor_device))
+  	{
+  		printk(KERN_CRIT "error device_create\n");
+  		goto err_dev;
+  	}
+  	nxp_soc_gpio_set_io_dir(PAD_GPIO_C+14, 1);
+  
+  	
+  	return 0;
+  err_dev:
+  	class_destroy(v_motor_class);
+  err_cls:
+  	unregister_chrdev(major,"vmotor_drv");
+  err_reg:
+  	return -1;
+  };
+  
+  static void __exit v_motor_exit(void) 
+  {
+  	unregister_chrdev(major,"vmotor_drv");
+  	device_destroy(v_motor_class,MKDEV(major,0));
+  	class_destroy(v_motor_class);
+  
+  	return;
+  };
+  
+  module_init(v_motor_init);
+  module_exit(v_motor_exit);
+  MODULE_LICENSE("GPL");
+  
+  ```
+
+- 修改driver/char/Kconfig
+
+  ```
+  config HG_BEEP
+     bool "The vibration beep driver for s5p6818"
+     default y
+     help
+     		xxxxxxxx
+  ```
+
+  
+
+- 修改修改driver/char/Makefile
+
+  ```makefile
+  obj‐$(CONFIG_HG_BEEP) += v_motor_driver.o
+  ```
+
+- 编译内核：make uImage
+
+- 更新uImage镜像
+
+- 编译应用程序：`arm-linux-gcc -o t v_motor_test.c`
+
+  ```c
+  #include <stdio.h> /* FILE */
+  #include <fcntl.h>/* O_RDWR */
+  #include <linux/fb.h>
+  #include <sys/mman.h>/* PROT_READ,PROT_WRITE,MAP_SHARED */
+  #include <string.h>/* memset() */
+  #include <asm/ioctl.h>	/* _IO */
+  #include <linux/input.h>	/* input_event */
+  
+  #define BCT3288A_CLOSE  _IO('B',1)
+  #define BCT3288A_CLEAR  _IO('B',2)
+  
+  int main(int argc,char *argv[])
+  {
+  	int fd;
+  	int value;
+  	unsigned char buf[2];
+  	
+  	fd = open("/dev/vmotor",O_RDWR);
+  	if(fd<0)
+  	{
+  		perror("dev tain open:");
+  		return 1;
+  	}
+  	if(argc > 0)
+  	{
+  		value = atoi(argv[1]);
+  	}
+  	//write(fd,&value,sizeof(value));
+  	ioctl(fd,value);
+  	close(fd);
+  	
+  	return 0;
+  }
+  ```
+
+- 要么拷贝应用程序到开发板，要么挂载远程执行
+
+  - ./t 1（打开蜂鸣器）
+  - ./t 0（关闭蜂鸣器）
+
+- 
+
+
+
+内核移植的级别：
+
+- 体系架构级移植
+- 芯片级移植
+- 主板级移植（我们这里就是主板级移植）
