@@ -368,7 +368,8 @@
 24. 重命名文件夹
 
     ```bash
-    # 要将名为"folder1"的文件夹重命名为"folder2"
+    # 如果folder2不存在，效果：将名为"folder1"的文件夹重命名为"folder2"
+    # 如果folder2存在，效果：将名为"folder1"的文件夹移动到"folder2"下
     # mv 要重命名的文件夹路径 新的文件夹路径
     mv folder1 folder2
     ```

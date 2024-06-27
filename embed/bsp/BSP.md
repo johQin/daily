@@ -1247,30 +1247,34 @@ linux支持多种文件系统，包括：minix，ext，nfs，ntfs，jffs等。
 
 ### 3.2.1 目录结构
 
-| 目录名  | 内容                                                         |
-| ------- | ------------------------------------------------------------ |
-| bin     | 提供基本的用户命令，如ls、cp等                               |
-| boot    | 该目录下存放的一般是Linux的启动文件和内核                    |
-| **dev** | 设备文件或其他的特殊文件，如mmcblk0p2、fb0等。<br />如果你`cat /dev/input/event0`，然后你每触摸一下设备的显示屏，就会打印出一些东西 |
-| **etc** | 系统配置文件，包括启动文件                                   |
-| home    | 多个用户的主目录                                             |
-| lib     | 存放应用程序所需的基本库，运行时需要共享库，比如C、C++等标准库，GTK、QT等应用程序库 |
-| mnt     | 用于临时挂载的文件系统，比如挂载U盘、SD卡等                  |
-| opt     | 某些第三方软件商软件的安装地点，某些自定义的软件包会安装到这里 |
-| proc    | 操作系统运行时，进程信息及内核信息（比如模块加载数、中断申请与使用状态、进程运行状况等）存放在这里，一般挂载proc文件系统，用来表示系统的运行状态，只存在内存当中 |
-| root    | 根用户的主目录,与此对应，普通用户的目录是/home下的某个子目录 |
-| sbin    | system bin，主要放置系统管理和网络管理的必备程序，如ifconfig、rmmod等，通常需要root权限才能完全使用 |
-| sys     | 与/proc相似，挂载sysfs文件系统                               |
-| tmp     | 一些需要生成临时文件的程序需要此目录，通常为空，且此目录必须可写，一般挂载ramfs文件系统 |
-| **usr** | 一般存放由用户自由添加的程序或开源库以及各种不常用的命令等，是共享和只读的 |
-| var     | 一些变化的实例和工具等，存放可变的数据，如一些系统日志文件等 |
+| 目录名   | 内容                                                         |
+| -------- | ------------------------------------------------------------ |
+| **bin**  | 提供基本的用户命令，如ls、cp等                               |
+| boot     | 该目录下存放的一般是Linux的启动文件和内核                    |
+| dev      | 设备文件或其他的特殊文件，如mmcblk0p2、fb0等。<br />如果你`cat /dev/input/event0`，然后你每触摸一下设备的显示屏，就会打印出一些东西 |
+| **etc**  | 系统配置文件，包括启动文件                                   |
+| home     | 多个用户的主目录                                             |
+| **lib**  | 存放应用程序所需的基本库，运行时需要共享库，比如C、C++等标准库，GTK、QT等应用程序库 |
+| mnt      | 用于临时挂载的文件系统，比如挂载U盘、SD卡等                  |
+| opt      | 某些第三方软件商软件的安装地点，某些自定义的软件包会安装到这里 |
+| proc     | 操作系统运行时，进程信息及内核信息（比如模块加载数、中断申请与使用状态、进程运行状况等）存放在这里，一般挂载proc文件系统，用来表示系统的运行状态，只存在内存当中 |
+| root     | 根用户的主目录,与此对应，普通用户的目录是/home下的某个子目录 |
+| **sbin** | system bin，主要放置系统管理和网络管理的必备程序，如ifconfig、rmmod等，通常需要root权限才能完全使用 |
+| sys      | 与/proc相似，挂载sysfs文件系统                               |
+| tmp      | 一些需要生成临时文件的程序需要此目录，通常为空，且此目录必须可写，一般挂载ramfs文件系统 |
+| **usr**  | 一般存放由用户自由添加的程序或开源库以及各种不常用的命令等，是共享和只读的 |
+| var      | 一些变化的实例和工具等，存放可变的数据，如一些系统日志文件等 |
 
 - **制作根文件系统的过程，其实就是构造以上目录及系统启动所必需文件的过程**
 - 构建嵌入式根文件系统的工作，也就从构建这几个文件夹开始
 
 ### 3.2.2 根文件系统启动流程
 
-1. bootloader引导内核的过程中，bootloader将系统的控制权交给内核之前，通过bootargs传递给内核一些参数
+1. 根文件系统启动之前需要先启动VFS
+
+2. VFS启动后，在kernel_init()函数完成根文件系统向VFS的挂载操作
+
+3. 内核进入1号进程：`/linuxrc`。在bootloader引导内核的过程中，bootloader将系统的控制权交给内核之前，通过bootargs传递给内核一些参数，然后进入init参数指定的程序`/linuxrc`
 
    ```bash
    bootargs root=/dev/mmcblk0p8 rw rootfstype=ext4 init=/linuxrc lcd=wy070ml tp=gslx680
@@ -1278,9 +1282,132 @@ linux支持多种文件系统，包括：minix，ext，nfs，ntfs，jffs等。
    # init：指定Linux内核启动完毕后调用的第一个用户态程序
    ```
 
-   
+4. 1号进程
 
-2. 
+   - `/linuxrc` 是由内核启动的第一个，也是惟一的一个用户进程，PID为1，linuxrc是后续进程的发起者
+
+   - 1号进程
+
+     - 不同linux发行版的主要区别，就得从1号进程谈起
+     - 所谓根文件系统的启动，其实主要就是1号进程的启动过程
+
+   - `/linuxrc`执行流程：
+
+     - 设置SIGSEGV、SIGILL、SIGFPE、SIGBUS信号处理函数
+     - 初始化控制台，设置环境变量（HOME、SHELL、USER等）
+     - 解析/etc/inittab配置文件，否则将运行默认配置
+     - 监听特定子进程状态
+
+   - /etc/inittab：决定了接下来将要启动的脚本、shell和应用程序
+
+     ```bash
+     # /etc/inittab文件内容
+     # 每一行都指定一个子进程，并确定了进程运行方式
+     # 用冒号来分隔各字段的属性。
+     
+     # 格式：<id>:<runlevels>:action:process
+     # id：表示这个子进程使用的控制台，如果省略，则使用与linuxrc进程一样的控制台
+     # runlevels: 该字段主要用于PC机，对于嵌入式系统暂时没有处理，可以省略
+     # action: 表示linuxrc进程将如何控制这个子进程，具体取值见后面的表格
+     # process: 表示要启动的可执行程序或脚本，如果process字段前面有“-”字符，说明这个应用支持“交互”
+     
+     
+     ::sysinit:/etc/init.d/rcS
+     ::respawn:-/bin/ash
+     #::once:/home/demo/start.sh
+     
+     
+     ```
+
+     action的可选值：用户程序被action标记后，按action标定的执行顺序：sysinit->wait->once->respawn->askfirst->ctrlaltdel-shutdown->restart
+
+     | 名称       | 执行条件                   | 说明                                                         |
+     | ---------- | -------------------------- | ------------------------------------------------------------ |
+     | sysinit    | 系统启动后最先执行         | 指定初始化脚本路径，只执行一次，init进程等待它结束才继续执行其它动作 |
+     | wait       | 执行完sysinit进程后        | 只执行一次，init进程等待它结束才继续执行其它动作             |
+     | once       | 执行完wait进程后           | 只执行一次，init进程不等待它结束                             |
+     | respawn    | 启动完once进程后           | init进程监测发现子进程退出时，重新启动它                     |
+     | askfirst   | 启动完respawn进程后        | 与respawn类似，不过init进程先输出“Please press Enter to activate this console”，等用户输入回车后才启动子进程。 |
+     | shutdown   | 当系统关机时               | 即重启、关闭系统时执行的程序                                 |
+     | restart    | init进程接收到SIGHUP信号时 | init进程重启时执行的程序，通常是init程序本身。先重新读取、解析/etc/inittab文件，再执行restart程序 |
+     | ctrlaltdel | 按下Ctrl+Alt+Del           | 按Ctrl+Alt+Del组合键时执行的程序                             |
+
+     
+
+   - 执行完所有开机需要加载的进程或脚本后，开始监听子进程的运行状态
+
+## 3.3 构建根文件系统
+
+除了那些必须要有的根目录（可以没有内容）之外，必须提前提供内容的目录有：**bin,sbin,usr,etc,lib,linuxrc**
+
+### 3.3.1 命令的构建
+
+- 如果只提供个别命令：我们可以从网络下载命令源码，采用交叉编译器，重新编译好命令，下载到开发板/bin，/sbin等目录下
+
+- 如果需要提供大批量的命令：我们通常使用 “嵌入式Linux系统的瑞士军刀” ——**busybox开源工具**
+
+- busybox
+
+  - 特点：
+
+    - **提供完善的Linux命令工具集**
+    - 提供图形化的配置环境和默认配置选项
+    - 所有功能均整合到busybox程序中，实现不同命令的代码共享，占用磁盘空间极小
+    - 所有命令均通过软链接到/bin/busybox实现
+    - 帮助用户实现了1号用户进程(linuxrc)
+
+  - 我们可以在开发板中，通过`ls -al`看到很多命令都指向了/bin/busybox
+
+    ```bash
+    [/bin]#ls -al
+    total 1920
+    drwxr-xr-x    2 1003     1003          4096 Dec 12  2013 .
+    drwxr-xr-x   19 root     root          4096 Jan  1  2015 ..
+    lrwxrwxrwx    1 1003     1003             7 Dec  5  2013 ash -> busybox
+    lrwxrwxrwx    1 1003     1003             7 Dec  5  2013 base64 -> busybox
+    -rwxr-xr-x    1 1003     1003       1953944 Dec  5  2013 busybox
+    lrwxrwxrwx    1 1003     1003             7 Dec  5  2013 cat -> busybox
+    lrwxrwxrwx    1 1003     1003             7 Dec  5  2013 catv -> busybox
+    lrwxrwxrwx    1 1003     1003             7 Dec  5  2013 chattr -> busybox
+    lrwxrwxrwx    1 1003     1003             7 Dec  5  2013 chgrp -> busybox
+    lrwxrwxrwx    1 1003     1003             7 Dec  5  2013 chmod -> busybox
+    lrwxrwxrwx    1 1003     1003             7 Dec  5  2013 chown -> busybox
+    lrwxrwxrwx    1 1003     1003             7 Dec  5  2013 conspy -> busybox
+    lrwxrwxrwx    1 1003     1003             7 Dec  5  2013 cp -> busybox
+    lrwxrwxrwx    1 1003     1003             7 Dec  5  2013 cpio -> busybox
+    lrwxrwxrwx    1 1003     1003             7 Dec  5  2013 cttyhack -> busybox
+    lrwxrwxrwx    1 1003     1003             7 Dec  5  2013 date -> busybox
+    lrwxrwxrwx    1 1003     1003             7 Dec  5  2013 dd -> busybox
+    lrwxrwxrwx    1 1003     1003             7 Dec  5  2013 df -> busybox
+    lrwxrwxrwx    1 1003     1003             7 Dec  5  2013 dmesg -> busybox
+    
+    ```
+
+    
+
+- 
+
+### 3.3.2 lib目录构建
+
+copy交叉编译工具链中的库
+
+```bash
+# 拷贝c库
+cp -a /opt/arm-linux-gcc-4.3.2/arm-none-linux-gnueabi/libc/armv4t/lib/*so* /myrootfs/lib 
+# 拷贝c++库
+cp -a /opt/arm-linux-gcc-4.3.2/arm-none-linux-gnueabi/libc/armv4t/usr/lib/libstdc++.so.* /myrootfs/lib 
+
+# 参数-a是cp命令的一个选项，它实际上是-dR --preserve=all的简写形式。这个参数用于复制文件和目录，并尽可能保留源文件的属性和信息。
+# -d：复制符号链接本身，而不是链接指向的目标文件。
+# -R或--recursive：递归复制目录及其子目录和文件。
+# --preserve=all：保留源文件的文件模式（权限），修改时间，访问时间，文件的所有者和组，以及符号链接。这意味着复制的文件或目录将与源文件或目录具有相同的属性。
+```
+
+### 3.3.3 etc目录构建
+
+我们可以现将busybox工具下`examples/bootfloppy/etc/`下的所有配置文件，copy到自己的`/myrootfs/etc`下，然后根据自己的需要进行修改。
+
+
 
 # 其它
 
