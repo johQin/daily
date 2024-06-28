@@ -1172,7 +1172,9 @@ linux支持多种文件系统，包括：minix，ext，nfs，ntfs，jffs等。
   - 在嵌入式Linux系统的开发调试阶段，可利用该技术在主机上建立基于nfs的根文件系统，挂载到嵌入式设备，可以很方便地修改根文件系统的内容。
 - 
 
-#### 开发板nfs挂载到虚拟机上
+### 3.1.4 使用远程文件系统nfs
+
+开发板nfs挂载到虚拟机上
 
 - 开发板获取ip设置ip：
 
@@ -1227,7 +1229,7 @@ linux支持多种文件系统，包括：minix，ext，nfs，ntfs，jffs等。
 
   
 
-### 3.1.4虚拟文件系统
+### 3.1.5 虚拟文件系统
 
 - 为了对各类文件系统进行统一管理，Linux引入了虚拟文件系统——VFS(Virtual File System)，为各类文件系统提供统一的操作界面和应用编程接口
 - VFS并不是一种实际的文件系统，它是**物理文件系统与服务之间的一个接口层**
@@ -1295,7 +1297,7 @@ linux支持多种文件系统，包括：minix，ext，nfs，ntfs，jffs等。
 
      - 设置SIGSEGV、SIGILL、SIGFPE、SIGBUS信号处理函数
      - 初始化控制台，设置环境变量（HOME、SHELL、USER等）
-     - 解析/etc/inittab配置文件，否则将运行默认配置
+     - **解析/etc/inittab配置文件**，否则将运行默认配置
      - 监听特定子进程状态
 
    - /etc/inittab：决定了接下来将要启动的脚本、shell和应用程序
@@ -1346,14 +1348,14 @@ linux支持多种文件系统，包括：minix，ext，nfs，ntfs，jffs等。
 
 - 如果需要提供大批量的命令：我们通常使用 “嵌入式Linux系统的瑞士军刀” ——**busybox开源工具**
 
-- busybox
+- [busybox](http://www.busybox.net/)
 
   - 特点：
 
     - **提供完善的Linux命令工具集**
     - 提供图形化的配置环境和默认配置选项
     - 所有功能均整合到busybox程序中，实现不同命令的代码共享，占用磁盘空间极小
-    - 所有命令均通过软链接到/bin/busybox实现
+    - **所有命令均通过软链接到/bin/busybox实现**
     - 帮助用户实现了1号用户进程(linuxrc)
 
   - 我们可以在开发板中，通过`ls -al`看到很多命令都指向了/bin/busybox
@@ -1385,6 +1387,23 @@ linux支持多种文件系统，包括：minix，ext，nfs，ntfs，jffs等。
 
     
 
+- ```bash
+  tar xvf busybox-1.21.1.tar.bz2
+  cd busybox-1.21.1
+  
+  # deconfig--default config 使用默认配置 busybox,大部分的命令都会被选中
+  make defconfig
+  
+  # 图形化配置
+  make menuconfig
+  
+  #
+  make 
+  make install
+  
+  # 在 busybox 目录下会看见 _install 目录，里面有 bin sbin usr linuxrc 四个文件，将这三个目录或文件拷到第一步所建的 rootfs 文件夹下。
+  ```
+
 - 
 
 ### 3.3.2 lib目录构建
@@ -1406,6 +1425,210 @@ cp -a /opt/arm-linux-gcc-4.3.2/arm-none-linux-gnueabi/libc/armv4t/usr/lib/libstd
 ### 3.3.3 etc目录构建
 
 我们可以现将busybox工具下`examples/bootfloppy/etc/`下的所有配置文件，copy到自己的`/myrootfs/etc`下，然后根据自己的需要进行修改。
+
+**etc 目录下最重要的四个文件：**
+
+- inittab：用来作为 linuxrc 的配置脚本
+- init.d/rcS： inittab 启动的第一个脚本，一般用来挂载系统必需的文件系统、必要的设备连接、设置 IP 地址、启动其他脚本等，默认仅有 mount –a
+- fstab： 执行 mount –a 时，按照此文件挂载文件系统
+- profile：登陆完 shell 后自动执行此脚本，一般用来配置用户的登录环境
+- 其他目录保持默认即可。
+
+1. inittab
+
+   - 配置要启动哪些进程
+   - 配置要启动的进程是什么方式来启动
+   - 一般用户开机需要启动的进程就可以在这里指定
+
+   ```bash
+   ::sysinit:/etc/init.d/rcS
+   ::respawn:-/bin/sh							# bin前面的减号，表示我们可以交互
+   ::ctrlaltdel:/bin/umount -a -r
+   #::once:/home/demo/start.sh					# 这里我们可以指定开机需要指定的程序
+   ```
+
+2. 系统初始化脚本，修改init.d/rcs，为以下
+
+   ```bash
+   #!/bin/sh
+   #1.根据 fstab 配置文件挂载相应的文件系统
+   /bin/mount -a
+   #2.配置 telnetd 服务器的时候需要以下文件夹及文件系统
+   /bin/mkdir -p /dev/pts
+   /bin/mkdir -p /dev/shm
+   /bin/mount -t devpts devpts /dev/pts
+   /bin/mount -t tmpfs tmpfs /dev/shm
+   #3.启动需要以下文件夹
+   /bin/mkdir /var/tmp
+   /bin/mkdir /var/modules
+   /bin/mkdir /var/run
+   /bin/mkdir /var/log
+   #4.在 lib 下创建相应文件夹（与当前内核版本相同），为驱动模块加载作准备
+   if ! [ -d /lib/modules ]; then
+   mkdir /lib/modules
+   fi
+   if ! [ -d /lib/modules/$(uname -r) ]; then
+   mkdir /lib/modules/$(uname -r)
+   fi
+   #5.自动在/dev 下创建设备节点（动态创建设备文件）
+   /sbin/mdev -s
+   ```
+
+   ```bash
+   # 下面是九鼎创展科技，在里面增加的其他操作
+   
+   # 启动telnet服务
+   #usb ftp/telnetd init                                                                              
+   /usr/sbin/telnetd
+   # 启动了FTP服务，将/home文件共享了出去
+   /usr/bin/tcpsvd 0 21 ftpd -w /home&                                                                
+   #usb ftp/telnetd end                                                                               
+                                                                                                      
+   #usb hotplug init                                                                                  
+   echo /sbin/mdev > /proc/sys/kernel/hotplug
+   #usb hotplug end                          
+                                             
+                                             
+   #'mtdblock6\usb slave init...'            
+   mount /dev/mtdblock6  /root               
+   . /usr/usb_gadget/usb_gadget.sh           
+   #'mtdblock6\usb slave end...'             
+   
+   # 启动了boa服务，我们可以通过网页访问
+   echo 'boa init...'                        
+   if [ -e /usr/boa/boa ]; then              
+   /usr/boa/boa                              
+   fi                                        
+                                             
+                                             
+   echo 'gpio driver init...'                
+   if [ -e /home/www/gpiodriver/s5p6818_gpio.ko  ];then
+   insmod  /home/www/gpiodriver/s5p6818_gpio.ko        
+   fi                                                  
+                                                       
+   # 动态设置了mac地址。因为害怕在同一个局域网内，同时有多个设备，它怕冲突，通过随机数的方式，修改了mac地址的后两位                                                    
+   HR=$(/usr/bin/printf "%04X" $RANDOM)                
+   MAC4="$(echo "$HR" | cut -c1-2)"                    
+   [ -z "$MAC4" ] && MAC4="00"                         
+   MAC5="$(echo "$HR" | cut -c3-4)"                    
+   [ -z "$MAC5" ] && MAC5="$MAC4"                      
+   CUR_MAC=00:53:50:00:$MAC4:$MAC5                     
+                                                       
+   ifconfig eth0 hw ether $CUR_MAC
+   ```
+
+   
+
+3. fatab
+
+   ```bash
+   #device mount-point type options dump fask order
+   proc /proc proc defaults 0 0
+   ramfs /var ramfs defaults 0 0
+   ramfs /tmp ramfs defaults 0 0
+   none /sys sysfs defaults 0 0
+   none /dev ramfs defaults 0 0
+   ```
+
+   
+
+4. profile
+
+   ```bash
+   #1.初始化 PATH 环境变量及动态链接库路径
+   export PATH=$PATH:/bin:/sbin:/usr/bin:/usr/sbin
+   export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/lib:/usr/lib
+   #2.初始化主机名以及当前工作路径
+   /bin/hostname qin
+   USER="`id -un`" LOGNAME=$USER
+   HOSTNAME='/bin/hostname' PS1='[\u@\h \W]# '
+   ```
+
+   
+
+5. 用户名，密码文件构建
+
+   - 包含三个文件：/etc/passwd, /etc/group, /etc/shadow
+
+   - /etc/passwd
+
+     ```bash
+     root:x:0:0:root:/root:/bin/sh
+     ```
+
+   -  /etc/group
+
+     ```bash
+     root:x:0:root
+     ```
+
+   - /etc/shadow
+
+     ```bash
+     root:$1$x9yv1WlB$abJ2v9jOlOc9xW/y0QwPs.:14034:0:99999:7:::
+     ```
+
+     - 这里的密文对应的是 “111111”，6个1，**这个文件在本地登录或者 ftp、telnet 登录时起作用**
+
+   - 如果想要在开机登录时想要使用密码，可以做如下修改。这个操作也是为了验证我们后面的确挂载的使我们自建的文件系统，因为之前的文件系统并没有要我们输入用户名和密码。我们这个文件系统在后面通过nfs挂载，就会让你输入用户名和密码了。当然，也可以通过nfs，在两端分别创建和删除文件来看是否对应，来验证。
+
+     - 打开/etc/inittab，把第二行：::respawn:-/bin/sh，改为::respawn:-/bin/login ，这样登录时需要用户名、密码验证
+     - 这样，以后登陆开发板时需输入用户名密码，同虚拟机相同
+     - 登陆后可以通过 passwd 命令修改密码或通过 adduser 增加新用户
+
+   
+
+6. 热插拔配置文件mdev.conf
+
+   - 通过正则表达式对动态插入设备文件名进行匹配
+
+   - 匹配动态设备是插入还是拔出
+
+   - 自动调用挂载和卸载脚本
+
+     - /etc/hotplug/insert.sh
+     - /etc/hotplug/remove.sh
+
+     ```bash
+     sd[a-z][0-9]      0:0 666        @(/etc/hotplug/insert.sh $MDEV $SUBSYSTEM)
+     sd[a-z]           0:0 666        $(/etc/hotplug/remove.sh $MDEV $SUBSYSTEM)
+     ub[a-z][0-9]      0:0 666        @(/etc/hotplug/insert.sh $MDEV $SUBSYSTEM)
+     ub[a-z]           0:0 666        $(/etc/hotplug/remove.sh $MDEV $SUBSYSTEM)
+     ```
+
+     
+
+7. 
+
+### 3.3.4 制作根文件系统镜像
+
+`make_ext4fs`是一个用于创建EXT4文件系统的工具，通常在Android开发中使用，用于创建可以挂载的文件系统镜像。这个工具可以在Linux环境中运行，用于制作EXT4格式的文件系统镜像，这些镜像可以用于Android设备的系统分区或者其他用途。
+
+一些常用的`make_ext4fs`命令参数及其意义
+
+- `-s`：指定分区块大小（block size）。EXT4文件系统的块大小可以是1024、2048或4096字节。默认值通常是4096字节（4KB）。
+- `-l`：指定生成的EXT4文件系统镜像的大小，后面跟随的值应该是文件系统大小的数值和单位（例如`100M`代表100MB）。
+- `-a`：指定文件系统中的挂载点。这个参数告诉`make_ext4fs`在生成的镜像中创建哪个目录作为挂载点。
+- `-L`：设置文件系统的卷标（volume label）。卷标是一个磁盘的一个标识，不唯一。由格式化自动生成或人为设定。仅仅是一个区别于其他磁盘的标识而已。
+- `-j`：启用journal（日志）功能。EXT4文件系统可以使用日志来提高文件系统的稳定性，减少在异常断电后恢复文件系统所需的时间。
+- `-b`：设置文件系统的预留空间（Reserved block percentage）。这是为超级用户保留的磁盘空间百分比，以防止普通用户完全填满文件系统。
+- `-g`：设置文件系统的组ID。
+- `-i`：设置文件系统的用户ID。
+- `-t`：设置文件系统的修改时间（mtime）。
+- `-T`：设置文件系统的访问时间（atime）。
+- `-z`：压缩文件系统镜像。
+
+```bash
+# ubuntu20.04上
+apt install android-sdk-ext4-utils
+# ubuntu22.01上
+apt install android-tools-fsutils
+
+make_ext4fs -s 4096 -l 100M -a root -L my_label -j /path/to/image.img /path/to/source_folder
+
+# 314572800 = 300M
+make_ext4fs -s -l 314572800 -a root -L linux gtk.img /home/edu/rootfs
+```
 
 
 
