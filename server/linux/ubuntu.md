@@ -436,7 +436,96 @@
    umount n15 && rm -r n15
    ```
 
-10. [ubuntu安装essayconnect](https://blog.csdn.net/weixin_37926734/article/details/123068318)
+10. [ubuntu开启samba服务](https://blog.csdn.net/qq_42417071/article/details/136328807)
+
+    - ```bash
+      # ubuntu主机操作
+      
+      sudo apt update
+      sudo apt install samba -y
+      
+      # 创建需要共享的文件夹
+      mkdir -p sambaShare
+      chmod 777 sambaShare
+      
+      # 修改samba文件配置
+      sudo cp /etc/samba/smb.conf /etc/samba/smb.conf.bak
+      sudo vim /etc/samba/smb.conf
+      # 在配置文件的末尾加
+      [Ubuntu_22.04_home]
+      	comment = this is samba sharing in ubuntu_22.04_home
+      	path = /home/buntu/sambaShare
+      	public = yes
+      	writable = yes
+      	available = yes
+      	browseable = yes
+      	valid users = buntu		
+      	
+      # Ubuntu_22.04_home，这是共享的名称，你可以在网络上访问该共享时使用。这个标签会在windows看到
+      # comment：这是关于共享的描述或注释，显示给用户看。
+      # path：这是共享的实际路径。
+      # public：这表示该共享是否为公共共享，即是否允许匿名用户访问。
+      # writable：表示是否允许用户在共享中创建、编辑和删除文件。
+      # available：表示该共享是否可用
+      # browseable：表示该共享是否在网络上可以浏览。
+      # valid users：当前 Ubuntu 系统的用户，多个用户名，用空格隔开
+      
+      # 添加samba用户并设置它的用户密码，这个密码，用户samba服务，和系统用户的密码是不同的。
+      sudo smbpasswd -a buntu
+      # 然后输入 Samba 服务器的登录密码，连续输入两次，可以设置单个字符。设置成功后会提示“Added user buntu.”。
+      
+      systemctl restart smbd.service
+      systemctl enable smbd.service
+      systemctl status smbd.service
+      
+      ```
+
+    - windows操作
+
+    - ![](./legend/samba_windows操作.png)
+
+    - 还可以将此文件夹映射为windows上的一个指定的盘符
+
+      ![image-20240629175751563](legend/image-20240629175751563.png)
+
+11. [ubuntu将指定的ip设置为固定ip](https://blog.csdn.net/weixin_58305495/article/details/130554393)
+
+    ```bash
+    # 查看网卡信息，你要知道你要设置哪一个网卡，一并查看子网掩码
+    ifconfig
+    
+    # 查看你所需要设置的ip是否已被其他设备占用，如果没有被占用是ping不通的
+    ping 192.168.0.2
+    
+    cd /etc/netplan
+    # 备份原有的配置文件
+    sudo cp 01-network-manager-all.yaml  01-network-manager-all.yaml.bak
+    
+    sudo vim 01-network-manager-all.yaml
+    network:
+      ethernets: 
+        eno1: 
+          addresses: [192.168.0.2/24]
+          gateway4: 192.168.0.1
+          dhcp4: false
+          nameservers:
+            addresses: [114.114.114.114, 8.8.8.8]
+      version: 2
+      renderer: NetworkManager
+    # eno1是你的网卡名
+    # 192.168.0.2/24：你想要设置的ip/掩码长度
+    # 114.114.114.114是国内移动、电信和联通通用的DNS，解析成功率相对来说更高，国内用户使用的比较多，速度相对快、稳定，是国内用户上网常用的DNS。
+    # 8.8.8.8是GOOGLE公司提供的DNS，该地址是全球通用的，相对来说，更适合国外以及访问国外网站的用户使用。
+    # 每个冒号后要留一个空格，配置文件里不能有注释内容
+    
+    sudo netplan apply
+    # 可能会报警告，说gateway4已被废弃什么的，但是可以不用管
+    # 如果有错，你可以再次尝试参考链接的内容
+    ```
+
+    
+
+12. [ubuntu安装essayconnect](https://blog.csdn.net/weixin_37926734/article/details/123068318)
 
    - [essay安装后无法打开的问题](https://blog.csdn.net/u011426115/article/details/126660001)
 
@@ -482,7 +571,7 @@
    - 修改/etc/rc.d/rc.local（如果没有，则修改/etc/rc.local文件，再没有，就生成一个rc.local)，添加自定义的脚本至文件最后
    - 开启rc.local服务
    - rc.local服务使能。
-   - 注意：脚本必须使用exit 0结束，
+   - 注意：脚本必须使用exit 0结束
 2. ubuntu系统的hosts（ip和域名映射）：/etc/hosts
 3. [ubuntu 初次使用root身份登录](https://blog.csdn.net/weixin_56364629/article/details/124608110)
 4. [ubuntu图像化界面不允许root用户登陆](https://blog.csdn.net/Ki_Ki_/article/details/128832659)

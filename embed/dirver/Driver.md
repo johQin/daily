@@ -126,12 +126,30 @@ Block devices:
 Linux内核模块的编译方法有两种：
 
 - 放入Linux内核源码中编译
+
   * 将写好的模块放入Linux内核任一目录下
   * 修改相应目录下的Kconfig和Makefile文件
   * 执行make modules
   * 会在相同目录下生成与源文件同名的.ko文件
+
 - 采用独立的方法编译模块
+
   - 需要独立的Makefile
+
+    ```makefile
+    obj‐m := module_test.o #模块名字，与C文件同名
+    KERNELDIR = /…/kernel‐3.4.39 #内核路径得根据自己的实际解压路径进行修改
+    PWD = $(shell pwd) #当前路径
+    default: #编译过程
+    	$(MAKE) ‐C $(KERNELDIR) M=$(PWD) modules
+    	rm ‐rf *.order *.mod.* *.o *.symvers
+    clean:
+    	rm ‐rf *.ko
+    ```
+
+    
+
+  - 
 
 
 
