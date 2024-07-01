@@ -1174,13 +1174,43 @@ linux支持多种文件系统，包括：minix，ext，nfs，ntfs，jffs等。
 
 ### 3.1.4 使用远程文件系统nfs
 
-开发板nfs挂载到虚拟机上
+开发板nfs挂载到虚拟机上两种方式：
+
+- 手动挂载
+- 开机自动挂载根文件系统
+
+
+nfs服务器配置：
+
+```bash
+# 服务器安装nfs服务
+sudo apt-get install nfs-kernel-server rpcbind			# rpcbind是NFS中 用来进行消息通知的服务
+
+# 配置服务
+sudo vi /etc/exports
+# /etc/exports: the access control list for filesystems which may be exported
+#		to NFS clients.  See exports(5).
+#
+# Example for NFSv2 and NFSv3:
+# /srv/homes       hostname1(rw,sync,no_subtree_check) hostname2(ro,sync,no_subtree_check)
+#
+# Example for NFSv4:
+# /srv/nfs4        gss/krb5i(rw,sync,fsid=0,crossmnt,no_subtree_check)
+# /srv/nfs4/homes  gss/krb5i(rw,sync,no_subtree_check)
+#
+/home/buntu/sambaShare *(rw,sync,no_root_squash)
+
+# 重启nfs服务
+sudo /etc/init.d/nfs-kernel-server restart
+```
+
+开发板配置：
 
 - 开发板获取ip设置ip：
 
   - 查看是否有地址：ifconfig，如果有就直接使用，不用设置ip了（记得插网线）
   - 自动获取ip地址：udhcpc（如果开发板支持DHCP协议）
-  - 手动设置IP地址：ifconfig eth0 192.138.1.xx（先ping一下，看通不通，通的话，就需要换一个地址，否则将会冲突）
+  - 手动设置IP地址：ifconfig eth0 192.168.1.xx（先ping一下，看通不通，通的话，就需要换一个地址，否则将会冲突）
 
 - 手动挂载（需要关闭虚拟机的防火墙）：
 
@@ -1188,9 +1218,10 @@ linux支持多种文件系统，包括：minix，ext，nfs，ntfs，jffs等。
   # 在开发板上执行
   mount ‐o nolock,wsize=1024,rsize=1024 10.9.131.253:/home/edu /mnt
   # 将虚拟机ip：10.9.131.253 虚拟机上的/home/edu，挂载到开发板的/mnt下
+  
   ```
 
-- 挂载根文件系统
+- 开机自动挂载根文件系统
 
   - 将服务器上的nfs根文件系统挂载到开发板上
   - 是需要在uboot阶段进行环境变量的设置

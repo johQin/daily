@@ -79,6 +79,14 @@ drwxr-xr-x    2 1003     1003          4096 Nov 27  2013 hotplug
 
 ### 设备号
 
+- **主设备号**
+  - 用于标识驱动程序，一个驱动程序只能有一个主设备号，主设备号一样的设备文件将使用同一类驱动程序。
+  - 范围：1-254，0有特殊的用途
+- **从设备号**
+  - 用于标识使用同一驱动程序的不同具体硬件和功能。
+  - 从设备号一般都是用户手动指定分配的
+  - 范围：0-255
+
 通过`ls -l /dev`查看第五列，可以看到主设备号和从设备号
 
 ```bash
@@ -109,21 +117,13 @@ Block devices:
 
 ```
 
-- **主设备号**
-  - 用于标识驱动程序，一个驱动程序只能有一个主设备号，主设备号一样的设备文件将使用同一类驱动程序。
-  - 范围：1-254，0有特殊的用途
-- **从设备号**
-  - 用于标识使用同一驱动程序的不同具体硬件和功能。
-  - 从设备号一般都是用户手动指定分配的
-  - 范围：0-255
-
 ## 0.4 linux模块化编程
 
 - 控制内核大小（不需要的组件可以不编入内核）
 - 调试开发灵活（模块可以同普通软件一样，从内核中添加或删除）
 - 独立于内核，可以单独编译和加载运行
 
-Linux内核模块的编译方法有两种：
+Linux内核模块的编译方法有**两种**：
 
 - 放入Linux内核源码中编译
 
@@ -137,7 +137,7 @@ Linux内核模块的编译方法有两种：
   - 需要独立的Makefile
 
     ```makefile
-    obj‐m := module_test.o #模块名字，与C文件同名
+    obj‐m := demo_module.o #模块名字，与C文件同名
     KERNELDIR = /…/kernel‐3.4.39 #内核路径得根据自己的实际解压路径进行修改
     PWD = $(shell pwd) #当前路径
     default: #编译过程
@@ -147,12 +147,92 @@ Linux内核模块的编译方法有两种：
     	rm ‐rf *.ko
     ```
 
-    
+  - 三步实现一个内核模块
 
-  - 
+    ```c
+    // 首先确定你的模块存放位置，建议存放在内核源码目录下的debug目录
+    
+    // 相关宏，相关函数放在此头文件
+    #include <linux/module.h>
+    
+    static int __init demo_module_init(void)
+    {
+    	printk(KERN_WARNING "L%d‐>%s()\n",__LINE__,__FUNCTION__);
+    	return 0;
+    }
+    static void __exit demo_module_exit(void)
+    {
+    	printk(KERN_WARNING "L%d‐>%s()\n",__LINE__,__FUNCTION__);
+    }
+    // 声明模块初始化回调
+    module_init(demo_module_init);
+    // 声明模块退出时回调
+    module_exit(demo_module_exit);
+    
+    // 第一步：声明GPL
+    MODULE_LICENSE("GPL");
+    MODULE_DESCRIPTION("xxxxxxxxxxxxxxxx");
+    ```
+  
+- 模块操作指令
+
+  - lsmod 列举当前系统中的所有模块
+  - insmod xxx.ko 加载指定模块到内核
+  - rmmod xxx 卸载指定模块(不需要.ko后缀)
+  - modinfo xxx.ko 查看模块信息
 
 
 
 # 1 字符设备驱动
 
 内核中超过一半的代码都是驱动代码，而驱动代码里面有一半代码都是字符设备的驱动代码。
+
+字符设备是最基本、最常用的设备。它将千差万别的各种硬件设备采用一个统一的接口封装起来，屏蔽硬件差异，简化了应用层的操作。
+
+- **字符驱动开发的过程，就是一个实现 与系统调用一一对应函数接口 的过程**
+- 接口实现之后，应用程序通过file_operations与驱动建立连接。
+- **驱动的open/read/write函数**实际上是由一个叫**file_operations**的结构体统一管理的。**file_operations里面包含了一组函数指针,这组函数指针指向驱动open/read/write等几个函数。**一个打开的设备文件就和该结构体关联起来，结构体中的函数实现了对文件的系统调用。
+
+```c
+struct file_operations {
+	struct module *owner;
+	loff_t (*llseek) (struct file *, loff_t, int);
+	ssize_t (*read) (struct file *, char __user *, size_t, loff_t *);
+	ssize_t (*write) (struct file *, const char __user *, size_t, loff_t *);
+	ssize_t (*aio_read) (struct kiocb *, const struct iovec *, unsigned long, loff_t);
+	ssize_t (*aio_write) (struct kiocb *, const struct iovec *, unsigned long, loff_t);
+	int (*readdir) (struct file *, void *, filldir_t);
+	unsigned int (*poll) (struct file *, struct poll_table_struct *);
+	long (*unlocked_ioctl) (struct file *, unsigned int, unsigned long);
+	long (*compat_ioctl) (struct file *, unsigned int, unsigned long);
+	int (*mmap) (struct file *, struct vm_area_struct *);
+	int (*open) (struct inode *, struct file *);
+	int (*flush) (struct file *, fl_owner_t id);
+	int (*release) (struct inode *, struct file *);
+	int (*fsync) (struct file *, loff_t, loff_t, int datasync);
+	int (*aio_fsync) (struct kiocb *, int datasync);
+	int (*fasync) (int, struct file *, int);
+	int (*lock) (struct file *, int, struct file_lock *);
+	ssize_t (*sendpage) (struct file *, struct page *, int, size_t, loff_t *, int);
+	unsigned long (*get_unmapped_area)(struct file *, unsigned long, unsigned long, unsigned long, unsigned long);
+	int (*check_flags)(int);
+	int (*flock) (struct file *, int, struct file_lock *);
+	ssize_t (*splice_write)(struct pipe_inode_info *, struct file *, loff_t *, size_t, unsigned int);
+	ssize_t (*splice_read)(struct file *, loff_t *, struct pipe_inode_info *, size_t, unsigned int);
+	int (*setlease)(struct file *, long, struct file_lock **);
+	long (*fallocate)(struct file *file, int mode, loff_t offset,
+			  loff_t len);
+};
+```
+
+
+
+# 其他
+
+1. [sourceInsight](https://blog.csdn.net/wkd_007/article/details/131316924)
+   - 【Ctrl + F】文件中查找操作
+   - 【ctrl + /】 全局搜索关键字
+2. [sourceinsight 自动补全](https://blog.csdn.net/byhyf83862547/article/details/137090831)
+   - 选项卡options -> preference -> symbol lookups -> import symbols for all Projects -> add， 加入相关头文件文件夹到list表
+3. 
+
