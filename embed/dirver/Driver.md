@@ -181,6 +181,8 @@ Linux内核模块的编译方法有**两种**：
   - rmmod xxx 卸载指定模块(不需要.ko后缀)
   - modinfo xxx.ko 查看模块信息
 
+- 手动创建设备文件（节点）：`mknod /dev/mychardev c 240 0`
+
 
 
 # 1 字符设备驱动
@@ -223,6 +225,452 @@ struct file_operations {
 	long (*fallocate)(struct file *file, int mode, loff_t offset,
 			  loff_t len);
 };
+```
+
+
+
+## 1.1 开发框架
+
+### 1.1.1 手动创建设备驱动
+
+- 实现file_operations接口
+- 在xxx_module_init里：注册字符设备驱动`register_chrdev(major, name, fops);`，手动指定主设备号
+- 在xxx_module_exit里：注销字符设备驱动`unregister_chrdev(major, name);`
+- 模块编译make（参考0.4 linux模块化编程）
+- 安装驱动模块`insmod xxx.ko`：使驱动可以在`cat /proc/devices` 中看到
+- 创建设备节点`mknod /dev/mychardev c 242 0`
+  - c-字符设备，242-主设备号，0-从设备号
+  - 使其可以在`/dev`文件夹下看到设备文件
+
+```c
+#include <linux/module.h>
+#include<linux/fs.h>
+
+static int demo_open (struct inode *pinode, struct file *pfile){
+	printk(KERN_WARNING "L%d‐>%s()\n",__LINE__,__FUNCTION__);
+	return 0;
+}
+
+static ssize_t demo_read (struct file *pifle, char __user *pbuf, size_t count, loff_t *off){
+	printk(KERN_WARNING "L%d‐>%s()\n",__LINE__,__FUNCTION__);
+	return 0;
+}
+
+static ssize_t demo_write (struct file *pifle, const char __user *pbuf, size_t count, loff_t *off){
+	printk(KERN_WARNING "L%d‐>%s()\n",__LINE__,__FUNCTION__);
+	return count;	//返回0是写入失败，返回>0写入成功
+
+}
+static int demo_release (struct inode *, struct file *){
+	printk(KERN_WARNING "L%d‐>%s()\n",__LINE__,__FUNCTION__);
+	return 0;
+}
+
+
+
+static struct file_operations fops = {
+	.owner = THIS_MODULE,
+	.open = demo_open,
+	.read = demo_read,
+	.write = demo_write,
+	.release = demo_release,
+		
+}
+
+static int __init demo_module_init(void)
+{
+	printk(KERN_WARNING "L%d‐>%s()\n",__LINE__,__FUNCTION__);
+	register_chrdev(242, "demo_chr", &fops);		// 返回值为主设备号
+    // 如果242修改为0，即可动态获取设备号
+	return 0;
+}
+
+static void __exit demo_module_exit(void)
+{
+	printk(KERN_WARNING "L%d‐>%s()\n",__LINE__,__FUNCTION__);
+	unregister_chrdev(242, "demo_chr");
+}
+
+// 声明模块初始化回调
+module_init(demo_module_init);
+
+// 声明模块退出时回调
+module_exit(demo_module_exit);
+
+// 第一步：声明GPL
+MODULE_LICENSE("GPL");
+
+
+MODULE_DESCRIPTION("xxxxxxxxxxxxxxxx");
+```
+
+
+
+### 1.1.2 灵活创建设备驱动
+
+- 实现file_operations接口
+- 在xxx_module_init里
+  - 动态获取设备号：为防止设备号冲突
+    - 使用 `alloc_chrdev_region` 分配设备号。
+  - 初始化并添加设备驱动：使驱动可以在`cat /proc/devices` 中看到
+    - 使用 `cdev_init` 初始化字符设备结构体，并使用 `cdev_add` 将其添加到内核中。
+  - 创建设备类和设备节点
+    - 使用 `class_create(owner,classname)` 创建设备类，这个函数会在`/sys/class`中创建一个同name名的文件夹
+    - 使用 `device_create` 创建设备节点
+      - 在`/sys/class/classname`创建了一个`devicename`文件夹，cat 这个`devicename`文件夹下的uevent文件，可以看到主设备号，从设备号，设备名。
+      - 在这个使其可以在`/dev`文件夹下看到设备文件`/dev/devicename`
+- 在xxx_module_exit里，和注册的顺序相反
+  - 注销设备device_destroy
+  - 注销设备类class_destroy
+  - 删除设备结构体cdev_del
+  - 回收设备号资源unregister_chrdev_region
+
+```c
+#include <linux/module.h>
+#include <linux/fs.h>
+#include <linux/cdev.h>
+#include <linux/uaccess.h>
+#include <linux/device.h>
+
+#define DEVICE_NAME "mychardev"
+#define DEVICE_CLASS_NAME "mycharcls"
+#define DEVICE_COUNT 1
+
+static dev_t dev;
+static struct cdev my_cdev;
+static struct class *my_class;
+
+static int my_open(struct inode *inode, struct file *file)
+{
+    printk(KERN_INFO "Device opened\n");
+    return 0;
+}
+
+static int my_release(struct inode *inode, struct file *file)
+{
+    printk(KERN_INFO "Device closed\n");
+    return 0;
+}
+
+static ssize_t my_read(struct file *file, char __user *buf, size_t count, loff_t *ppos)
+{
+    printk(KERN_INFO "Read from device\n");
+    return 0;
+}
+
+static ssize_t my_write(struct file *file, const char __user *buf, size_t count, loff_t *ppos)
+{
+    printk(KERN_INFO "Write to device\n");
+    return count;		//返回0是写入失败，返回>0写入成功
+}
+
+static struct file_operations fops = {
+    .owner = THIS_MODULE,
+    .open = my_open,
+    .release = my_release,
+    .read = my_read,
+    .write = my_write,
+};
+
+static int __init my_init(void)
+{
+    int ret;
+
+    // 分配设备号
+    ret = alloc_chrdev_region(&dev, 0, DEVICE_COUNT, DEVICE_NAME);
+    if (ret < 0) {
+        printk(KERN_ERR "Failed to allocate chrdev region\n");
+        return ret;
+    }
+
+    // 初始化 cdev 结构体
+    cdev_init(&my_cdev, &fops);
+    my_cdev.owner = THIS_MODULE;
+
+    // 将 cdev 添加到系统中
+    ret = cdev_add(&my_cdev, dev, DEVICE_COUNT);
+    if (ret < 0) {
+        unregister_chrdev_region(dev, DEVICE_COUNT);
+        printk(KERN_ERR "Failed to add cdev\n");
+        return ret;
+    }
+
+    // 创建设备类
+    my_class = class_create(THIS_MODULE, DEVICE_CLASS_NAME);
+    if (IS_ERR(my_class)) {
+        cdev_del(&my_cdev);
+        unregister_chrdev_region(dev, DEVICE_COUNT);
+        printk(KERN_ERR "Failed to create class\n");
+        return PTR_ERR(my_class);
+    }
+
+    // 创建设备节点
+    device_create(my_class, NULL, dev, NULL, DEVICE_NAME);
+
+    printk(KERN_INFO "Device initialized successfully\n");
+    return 0;
+}
+
+static void __exit my_exit(void)
+{
+    device_destroy(my_class, dev);
+    class_destroy(my_class);
+    cdev_del(&my_cdev);
+    unregister_chrdev_region(dev, DEVICE_COUNT);
+    printk(KERN_INFO "Device exited successfully\n");
+}
+
+module_init(my_init);
+module_exit(my_exit);
+
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("Your Name");
+MODULE_DESCRIPTION("A simple character device driver");
+```
+
+```bash
+cat /dev/mychardev
+
+echo xxxx > /dev/mychardev
+```
+
+### register_chrdev和alloc_chrdev_region的区别
+
+- `alloc_chrdev_region` 
+  - 用于动态分配一个主设备号和多个次设备号。
+  - 它可以确保主设备号不会与现有的设备号发生冲突，因为内核会选择一个未被使用的主设备号进行分配。
+- `register_chrdev` 
+  - 既可以分配一个静态指定的主设备号，也可以动态分配一个主设备号（通过传入 0 作为主设备号）
+  - 函数返回值为主设备号（>0分配成功并为设备号，小于0分配失败）。
+  - 并注册字符设备的文件操作结构体。相比 `alloc_chrdev_region`，它还会同时注册一个字符设备驱动程序，并关联文件操作函数。
+
+### 1.1.3 简单调用
+
+```c
+#include<linux/module.h>
+#include<linux/fs.h>
+#include<device.h>
+#include<uaccess.h>
+
+....
+
+static ssize_t my_read(struct file *file, char __user *buf, size_t count, loff_t *ppos)
+{
+    printk(KERN_INFO "Read from device\n");
+    int ret;
+    int len = min(count,sizeof(data));
+    ret = copy_to_user(buf, data, len);
+    printk(KERN_WARNING "L%d->%s()\n", __LEN__, __FUNCTION__);
+    return len;			// 在使用cat命令时，如果返回0则读取结束，如果大于0则继续读
+}
+
+static ssize_t my_write(struct file *file, const char __user *buf, size_t count, loff_t *ppos)
+{
+    int ret;
+    char data[100];
+    int len = min(count,sizeof(data));
+    ret = copy_from_user(data, buf, len);
+    printk(KERN_WARNING "L%d->%s():%s\n", __LEN__, __FUNCTION__, data);
+    return count;		//返回0是写入失败，返回>0写入成功
+}
+...
+```
+
+```c
+#include<stdio.h>
+#include<sys/types.h>
+#include<sys/stat.h>
+#include<fcntl.h>
+#include<string.h>
+
+void read_test(){
+    int fd;
+    char data[100];
+    fd = open("/dev/mychardev", O_RDWR);
+    read(fd, data, 100);
+    printf("%s\n", data);
+}
+void write_test(){
+    int fd;
+    char data[100] = "hello driver!\n";
+    fd = open("/dev/mychardev", O_RDWR);
+    write(fd, data, strlen(data) + 1);
+    printf("%s\n", data);
+}
+int main(int argc, char** argv){
+    read_test();
+    write_test();
+    return 0;
+}
+```
+
+### 1.1.4 设备号的应用
+
+
+
+```c
+static int my_open(struct inode *inode, struct file *file)
+{
+    // 可以通过inode获取主从设备号
+    printk(KERN_WARNING "major = %d, minor = %d\n", imajor(pinode), iminor(pinode));
+	// 如果在open，read，write，close操作到不同的硬件设备（接口）的时候，就可以使用一个全局变量将从设备号存起来，做一个区分。
+    return 0;
+}
+int my_major;
+static int __init my_init(void)
+{
+    int i;
+    printk(KERN_WARNING "L%d->%s()\n", __LEN__, __FUNCTION__);
+    // register
+    my_major = register_chrdev(0,DEVICE_NAME,&fops);
+    my_class = class_create(THIS_MODULE, DEVICE_CLASS_NAME);
+    for(i = 0; i< 10;i++)
+        device_create(my_class, NULL, MKDEV(my_major, i+88), NULL, "%s%d",DEVICE_NAME,i+88);
+    return 0;
+}
+static void __exit my_exit(void)
+{
+   
+    int i;
+   	printk(KERN_WARNING "L%d->%s()\n", __LEN__, __FUNCTION__);
+    for(i = 0; i< 10;i++)
+        device_destroy(my_class, MKDEV(my_major, i+88));
+    class_destroy(my_class);
+    unregister_chrdev(my_major, DEVICE_NAME);
+    printk(KERN_INFO "Device exited successfully\n");
+}
+```
+
+## 1.2 GPIO
+
+找到S5P6818用户手册（SEC_S5P6818X_Users_Manual_preliminary_Ver_0.00.pdf），从中我们可以知道：
+
+- S5P6818的GPIO被分成了GPIOA-GPIOE共5组
+- 每组GPIO有32个引脚GPIOX0-GPIOX31
+- 确定 GPIO的功能，分成Fun0-3(必须参考数据手册确定其功能，参考2.3 I/O Function Description Ball List Table)，其中GPIOxn表示普通GPIO功能
+
+![image-20240702181235580](legend/image-20240702181235580.png)
+
+板卡的原理图（底板：x6818bv2.pdf，核心板：x4418cv3_release20150713.pdf），核心板焊在底板上
+
+LED的部分
+
+![image-20240702175233797](legend/image-20240702175233797.png)
+
+按键的部分：
+
+![](./legend/KEY_原理图.png)
+
+```c
+#include <mach/devices.h> //PAD_GPIO_A+n
+#include <mach/soc.h> //nxp_soc_gpio_set_io_func();
+#include <mach/platform.h> //PB_PIO_IRQ(PAD_GPIO_A+n);
+#include <linux/gpio.h>
+
+/* 内核api接口
+
+// 设置引脚功能
+nxp_soc_gpio_set_io_func(unsigned int io,int func); 		// io:寄存器地址，func：功能0,1,2,3
+// 确定GPIO输入输出方向
+nxp_soc_gpio_set_io_dir(unsigned int io, int out);			//out：0输入，1输出
+// 设置 GPIOl引脚输出电平
+nxp_soc_gpio_set_out_value(unsigned int io, int out);		//0：输出低电平，1：输出高电平
+// 读取 GPIOl引脚输入电平
+nxp_soc_gpio_get_in_value(unsigned int io);					//通过返回值得到高低电平
+
+*/
+
+
+static void my_gpio_init(void)
+{
+   	// LED
+	nxp_soc_gpio_set_io_func(PAD_GPIO_C+11,1); 		//设置引脚功能0‐3
+	nxp_soc_gpio_set_io_dir(PAD_GPIO_C+11,1);		//0：输入，1：输出
+	nxp_soc_gpio_set_out_value(PAD_GPIO_C+11,1);	//0：输出低电平，1：输出高电平
+    
+    // KEYBOARD
+    nxp_soc_gpio_set_io_func(PAD_GPIO_A+28,1); 		//设置引脚功能0‐3
+	nxp_soc_gpio_set_io_dir(PAD_GPIO_A+28,1);		//0：输入，1：输出
+ }
+
+static int my_open(struct inode *inode, struct file *file)
+{
+    printk(KERN_INFO "Device opened\n");
+    my_gpio_init();
+    return 0;
+}
+static int my_release(struct inode *inode, struct file *file)
+{
+    printk(KERN_INFO "Device closed\n");
+    nxp_soc_gpio_set_out_value(PAD_GPIO_C+11,1);
+    return 0;
+}
+static ssize_t my_write(struct file *file, const char __user *buf, size_t count, loff_t *ppos)
+{
+    int ret;
+    char data[100] = "";
+    int len = min(count,sizeof(data));
+    ret = copy_from_user(data, buf, len);
+    
+    // 设置led灯的亮灭
+    if(data[0] == '0'){
+        nxp_soc_gpio_set_out_value(PAD_GPIO_C+11,0);
+    }else{
+        nxp_soc_gpio_set_out_value(PAD_GPIO_C+11,1);
+    }
+    printk(KERN_WARNING "L%d->%s():%s\n", __LEN__, __FUNCTION__, data);
+    return count;		//返回0是写入失败，返回>0写入成功
+}
+static ssize_t my_read(struct file *file, char __user *buf, size_t count, loff_t *ppos)
+{
+    printk(KERN_INFO "Read from device\n");
+    int ret;
+    
+    // 读取keyboard的值
+    ret = nxp_soc_gpio_get_in_value(PAD_GPIO_A+28);	// 通过返回值得到高低电平
+    nxp_soc_gpio_set_out_value(PAD_GPIO_C+11,ret);
+    if(ret == 0)
+        return 0;
+    else
+        return 1;
+    
+}
+```
+
+
+
+```bash
+# 0开启led
+echo 0 > /dev/mychardev
+# 1关闭led
+echo 1 > /dev/mychardev
+```
+
+```c
+void write_test(){
+    int fd;
+    char data[100] = "0";
+    fd = open("/dev/mychardev", O_RDWR);
+    while(1){
+        data[0] = '0';
+        write(fd, data, strlen(data) + 1);
+        usleep(300 * 1000);
+        data[0] = '1';
+        write(fd, data, strlen(data) + 1);
+    }
+}
+void read_test(){
+    int fd,ret;
+    char data[100] = "0";
+    fd = open("/dev/mychardev", O_RDWR);
+    // 轮询
+    while(1){
+        ret = read(fd, data, 100);
+        if(ret == 0){
+            printf("key down\n");
+        }
+    }
+}
 ```
 
 
