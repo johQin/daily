@@ -137,18 +137,34 @@ Linux内核模块的编译方法有**两种**：
   - 需要独立的Makefile
 
     ```makefile
-    obj‐m := demo_module.o #模块名字，与C文件同名
-    KERNELDIR = /…/kernel‐3.4.39 #内核路径得根据自己的实际解压路径进行修改
-    PWD = $(shell pwd) #当前路径
-    default: #编译过程
-    	$(MAKE) ‐C $(KERNELDIR) M=$(PWD) modules
-    	rm ‐rf *.order *.mod.* *.o *.symvers
+    obj-m += demo_module.o
+    KERNELDIR := /home/buntu/sambaShare/kernel-3.4.39
+    PWD := $(shell pwd)
+    
+    modules:
+    	$(MAKE) -C $(KERNELDIR) M=$(PWD) modules
+    	rm -rf *.order *.mod.* *.o *.symvers
+    
     clean:
-    	rm ‐rf *.ko
+    	make -C $(KERNELDIR) M=$(PWD) clean
+    	rm -rf *.ko
+    
+    
+    # 如果make时有问题（但不是代码问题），那么手动敲一遍
+    # obj-m 是用于 Linux 内核模块编译的 Makefile 中的一种特殊约定，它用来指定要编译的模块对象文件。
+    # KERNELDIR：指定内核源码的路径
+    
+    # $(MAKE) ‐C $(KERNELDIR) M=$(PWD) modules
+    # $(MAKE)：MAKE变量用来确保在多层次的构建过程中，使用相同的 make 程序。并且$(MAKE) 还会自动传递命令行参数给子模块，例如父模块的makefile用的是make -j4 ，那么子模块在$(MAKE)就代表的是make -j4，这里会带参传递
+    # -C 选项的作用是指将当前工作目录转移到你所指定的位置。
+    # “M=”选项的作用是，当用户需要以某个内核为基础编译一个外部模块的话，需要在make modules 命令中加入“M=dir”，程序会自动到你所指定的dir目录中查找模块源码，将其编译，生成KO文件。
+    # modules 是一个通用的目标，适用于编译所有在当前目录中的模块源文件。你不需要将 modules 具体化为某个特定的模块名，它会自动识别并编译 Makefile 中定义的所有模块。
+    
+    # "$(MAKE) -C $(KDIR) M=$(PWD)"与"$(MAKE) -C $(KDIR) SUBDIRS =$(PWD)"的作用是等效的，后者是较老的使用方法。推荐使用M而不是SUBDIRS
     ```
-
+  
   - 三步实现一个内核模块
-
+  
     ```c
     // 首先确定你的模块存放位置，建议存放在内核源码目录下的debug目录
     
@@ -174,11 +190,27 @@ Linux内核模块的编译方法有**两种**：
     MODULE_DESCRIPTION("xxxxxxxxxxxxxxxx");
     ```
   
+- **上述模块是在虚拟机中编译，而下面的指令是在开发板中执行。**
+
 - 模块操作指令
 
   - lsmod 列举当前系统中的所有模块
+
   - insmod xxx.ko 加载指定模块到内核
+
+    ```bash
+    # 如果你在虚拟机中，执行insmod，就会报如下的错
+    insmod demo_module.ko 
+    insmod: ERROR: could not insert module demo_module.ko: Invalid module format
+    
+    # 因为虚拟机linux内核的版本，和开发板内核的版本不一致
+    # https://blog.csdn.net/zhangna20151015/article/details/119596386
+    ```
+
+    
+
   - rmmod xxx 卸载指定模块(不需要.ko后缀)
+
   - modinfo xxx.ko 查看模块信息
 
 - 手动创建设备文件（节点）：`mknod /dev/mychardev c 240 0`
@@ -261,7 +293,7 @@ static ssize_t demo_write (struct file *pifle, const char __user *pbuf, size_t c
 	return count;	//返回0是写入失败，返回>0写入成功
 
 }
-static int demo_release (struct inode *, struct file *){
+static int demo_release (struct inode *pinode, struct file *pfile){
 	printk(KERN_WARNING "L%d‐>%s()\n",__LINE__,__FUNCTION__);
 	return 0;
 }
@@ -275,7 +307,7 @@ static struct file_operations fops = {
 	.write = demo_write,
 	.release = demo_release,
 		
-}
+};
 
 static int __init demo_module_init(void)
 {
@@ -430,8 +462,14 @@ MODULE_DESCRIPTION("A simple character device driver");
 
 ```bash
 cat /dev/mychardev
+[157267.417000] Device opened
+[157267.417000] Read from device
+[157267.417000] Device closed
 
 echo xxxx > /dev/mychardev
+[157323.403000] Device opened
+[157323.404000] Write to device
+[157323.404000] Device closed
 ```
 
 ### register_chrdev和alloc_chrdev_region的区别
@@ -460,7 +498,7 @@ static ssize_t my_read(struct file *file, char __user *buf, size_t count, loff_t
     int ret;
     int len = min(count,sizeof(data));
     ret = copy_to_user(buf, data, len);
-    printk(KERN_WARNING "L%d->%s()\n", __LEN__, __FUNCTION__);
+    printk(KERN_WARNING "L%d->%s()\n", __LINE__, __FUNCTION__);
     return len;			// 在使用cat命令时，如果返回0则读取结束，如果大于0则继续读
 }
 
@@ -470,7 +508,7 @@ static ssize_t my_write(struct file *file, const char __user *buf, size_t count,
     char data[100];
     int len = min(count,sizeof(data));
     ret = copy_from_user(data, buf, len);
-    printk(KERN_WARNING "L%d->%s():%s\n", __LEN__, __FUNCTION__, data);
+    printk(KERN_WARNING "L%d->%s():%s\n", __LINE__, __FUNCTION__, data);
     return count;		//返回0是写入失败，返回>0写入成功
 }
 ...
@@ -520,8 +558,8 @@ int my_major;
 static int __init my_init(void)
 {
     int i;
-    printk(KERN_WARNING "L%d->%s()\n", __LEN__, __FUNCTION__);
-    // register
+    printk(KERN_WARNING "L%d->%s()\n", __LINE__, __FUNCTION__);
+    // register，设备号输入为0，就表示动态分配主设备号
     my_major = register_chrdev(0,DEVICE_NAME,&fops);
     my_class = class_create(THIS_MODULE, DEVICE_CLASS_NAME);
     for(i = 0; i< 10;i++)
@@ -532,7 +570,7 @@ static void __exit my_exit(void)
 {
    
     int i;
-   	printk(KERN_WARNING "L%d->%s()\n", __LEN__, __FUNCTION__);
+   	printk(KERN_WARNING "L%d->%s()\n", __LINE__, __FUNCTION__);
     for(i = 0; i< 10;i++)
         device_destroy(my_class, MKDEV(my_major, i+88));
     class_destroy(my_class);
@@ -618,13 +656,13 @@ static ssize_t my_write(struct file *file, const char __user *buf, size_t count,
     }else{
         nxp_soc_gpio_set_out_value(PAD_GPIO_C+11,1);
     }
-    printk(KERN_WARNING "L%d->%s():%s\n", __LEN__, __FUNCTION__, data);
+    printk(KERN_WARNING "L%d->%s():%s\n", __LINE__, __FUNCTION__, data);
     return count;		//返回0是写入失败，返回>0写入成功
 }
 static ssize_t my_read(struct file *file, char __user *buf, size_t count, loff_t *ppos)
 {
-    printk(KERN_INFO "Read from device\n");
     int ret;
+    printk(KERN_INFO "Read from device\n");
     
     // 读取keyboard的值
     ret = nxp_soc_gpio_get_in_value(PAD_GPIO_A+28);	// 通过返回值得到高低电平
@@ -673,14 +711,582 @@ void read_test(){
 }
 ```
 
+# 2 linux内核api
 
+## 2.1 中断
+
+Linux操作系统下同裸机程序一样，需要利用中断机制来处理硬件的异步事件。而用户态是不允许中断事件的，因此中断必须由驱动程序来接收与处理。
+
+中断上下文包含进程上下文，在中断上下文中需要注意：
+
+- 不能使用导致睡眠的处理机制（信号量、等待队列等）
+- 不能与用户空间交互数据(copy_to/from_user)
+- 中断处理函数执行时间应尽可能短
+
+```bash
+# 显示系统中断的状态和统计信息
+cat /proc/interrupts
+			CPU0       CPU1       CPU2       CPU3       
+  0:         53          0          0          0   IO-APIC-edge      timer
+  1:          2          0          0          0   IO-APIC-edge      i8042
+  8:          1          0          0          0   IO-APIC-edge      rtc0
+  9:          0          0          0          0   IO-APIC-fasteoi   acpi
+ 12:          4          0          0          0   IO-APIC-edge      i8042
+ 16:        203          0          0          0   IO-APIC-fasteoi   ehci_hcd:usb1
+ 23:       1014          0          0          0   IO-APIC-fasteoi   ehci_hcd:usb2
+ 40:       1920          0          0          0   PCI-MSI-edge      eth0
+ 41:       3000        100          0          0   PCI-MSI-edge      eth1
+ NMI:         10         12         14         15   Non-maskable interrupts
+ LOC:     123456     234567     345678     456789   Local timer interrupts
+ 
+ # 每行开头的数字表示中断号。这个号唯一标识一个特定的中断源。
+ # 中间的数字是每个CPU核心处理该中断的次数。
+ # 再后面就是中断类型，中断源（设备）
+```
+
+### 2.1.1 中断api
+
+```c
+#include <linux/interrupt.h>	// 中断的api
+#include <linux/irqreturn.h>	// 中断处理函数的返回值
+#include <mach/irqs.h>			// 中断号
+#include <linux/irq.h> 			// 外部中断的触发方式
+// 中断注册（申请中断）
+int request_irq(
+    unsigned int irq,
+	irqreturn_t(*handler)(int,void*),
+	unsigned long irqflag,
+	const char *devname,
+	void *dev_id
+);
+// irq：中断号，所申请的中断向量，比如EXIT0中断等定义在mach/irqs.h, 外部中断获取中断编号接口：gpio_to_irq(unsigned int io);
+// eg: gpio_to_irq(PAD_GPIO_A+28)
+// handler：中断处理函数
+// irqflag：中断属性设置
+// devname：中断名称（中断源）
+// dev_id：私有数据，给中断服务函数传递数据
+// 注册成功后，自动开启中断，不需要单独调用enable使能
+
+
+// 单独设置中断触发方式
+int set_irq_type(int irq, int edge);
+// edge: 外部中断触发方式定义在 #include <linux/irq.h>
+// IRQ_TYPE_LEVEL_LOW //低电平触发
+// IRQ_TYPE_LEVEL_HIGH //高电平触发
+// IRQ_TYPE_EDGE_FALLING //下降沿触发
+// IRQ_TYPE_EDGE_RISIN //上升沿触发
+// IRQ_TYPE_EDGE_BOTH //双边沿触发
+
+// 释放中断
+void free_irq(unsigned int irq, void *dev_id);
+
+// 使能中断
+void enable_irq(unsigned int irq);
+
+// 关闭中断，并等待中断处理完成后返回
+void disable_irq(unsigned int irq);
+
+// 关闭中断，立即返回
+void disable_irq_nosync(unsigned int irq);
+
+// 服务中断函数
+irqreturn_t handler(int irq,void *dev_id)
+{
+	...... // 中断处理
+	return IRQ_HANDLED；				// IRQ_HANDLED在#include <linux/irqreturn.h>中定义
+}
+```
+
+### 2.1.2 外部中断
+
+```c
+#include <linux/module.h>
+#include <linux/fs.h>
+#include <linux/cdev.h>
+#include <linux/uaccess.h>
+#include <mach/devices.h> 		//PAD_GPIO_A+n
+#include <mach/soc.h> 			//nxp_soc_gpio_set_io_func();
+#include <mach/platform.h> 		//PB_PIO_IRQ(PAD_GPIO_A+n);
+#include <linux/gpio.h>
+#include <linux/interrupt.h>	// 中断的api
+#include <linux/irqreturn.h>	// 中断处理函数的返回值
+#include <mach/irqs.h>			// 中断号
+#include <linux/irq.h> 			// 外部中断的触发方式
+
+
+
+#define DEVICE_NAME "mychardev"
+#define DEVICE_CLASS_NAME "mycharcls"
+#define DEVICE_COUNT 1
+
+static dev_t dev;
+static struct cdev my_cdev;
+static struct class *my_class;
+
+
+static void my_gpio_init(void);
+// 中断处理函数
+irqreturn_t keyboard_handler(int irq,void *dev_id);
+
+
+static int my_open(struct inode *inode, struct file *file)
+{
+    printk(KERN_INFO "Device opened\n");
+	printk(KERN_WARNING "major = %d, minor = %d\n", imajor(inode), iminor(inode));
+    my_gpio_init();
+    return 0;
+}
+
+
+static int my_release(struct inode *inode, struct file *file)
+{
+    printk(KERN_INFO "Device closed\n");
+	free_irq(gpio_to_irq(PAD_GPIO_A+28), NULL);
+    return 0;
+}
+
+
+static struct file_operations fops = {
+    .owner = THIS_MODULE,
+    .open = my_open,
+    .release = my_release,
+};
+
+static void my_gpio_init(void)
+{
+	int ret;
+    
+    // 注册外部中断
+	ret = request_irq(gpio_to_irq(PAD_GPIO_A+28), keyboard_handler, IRQ_TYPE_EDGE_FALLING, "KEYBOARD_IRQ", NULL);
+    // gpio_to_irq(PAD_GPIO_A+28) 也可以使用 IRQ_GPIO_A_START+28代替
+	
+ }
+
+// 中断处理函数
+irqreturn_t keyboard_handler(int irq, void * dev_id){
+	static int key_num = 0;
+	printk(KERN_INFO "This is keyboard_handler: KEY DOWN %d \n", key_num++);
+	return IRQ_HANDLED;		// IRQ_HANDLED在#include <linux/irqreturn.h>中定义
+}
+
+
+
+static int __init my_init(void)
+{
+    int ret;
+
+    // 分配设备号
+    ret = alloc_chrdev_region(&dev, 0, DEVICE_COUNT, DEVICE_NAME);
+    if (ret < 0) {
+        printk(KERN_ERR "Failed to allocate chrdev region\n");
+        return ret;
+    }
+
+    // 初始化 cdev 结构体
+    cdev_init(&my_cdev, &fops);
+    my_cdev.owner = THIS_MODULE;
+
+    // 将 cdev 添加到系统中
+    ret = cdev_add(&my_cdev, dev, DEVICE_COUNT);
+    if (ret < 0) {
+        unregister_chrdev_region(dev, DEVICE_COUNT);
+        printk(KERN_ERR "Failed to add cdev\n");
+        return ret;
+    }
+
+    // 创建设备类
+    my_class = class_create(THIS_MODULE, DEVICE_CLASS_NAME);
+    if (IS_ERR(my_class)) {
+        cdev_del(&my_cdev);
+        unregister_chrdev_region(dev, DEVICE_COUNT);
+        printk(KERN_ERR "Failed to create class\n");
+        return PTR_ERR(my_class);
+    }
+
+    // 创建设备节点
+    device_create(my_class, NULL, dev, NULL, DEVICE_NAME);
+
+    printk(KERN_INFO "Device initialized successfully\n");
+    return 0;
+}
+
+static void __exit my_exit(void)
+{
+    device_destroy(my_class, dev);
+    class_destroy(my_class);
+    cdev_del(&my_cdev);
+    unregister_chrdev_region(dev, DEVICE_COUNT);
+    printk(KERN_INFO "Device exited successfully\n");
+}
+
+module_init(my_init);
+module_exit(my_exit);
+
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("Your Name");
+MODULE_DESCRIPTION("A simple character device driver");
+
+```
+
+```c
+// 测试程序test.c
+#include<stdio.h>
+#include<sys/types.h>
+#include<sys/stat.h>
+#include<fcntl.h>
+#include<string.h>
+
+void open_test(){
+	int fd,ret;
+	fd = open("/dev/mychardev", O_RDWR);
+	while(1){
+		usleep(300 * 1000);
+	}
+}
+
+int main(int argc, char** argv){
+	open_test();
+    return 0;
+}
+```
+
+
+
+```bash
+# 虚拟机编译测试程序
+arm-linux-gcc -o test test.c
+# 虚拟机编译驱动
+make clean
+make
+
+# 开发板卸载模块驱动
+rmmod demo_module
+lsmod
+# 开发板安装模块驱动
+insmod demo_module
+# 开发板启动测试程序，后台执行，后面使用完毕后，记得杀掉
+./test &
+# 多次按键
+[164911.658000] This is keyboard_handler: KEY DOWN 1 
+[164911.659000] This is keyboard_handler: KEY DOWN 2 
+[164911.874000] This is keyboard_handler: KEY DOWN 3 
+[164914.771000] This is keyboard_handler: KEY DOWN 4 
+[164915.481000] This is keyboard_handler: KEY DOWN 5 
+[164916.104000] This is keyboard_handler: KEY DOWN 6 
+[164916.620000] This is keyboard_handler: KEY DOWN 7 
+[164917.078000] This is keyboard_handler: KEY DOWN 8 
+[164917.562000] This is keyboard_handler: KEY DOWN 9 
+[164917.760000] This is keyboard_handler: KEY DOWN 10 
+[164918.048000] This is keyboard_handler: KEY DOWN 11 
+[164918.271000] This is keyboard_handler: KEY DOWN 12 
+[164919.022000] This is keyboard_handler: KEY DOWN 13 
+[164919.559000] This is keyboard_handler: KEY DOWN 14 
+[164919.752000] This is keyboard_handler: KEY DOWN 15 
+
+# 查看中断统计
+cat /proc/interrupts
+          CPU0       CPU1       CPU2       CPU3       CPU4       CPU5       CPU6       CPU7       
+ 33:          0          0          0          0          0          0          0          0       GIC  pl08xdmac
+ 34:          0          0          0          0          0          0          0          0       GIC  pl08xdmac
+ 37:          0          0          0          0          0          0          0          0       GIC  rtc 1hz
+ 39:        110        333        256        341        619        654        572        574       GIC  nxp-uart
+ 48:       2857       3103       3187       3386       4446       3604       3096       3877       GIC  s3c2440-i2c.1
+134:          0          5          2          2          1          4          2          1      GPIO  KEYBOARD_IRQ
+
+
+```
+
+嵌入式系统中**裸机**的中断服务特点：
+
+- 没有返回值
+- 没有参数
+- 尽量不要进行浮点运算（处理尽量快）
+
+## 2.2 中断底半部
+
+在大多数真实的系统中，当中断来临时，要完成的工作往往不能立即完成，而是需要大量的耗时处理。
+
+如果我们的系统，拥有一个单核的cpu，如果在中断处理函数中，有比较耗时的任务，那么将阻塞主进程上下文（或者说是进程间的调度）的执行。
+
+```bash
+# 查看某一核cpu的在线情况
+cat /sys/devices/system/cpu/cpu1/online
+1
+# 关闭某一核cpu的运行
+echo 0 > /sys/devices/system/cpu/cpu1/online
+```
+
+中断处理可以分两个部分：
+
+- 顶半部：处理紧急的硬件操作（大家熟知的中断服务函数）。
+-  底半部：处理不紧急的耗时操作，执行过程中，中断是使能的，可被打断。
+  - 实现机制：
+  - 软中断（softirq）：供内核使用的机制
+  -  微线程（tasklet）：微线程通过软中断机制来调度
+  - 工作队列等（workqueue）：工作队列将工作交由一个内核线程处理
+
+一般遇到耗时任务，顶半部用于创建工作队列，初始化工作，将耗时任务交给内核线程去执行。
+
+### 工作队列
+
+```c
+// api接口
+
+#include <linux/workqueue.h>
+
+// 定义一个工作队列结构体指针
+static struct workqueue_struct *key_workqueue;
+// 创建工作队列
+struct workqueue_struct *create_workqueue(char * queue_name);
+// 销毁工作队列
+void destroy_workqueue(struct workqueue_struct *);
+
+// 创建工作
+struct work_struct work;
+// 工作初始化宏
+INIT_WORK(work_struct* work, void (*func)());
+// 添加工作到任务队列
+int queue_work(struct workqueue_struct*wq, struct work_struct *work);
+
+// 终止队列中的工作（即使处理程序已经在处理该任务）
+int cancel_work_sync(struct work_struct *work);
+int work_pending(struct work_struct work );
+```
+
+```c
+// 功能：每按一次按键，num就加1，应用程序每次读取num的值。
+
+static struct workqueue_struct *key_workqueue;
+static struct work_struct key_work;
+static int num = 0;
+
+static int __init my_init(void)
+{
+	...
+    //创建工作队列
+    key_workqueue = create_workqueue("key_queue");
+    // 初始化工作
+    INIT_WORK(&key_work, key_work_func);
+    
+}
+static ssize_t my_read(struct file *file, char __user *buf, size_t count, loff_t *ppos)
+{
+	static int old_num = -1;
+    int len = min(count, sizeof(num));
+    int ret;
+  	if(old_num == num){
+		return 0;
+    }else{
+        old_num = num;
+        copy_to_user(buf, &num, len);
+        return sizeof(num);
+    }
+    
+}
+// 中断处理函数，顶半部
+irqreturn_t keyboard_handler(int irq, void * dev_id){
+    disable_irq_nosync(IRQ_GPIO_A_START+28);
+    // 添加工作
+    queue_work(key_workqueue, &key_work);
+	return IRQ_HANDLED;		// IRQ_HANDLED在#include <linux/irqreturn.h>中定义
+}
+static void key_work_func(struct work_struct *work){
+    // 耗时任务
+    
+    //
+    num++;
+    enable_irq(IRQ_GPIO_A_START+28);
+}
+static void __exit my_exit(void)
+{
+   	...
+    // 销毁工作队列
+    destroy_workqueue(key_workqueue);
+}
+```
+
+```c
+// 读取按键的次数
+// 测试程序
+
+#include<stdio.h>
+#include<sys/types.h>
+#include<sys/stat.h>
+#include<fcntl.h>
+#include<string.h>
+void read_test(){
+    int fd=0;
+    int ret=0;
+    int key=0;
+
+    fd = open("/dev/mychardev", O_RDWR);
+    if(fd < 0){
+        perror("/dev/mychardev");
+        return -1;
+    }
+    
+    // 轮询
+    while(1){
+        ret = read(fd, &key, sizeof(key));
+        if(ret != 0){
+            printf("key down = %d\n", key);
+        }
+    }
+    close(fd);
+    return;
+}
+int main(int argc, char** argv){
+	read_test();
+    return 0;
+}
+```
+
+## 2.3 异步数据处理kfifo
+
+数据的采集（驱动侧）与处理使用（应用程序侧）往往不同步，于是驱动编程中数据采集方需要将采集的数据暂时放到一个缓冲区中，使用方在需要处理数据时从缓冲区中将数据读出。
+
+我们可以选择自己编写一个队列，也可以利用内核中现有队列kfifo来实现。
+
+```c
+#include <linux/kfifo.h>
+
+//kfifo结构体类型
+struct kfifo {
+	unsigned char *buffer; 	//存放数据的缓存区
+	unsigned int size; 		//buffer空间大小
+	unsigned int in; 		//指向buffer队尾
+	unsigned int out; 		//指向buffer队头
+};
+// kfifo是一个循环队列（环状），in指针和out指针都沿着环逆时针移动，in往里加数据，加一个后移一个。out消费数据，消费一个后移一个
+// 假设缓冲区大小size为8, 缓冲区读写下标分别为：in%size，out%size
+
+
+// 申请kfifo空间
+int kfifo_alloc(struct kfifo *fifo, unsigned int size, gfp_t gfp_mask);
+// size：申请的空间大小，单位字节
+// gfp_mask：内存标志位
+
+// 释放kfifo
+void kfifo_free(struct kfifo *fifo);
+
+// 存数据
+unsigned int kfifo_in(struct kfifo *fifo, const void *from, unsigned int len);
+// 消费数据
+unsigned int kfifo_out(struct kfifo *fifo, void *to, unsigned int len);
+// from和to：写/读数据的首地址
+// len：读写数据的大小
+
+// 获取fifo内的已用数据个数
+unsigned int kfifo_len(struct kfifo *fifo);
+// 获取fifo总大小
+unsigned int kfifo_size(struct kfifo *fifo);
+// 检查kfifo是否为空
+int kfifo_is_empty(struct kfifo *fifo);
+// 检查kfifo是否为满
+int kfifo_is_full(struct kfifo *fifo);
+```
+
+```c
+// 功能：每按一次按键，num就加1，应用程序每次读取num的值。
+
+static struct workqueue_struct *key_workqueue;
+static struct work_struct key_work;
+static int num = 0;
+static struct kfifo key_fifo;
+
+static int __init my_init(void)
+{
+    int ret;
+	...
+    
+    //创建工作队列
+    key_workqueue = create_workqueue("key_queue");
+    // 初始化工作
+    INIT_WORK(&key_work, key_work_func);
+    
+    //申请128字节fifo内存
+    ret= kfifo_alloc(&key_fifo, 128, GFP_KERNEL);
+    
+}
+static ssize_t my_read(struct file *file, char __user *buf, size_t count, loff_t *ppos)
+{
+    int len = min(count, sizeof(num));
+    int ret;
+    int data;
+    // kfifo判空
+    if(kfifo_is_empty(&key_fifo)) return 0;
+    // 消费数据
+    ret = kfifo_out(&key_fifo,&data,sizeof(data));
+	ret = copy_to_user(buf, &data, len);
+    return sizeof(len);
+    
+}
+// 中断处理函数，顶半部
+irqreturn_t keyboard_handler(int irq, void * dev_id){
+    disable_irq_nosync(IRQ_GPIO_A_START+28);
+    // 添加工作
+    queue_work(key_workqueue, &key_work);
+	return IRQ_HANDLED;		// IRQ_HANDLED在#include <linux/irqreturn.h>中定义
+}
+static void key_work_func(struct work_struct *work){
+    int ret;
+    // 耗时任务
+    
+    //
+    num++;
+    if(kfifo_is_full(&key_fifo)) return;
+	ret = kfifo_in(&key_fifo, &num, sizeof(num));
+    enable_irq(IRQ_GPIO_A_START+28);
+}
+static void __exit my_exit(void)
+{
+   	...
+    // 销毁工作队列
+    destroy_workqueue(key_workqueue);
+	// 释放fifo
+    kfifo_free(&key_fifo);
+}
+```
+
+## 2.4 并发与同步
+
+资源（硬件资源，全局变量，静态变量）有限，资源竞争
 
 # 其他
 
 1. [sourceInsight](https://blog.csdn.net/wkd_007/article/details/131316924)
+
    - 【Ctrl + F】文件中查找操作
    - 【ctrl + /】 全局搜索关键字
+
 2. [sourceinsight 自动补全](https://blog.csdn.net/byhyf83862547/article/details/137090831)
+
    - 选项卡options -> preference -> symbol lookups -> import symbols for all Projects -> add， 加入相关头文件文件夹到list表
-3. 
+
+3. [sourceinsight显示行号](https://blog.csdn.net/weixin_42727214/article/details/132128146)
+
+4. 如果把声明写在代码的后面，会报警告： warning: ISO C90 forbids mixed declarations and code
+
+   - 在C90标准下编译时出现了混淆声明和代码的情况。C90（即C99之前的标准）规定，函数内的变量声明必须放在代码的开始处，不允许在for循环、if语句或任何其他代码块中声明变量。
+
+   ```c
+   static ssize_t my_read(struct file *file, char __user *buf, size_t count, loff_t *ppos)
+   {
+       printk(KERN_INFO "Read from device\n");
+       int ret;		// printk在int ret前面，所以会报警告
+       // 读取keyboard的值
+       ret = nxp_soc_gpio_get_in_value(PAD_GPIO_A+28);	// 通过返回值得到高低电平
+       nxp_soc_gpio_set_out_value(PAD_GPIO_C+11,ret);
+       if(ret == 0)
+           return 0;
+       else
+           return 1;
+   }
+   ```
+
+   
+
+5. error: stray '\357' in program：在复制别处代码，粘到本地项目后，可能会报如此错，只要自己重新写一遍就好了。
+
+
 
