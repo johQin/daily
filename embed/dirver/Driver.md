@@ -1002,7 +1002,7 @@ cat /proc/interrupts
 - 没有参数
 - 尽量不要进行浮点运算（处理尽量快）
 
-## 2.2 中断底半部
+### 2.1.3 中断底半部
 
 在大多数真实的系统中，当中断来临时，要完成的工作往往不能立即完成，而是需要大量的耗时处理。
 
@@ -1027,7 +1027,7 @@ echo 0 > /sys/devices/system/cpu/cpu1/online
 
 一般遇到耗时任务，顶半部用于创建工作队列，初始化工作，将耗时任务交给内核线程去执行。
 
-### 工作队列
+#### 工作队列
 
 ```c
 // api接口
@@ -1147,6 +1147,8 @@ int main(int argc, char** argv){
 
 我们可以选择自己编写一个队列，也可以利用内核中现有队列kfifo来实现。
 
+场景：内核产生消息，应用程序无法及时处理
+
 ```c
 #include <linux/kfifo.h>
 
@@ -1194,12 +1196,13 @@ static struct work_struct key_work;
 static int num = 0;
 static struct kfifo key_fifo;
 
+// 模块加载时去申请一块队列空间，模块卸载接口中释放申请的空间
 static int __init my_init(void)
 {
     int ret;
 	...
     
-    //创建工作队列
+    // 创建工作队列
     key_workqueue = create_workqueue("key_queue");
     // 初始化工作
     INIT_WORK(&key_work, key_work_func);
@@ -1251,6 +1254,723 @@ static void __exit my_exit(void)
 ## 2.4 并发与同步
 
 资源（硬件资源，全局变量，静态变量）有限，资源竞争
+
+竞争产生的原因：
+
+1. 抢占式内核：用户程序在执行系统调用期间可以被高优先级进程抢占
+2. 多处理器SMP
+3. 中断程序
+
+内核中解决办法：
+
+1. 信号量（semaphore）
+2. 自旋锁（spinlock）
+3. 原子变量（atomic）
+4. 读写锁
+5. 互斥体（mutex）
+
+### 2.4.1 信号量
+
+信号量**采用睡眠等待机制**。
+
+中断服务函数不能进行睡眠，因此信号量不能用于中断当中，但可以使用后面介绍的自旋锁。
+
+信号量资源开销比较大（因为程序睡眠时，保存上下文，唤醒时，恢复上下文，来回折腾比较麻烦）。
+
+应用场景：
+
+- 一般用于对公共资源访问频率比较低，资源占用时间比较长的场合
+- 不可用在中断程序顶半部中
+
+```c
+#include <linux/semaphore.h>
+
+// 定义一个信号量
+struct semaphore my_sem;
+
+// 初始化信号量
+void sema_init(struct semaphore *sem, int val);
+// val: 信号量的计数值
+
+// 获取信号量(减操作)，在拿不到信号量的时候，会导致调用者睡眠（挂起），睡眠不可被系统消息中断。
+// 也就是说，如果进入睡眠，并且没有收到其他地方释放信号量（up）的消息，那么这个进程将永远睡眠，无法被中断（CTRL + C 也不可以，只有关机才行）
+void down(struct semaphore *sem);
+// 获取信号量(减操作)，会导致调用者睡眠，但可以被系统消息中断
+int down_interruptible(struct semaphore *sem);
+// 尝试获取信号量,成功返回0,失败返回非0，不会导致调用者睡眠
+int down_trylock(struct semaphore *sem);
+
+// 释放信号量，即使信号量加1（如果线程睡眠，将其唤醒）
+void up(struct semaphore *sem);
+```
+
+```c
+
+// 功能：每按一次按键，num就加1，应用程序每次读取num的值。
+
+#include<linux/semaphore.h> 	// 信号量
+
+static struct workqueue_struct *key_workqueue;
+static struct work_struct key_work;
+static int num = 0;
+static struct kfifo key_fifo;
+static struct semaphore my_sem;
+
+// 模块加载时去申请一块队列空间，模块卸载接口中释放申请的空间
+static int __init my_init(void)
+{
+    int ret;
+	...
+    
+    // 创建工作队列
+    key_workqueue = create_workqueue("key_queue");
+    // 初始化工作
+    INIT_WORK(&key_work, key_work_func);
+    
+    //申请128字节fifo内存
+    ret= kfifo_alloc(&key_fifo, 128, GFP_KERNEL);
+    
+    sema_init(&my_sem, 1);
+    
+}
+static ssize_t my_read(struct file *file, char __user *buf, size_t count, loff_t *ppos)
+{
+    int len = min(count, sizeof(num));
+    int ret;
+    int data;
+    // kfifo判空
+    if(kfifo_is_empty(&key_fifo)) return 0;
+    
+    // 消费数据
+    down(&my_sem);
+    ret = kfifo_out(&key_fifo,&data,sizeof(data));
+    up(&my_sem);
+    
+	ret = copy_to_user(buf, &data, len);
+    return sizeof(len);
+    
+}
+// 中断处理函数，顶半部
+irqreturn_t keyboard_handler(int irq, void * dev_id){
+    disable_irq_nosync(IRQ_GPIO_A_START+28);
+    // 添加工作
+    queue_work(key_workqueue, &key_work);
+	return IRQ_HANDLED;		// IRQ_HANDLED在#include <linux/irqreturn.h>中定义
+}
+static void key_work_func(struct work_struct *work){
+    int ret;
+    // 耗时任务
+    
+    //
+    num++;
+    if(kfifo_is_full(&key_fifo)) return;
+    
+    down(&my_sem);
+	ret = kfifo_in(&key_fifo, &num, sizeof(num));
+    up(&my_sem);
+    
+    enable_irq(IRQ_GPIO_A_START+28);
+}
+static void __exit my_exit(void)
+{
+   	...
+    // 销毁工作队列
+    destroy_workqueue(key_workqueue);
+	// 释放fifo
+    kfifo_free(&key_fifo);
+}
+```
+
+### 2.4.2 自旋锁
+
+尝试获取一个自旋锁，如果锁空闲就获取该自旋锁并继续向下执行；如果锁已被占用就循环检测该锁是否被释放（原地打转直到锁被释放）
+
+使用忙等待机制，自旋锁资源开销小。
+
+场景：
+
+- 一般用于对公共资源访问频率比较低，资源占用时间比较长的场合
+- 可以用在中断服务程序中（中断顶半部）
+
+```c
+#include <linux/spinlock.h>
+
+// 定义自旋锁变量
+struct spinlock my_spinlock;
+// 或
+spinlock_t my_spinlock;
+
+// 自旋锁初始化
+spin_lock_init(&my_spinlock);
+
+// 获得自旋锁（可自旋等待，可被软、硬件中断）
+void spin_lock(spinlock_t *my_spinlock);
+// 释放自旋锁，退出临界区
+void spin_unlock(spinlock_t *lock);
+
+// 获得自旋锁(可自旋等待，保存中断状态并关闭软、硬件中断)
+void spin_lock_irqsave(spinlock_t *my_spinlock,unsigned long flags);
+
+// 释放自旋锁，退出临界区后，恢复中断
+void spin_unlock_irqrestore(spinlock_t *lock,unsigned long flags);
+
+// 尝试获得自旋锁（不自旋等待，成功返回1、失败则返回0）
+int spin_trylock(spinlock_t *lock)
+```
+
+## 2.5 定时和延时
+
+内核全局变量：
+
+- HZ：为每秒的定时器的节拍数，HZ是一个与体系结构相关的常数，Linux为大多数平台提供HZ值范围为50-1200，x86 PC平台默认为1000，我们的内核为1000
+- jiffies：用来记录自内核启动以来的时钟滴答总数（即每隔1/HZ秒加1）
+
+```c
+// 延时
+#include <linux/delay.h>
+// 忙等待延时函数，一般不太长的时间可以用它
+void ndelay(unsigned long nsecs); //纳秒级延时
+void udelay(unsigned long usecs); //微秒级延时
+void mdelay(unsigned long msecs); //毫秒级延时
+
+// 睡眠等待延时函数
+void msleep(unsigned int millisecs); 	// 毫秒级延时
+unsigned long msleep_interruptible(unsigned int millisecs);		// 毫秒级延时，可提前（被系统消息）唤醒
+void ssleep(unsigned int seconds);		//秒级延时
+    
+// 定时器
+// 内核定时器可在未来的某个特定时间点调度执行某个函数，完成指定任务
+// 假设HZ的值为1000，Linux定时器最短定时时间为1ms，小于该时间的定时需要选择精度更高的定时器或直接硬件定时
+#include <linux/timer.h>
+struct timer_list
+{
+	struct list_head entry;
+	//链表节点，由内核管理
+	unsigned long expires;
+	//定时器到期时间（指定一个时刻）
+	void (*function)(unsigned long)；
+	// 定时器处理函数
+	unsigned long data;
+	// 作为参数被传入定时器处理函数
+	......
+};
+
+// 初始化定时器
+void init_timer(struct timer_list *timer);
+// 添加定时器。定时器开始计时
+void add_timer(struct timer_list * timer);
+// 删除定时器,在定时器到期前禁止一个已注册定时器
+int del_timer(struct timer_list * timer);
+// 如果定时器函数正在执行则在函数执行完后返回(SMP)
+int del_timer_sync(struct timer_list *timer);
+
+// 更新定时器到期时间，并开启定时器
+int mod_timer(struct timer_list *timer, unsigned long expires);
+// 查看定时器是否正在等待被调度运行
+int timer_pending(const struct timer_list *timer);			// 返回值为真表示正在等待被调度运行
+```
+
+```c
+
+static struct timer_list timer;
+static void my_delay(int ms){
+    unsigned int old_time = jiffies;
+    while((jiffies - old_time) <= ms);		// old_time有溢出的风险
+}
+static void time_fun(unsigned long data){
+    static int i = 0;
+    i++;
+    printk(KERN_INFO "%02d:%02d\n",i/60, i%60);
+    
+    // 循环执行
+    mod_timer(&timer,jiffies + 1000);
+}
+static int my_open(struct inode *inode, struct file *file)
+{
+    
+    printk(KERN_INFO "HZ = %d, jiffies = %ld", HZ, jiffies);
+    my_delay(3000);			// 延时3秒
+    printk(KERN_INFO "HZ = %d, jiffies = %ld", HZ, jiffies);
+    
+    // 在1000ms后执行
+    timer.expires = jiffies + 1000;
+    
+    // 启动定时器
+    add_timer(&timer);
+    return 0;
+}
+
+static int my_release(struct inode *inode, struct file *file)
+{
+    printk(KERN_INFO "Device closed\n");
+    
+    // 删除定时器
+	del_timer(&timer);
+    return 0;
+}
+static ssize_t my_read(struct file *file, char __user *buf, size_t count, loff_t *ppos)
+{
+    return 1;		// cat /dev/mychrdev 就不会退出
+}
+static int __init my_init(void)
+{
+    // 绑定定时器任务
+    timer.function = time_fun;
+    // 初始化定时器
+    init_timer(&timer);
+}
+```
+
+### 实例
+
+- 按键去抖：延时
+- up/down：中断采用双沿触发
+- 长短时按键：
+
+```c
+static struct key_info{
+    int status;		//up=0, down=1
+    int type;		//short=0, long=1
+    int code;		//键值
+}
+
+struct key_info key_val = {
+    .status = 0,
+    .type = 0,
+    .code = 0,
+}
+
+static void key_work_func(struct work_struct *work){
+    int ret;
+    // 区分up/down，前提是要打开双沿触发
+    if(key_val.status == 0){		//down
+        // 去抖30ms
+        mdelay(30);
+        if(nxp_soc_gpio_get_in_value(PAD_GPIO_A+28) != 0 ){
+			enable_irq(IRQ_GPIO_A_START+28);
+            return;
+        }
+        num++;
+        key_val.status = 1;
+        key_val.type = 0;
+        
+        // 区分长短按计时器
+        timer.expires = jiffies + HZ*1;
+        add_timer(&timer);
+    }else{							//up
+        key_val.status = 0;
+        // 如果up，就要删除计时器
+        del_timer_sync(&timer);
+    }
+    if(!kfifo_is_full(&key_fifo)){
+       key_val.code = num;
+       down(&my_sem);
+       ret = kfifo_in(&key_fifo,&key_val, sizeof(key_val));
+       up(&my_sem);
+    }
+}
+
+static ssize_t my_read(struct file *file, char __user *buf, size_t count, loff_t *ppos)
+{
+    int len = min(count,sizeof(key_val));
+    int ret;
+    struct key_info data;
+    
+    if(kfifo_is_empty(&key_fifo))	return 0;
+    down(&my_sem);
+    ret = kfifo_out(&key_fifo,&data,sizeof(data));
+    up(&my_sem);
+    ret = copy_to_user(buf,&data,len);
+    return sizeof(data);
+}
+
+static void time_fun(unsigned long data){
+    int ret;
+    key_val.type = 1;		// 达到长按键周期
+    if(!kfifo_is_full(&key_fifo)){
+       down(&my_sem);
+       ret = kfifo_in(&key_fifo,&key_val, sizeof(key_val));
+       up(&my_sem);
+    }
+    mod_timer(&timer,jiffies + 100);		// 达到长按键后，连续输出的时间间隔100ms
+}
+```
+
+```c
+#include<stdio.h>
+#include<sys/types.h>
+#include<sys/stat.h>
+#include<fcntl.h>
+#include<string.h>
+
+static struct key_info{
+    int status;		//up=0, down=1
+    int type;		//short=0, long=1
+    int code;		//键值
+};
+void read_test(){
+    int fd=0;
+    int ret=0;
+	struct key_info key={0,0,0};
+    
+    fd = open("/dev/mychardev", O_RDWR);
+    if(fd < 0){
+        perror("/dev/mychardev");
+        return -1;
+    }
+    
+    // 轮询
+    while(1){
+        ret = read(fd, &key, sizeof(key));
+        if(ret != 0){
+            printf("%s: %s : = %d\n", key.status ? "down":"up",key.type ? "long":"short",, key.code);
+        }
+    }
+    close(fd);
+    return;
+}
+int main(int argc, char** argv){
+	read_test();
+    return 0;
+}
+```
+
+## 2.6 I/O阻塞与非阻塞
+
+阻塞：让出cpu，挂起（睡眠）
+
+非阻塞：不出让cpu，不睡眠，轮询
+
+**也就是要达到，应用程序发起系统调用read，如果驱动里面没有数据供读，那么应用程序就一直阻塞在read那里，不会执行下一行代码，这就是阻塞。**
+
+方案：
+
+- 等待队列
+- 轮询加阻塞操作
+
+### 2.6.1 等待队列
+
+```c
+#include <linux/wait.h>
+
+// 定义一个等待队列
+wait_queue_head_t my_queue;
+// 初始化一个等待队列头
+init_waitqueue_head(&my_queue);
+// 合并前面两个步骤，定义并初始化一个等待队列头
+DECLARE_WAIT_QUEUE_HEAD(my_queue);
+
+// 无条件阻塞
+sleep_on(wait_queue_head_t *q);												//直接阻塞，不可中断
+interruptible_sleep_on(wait_queue_head_t *q);								//直接阻塞，可中断
+long sleep_on_timeout(wait_queue_head_t *q, long timeout);					//不可中断，可超时
+long interruptible_sleep_on_timeout(wait_queue_head_t *q, long timeout);	//可中断，可超时
+// interruptible函数要成对使用
+
+// 有条件阻塞
+wait_event(wait_queue_head_t wq, int condition);							//condition=0进入阻塞
+wait_event_interruptible(wait_queue_head_t wq,int condition);
+wait_event_timeout(wait_queue_head_t wq, int condition, long timeout);
+wait_event_interruptiblble_timeout(wait_queue_head_t wq,int condition, long timeout);
+// wake_up唤醒进程之前要将wait_event中的condition变量的值赋为真，否则该进程被唤醒后会立即再次进入睡眠
+
+// 唤醒阻塞进程
+wake_up(wait_queue_head_t *wq);
+wake_up_interruptible(wait_queue_head_t *wq);
+```
+
+```c
+#include <linux/wait.h>
+
+DECLARE_WAIT_QUEUE_HEAD(key_queue);
+static ssize_t my_read(struct file *file, char __user *buf, size_t count, loff_t *ppos)
+{
+    int len = min(count,sizeof(key_val));
+    int ret;
+    struct key_info data;
+    
+    // 判断应用程序那里采用的是以什么方式的open
+    // 如果应用程序那里的open("/dev/mychardev", O_RDWR | O_NONBLOCK)，那就采用非阻塞模式
+    // open("/dev/mychardev", O_RDWR)，那就采用阻塞模式
+    if((file->f_flags & O_NONBLOCK) == 0){
+        if(kfifo_is_empty(&key_fifo)){
+            // 无条件阻塞，将条件写到if里面了
+            sleep_on(&key_queue);
+        }
+        // 有条件阻塞
+        // wait_event(key_queue, !kfifo_is_empty(&key_fifo));
+        
+    }
+    
+    down(&my_sem);
+    ret = kfifo_out(&key_fifo,&data,sizeof(data));
+    up(&my_sem);
+    ret = copy_to_user(buf,&data,len);
+    return sizeof(data);
+}
+
+static void key_work_func(struct work_struct *work){
+    int ret;
+    // 区分up/down，前提是要打开双沿触发
+    if(key_val.status == 0){		//down
+        // 去抖30ms
+        mdelay(30);
+        if(nxp_soc_gpio_get_in_value(PAD_GPIO_A+28) != 0 ){
+			enable_irq(IRQ_GPIO_A_START+28);
+            return;
+        }
+        num++;
+        key_val.status = 1;
+        key_val.type = 0;
+        
+        // 区分长短按计时器
+        timer.expires = jiffies + HZ*1;
+        add_timer(&timer);
+    }else{							//up
+        key_val.status = 0;
+        // 如果up，就要删除计时器
+        del_timer_sync(&timer);
+    }
+    
+    
+    if(!kfifo_is_full(&key_fifo)){
+       key_val.code = num;
+       down(&my_sem);
+       ret = kfifo_in(&key_fifo,&key_val, sizeof(key_val));
+       up(&my_sem);
+	   //唤醒阻塞	        
+       wake_up(&key_queue);
+    }
+}
+
+static void time_fun(unsigned long data){
+    int ret;
+    key_val.type = 1;		// 达到长按键周期
+    if(!kfifo_is_full(&key_fifo)){
+       down(&my_sem);
+       ret = kfifo_in(&key_fifo,&key_val, sizeof(key_val));
+       up(&my_sem);
+       wake_up(&key_queue);
+    }
+    mod_timer(&timer,jiffies + 100);		// 达到长按键后，连续输出的时间间隔100ms
+}
+```
+
+
+
+### 2.6.2 轮询加阻塞操作
+
+- 一个用户进程可以**实现多个设备驱动**的同时监听
+- 应用程序需要定义一个集合来保存所有打开的设备
+- 通过select()对多个设备进行阻塞监听，而内核对设备进行轮询
+- poll()接口主要是协助内核完成驱动可操作性的监听工作（轮询）
+- poll()接口被select()调用时将等待队列加入内核轮询列表，当唤醒时，内核会**再次**调用poll()接口
+
+```c
+// 应用层接口
+#include <sys/select.h>
+
+// 文件描述符集合的变量的定义
+fd_set fds;
+// 清空描述符集合
+FD_ZERO(fd_set *set);
+// 加入一个文件描述符到集合中
+FD_SET(int fd, fd_set *set);
+// 从集合中清除一个文件描述符
+FD_CLR(int fd, fd_set *set);
+
+// 判断文件描述符是否被置位
+FD_ISSET(int fd, fd_set *set);
+// 这里返回非零，表示置位（该文件描述集合中有文件可进行读写操作，或产生错误）
+
+int select(
+    int numfds,			
+	fd_set *readfds,
+	fd_set *writefds,
+	fd_set *exceptfds,
+	struct timeval *timeout
+);
+// numfds：需要监听的文件描述符的个数 + 1，最大支持FD_SETSIZE=1024
+// readfds：需要监听读属性变化的文件描述符s集合
+// writefds：需要监听写属性变化的文件描述符集合
+// exceptfds：需要监听异常属性变化的文件描述符集合
+// timeout：超时时间，表示等待多长时间之后就放弃等待
+		//传 NULL 表示等待无限长的时间，持续阻塞直到有事件就绪才返回。
+    	// 大于0，超时时间
+    	// =0，不等待立即返回
+		/* 
+		struct timeval{
+        	long tv_sec;//秒
+        	long tv_usec;//微秒
+    	}
+    	*/
+//返回值：变化的文件描述符个数
+
+
+
+// poll()函数：为file_operation成员之一
+static unsigned int poll(struct file *file, struct poll_table_struct *wait);
+// file:是文件结构指针
+// wait:轮询表指针，管理着一系列等待列表
+// 以上两个参数是由内核传递给poll函数
+
+// poll函数返回的状态掩码
+/*
+可读状态掩码:
+	POLLIN:有数据可读
+	POLLRDNORM:有普通数据可读
+	POLLRDBAND:有优先数据可读
+	POLLPRI:有紧迫数据可读
+可写状态掩码:
+	POLLOUT:写数据不会导致阻塞
+	POLLWRNORM:写普通数据不会导致阻塞
+	POLLWRBAND:写优先数据不会导致阻塞
+	POLLMSG/SIGPOLL:消息可用
+错误状态掩码:
+	POLLER:指定的文件描述符发生错误
+	POLLHUP:指定的文件描述符挂起事件
+	POLLNVAL:指定的文件描述符非法
+*/
+
+// 添加等待队列到wait参数指定的轮询列表中
+void poll_wait(struct file *filp, wait_queue_heat_t *wq, poll_table *wait);
+// poll_wait()将可能引起文件状态变化的进程添加到轮询列表，由内核去监听进程状态的变化，不会阻塞进程
+// 一旦进程有变化(wake_up)，内核就会自动去调用poll()，而poll()是返回给select()的
+// 所以当进程被唤醒以后，poll()应该将状态掩码返回给select()，从而select()退出阻塞。
+// 完成一次监测，poll函数被调用一次或两次
+//      第一次为用户执行select函数时被执行
+// 		第二次调用poll为内核监测到进程的wake_up操作时或进程休眠时间到唤醒再或被信号唤醒时
+```
+
+
+
+```c
+#include<sys/select.h>
+
+void read_test(){
+    int fd=0;
+    fd_set fds;
+    int ret=0;
+	struct key_info key={0,0,0};
+    
+    FD_ZERO(&fds);
+    
+    fd = open("/dev/mychardev", O_RDWR);
+    if(fd < 0){
+        perror("/dev/mychardev");
+        return -1;
+    }
+    
+    FD_SET(fd, &fds);
+    
+    // 轮询
+    while(1){
+        // select是一个系统调用，在驱动中会有一个poll跟他相对应
+        ret = select(fd +1,&fds,NULL,NULL,NULL);
+        if(ret > 0 && FD_ISSET(fd)){
+            ret = read(fd, &key, sizeof(key));
+            printf("%s: %s : = %d\n", key.status ? "down":"up",key.type ? "long":"short",, key.code);
+        }
+    }
+    close(fd);
+    return;
+}
+```
+
+```c
+DECLARE_WAIT_QUEUE_HEAD(select_queue);
+
+unsigned int my_poll (struct file *pfile, struct poll_table_struct *ptable){
+    poll_wait(pfile, &select_queue, ptable);
+    return kfifo_is_empty(&key_fifo)? 0:POLLIN;		// 0表示没有消息，POLLIN表示有消息
+}
+
+static void key_work_func(struct work_struct *work){
+    int ret;
+    // 区分up/down，前提是要打开双沿触发
+    if(key_val.status == 0){		//down
+        // 去抖30ms
+        mdelay(30);
+        if(nxp_soc_gpio_get_in_value(PAD_GPIO_A+28) != 0 ){
+			enable_irq(IRQ_GPIO_A_START+28);
+            return;
+        }
+        num++;
+        key_val.status = 1;
+        key_val.type = 0;
+        
+        // 区分长短按计时器
+        timer.expires = jiffies + HZ*1;
+        add_timer(&timer);
+    }else{							//up
+        key_val.status = 0;
+        // 如果up，就要删除计时器
+        del_timer_sync(&timer);
+    }
+    
+    
+    if(!kfifo_is_full(&key_fifo)){
+       key_val.code = num;
+       down(&my_sem);
+       ret = kfifo_in(&key_fifo,&key_val, sizeof(key_val));
+       up(&my_sem);
+	   //唤醒阻塞	        
+       wake_up(&key_queue);
+        
+       wake_up(&select_queue);
+    }
+}
+
+static void time_fun(unsigned long data){
+    int ret;
+    key_val.type = 1;		// 达到长按键周期
+    if(!kfifo_is_full(&key_fifo)){
+       down(&my_sem);
+       ret = kfifo_in(&key_fifo,&key_val, sizeof(key_val));
+       up(&my_sem);
+       wake_up(&key_queue);
+        
+       wake_up(&select_queue);
+    }
+    mod_timer(&timer,jiffies + 100);		// 达到长按键后，连续输出的时间间隔100ms
+}
+
+static struct file_operations fops = {
+    .owner = THIS_MODULE,
+    .open = my_open,
+    .release = my_release,
+    .read = my_read,
+    .write = my_write,
+    .poll = my_poll,
+};
+```
+
+## 2.7 内核线程
+
+```c
+#include <linux/kthread.h>
+
+//定义线程指针
+struct task_struct *kernel_thread;
+// 创建内核线程
+struct task_struct *kthread_create(int (*threadfn)(void *data), void *data, const char namefmt[], ...);
+// threadfn：现成函数指针, 该函数必须能让出CPU，以便其他线程能够得到执行，
+// data: 函数参数
+// namefmt：线程名称，这个函数可以像printk一样传入某种格式的线程名
+// 启动线程
+int wake_up_process(struct task_struct *p);
+
+// 创建并启动线程
+kthread_run(threadfn, data, namefmt, ...);
+
+// 停止线程检测函数 （线程函数内使用），接收现成函数外kthread_stop发送的停止信号
+int kthread_should_stop(void);
+// 停止内核线程函数 (线程函数外使用)，给线程函数发送停止信号，线程函数内部通过kthread_should_stop接收停止信号后，返回真
+int kthread_stop(struct task_struct *k);
+// 如果线程函数内部没有kthread_should_stop接收停止信号 或者 线程函数不结束，那么此函数将一直等待下去
+```
+
+
 
 # 其他
 

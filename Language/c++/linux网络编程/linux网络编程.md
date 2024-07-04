@@ -1054,7 +1054,7 @@ select准备一个数组fds（文件描述符），存放需要监视的所有so
 文件描述符集合操作函数：
 
 - `void FD_CLR(int fd, fd_set *set);`：将fd从集合set中剔除
-- ``int  FD_ISSET(int fd, fd_set *set);`：判断fd是否在set里面
+- `int  FD_ISSET(int fd, fd_set *set);`：判断fd是否在set里面
 - `void FD_SET(int fd, fd_set *set);`：添加fd到set里面
 - `void FD_ZERO(fd_set *set);`：清空set集合
 
@@ -1126,7 +1126,7 @@ int main(int argc, char *argv[])
 					continue;
 			
 			}
-			for(int i=lfd+1;i<=max_fd;i++)
+			for(int i=lfd+1; i<=max_fd; i++)
 			{
 				//cfd变化
 				if(FD_ISSET(i,&r_set))
