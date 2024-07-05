@@ -474,6 +474,11 @@ echo xxxx > /dev/mychardev
 
 ### register_chrdev和alloc_chrdev_region的区别
 
+设备号注册两种办法：
+
+- 指定主从设备号并告知内核
+- 从内核中动态申请主从设备号
+
 - `alloc_chrdev_region` 
   - 用于动态分配一个主设备号和多个次设备号。
   - 它可以确保主设备号不会与现有的设备号发生冲突，因为内核会选择一个未被使用的主设备号进行分配。
@@ -710,6 +715,152 @@ void read_test(){
     }
 }
 ```
+
+
+
+## 1.3 杂项设备注册
+
+- 主设备号默认规定为10，从设备号动态分配
+- 可以作为拓展设备驱动数量的一种手段
+- **依然是一个字符设备驱动**，是字符设备驱动的另一种更加**简单**的注册方式
+
+```c
+#include<linux/miscdevice.h>
+// file_operations依然要保留
+struct file_operations fops = {
+    .owner = THIS_MODULE,
+    .open = my_open,
+    .release = my_release,
+    .read = my_read,
+    .write = my_write,
+};
+
+static struct miscdevice my_misc = {
+    .minor = MISC_DYNAMIC_MINOR,
+    .name = "mychrdev",
+    .fops = &fops,
+}
+
+static int __init my_module_init(void)
+{
+	printk(KERN_WARNING "L%d‐>%s()\n",__LINE__,__FUNCTION__);
+	misc_register(&my_misc);
+	return 0;
+}
+
+static void __exit my_module_exit(void)
+{
+	printk(KERN_WARNING "L%d‐>%s()\n",__LINE__,__FUNCTION__);
+	misc_deregister(&my_misc);
+}
+```
+
+
+
+## 1.4 cdev注册
+
+- register_chrdev()其实是cdev注册过程的封装
+- cdev自己封装注册，对系统资源利用率更高
+
+流程：
+
+1. 自动分配主设备号申请接口：alloc_chrdev_region()
+2. 自己定义数据结构：struct cdev
+3. 初始化cdev：cdev_init()
+4. 注册cdev：cdev_add()
+5. 创建设备类：class_create()
+6. 创建设备文件：device_create()
+7. 删除设备文件device_destroy(my_class, dev)
+8. 删除设备类 class_destroy(my_class)
+9. 注销cdev：cdev_del()
+10. 释放动态申请的主设备号：unregister_chrdev_region()
+
+```c
+int register_chrdev_region( dev_t from, unsigned count, const char *name);
+// from : 主设备号和从设备号，通过宏生成 MKDEV(my_major, my_minor)
+// count：占用从设备号数目
+// name: 驱动名称
+// 返回：失败小于0
+
+int alloc_chrdev_region(dev_t *dev,unsigned baseminor,unsigned count,const char *name);
+// baseminor：指定申请时的起始从设备号
+// 返回：失败非0
+
+void unregister_chrdev_region(dev_t from, unsigned count);
+
+struct cdev {
+	struct kobject kobj; 				// 内核生成，用于管理
+	struct module *owner; 				// 内核生成，用于管理
+	const struct file_operations *ops;
+	struct list_head list; 				// 内核生成，用于管理
+	dev_t dev;							//设备号
+	unsigned int count; 				// 引用次数
+};
+
+// 初始化cdev变量，并设置fops
+void cdev_init(struct cdev *cdev, const struct file_operations *fops);
+// 添加cdev到linux内核，完成驱动注册
+int cdev_add(struct cdev *p, dev_t dev, unsigned count);
+
+// 上面两个函数成功后，可以使驱动在`cat /proc/devices` 中看到
+
+// 从内核中删除cdev数据
+void cdev_del(struct cdev *p);
+```
+
+```c
+static struct cdev my_cdev;
+
+static int __init my_init(void)
+{
+    int ret;
+
+    // 分配设备号
+    ret = alloc_chrdev_region(&dev, 0, DEVICE_COUNT, DEVICE_NAME);
+    if (ret < 0) {
+        printk(KERN_ERR "Failed to allocate chrdev region\n");
+        return ret;
+    }
+
+    // 初始化 cdev 结构体
+    cdev_init(&my_cdev, &fops);
+    my_cdev.owner = THIS_MODULE;
+
+    // 将 cdev 添加到系统中
+    ret = cdev_add(&my_cdev, dev, DEVICE_COUNT);
+    if (ret < 0) {
+        unregister_chrdev_region(dev, DEVICE_COUNT);
+        printk(KERN_ERR "Failed to add cdev\n");
+        return ret;
+    }
+
+    // 创建设备类
+    my_class = class_create(THIS_MODULE, DEVICE_CLASS_NAME);
+    if (IS_ERR(my_class)) {
+        cdev_del(&my_cdev);
+        unregister_chrdev_region(dev, DEVICE_COUNT);
+        printk(KERN_ERR "Failed to create class\n");
+        return PTR_ERR(my_class);
+    }
+
+    // 创建设备节点
+    device_create(my_class, NULL, dev, NULL, DEVICE_NAME);
+
+    printk(KERN_INFO "Device initialized successfully\n");
+    return 0;
+}
+
+static void __exit my_exit(void)
+{
+    device_destroy(my_class, dev);
+    class_destroy(my_class);
+    cdev_del(&my_cdev);
+    unregister_chrdev_region(dev, DEVICE_COUNT);
+    printk(KERN_INFO "Device exited successfully\n");
+}
+```
+
+
 
 # 2 linux内核api
 
@@ -1971,6 +2122,460 @@ int kthread_stop(struct task_struct *k);
 ```
 
 
+
+# 3 工程化
+
+## 3.1 platform总线
+
+总线：各部件之间传递信息的公共通道
+
+一个现实的linux设备和驱动通常需要挂载在一种总线上，这条总线可以是：
+
+- 物理总线：USB/PCI/I2C/SPI总线
+- 虚拟总线：Platform总线（触摸屏、LCD…）
+
+我们之前的代码将资源设备（gpio口）和驱动（逻辑）放在一起，这样会导致资源设备和驱动缺乏相互独立性，给管理维护和移植带来诸多不便。
+
+总线目的：**让设备驱动和设备资源更加独立且统一（总线是二者的中间层）**，**使得设备驱动程序更加通用**
+
+platform机制开发并不复杂，由**三部分**组成：
+
+- platform_device：
+  - 是用来描述当前驱动使用的平台硬件信息，一般情况定义在厂家提供的板级支持包中。
+  - 我们当前平台的硬件资源位于：arch/arm/plat-s5p6818/x6818/device.c和devices.c
+- platfrom_driver：
+  - 驱动具体的操作接口，是一些针对当前成功匹配设备的操作函数接口实现。
+
+- platform总线：是系统内核创建的：**platform_bus**
+
+### api
+
+```c
+#include<linux/platform_device.h>
+
+// 设备资源相关结构体
+struct platform_device {
+	const char *name; 								// 资源名字
+	int id; 										// 一般写0或-1
+	struct device dev;
+	u32 num_resources;								// 资源大小
+	struct resource *resource; 						// 资源
+	const struct platform_device_id *id_entry;
+	struct pdev_archdata archdata;
+};
+struct device {
+	void (*release)(struct device *dev);
+	void *platform_data;
+	... ...
+}
+struct resource {
+	resource_size_t start; 							// 资源起始的物理地址
+	resource_size_t end; 							// 资源结束的物理地址
+	const char *name;
+	unsigned long flags; 							// 资源类型IO资源：IORESOURCE_MEM, 中断号：IORESOURCE_IRQ等等
+	struct resource *parent, *sibling, *child;
+};
+
+// 驱动相关结构体
+struct platform_driver {
+    int (*probe)(struct platform_device *); 						//匹配原来的init回调函数
+	int (*remove)(struct platform_device *);						//匹配原来的exit回调函数
+	void (*shutdown)(struct platform_device *);
+	int (*suspend)(struct platform_device *, pm_message_t state);
+	int (*resume)(struct platform_device *);
+	struct device_driver driver;
+	const struct platform_device_id *id_table;
+};
+struct device_driver {
+	struct module *owner; 					//填写THIS_MODULE
+	const char *name; 						//驱动名字，要和platform_device里的name相一致
+};
+
+
+// 驱动侧获取设备资源
+struct resource *platform_get_resource(
+	struct platform_device *dev,
+	unsigned int type,
+	unsigned int num
+);
+// dev: 内核传过来platform_device的指针
+// type: 资源类型，与device的flag对应
+// num: 同类资源序号
+
+// 这个函数会在probe回调函数中调用，内核会向probe回调函数传platform_device，而这个变量正是platform_get_resource所需要的
+// 通过这个函数获取到资源后，赋值给全局变量，然后在所有需要使用设备的地方使用全局变量代替。
+```
+
+### makefile
+
+```makefile
+# 加上你的device资源设备代码
+obj-m += driver.o device.o
+KERNELDIR := /home/buntu/sambaShare/kernel-3.4.39
+PWD := $(shell pwd)
+
+modules:
+	$(MAKE) -C $(KERNELDIR) M=$(PWD) modules
+	rm -rf *.order *.mod.* *.o *.symvers
+
+clean:
+	make -C $(KERNELDIR) M=$(PWD) clean
+	rm -rf *.ko
+```
+
+### device.c
+
+```c
+
+#include <linux/module.h>	/* module_init */
+#include <linux/fs.h>	/* file_operations */
+#include <linux/device.h>	/* class device */
+#include <linux/sched.h>		/* current */
+#include <linux/mount.h>		/* struct vfsmount */
+#include <asm/io.h>	/* writel() */
+#include <linux/uaccess.h> /* copy_to_user() */
+#include <mach/devices.h> 	//PAD_GPIO_A+n
+#include <mach/soc.h> 		//nxp_soc_gpio_set_io_func();
+#include <mach/platform.h>	//PB_PIO_IRQ(PAD_GPIO_A+n);
+#include <linux/interrupt.h>	/*request_irq*/
+#include <linux/irq.h>	/*set_irq_type*/
+#include <linux/delay.h> /* mdelay() */
+#include <linux/kfifo.h> /* kfifo */
+#include <linux/poll.h> /* poll */
+#include <linux/kthread.h> /* kthread */
+#include <linux/cdev.h>
+#include <linux/platform_device.h>
+#include <linux/kernel.h>
+#include <linux/irq.h>
+#include <asm/irq.h>
+
+
+#define DRIVER_NAME 		"demo_driver"
+#define DEVICE_NAME 		"demo_dev"
+#define DEMO_PLATFORM_NAME 		"demo_platform"
+#define DEVICE_COUNT 	5
+
+static struct resource demo_resource[] = {
+
+	[0] = {/* key row_1 */
+		.start = PAD_GPIO_A+28,
+		.end = PAD_GPIO_A+28,
+		.flags = IORESOURCE_IO,
+	},
+	[1] = {/* key irq_row_1 */
+		.start = PAD_GPIO_C+14,
+		.end = PAD_GPIO_C+14,
+		.flags = IORESOURCE_IO,
+	}
+};
+
+static void demo_release(struct device *dev) 
+{
+	printk(KERN_WARNING "%s\n",__FUNCTION__);
+	return ;
+}
+
+static struct platform_device demo_pdev = {
+	.name = DEMO_PLATFORM_NAME,
+	.id = 0,
+	.num_resources = ARRAY_SIZE(demo_resource), 
+	.resource = demo_resource,
+	.dev = {
+		.platform_data = NULL,
+        .release = demo_release,
+        
+	}
+};
+
+
+static int  __init demo_dev_init(void)
+{
+    printk(KERN_WARNING "%s\n",__FUNCTION__);
+	return platform_device_register(&demo_pdev);
+}
+
+static void  __exit demo_dev_exit(void)
+{
+    printk(KERN_WARNING "%s\n",__FUNCTION__);
+	platform_device_unregister(&demo_pdev);
+}
+
+module_init(demo_dev_init);
+module_exit(demo_dev_exit);
+
+MODULE_LICENSE("GPL");	
+MODULE_AUTHOR("qin");
+MODULE_DESCRIPTION("used for studing linux drivers");
+```
+
+
+
+
+
+### driver.c
+
+```c
+// driver.c
+
+#define DEMO_PLATFORM_NAME 		"demo_platform"
+
+struct key_dev_struct_t{
+    resource_size_t key_io;			// 按键	
+    resource_size_t key_beep;		//蜂鸣器
+}
+static key_dev_struct_t key_dev = {
+    .key_io = 0,
+    .key_beep = 0,
+}
+
+// 曾经的demo_module_init修改为demo_probe
+static int _devinit demo_probe(struct platform_device *pdev)
+{
+    int ret;
+	struct resource *res;
+    // 获取platform设备资源
+    
+    // 按键资源
+    res = platform_get_resource(pdev,IORESOURCE_IO, 0);
+    key_dev.key_io = res->start;
+    // 蜂鸣器
+    res = platform_get_resource(pdev,IORESOURCE_IO, 1);
+    key_dev.key_beep = res->start;
+    
+    // 在所有需要使用设备的地方，用这两个全局变量代替
+    
+    // 分配设备号
+    ret = alloc_chrdev_region(&dev, 0, DEVICE_COUNT, DEVICE_NAME);
+    if (ret < 0) {
+        printk(KERN_ERR "Failed to allocate chrdev region\n");
+        return ret;
+    }
+
+    // 初始化 cdev 结构体
+    cdev_init(&my_cdev, &fops);
+    my_cdev.owner = THIS_MODULE;
+
+    // 将 cdev 添加到系统中
+    ret = cdev_add(&my_cdev, dev, DEVICE_COUNT);
+    if (ret < 0) {
+        unregister_chrdev_region(dev, DEVICE_COUNT);
+        printk(KERN_ERR "Failed to add cdev\n");
+        return ret;
+    }
+
+    // 创建设备类
+    my_class = class_create(THIS_MODULE, DEVICE_CLASS_NAME);
+    if (IS_ERR(my_class)) {
+        cdev_del(&my_cdev);
+        unregister_chrdev_region(dev, DEVICE_COUNT);
+        printk(KERN_ERR "Failed to create class\n");
+        return PTR_ERR(my_class);
+    }
+
+    // 创建设备节点
+    device_create(my_class, NULL, dev, NULL, DEVICE_NAME);
+
+    printk(KERN_INFO "Driver initialized successfully\n");
+    return 0;
+}
+
+// 曾经的demo_module_exit修改为demo_remove
+static int demo_remove(struct platform_device *dev){
+    device_destroy(my_class, dev);
+    class_destroy(my_class);
+    cdev_del(&my_cdev);
+    unregister_chrdev_region(dev, DEVICE_COUNT);
+    printk(KERN_INFO "Driver exited successfully\n");
+}
+
+static int  __init demo_module_init(void)
+{
+    printk(KERN_WARNING "%s\n",__FUNCTION__);
+	return platform_driver_register(&demo_driver);
+}
+
+static void  __exit demo_module_exit(void)
+{
+    printk(KERN_WARNING "%s\n",__FUNCTION__);
+	platform_driver_unregister(&demo_driver);
+}
+
+static struct platform_driver demo_driver = {
+    .driver = {
+		.owner = THIS_MODULE,
+		.name = DEMO_PLATFORM_NAME,
+	},
+	.probe = demo_probe,
+	.remove = demo_remove,
+	
+};
+
+module_init(demo_module_init);
+module_exit(demo_module_exit);
+```
+
+
+
+```bash
+# 在安装了device.ko和driver.ko后，可以在以下两个文件夹中看到对应的文件
+ls /sys/bus/platform/devices
+ls /sys/bus/platform/drivers
+```
+
+## 3.2 [input子系统](https://blog.csdn.net/weixin_42031299/article/details/125111946)
+
+上层应用不知道定义什么数据类型去接驱动返回的值。
+
+input以“兼容并包”的大一统思想，把这些输入设备的键码、键值、上传方式都分类统一起来，提高驱动通用性(linux和andriod都适用)，减少应用和驱动开发者的沟通成本。
+
+主要是输入上报数据的标准化，标准化成了input_event。
+
+这里面不需要再使用file_operations，应用程序中也不会使用read，write接口
+
+![image-20240705164001041](./legend/image-20240705164001041.png)
+
+```c
+#include<linux/input.h>
+
+// 申请、初始化input_dev
+struct input_dev *input_allocate_device(void);
+// 注册input_dev
+int input_register_device(struct input_dev *dev);
+// 注销input_dev
+void input_unregister_device(struct input_dev *dev);
+
+struct input_dev {
+	const char *name;											//设备名称
+	const char *phys;											//设备在系统中的物理路径
+	const char *uniq;											//设备唯一识别符
+    unsigned long evbit[BITS_TO_LONGS(EV_CNT)];					//设备支持的事件类型
+    unsigned long keybit[BITS_TO_LONGS(KEY_CNT)];				//设备支持的具体的按键、按钮事件
+	unsigned long relbit[BITS_TO_LONGS(REL_CNT)]; 				//户设备支持的具体的相对坐标事件
+	unsigned long absbit[BITS_TO_LONGS(ABS_CNT)];				//设备支持的具体的绝对坐标事件
+	unsigned long mscbit[BITS_TO_LONGS(MSC_CNT)];				//设备支持的具体的混杂事件
+	unsigned long ledbit[BITS_TO_LONGS(LED_CNT)];				//设备支持的具体的LED指示灯事件
+	unsigned long sndbit[BITS_TO_LONGS(SND_CNT)];				//户设备支持的具体的音效事件
+	unsigned long ffbit[BITS_TO_LONGS(FF_CNT)];					//设备支持的具体的力反馈事件
+	unsigned long swbit[BITS_TO_LONGS(SW_CNT)];					//设备支持的具体的开关事件
+	....
+}
+```
+
+
+
+**模仿usbkbd.c开发**
+
+```c
+//
+
+#include<linux/input.h>
+
+static struct input_dev *demo_input;
+static int _devinit demo_probe(struct platform_device *pdev)
+{
+    int ret;
+	struct resource *res;
+    // 获取platform设备资源
+    
+    // 按键资源
+    res = platform_get_resource(pdev,IORESOURCE_IO, 0);
+    key_dev.key_io = res->start;
+    // 蜂鸣器
+    res = platform_get_resource(pdev,IORESOURCE_IO, 1);
+    key_dev.key_beep = res->start;
+    
+    // 在所有需要使用设备的地方，用这两个全局变量代替
+    
+    ...//
+    
+    demo_input = input_allocate_device();
+    demo_input->name = "demo_key_input";
+    demo_input->phys = "demo_key_phy";
+    demo_input->evbit[0] = BIT_MASK(EV_KEY) | BIT_MASK(EV_SYN);
+    // 只有注册了可支持的按键才能在后面上报
+    set_bit(KEY_A, demo_input->keybit);			// 在本文件中所有用到num的地方，使用KEY_A代替。
+    // demo_input->open = demo_input_open;		// demo_input在注册input_register_device的时候调用这个open
+    // demo_input->close = demo_input_close;	// demo_input在注册input_unregister_device的时候调用这个close
+    
+    input_register_device(&demo_input);
+}
+static int demo_remove(struct platform_device *dev){
+    device_destroy(my_class, dev);
+    class_destroy(my_class);
+    cdev_del(&my_cdev);
+    unregister_chrdev_region(dev, DEVICE_COUNT);
+    input_unregister_device(&demo_input);
+    printk(KERN_INFO "Driver exited successfully\n");
+}
+static int thread_ops_key(void *pdata){
+    while(1) {
+        if(kfifo_is_empty(&key_fifo)) continue;
+        spin_lock(&my_spinlock);
+        ret = kfifo_out(&key_fifo,&key_val,sizeof(key_val));
+        // 第二个参数可以是KEY_A,KEY_B,但前提是你要注册这些按键
+        input_report_key(demo_input, key_val.code, key_val.status);
+        input_sync(demo_input);
+    }
+}
+```
+
+```bash
+# 在安装模块之前先看看input的设备有哪些
+ls /dev/input
+# 安装driver.ko后，就可以看到ls /dev/input多个一个eventx
+# 然后，就可以看到对应名字的input
+cat /sys/class/input/eventx/device/name
+demo_key_input
+cat /sys/class/input/eventx/device/phys
+demo_key_phy
+
+cat /dev/input/eventx
+hd /dev/input/eventx
+
+```
+
+```bash
+# 如果我们想看到屏幕打出A来，我们需要
+ps
+PID   USER     TIME   COMMAND
+    1 root       0:02 {linuxrc} init
+    2 root       0:00 [kthreadd]
+    3 root       0:00 [ksoftirqd/0]
+    4 root       0:00 [kworker/0:0]
+    6 root       0:00 [migration/0]
+    7 root       0:00 [watchdog/0]
+    8 root       0:00 [migration/1]
+    9 root       0:00 [kworker/1:0]
+   10 root       0:00 [ksoftirqd/1]
+   11 root       0:06 [watchdog/1]
+  109 root       0:00 [ext4-dio-unwrit]
+  123 root       0:00 /usr/sbin/telnetd
+  124 root       0:00 /usr/bin/tcpsvd 0 21 ftpd -w /home
+  128 root       0:00 /usr/boa/boa
+  145 root       0:00 -/bin/ash			# 如果COMMAND列中命令首部有一个短横线，通常表示该进程是前台进程组的成员，这就是当前的bash控制台的
+ 2375 root       0:00 [kworker/6:0]
+ 2429 root       0:00 [kworker/6:1]
+
+ls /proc/145/fd -l
+total 0
+lrwx------    1 root     root            64 Jan  5 00:20 0 -> /dev/console		# 0表示标准输入
+lrwx------    1 root     root            64 Jan  5 00:20 1 -> /dev/console		# 1表示标准输出
+lrwx------    1 root     root            64 Jan  5 00:20 10 -> /dev/tty
+lrwx------    1 root     root            64 Jan  5 00:20 2 -> /dev/console		# 2表示标准错误输出
+# 标准输入/输出/错误输出都指向了控制台/dev/console，我正处在这个控制台上
+
+# 我们的A，输出不到当前控制台上
+# 现在，我们将标准输入重定向到/dev/tty1上去，
+# 在重定向之前，我们需要记录一下当前设备的ip地址，在windows系统上cmd，然后telnet ip，即可进入bash控制台，
+# 这样做是为了在重定向输入后，通过在telnet中，敲kill -9 145（这个145就是你之前看到的控制台的进程id），然后就可以在原来的console中敲命令了
+
+exec 0</dev/tty1
+# 现在你再按按钮，你就可以看见a
+# 但是现在你无法在当前敲入任何命令，除非你在windows cmd的telnet控制台中敲入kill -9 145，就可以恢复
+
+```
+
+应用程序获取这些input key，可以查一下。
 
 # 其他
 
