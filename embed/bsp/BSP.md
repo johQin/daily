@@ -1202,6 +1202,26 @@ sudo vi /etc/exports
 
 # 重启nfs服务
 sudo /etc/init.d/nfs-kernel-server restart
+
+# 查看服务是否启动
+service nfs-kernel-server status
+# 如果Active状态为active (exited)，则表示nfs服务已经启动；如果Active状态为inactive (dead)，则表示nfs服务没有启动。
+● nfs-server.service - NFS server and services
+     Loaded: loaded (/lib/systemd/system/nfs-server.service; enabled; vendor preset: enabled)
+    Drop-In: /run/systemd/generator/nfs-server.service.d
+             └─order-with-mounts.conf
+     Active: active (exited) since Mon 2024-07-08 14:30:29 CST; 4s ago
+    Process: 42014 ExecStartPre=/usr/sbin/exportfs -r (code=exited, status=0/SUCCESS)
+    Process: 42015 ExecStart=/usr/sbin/rpc.nfsd (code=exited, status=0/SUCCESS)
+   Main PID: 42015 (code=exited, status=0/SUCCESS)
+        CPU: 3ms
+
+7月 08 14:30:29 buntu-qkh systemd[1]: Starting NFS server and services...
+7月 08 14:30:29 buntu-qkh exportfs[42014]: exportfs: /etc/exports [1]: Neither 'subtree_check' or 'no_subtree_check' specified for export "*:/home/buntu/sambaShare".
+7月 08 14:30:29 buntu-qkh exportfs[42014]:   Assuming default behaviour ('no_subtree_check').
+7月 08 14:30:29 buntu-qkh exportfs[42014]:   NOTE: this default has changed since nfs-utils version 1.0.x
+7月 08 14:30:29 buntu-qkh systemd[1]: Finished NFS server and services
+# 怎么看nfs服务是否已经启动与安装nfs服务：https://blog.csdn.net/qq_41604569/article/details/130642026
 ```
 
 开发板配置：

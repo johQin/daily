@@ -736,7 +736,7 @@ struct file_operations fops = {
 };
 
 static struct miscdevice my_misc = {
-    .minor = MISC_DYNAMIC_MINOR,
+    .minor = MISC_DYNAMIC_MINOR,				// MISC_DYNAMIC_MINOR这个宏无需自行定义，不然会报重复定义
     .name = "mychrdev",
     .fops = &fops,
 }
@@ -753,6 +753,9 @@ static void __exit my_module_exit(void)
 	printk(KERN_WARNING "L%d‐>%s()\n",__LINE__,__FUNCTION__);
 	misc_deregister(&my_misc);
 }
+
+
+MODULE_LICENSE("GPL");
 ```
 
 
@@ -2576,6 +2579,59 @@ exec 0</dev/tty1
 ```
 
 应用程序获取这些input key，可以查一下。
+
+# 4 I2C总线
+
+![img](legend/I2C通信示意.gif)
+
+## 4.1 总线通信基本概念
+
+1. 通信方向划分：单工，半双工，全双工
+2. 同步通信
+   - eg： I2C，SPI，USB3.0
+   - 一般不支持远距离传输，通常是板级之间的距离小于50cm的
+   - 也可通过走差分信号实现更远距离的通信
+3. 异步通信
+   - eg：UART、USB2.0、RJ45
+   - 通信距离会稍远一些，通常是主机或设备之间的通信
+   - 为了实现更远距离通信，一般走差分信号，eg：RS232、RS485、RS422、CAN等
+
+## 4.2  I2C通信时序
+
+通信时序：
+
+- 主机发起启始信号（时钟高电平期间，数据产生一个下降沿）
+- 发送地址，通信之前先通过从机地址选中要通信的从机设备
+  - 地址一般从模块芯片数据手册中获得
+  - 有的也提供外部IO来手动指定（当地址冲突的时候）
+  - 通常是7位数据表示，也有10位的地址
+- 主机接收对应从机的应答
+  - ACK表示正确应答
+  - NACK表示异常应答
+- 开始传输数据，且每传输8bit数据应答一位
+- 主机发起停止信号（时钟高电平期间，数据产生一个上升沿）
+- 本次通信结束
+
+![image-20240708110422545](legend/image-20240708110422545.png)
+
+特点：
+
+1. 字节序：大端字节序
+2. SDA数据在SCL高电平周期保持稳定，在SCL低电平周期才可以切换下一个数据。（时钟高电平采集数据，时钟低电平准备数据）
+3. i2c是电平触发数据传输，不同于spi的边沿触发
+4. 位速率可达400kbit/s（快速模式），100kbit/s（标准），3.4Mbit/s（高速），用来传输普通的传感器数据是有余的，但用来传输视频数据是不够的。
+
+## MMA8653
+
+先从底板x6818bv2.pdf 找到mma8653，再从其中的引脚名MCU_SCL_2，定位到核心板x4418cv3_release20150713.pdf的GPIO口，再由GPIO口在芯片手册SEC_S5P6818X_Users_Manual_preliminary_Ver_0.00.pdf定位GPIO口对应的功能模式
+
+![](./legend/mma8653_io口查找.png)
+
+mma8653操作流程
+
+- 芯片在上电后需要配置CTRL_REG1(0x2A)为模式ACTIVE，此时芯片就可以正常工作
+- 检测chid_id是否正确(0Dh)
+- 读取坐标信息(x、y、z/01h-06h)
 
 # 其他
 

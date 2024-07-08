@@ -1289,16 +1289,16 @@ HAL_StatusTypeDef HAL_TIM_IC_Stop_DMA(TIM_HandleTypeDef *htim, uint32_t Channel)
 
 4. 
 
-# 5 [串口通信](https://blog.csdn.net/qq_44016222/article/details/123280806)
+# 5 [串行通信](https://blog.csdn.net/qq_44016222/article/details/123280806)
 
-串口通信是MCU最基本的通信方式
+串行通信是MCU最基本的通信方式
 
 |          | 传输原理           | 优点           | 缺点           |
 | -------- | ------------------ | -------------- | -------------- |
 | 并行通信 | 数据各个位同时传输 | 速度快         | 占用引脚资源多 |
 | 串行通信 | 数据按位顺序传输   | 占用引脚资源少 | 速度慢         |
 
-串口通信属于串行通信
+
 
 串行通信按照数据的传送方向可以分为：单工，半双工，全双工
 
@@ -1317,7 +1317,9 @@ HAL_StatusTypeDef HAL_TIM_IC_Stop_DMA(TIM_HandleTypeDef *htim, uint32_t Channel)
 
 
 
-## 5.1 串口通信时序
+## 5.1 串口通信
+
+也称为串行接口或COM接口，串口通信属于串行通信。
 
 串行通信一般是以帧格式传输数据，一个数据帧包括一个起始位、数据位、校验位和停止位。
 
@@ -1361,6 +1363,8 @@ $$
 - [波特率 比特率 定义 区别 解释 应用](https://zhuanlan.zhihu.com/p/31529472)
 
 ## **5.3 UART**
+
+![img](./legend/74fcb54366e8be7bcbc876475a29a22895b8c3.gif)
 
 ### 5.3.1 串口通信结构体详解
 
@@ -1700,6 +1704,8 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size){
 ![image-20240528104936749](./legend/image-20240528104936749.png)
 
 ## 5.4 I2C
+
+![img](legend/13fab7074d35152ce288463fb03f192e2c8cfd.gif)
 
 I2C（Inter-Integrated Circuit）通信是一种由Philips公司开发的串行通信协议，主要用于近距离、低速的芯片间通信。
 
@@ -2741,6 +2747,8 @@ SPI ( Serial Peripheral lnterface，串行外围设备接口）通讯协议，�
 应用:EEPROM、Flash、RTC、ADC、DSP等。
 
 优缺点︰全双工通信，通讯方式较为简单，相对数据传输速率较快;没有应答机制确认数据是否接收，在数据可靠性上有一定缺陷（与l2C相比）。
+
+![img](legend/53c26cc40e52104d136042c8676e719e4185c8.gif)
 
 # 6 DMA
 
