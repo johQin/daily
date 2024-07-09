@@ -2151,6 +2151,16 @@ platform机制开发并不复杂，由**三部分**组成：
 
 - platform总线：是系统内核创建的：**platform_bus**
 
+```bash
+# 查看linux提供的总线
+ls /sys/bus
+amba          event_source  iio           mmc           sdio          usb
+clocksource   hid           mdio_bus      platform      serio         usb-serial
+cpu           i2c           media         scsi          spi
+```
+
+
+
 ### api
 
 ```c
@@ -2621,7 +2631,9 @@ exec 0</dev/tty1
 3. i2c是电平触发数据传输，不同于spi的边沿触发
 4. 位速率可达400kbit/s（快速模式），100kbit/s（标准），3.4Mbit/s（高速），用来传输普通的传感器数据是有余的，但用来传输视频数据是不够的。
 
-## MMA8653
+## 4.3 IO模拟I2C实例：MMA8653
+
+mma8653是一款三轴重力加速度传感器，能够感知到加速度的变化，比如晃动、跌落、上升、下降等，各种移动变化都能被mma8653转化为电信号，用户直接从寄存器读取坐标即可。
 
 先从底板x6818bv2.pdf 找到mma8653，再从其中的引脚名MCU_SCL_2，定位到核心板x4418cv3_release20150713.pdf的GPIO口，再由GPIO口在芯片手册SEC_S5P6818X_Users_Manual_preliminary_Ver_0.00.pdf定位GPIO口对应的功能模式
 
@@ -2631,7 +2643,644 @@ mma8653操作流程
 
 - 芯片在上电后需要配置CTRL_REG1(0x2A)为模式ACTIVE，此时芯片就可以正常工作
 - 检测chid_id是否正确(0Dh)
-- 读取坐标信息(x、y、z/01h-06h)
+- 读取坐标信息x、y、z（01h-06h）
+
+![](./legend/mma8563时序及寄存器地址.png)
+
+```c
+#include <linux/miscdevice.h>
+#include <linux/module.h>	/* module_init */
+#include <linux/fs.h>	/* file_operations */
+#include <linux/device.h>	/* class device */
+#include <linux/sched.h>		/* current */
+#include <linux/mount.h>		/* struct vfsmount */
+#include <asm/io.h>	/* writel() */
+#include <linux/uaccess.h> /* copy_to_user() */
+#include <mach/devices.h> 	//PAD_GPIO_A+n
+#include <mach/soc.h> 		//nxp_soc_gpio_set_io_func();
+#include <mach/platform.h>	//PB_PIO_IRQ(PAD_GPIO_A+n);
+#include <linux/interrupt.h>	/*request_irq*/
+#include <linux/irq.h>	/*set_irq_type*/
+#include <linux/delay.h> /* mdelay() */
+#include <linux/kfifo.h> /* kfifo */
+#include <linux/poll.h> /* poll */
+#include <linux/kthread.h> /* kthread */
+#include <linux/cdev.h>
+#include <linux/platform_device.h>
+#include <linux/kernel.h>
+#include <linux/irq.h>
+#include <asm/irq.h>
+
+
+
+#define MMA8653_ADDR 0x1D
+#define MMA8653_WRITE 0x00
+#define MMA8653_READ 0X01
+
+#define MMA8653_SDA_IO PAD_GPIO_D+7		// 数据io口
+#define MMA8653_SDA_IO_FUNC 0
+#define MMA8653_SCL_IO PAD_GPIO_D+6		// 时钟io口
+#define MMA8653_SCL_IO_FUNC 0
+
+#define clk_out() 		nxp_soc_gpio_set_io_dir(MMA8653_SCL_IO,1)
+#define clk_in() 		nxp_soc_gpio_set_io_dir(MMA8653_SCL_IO,0)
+#define clk_set() 		nxp_soc_gpio_set_out_value(MMA8653_SCL_IO, 1)
+#define clk_clear() 	nxp_soc_gpio_set_out_value(MMA8653_SCL_IO, 0)
+
+
+#define dat_out() 		nxp_soc_gpio_set_io_dir(MMA8653_SDA_IO,1)
+#define dat_in() 		nxp_soc_gpio_set_io_dir(MMA8653_SDA_IO,0)
+#define dat_set() 		nxp_soc_gpio_set_out_value(MMA8653_SDA_IO, 1)
+#define dat_clear() 	nxp_soc_gpio_set_out_value(MMA8653_SDA_IO, 0)
+#define dat_get_in() 	nxp_soc_gpio_get_in_value(MMA8653_SDA_IO)
+
+#define demo_i2c_delay() udelay(50)
+
+
+
+#define DEVICE_NAME "mma8653"
+
+
+void demo_i2c_gpio_init(void){
+	// 初始化i2c 模拟时序涉及到的两个GPIO口
+	nxp_soc_gpio_set_io_func(MMA8653_SDA_IO, MMA8653_SDA_IO_FUNC);
+	nxp_soc_gpio_set_io_func(MMA8653_SCL_IO, MMA8653_SCL_IO_FUNC);
+	
+	clk_out();
+	dat_out();
+}
+
+
+// 起始信号
+void demo_i2c_start(void){
+	dat_out();				// 由于是半双工，所以将模式调整为输出
+	dat_set();				//将数据置1
+	clk_set();				//将时钟置1
+	demo_i2c_delay();
+	dat_clear();
+	demo_i2c_delay();
+	clk_clear();		// 时钟模式是空闲时为低电平，如果有其他需要可以修改
+}
+
+// 终止信号
+void demo_i2c_stop(void){
+	dat_out();				// 由于是半双工，所以将模式调整为输出
+	dat_clear();
+	clk_set();
+	demo_i2c_delay();
+	dat_set();
+	demo_i2c_delay();
+	clk_clear();
+}
+
+// 数据发送
+void demo_i2c_send_byte(unsigned char data){
+	int i;
+	dat_out();				// 由于是半双工，所以将模式调整为输出
+	clk_clear();	//时钟为低开始准备发送数据
+	for(i=0;i<8;i++){
+		// 从data的最高位第7位开始读，如果是高，那么发送高电平，如果是低，发送低电平
+		if(data & (1 << (7 -i))){
+			dat_set();
+		}else{
+			dat_clear();
+		}
+		// 等待准备的数据稳定
+		demo_i2c_delay();
+		// 数据已稳定，时钟置为高电平
+		clk_set();
+		// 等待对方读数据
+		demo_i2c_delay();
+		clk_clear();
+	}
+	
+}
+
+// 数据接收
+unsigned char demo_i2c_recv_byte(void){
+	unsigned char data = 0;
+	int i;
+	dat_in();
+	clk_clear();		// 时钟为低，等待对方发送数据
+	for(i=0;i<8;i++){
+		demo_i2c_delay();		//等待对方准备好数据
+		clk_set();				
+		// 等待对方的数据稳定
+		demo_i2c_delay();
+		data |= dat_get_in() << (7-i);
+		clk_clear();
+	}
+	return data;
+	
+}
+
+// 发送应答
+void demo_i2c_send_ack(unsigned char ack){
+	dat_out();				// 由于是半双工，所以将模式调整为输出
+	clk_clear();	//时钟为低开始准备发送数据
+	
+	// 如果是高，那么发送高电平，如果是低，发送低电平
+	if(ack)
+		dat_set();
+	else
+		dat_clear();
+	
+	// 等待准备的数据稳定
+	demo_i2c_delay();
+	// 数据已稳定，时钟置为高电平
+	clk_set();
+	// 等待对方读数据
+	demo_i2c_delay();
+	clk_clear();
+	
+}
+
+// 接收应答
+unsigned char demo_i2c_recv_ack(void){
+	unsigned char ack = 0;
+	dat_in();
+	clk_clear();		// 时钟为低，等待对方发送数据
+
+	demo_i2c_delay();		//等待对方准备好数据
+	clk_set();				
+	// 等待对方的数据稳定
+	demo_i2c_delay();
+	ack = dat_get_in();
+	clk_clear();
+	
+	return ack;
+	
+}
+
+
+void demo_i2c_send(unsigned char* buf,unsigned char reg, int len){
+	// 把buf中的数据写入寄存器reg中
+
+	int i = 0;
+	demo_i2c_start();		// 发送起始信号
+	demo_i2c_send_byte((MMA8653_ADDR << 1) | MMA8653_WRITE);	// 发送芯片地址
+	demo_i2c_recv_ack();			// 接收应答
+	demo_i2c_send_byte(reg);		// 发送数据存放的寄存器地址
+	demo_i2c_recv_ack();
+	while(len--){
+		demo_i2c_send_byte(buf[i++]);
+		demo_i2c_recv_ack();
+	}
+	
+	demo_i2c_stop();
+	
+}
+
+void demo_i2c_recv(unsigned char *buf, unsigned char reg, int len){
+	int i=0;
+	
+	demo_i2c_start();		// 发送起始信号
+	demo_i2c_send_byte((MMA8653_ADDR << 1) | MMA8653_WRITE);	// 发送芯片地址及准备写
+	demo_i2c_recv_ack();			// 接收应答
+	demo_i2c_send_byte(reg);		// 发给8653，需要读取寄存器的地址，然后返回它寄存器中的数据
+	demo_i2c_recv_ack();
+
+
+	demo_i2c_start();
+	demo_i2c_send_byte((MMA8653_ADDR << 1) | MMA8653_READ);
+	demo_i2c_recv_ack();
+	while(len--){
+		buf[i++] = demo_i2c_recv_byte();
+		if(len > 0)
+			demo_i2c_send_ack(0);	// ack
+		else
+			demo_i2c_send_ack(1);	// nack
+	}
+	
+	demo_i2c_stop();
+	
+}
+
+static int demo_open (struct inode *pinode, struct file *pfile){
+	unsigned char data = 0;
+    printk(KERN_WARNING "L%d‐>%s()\n",__LINE__,__FUNCTION__);
+	// 芯片在上电后需要配置CTRL_REG1(0x2A)为模式ACTIVE，此时芯片就可以正常工作
+	demo_i2c_recv(&data,0x2a,1);	// 读取原有配置
+	data |= 0x01;					// 修改成activate模式
+	demo_i2c_send(&data,0x2a,1);	// 发过去，由芯片修改
+
+	demo_i2c_recv(&data,0x0d,1);	// 读取(0Dh)的内容child_id, 查看是不是0x5a
+	printk(KERN_WARNING "L%d‐>%s():chip id = 0x%x\n",__LINE__,__FUNCTION__, data);
+	return 0;
+}
+
+static ssize_t demo_read (struct file *pifle, char __user *pbuf, size_t count, loff_t *offs){
+	unsigned char data[6];
+	signed short x,y,z;		// 分配两个字节
+	printk(KERN_WARNING "L%d‐>%s()\n",__LINE__,__FUNCTION__);
+	demo_i2c_recv(data, 0x01, 6);			//读	x,y,z，他们都有10bit数据
+	x = (data[0] << 2) | (data[1] >> 6);	// 还有6bit空着
+	y = (data[2] << 2) | (data[3] >> 6);
+	z = (data[4] << 2) | (data[5] >> 6);
+
+	x = (short) (x << 6) >> 6;	// 先左移6位（逻辑移位），再右移6位（算术移位），算术移位会保留符号位
+	y = (short) (y << 6) >> 6;
+	z = (short) (z << 6) >> 6;
+	printk(KERN_WARNING "x = %d, y = %d, z = %d \n", x, y, z);
+	mdelay(300);
+	return 1;
+}
+
+
+struct file_operations fops = {
+    .owner = THIS_MODULE,
+    .open = demo_open,
+    .read = demo_read,
+};
+
+static struct miscdevice my_misc = {
+    .minor = MISC_DYNAMIC_MINOR,
+    .name = DEVICE_NAME,
+    .fops = &fops,
+};
+
+static int __init demo_i2c_module_init(void)
+{
+	printk(KERN_WARNING "L%d‐>%s()\n",__LINE__,__FUNCTION__);
+	demo_i2c_gpio_init();
+	misc_register(&my_misc);
+	return 0;
+}
+
+static void __exit demo_i2c_module_exit(void)
+{
+	printk(KERN_WARNING "L%d‐>%s()\n",__LINE__,__FUNCTION__);
+	misc_deregister(&my_misc);
+}
+
+module_init(demo_i2c_module_init);
+module_exit(demo_i2c_module_exit);
+
+
+MODULE_LICENSE("GPL");
+
+
+```
+
+## 4.4 I2C总线
+
+I2C通信方式：
+
+1. 模拟I/O口（上一节）
+   - 特点：在对应时间节点把IO口拉高/低
+   - 优缺点：思路清晰，操作麻烦
+2. 配置i2c控制器
+   - 配置寄存器
+   - 优缺点：操作麻烦，可移植性不好
+3. I2C子系统：
+   - 通过linux内核提供的i2c子系统（总线）接口
+   - 优缺点：操作简单，可移植，不易理解
+
+![image-20240709150623470](legend/image-20240709150623470.png)
+
+我们主要关注的是基于被控制对象的逻辑功能，忽略底层的通信过程，通信接口由内核提供的i2c adapter实现，用户只需要实现i2c_client和i2c_driver。
+
+![image-20240709151320152](legend/image-20240709151320152.png)
+
+i2c_client中的name（可以有多个client）和 i2c_driver中的id_table（存放其管理的多个client名字）中的某一个名字匹配，即可通过bus联通。
+
+### i2c client创建流程
+
+1. 定义一个i2c_client指针
+2. 获得i2c设备当前控制器i2c_get_adapter(2)
+3. 设置设备类型及设备地址到数据结构i2c_board_info
+4. 申请并始化数据结构i2c_client：i2c_new_device()
+5. 模块卸载时释放设备i2c_client：i2c_unregister_device()
+
+```c
+// 获得i2c_adapter结构体
+struct i2c_adapter *i2c_get_adapter(int id);
+// id是第几个i2c总线
+
+// 创建并注册i2c_client
+struct i2c_client * i2c_new_device(struct i2c_adapter*adap, struct i2c_board_info const *info);
+
+// 移除
+void i2c_unregister_device(struct i2c_client *client);
+```
+
+
+
+ ```bash
+ ls /sys/bus/i2c/devices
+ 0-0008  1-0036  1-0037  1-0050  i2c-0  i2c-1  i2c-2  i2c-3  i2c-4  i2c-5  i2c-6  i2c-7
+ # 0-0008，0代表第几个i2c总线，0008代表i2c设备的地址
+ 
+ ```
+
+```c
+#include <linux/module.h>	/* module_init */
+#include <linux/fs.h>	/* file_operations */
+#include <linux/device.h>	/* class device */
+#include <linux/sched.h>		/* current */
+#include <linux/mount.h>		/* struct vfsmount */
+#include <asm/io.h>	/* writel() */
+#include <linux/uaccess.h> /* copy_to_user() */
+#include <mach/devices.h> 	//PAD_GPIO_A+n
+#include <mach/soc.h> 		//nxp_soc_gpio_set_io_func();
+#include <mach/platform.h>	//PB_PIO_IRQ(PAD_GPIO_A+n);
+#include <linux/interrupt.h>	/*request_irq*/
+#include <linux/irq.h>	/*set_irq_type*/
+#include <linux/delay.h> /* mdelay() */
+#include <linux/kfifo.h> /* kfifo */
+#include <linux/poll.h> /* poll */
+#include <linux/kthread.h> /* kthread */
+#include <linux/cdev.h>
+#include <linux/platform_device.h>
+#include <linux/kernel.h>
+#include <linux/irq.h>
+#include <asm/irq.h>
+#include <linux/i2c.h>
+
+#define I2C_BUS_INDEX 2
+#define I2C_DEVICE_ADDR 0x1d
+#define I2C_DEVICE_NAME "mma8653"
+
+// 如果模块安装成功，那么在ls /sys/bus/i2c/devices 可以看到2_001d的设备
+
+static struct i2c_client *mma8653_client;	
+static struct i2c_board_info mma8653_info={
+	.type = I2C_DEVICE_NAME,
+	.addr = I2C_DEVICE_ADDR,
+	
+};
+
+
+static int  __init demo_dev_init(void)
+{
+	struct i2c_adapter *mma8653_i2c_adapter;
+	printk(KERN_WARNING "L%d‐>%s()\n", __LINE__, __FUNCTION__);
+	mma8653_i2c_adapter = i2c_get_adapter(I2C_BUS_INDEX);    
+	mma8653_client = i2c_new_device(mma8653_i2c_adapter, &mma8653_info);
+	i2c_put_adapter(mma8653_i2c_adapter);
+	return 0;
+}
+
+static void  __exit demo_dev_exit(void)
+{
+    printk(KERN_WARNING "L%d‐>%s()\n",__LINE__,__FUNCTION__);
+	i2c_unregister_device(mma8653_client);
+}
+
+module_init(demo_dev_init);
+module_exit(demo_dev_exit);
+
+MODULE_LICENSE("GPL");	
+MODULE_AUTHOR("qin");
+MODULE_DESCRIPTION("used for studing linux drivers");
+
+
+```
+
+### i2c driver创建流程
+
+1. 定义一个i2c_driver指针
+2. 需要定义一个i2c_device_id记录该驱动能支持的所有设备（客户端）
+3. 调用i2c_add_driver()进行注册
+4. 模块卸载时释放设备i2c_del_driver()
+
+```c
+// 1. smbus方式收发i2c设备数据
+s32 i2c_smbus_read_byte_data(const struct i2c_client *client, u8 command)
+s32 i2c_smbus_write_byte_data(const struct i2c_client *client, u8 command, u8 value);
+// command：寄存器地址
+
+// 2. 单独的读/写函数
+int i2c_master_send(struct i2c_client *client, const char *buf, int count);
+int i2c_master_recv(struct i2c_client *client, char *buf, int count);
+
+// 3. 结构体+统一函数，这个要用的时候再具体百度
+int i2c_transfer(struct i2c_adapter *adap, struct i2c_msg *msgs, int num)
+```
+
+
+
+```bash
+# 查看i2c总线的驱动
+ls /sys/bus/i2c/drivers
+```
+
+```c
+
+#include <linux/miscdevice.h>
+#include <linux/module.h>	/* module_init */
+#include <linux/fs.h>	/* file_operations */
+#include <linux/device.h>	/* class device */
+#include <linux/sched.h>		/* current */
+#include <linux/mount.h>		/* struct vfsmount */
+#include <asm/io.h>	/* writel() */
+#include <linux/uaccess.h> /* copy_to_user() */
+#include <mach/devices.h> 	//PAD_GPIO_A+n
+#include <mach/soc.h> 		//nxp_soc_gpio_set_io_func();
+#include <mach/platform.h>	//PB_PIO_IRQ(PAD_GPIO_A+n);
+#include <linux/interrupt.h>	/*request_irq*/
+#include <linux/irq.h>	/*set_irq_type*/
+#include <linux/delay.h> /* mdelay() */
+#include <linux/kfifo.h> /* kfifo */
+#include <linux/poll.h> /* poll */
+#include <linux/kthread.h> /* kthread */
+#include <linux/cdev.h>
+#include <linux/platform_device.h>
+#include <linux/kernel.h>
+#include <linux/irq.h>
+#include <asm/irq.h>
+#include <linux/i2c.h>
+
+
+
+
+#define DEVICE_NAME "mma8653"
+
+static struct i2c_client* demo_client;
+
+
+
+void demo_i2c_send(unsigned char* buf,unsigned char reg, int len){
+	// 把buf中的数据写入寄存器reg中
+
+	int i = 0;
+	while(len--){
+		i2c_smbus_write_byte_data(demo_client,reg++, buf[i++]);
+
+	}
+	
+}
+
+void demo_i2c_recv(unsigned char *buf, unsigned char reg, int len){
+	int i=0;
+	while(len--){
+		buf[i++]= i2c_smbus_read_byte_data(demo_client, reg++);
+	}
+}
+
+static int demo_open (struct inode *pinode, struct file *pfile){
+	unsigned char data = 0;
+	printk(KERN_WARNING "L%d‐>%s()\n",__LINE__,__FUNCTION__);
+	
+	// 芯片在上电后需要配置CTRL_REG1(0x2A)为模式ACTIVE，此时芯片就可以正常工作
+	demo_i2c_recv(&data,0x2a,1);	// 读取原有配置
+	data |= 0x01;					// 修改成activate模式
+	demo_i2c_send(&data,0x2a,1);	// 发过去，由芯片修改
+
+	demo_i2c_recv(&data,0x0d,1);	// 读取(0Dh)的内容child_id, 查看是不是0x5a
+	printk(KERN_WARNING "L%d‐>%s():chip id = 0x%x\n",__LINE__,__FUNCTION__, data);
+	return 0;
+}
+
+static ssize_t demo_read (struct file *pifle, char __user *pbuf, size_t count, loff_t *offs){
+	unsigned char data[6];
+	signed short x,y,z;		// 分配两个字节
+	printk(KERN_WARNING "L%d‐>%s()\n",__LINE__,__FUNCTION__);
+	demo_i2c_recv(data, 0x01, 6);			//读	x,y,z，他们都有10bit数据
+	x = (data[0] << 2) | (data[1] >> 6);	// 还有6bit空着
+	y = (data[2] << 2) | (data[3] >> 6);
+	z = (data[4] << 2) | (data[5] >> 6);
+
+	x = (short) (x << 6) >> 6;	// 先左移6位（逻辑移位），再右移6位（算术移位），算术移位会保留符号位
+	y = (short) (y << 6) >> 6;
+	z = (short) (z << 6) >> 6;
+	printk(KERN_WARNING "x = %d, y = %d, z = %d \n", x, y, z);
+	mdelay(300);
+	return 1;
+}
+
+
+struct file_operations fops = {
+    .owner = THIS_MODULE,
+    .open = demo_open,
+    .read = demo_read,
+};
+
+static struct miscdevice my_misc = {
+    .minor = MISC_DYNAMIC_MINOR,
+    .name = DEVICE_NAME,
+    .fops = &fops,
+};
+
+static int __init demo_probe(struct i2c_client *cli, const struct i2c_device_id * id)
+{
+	printk(KERN_WARNING "L%d‐>%s():id = %s \n",__LINE__,__FUNCTION__, id->name);
+	demo_client = cli;
+	return misc_register(&my_misc);
+}
+
+static int __exit demo_remove(struct i2c_client *cli)
+{
+	printk(KERN_WARNING "L%d‐>%s()\n",__LINE__,__FUNCTION__);
+	return misc_deregister(&my_misc);
+
+}
+
+static const struct i2c_device_id demo_i2c_id[]={
+	{"mma8653",0},
+	{"mma8654",0}
+};
+
+static struct i2c_driver demo_drv = {
+	.probe = demo_probe,
+	.remove = demo_remove,
+	.id_table = demo_i2c_id,
+	.driver = {
+		.name = "mma865x",
+		.owner = THIS_MODULE,
+	}
+};
+
+static int __init demo_i2c_module_init(void){
+	printk(KERN_WARNING "L%d‐>%s()\n",__LINE__,__FUNCTION__);
+	return i2c_add_driver(&demo_drv);
+}
+static void __exit demo_i2c_module_exit(void)
+{
+	printk(KERN_WARNING "L%d‐>%s()\n",__LINE__,__FUNCTION__);
+	i2c_del_driver(&demo_drv);
+}
+
+
+
+
+
+module_init(demo_i2c_module_init);
+module_exit(demo_i2c_module_exit);
+
+
+MODULE_LICENSE("GPL");
+
+```
+
+# 5 块设备驱动
+
+- 数据传输以块为单位，带有数据缓冲区，使得数据传输非实时
+- 可以根据需要优化缓冲区的数据读写顺序
+- 一般不用关心与内核相关的大量数据结构
+
+常见块设备：硬盘、光盘、SD卡、U盘
+
+
+
+## 5.1 块设备驱动程序框架
+
+![img](legend/块设备驱动程序框架.png)
+
+**块设备驱动是为文件系统服务的（并不是直接为应用程序服务）**，为了避免直接文件系统打交道，内核为我们设计了一个通用层。
+
+1. 通用块层
+   - 在Linux中，内核文件子系统通过统一接口与通用块层进行数据传输。
+   - 该层提供了一个request结构体，并以一个链表进行管理，request结构体内部可以细化为更小粒度的bio
+   - 维护了一个request_queue结构体(请求队列)，请求队列作为一个容器，用来缓存多个request数据请求
+2. I/O调度层
+   - 该层的I/0调度器操作request数据请求，并对请求进行合并、调整顺序等操作，以提高对设备的访问效率。
+3. 块设备驱动
+   - 块设备驱动层可以用一个gendisk结构体来表示
+   - 该结构体包涵了整个块设备的信息，如设备名、主从设备号、扇区大小、扇区数等等，并提供了标准的操作接口函数（类似字符中的file_operations），前面提到的request_queue结构体也定义在该结构体中。
+
+流程举例：假如fs向磁盘写入5M的数据，通用块层将它分为了5个request请求，这个5个请求以链表形式进行管理（1->5->2->4->3），这些请求涉及到的磁盘区域是不同的，I/O调度层为了加快磁盘读写速度，调整这些request链表顺序，假如当前磁头离request4最近，request5又离request4最近，那么这些请求的顺序就变为（4->5->3->2->1）
+
+## 5.2 块设备数据结构
+
+![image-20240709202415192](legend/image-20240709202415192.png)
+
+
+
+- page是最终写入磁盘的数据，所以必须是连续的，page是磁盘管理数据的颗粒度
+- 一般通用层的IO请示，也就是fs发起的，这些请示进入块设备之前，都可能被拆成多个更小的bio，bio下面还包含更小的page，主要是基于写平衡
+- 这些被拆分的bio，再通过一定规则将相邻的多个bio进行合并，合并成request，
+- 而request就可以进入块设备了，但进入之前，一般还会进行数据优化调度
+- 最后再对request进行统一管理，会建立一个request_queue，而request就放在这个请求队列中，一个磁盘一般维护着一个请求队列
+
+```c
+#include<linux/genhd.h>
+
+struct gendisk {
+    int major; 											//主分区号
+    int first_minor;									//起始从设备号
+    int minors; 										//支持的从设备号总数
+    char disk_name[DISK_NAME_LEN]; 						//dev下设备名称
+    char *(*devnode)(struct gendisk *gd, mode_t *mode);
+    struct disk_part_tbl *part_tbl;
+    struct hd_struct part0;
+    const struct block_device_operations *fops;			//块设备操作函数接口， 类似与字符设备的file_operations
+    struct request_queue *queue; 						//数据请求队列
+    void *private_data;				 					//可保存自定义的私有数据
+    int flags;
+    struct device *driverfs_dev;
+    struct kobject *slave_dir;
+    struct timer_rand_state *random;
+    atomic_t sync_io;
+    struct work_struct async_notify;
+    #ifdef CONFIG_BLK_DEV_INTEGRITY
+    struct blk_integrity *integrity;
+    #endif
+    int node_id;
+};
+```
+
+
 
 # 其他
 
