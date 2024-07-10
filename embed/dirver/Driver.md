@@ -3312,6 +3312,131 @@ struct request_queue* blk_init_queue(request_fn_proc *rfn, spinlock_t *lock);
 // lock：自旋锁变量，给块组件使用
 ```
 
+```c
+#include <linux/miscdevice.h>
+#include <linux/module.h>	/* module_init */
+#include <linux/fs.h>	/* file_operations */
+#include <linux/device.h>	/* class device */
+#include <linux/sched.h>		/* current */
+#include <linux/mount.h>		/* struct vfsmount */
+#include <asm/io.h>	/* writel() */
+#include <linux/uaccess.h> /* copy_to_user() */
+#include <mach/devices.h> 	//PAD_GPIO_A+n
+#include <mach/soc.h> 		//nxp_soc_gpio_set_io_func();
+#include <mach/platform.h>	//PB_PIO_IRQ(PAD_GPIO_A+n);
+#include <linux/interrupt.h>	/*request_irq*/
+#include <linux/irq.h>	/*set_irq_type*/
+#include <linux/delay.h> /* mdelay() */
+#include <linux/kfifo.h> /* kfifo */
+#include <linux/poll.h> /* poll */
+#include <linux/kthread.h> /* kthread */
+#include <linux/cdev.h>
+#include <linux/platform_device.h>
+#include <linux/kernel.h>
+#include <linux/irq.h>
+#include <asm/irq.h>
+
+#include <linux/genhd.h>
+#include <linux/blkdev.h>
+#include <linux/hdreg.h>
+#include <linux/vmalloc.h>
+
+
+#define VDISK_SIZE 10*1024*1024		// 磁盘大小10M
+#define SECTOR_SIZE 512				// 扇区大小512byte
+#define VDISK_HEADS 4				// 磁头数
+#define VDISK_SECTOR_PER_CIDAO 16 	// 每个磁道有多少个扇区
+#define START_SECTOR_INDEX 0		// 起始扇区
+
+static int ramdisk_major = 0;
+static struct gendisk* gdisk;
+static spinlock_t  ramdisk_splock;
+unsigned char * vmem;
+
+
+
+
+static int ramdisk_open(struct block_device *dev, fmode_t mod){
+	printk(KERN_WARNING "L%d‐>%s()\n",__LINE__,__FUNCTION__);
+	return 0;
+}
+
+// 这个函数设置的值，会在分区fdisk使用到，如果不设置这个函数，分区里面将会出错
+static int ramdisk_getgeo(struct block_device *, struct hd_geometry *){
+	printk(KERN_WARNING "L%d‐>%s()\n",__LINE__,__FUNCTION__);
+	geo->heads = VDISK_HEADS; 			// 磁头
+	geo->sectors = VDISK_SECTOR_PER_CIDAO;			// 每个磁道有多少个扇区
+	geo->start = START_SECTOR_INDEX;				// 起始扇区
+	geo->cylinders = VDISK_SIZE / SECTOR_SIZE / VDISK_HEADS / VDISK_SECTOR_PER_CIDAO;		
+	return 0;
+	
+}
+
+static struct block_device_operations ramdisk_fops = {
+	.owner= THIS_MODULE,
+	.open = ramdisk_open,
+	.getgeo = ramdisk_getgeo
+};
+
+
+static void ramdisk_request_handler(struct request_queue *q){
+	unsigned int size;
+	unsigned int off;
+	struct request *req;
+	printk(KERN_WARNING "L%d‐>%s()\n",__LINE__,__FUNCTION__);
+	req = blk_fetch_request(q);
+	while(req){
+		size = blk_rq_cur_bytes(req);
+		off = req->__sector * SECTOR_SIZE;
+		if(rq_data_dir(req) == READ){
+			memcpy(req->buffer, vmem+off,size);
+		}else if(rq_data_dir(req) == WRITE){
+			memcpy(vmem+off, req->buffer, size);
+		}
+		if(!__blk_end_request_cur(req,0)){
+			req= blk_fetch_request(q);
+		}
+	}
+}
+
+
+static int __init ramdisk_module_init(void){
+	printk(KERN_WARNING "L%d‐>%s()\n",__LINE__,__FUNCTION__);
+	vmem = vmalloc(VDISK_SIZE);		// 申请10M的空间，用vmem指针指向这块空间
+	
+	ramdisk_major =	register_blkdev(ramdisk_major, "ramdisk");				// 获取主设备号
+	
+	gdisk = alloc_disk(3);
+	gdisk->major = ramdisk_major;
+	strcpy(gdisk->disk_name, "ramdiska");				// 在/dev下显示的名字
+	gdisk->first_minor = 0;
+	gdisk->fops = &ramdisk_fops;
+	spin_lock_init(&ramdisk_splock);
+	gdisk->queue = blk_init_queue(ramdisk_request_handler,&ramdisk_splock);
+	set_capacity(gdisk,VDISK_SIZE/SECTOR_SIZE);					// 设置 扇区数量 = 磁盘容量/扇区大小
+
+	add_disk(gdisk);
+	
+	return 0;
+}
+static void __exit ramdisk_module_exit(void)
+{
+	printk(KERN_WARNING "L%d‐>%s()\n",__LINE__,__FUNCTION__);
+	del_gendisk(gdisk);
+	put_disk(gdisk);
+	unregister_blkdev(ramdisk_major, "ramdisk");
+	vfree(vmem);
+}
+
+module_init(ramdisk_module_init);
+module_exit(ramdisk_module_exit);
+
+
+MODULE_LICENSE("GPL");
+```
+
+
+
 ## 5.4 磁盘使用流程
 
 1. 磁盘分区
@@ -3364,6 +3489,319 @@ mkfs.vfat /dev/ramdiska
 
 # 挂载
 mount /dev/ramdiska /mnt/mydisk
+```
+
+# 6 USB总线 
+
+USB（Universal Serial BUS）“通用串行总线”
+
+USB2.0——480Mbps（I < 500mA），USB3.0——5Gbps（I < 900mA），USB3.1——10Gbps
+
+USB拓扑结构：主从结构
+
+- USB主机由**USB主控制器(Host Controller)和根集线器(Root Hub)**构成，所有从机都必须经过集线器（hub）才能与主机相连
+- USB从机可以是各种USB设备也可以是集线器（扩展接口，但不扩展带宽）
+- 数据交换只能在主从之间，从机之间不能通信。USB OTG是一种可以实现主从机角色切换的协议
+- usb2.0协议中规定最多扩展7层hub，设备总数不超过127个（包含集线器hub本身）
+- 每一个usb设备都有一个唯一的7bit从机地址
+
+USB电气特性：
+
+- 标准USB连线使用4芯电缆：5V电源线(VBUS)、差分数据线负(D-)、差分数据线正(D+)及地线(GND)。
+- USB低速和全速模式中，采用的是电压传输模式；而在高速模式下，则是电流传输模式
+- 当设备与集线器端口连接时，集线器端口的下拉低电平会由于上拉分压，而变成高电平，从而识别出USB的插拔动作。
+
+<img src="legend/image-20240710151353690.png" alt="image-20240710151353690" style="zoom:50%;" />
+
+
+
+## 6.1 传输类型
+
+- USB协议规定了4种传输类型：
+  - 批量传输：数据量较大，但对实时性要求不高
+  - 同步传输(或等时传输)：一种开销很小的传输类型，容许存在少量错误（实时性要求高）
+  - 中断传输：异步通信方式
+  - 控制传输：主要用于主从命令配置
+- 其中批量、同步、中断三种传输中，每完整传输一次数据都称做一个事务。
+- 控制传输包括三个过程：建立过程和状态过程分别是一个事务，数据过程则可能包含多个事务。
+- 所有的命令均由主机发起，从机处于被应答
+
+## 6.2 描述符和枚举过程
+
+描述符：描述了设备的各种行为和具体参数类型等，让主机明确应该加载什么样的驱动程序与设备之间进行怎样的操作。（用于driver和device匹配的依据）
+
+- 设备描述符：基本是与厂商有关的一些信息，eg：厂商id和产品id
+- 配置描述符：反映设备对主机的配置需求，记录物理接口配置，供电方式，电流需求量等
+- 端点描述符：决定usb传输类型，也是通信的终点，类似是Linux系统的管道的端口
+- 还有其他的描述符
+
+枚举过程：
+
+- 枚举就是 通过控制传输 从设备端读取各种描述符信息的过程。之后主机会据此加载合适的驱动程序。
+- 枚举过程就是和每个从设备一一询问，然后分配地址，获取信息的过程。
+- 只有成功被枚举的设备才能进入正常的数据传输过程，枚举之前与设备通信是通过0地址和0端点进行的
+
+## 6.3 linux usb驱动开发框架
+
+主要有两类usb驱动开发
+
+- USB设备驱动程序(USB device drivers)：控制器端驱动，**控制插入其中的USB设备**（运行在主机端）
+- USB器件驱动程序(USB gadget drivers)：设备端驱动，控制该设备如何作为一个USB设备和主机通信（运行在从机端）
+- 在这里我们主要讨论运行在主机端的控制器驱动。
+
+![image-20240710174844897](legend/image-20240710174844897.png)
+
+## 6.4 USB驱动开发流程
+
+学习usb驱动开发，我们可以借鉴`kernel/drivers/usb/usb-skeleton.c`（官方推荐的骨架）
+
+```bash
+ls /sys/bus/usb/devices
+1-0:1.0  1-1      1-1:1.0  2-0:1.0  usb1     usb2
+# 1代表第几根总线，-0代表地址，:1.0代表协议版本usb1.0
+
+ls /sys/bus/usb/drivers
+aiptek             funsoft            mos7840            usb
+aircable           garmin_gps         moschip7720        usb-storage
+ark3116            gtco               moto-modem         usb_acecad
+asix               hanwang            navman             usbfs
+belkin             hp4X               net1080            usbhid
+```
+
+
+
+- 定义一个usb_driver
+- 填充并初始化usb_driver
+- 通过usb_register()完成注册
+- 通过usb_unregister()完成注销
+- 完成usb_device_id配置条件的选择
+- usb数据传输过程:
+
+![image-20240710194407555](legend/image-20240710194407555.png)
+
+而我们使用`kernel/drivers/hid/usbhid/usbmouse.c`使用这个更具参考价值
+
+```c
+
+#include <linux/kernel.h>
+#include <linux/slab.h>
+#include <linux/module.h>
+#include <linux/init.h>
+#include <linux/usb/input.h>
+#include <linux/hid.h>
+
+/* for apple IDs */
+#ifdef CONFIG_USB_HID_MODULE
+#include "../hid-ids.h"
+#endif
+
+/*
+ * Version Information
+ */
+#define DRIVER_VERSION "v1.6"
+#define DRIVER_AUTHOR "Vojtech Pavlik <vojtech@ucw.cz>"
+#define DRIVER_DESC "USB HID Boot Protocol mouse driver"
+#define DRIVER_LICENSE "GPL"
+
+MODULE_AUTHOR(DRIVER_AUTHOR);
+MODULE_DESCRIPTION(DRIVER_DESC);
+MODULE_LICENSE(DRIVER_LICENSE);
+
+struct usb_mouse {
+	char name[128];
+	char phys[64];
+	struct usb_device *usbdev;
+	struct input_dev *dev;
+	struct urb *irq;
+
+	signed char *data;
+	dma_addr_t data_dma;
+};
+
+static void usb_mouse_irq(struct urb *urb)
+{
+	struct usb_mouse *mouse = urb->context;
+	signed char *data = mouse->data;
+	struct input_dev *dev = mouse->dev;
+	int status;
+
+	switch (urb->status) {
+	case 0:			/* success */
+		break;
+	case -ECONNRESET:	/* unlink */
+	case -ENOENT:
+	case -ESHUTDOWN:
+		return;
+	/* -EPIPE:  should clear the halt */
+	default:		/* error */
+		goto resubmit;
+	}
+
+	input_report_key(dev, BTN_LEFT,   data[0] & 0x01);
+	input_report_key(dev, BTN_RIGHT,  data[0] & 0x02);
+	input_report_key(dev, BTN_MIDDLE, data[0] & 0x04);
+	input_report_key(dev, BTN_SIDE,   data[0] & 0x08);
+	input_report_key(dev, BTN_EXTRA,  data[0] & 0x10);
+
+	input_report_rel(dev, REL_X,     data[1]);
+	input_report_rel(dev, REL_Y,     data[2]);
+	input_report_rel(dev, REL_WHEEL, data[3]);
+
+	input_sync(dev);
+resubmit:
+	status = usb_submit_urb (urb, GFP_ATOMIC);
+	if (status)
+		err ("can't resubmit intr, %s-%s/input0, status %d",
+				mouse->usbdev->bus->bus_name,
+				mouse->usbdev->devpath, status);
+}
+
+static int usb_mouse_open(struct input_dev *dev)
+{
+	struct usb_mouse *mouse = input_get_drvdata(dev);
+
+	mouse->irq->dev = mouse->usbdev;
+	if (usb_submit_urb(mouse->irq, GFP_KERNEL))
+		return -EIO;
+
+	return 0;
+}
+
+static void usb_mouse_close(struct input_dev *dev)
+{
+	struct usb_mouse *mouse = input_get_drvdata(dev);
+
+	usb_kill_urb(mouse->irq);
+}
+
+static int usb_mouse_probe(struct usb_interface *intf, const struct usb_device_id *id)
+{
+	struct usb_device *dev = interface_to_usbdev(intf);
+	struct usb_host_interface *interface;
+	struct usb_endpoint_descriptor *endpoint;
+	struct usb_mouse *mouse;
+	struct input_dev *input_dev;
+	int pipe, maxp;
+	int error = -ENOMEM;
+
+	interface = intf->cur_altsetting;
+
+	if (interface->desc.bNumEndpoints != 1)
+		return -ENODEV;
+
+	endpoint = &interface->endpoint[0].desc;
+	if (!usb_endpoint_is_int_in(endpoint))
+		return -ENODEV;
+
+	pipe = usb_rcvintpipe(dev, endpoint->bEndpointAddress);
+	maxp = usb_maxpacket(dev, pipe, usb_pipeout(pipe));
+
+	mouse = kzalloc(sizeof(struct usb_mouse), GFP_KERNEL);
+	input_dev = input_allocate_device();
+	if (!mouse || !input_dev)
+		goto fail1;
+
+	mouse->data = usb_alloc_coherent(dev, 8, GFP_ATOMIC, &mouse->data_dma);
+	if (!mouse->data)
+		goto fail1;
+
+	mouse->irq = usb_alloc_urb(0, GFP_KERNEL);
+	if (!mouse->irq)
+		goto fail2;
+
+	mouse->usbdev = dev;
+	mouse->dev = input_dev;
+
+	if (dev->manufacturer)
+		strlcpy(mouse->name, dev->manufacturer, sizeof(mouse->name));
+
+	if (dev->product) {
+		if (dev->manufacturer)
+			strlcat(mouse->name, " ", sizeof(mouse->name));
+		strlcat(mouse->name, dev->product, sizeof(mouse->name));
+	}
+
+	if (!strlen(mouse->name))
+		snprintf(mouse->name, sizeof(mouse->name),
+			 "USB HIDBP Mouse %04x:%04x",
+			 le16_to_cpu(dev->descriptor.idVendor),
+			 le16_to_cpu(dev->descriptor.idProduct));
+
+	usb_make_path(dev, mouse->phys, sizeof(mouse->phys));
+	strlcat(mouse->phys, "/input0", sizeof(mouse->phys));
+
+	input_dev->name = mouse->name;
+	input_dev->phys = mouse->phys;
+	usb_to_input_id(dev, &input_dev->id);
+	input_dev->dev.parent = &intf->dev;
+
+	input_dev->evbit[0] = BIT_MASK(EV_KEY) | BIT_MASK(EV_REL);
+	input_dev->keybit[BIT_WORD(BTN_MOUSE)] = BIT_MASK(BTN_LEFT) |
+		BIT_MASK(BTN_RIGHT) | BIT_MASK(BTN_MIDDLE);
+	input_dev->relbit[0] = BIT_MASK(REL_X) | BIT_MASK(REL_Y);
+	input_dev->keybit[BIT_WORD(BTN_MOUSE)] |= BIT_MASK(BTN_SIDE) |
+		BIT_MASK(BTN_EXTRA);
+	input_dev->relbit[0] |= BIT_MASK(REL_WHEEL);
+
+	input_set_drvdata(input_dev, mouse);
+
+	input_dev->open = usb_mouse_open;
+	input_dev->close = usb_mouse_close;
+
+	usb_fill_int_urb(mouse->irq, dev, pipe, mouse->data,
+			 (maxp > 8 ? 8 : maxp),
+			 usb_mouse_irq, mouse, endpoint->bInterval);
+	mouse->irq->transfer_dma = mouse->data_dma;
+	mouse->irq->transfer_flags |= URB_NO_TRANSFER_DMA_MAP;
+
+	error = input_register_device(mouse->dev);
+	if (error)
+		goto fail3;
+
+	usb_set_intfdata(intf, mouse);
+	return 0;
+
+fail3:	
+	usb_free_urb(mouse->irq);
+fail2:	
+	usb_free_coherent(dev, 8, mouse->data, mouse->data_dma);
+fail1:	
+	input_free_device(input_dev);
+	kfree(mouse);
+	return error;
+}
+
+static void usb_mouse_disconnect(struct usb_interface *intf)
+{
+	struct usb_mouse *mouse = usb_get_intfdata (intf);
+
+	usb_set_intfdata(intf, NULL);
+	if (mouse) {
+		usb_kill_urb(mouse->irq);
+		input_unregister_device(mouse->dev);
+		usb_free_urb(mouse->irq);
+		usb_free_coherent(interface_to_usbdev(intf), 8, mouse->data, mouse->data_dma);
+		kfree(mouse);
+	}
+}
+
+static struct usb_device_id usb_mouse_id_table [] = {
+	{ USB_INTERFACE_INFO(USB_INTERFACE_CLASS_HID, USB_INTERFACE_SUBCLASS_BOOT,
+		USB_INTERFACE_PROTOCOL_MOUSE) },
+	{ }	/* Terminating entry */
+};
+
+MODULE_DEVICE_TABLE (usb, usb_mouse_id_table);
+
+static struct usb_driver usb_mouse_driver = {
+	.name		= "usbmouse",
+	.probe		= usb_mouse_probe,
+	.disconnect	= usb_mouse_disconnect,
+	.id_table	= usb_mouse_id_table,
+};
+
+module_usb_driver(usb_mouse_driver);
+
 ```
 
 
