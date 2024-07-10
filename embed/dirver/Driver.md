@@ -3256,6 +3256,7 @@ MODULE_LICENSE("GPL");
 ```c
 #include<linux/genhd.h>
 
+// 代表一块磁盘或一个分区
 struct gendisk {
     int major; 											//主分区号
     int first_minor;									//起始从设备号
@@ -3278,6 +3279,91 @@ struct gendisk {
     #endif
     int node_id;
 };
+```
+
+## 5.3 块设备驱动注册开发流程
+
+1. 注册块设备(获取主设备号)：register_blkdev
+2. 申请定义gendisk结构体（采用内核接口函数）：alloc_disk
+3. 初始化gendisk结构体（主设备号、从设备号、请求队列、设备名、设备操作结构体、数据请求处理函数等）
+4. 注册gendisk结构体：add_disk
+5. 注销gendisk结构体：del_gendisk
+6. 释放gendisk结构体：put_disk
+7. 释放占用的系统资源（如中断、kmalloc空间信号量、自旋锁等）
+8. 注销块设备：unregister_blkdev
+
+```c
+#include<linux/genhd.h>
+
+int register_blkdev(unsigned int major, const char *name);
+int unregister_blkdev(unsigned int major, const char *name);
+
+// 申请和释放gendisk结构体
+struct gendisk *alloc_disk(int minors);			// minors：最多支持的分区数
+void put_disk(struct gendisk *disk);
+
+// 块设备注册与注销
+void add_disk(struct gendisk *disk);
+void del_gendisk(struct gendisk *gp);
+
+// 请求队列初始化函数
+struct request_queue* blk_init_queue(request_fn_proc *rfn, spinlock_t *lock);
+// rfn: 绑定请求处理函数的指针
+// lock：自旋锁变量，给块组件使用
+```
+
+## 5.4 磁盘使用流程
+
+1. 磁盘分区
+   - `fdisk /dev/ramdiska`
+   - 也可以不分区，直接将整个磁盘格式化
+2. 设备格式化（给不同的分区设置文件系统）
+   - mkfs.xxx命令：依据你想制作为什么文件系统，然后选择
+   - 命令行输入`mkfs. `可以看到你拥有哪些文件系统的制作命令
+   - u盘用到最多的文件格式是：mkfs.vfat 
+   - `mkfs.vfat /dev/ramdiska`
+3. 挂载磁盘
+   - `mount /dev/ramdiska /mnt/mydisk`
+4. 访问磁盘
+   - 直接对挂载点进行访问
+   - 直接对设备文件进行访问
+   - 读写磁盘数据的时机：
+     - 缓冲区缓冲超时
+     - 读写数据量足够大
+     - 强制同步刷新缓冲区：sync
+     - 卸载磁盘时，会刷新缓冲区
+
+```bash
+# 安装驱动模块
+insmod blk_ramdisk_driver.ko
+[160498.088000] L79‐>ramdisk_module_init()			# 注册
+[160498.096000] L43‐>ramdisk_open()					# 打开磁盘
+[160498.096000] L61‐>ramdisk_request_handler()
+[160498.098000] L61‐>ramdisk_request_handler()
+[160498.103000]  ramdiska: unknown partition table
+# 安装驱动后，内核会自动挂载磁盘，然后就去request，去读分区表，发现没有分区表
+
+# 设备格式化
+mkfs.vfat /dev/ramdiska
+[160969.610000] L43‐>ramdisk_open()
+[160969.610000] L61‐>ramdisk_request_handler()
+[160969.612000] L61‐>ramdisk_request_handler()
+[160969.617000] L61‐>ramdisk_request_handler()
+[160969.621000] L61‐>ramdisk_request_handler()
+[160969.625000] L61‐>ramdisk_request_handler()
+[160969.629000] L61‐>ramdisk_request_handler()
+[160969.634000] L61‐>ramdisk_request_handler()
+[160969.638000] L61‐>ramdisk_request_handler()
+[160969.643000] L61‐>ramdisk_request_handler()
+[160969.647000] L61‐>ramdisk_request_handler()
+[160969.651000] L61‐>ramdisk_request_handler()
+[160969.656000] L61‐>ramdisk_request_handler()
+[160969.659000] L61‐>ramdisk_request_handler()
+[160969.663000] L61‐>ramdisk_request_handler()
+# 格式化的过程就是向磁盘写入相关格式信息的过程
+
+# 挂载
+mount /dev/ramdiska /mnt/mydisk
 ```
 
 
