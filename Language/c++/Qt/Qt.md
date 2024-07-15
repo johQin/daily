@@ -22,6 +22,7 @@ Qt开发工具：
 3. Qmake：跨平台的makefile生成器
 4. Qt Assistant：帮助文档浏览查询工具
 5. Qt linguist：多语言界面支持
+6. Qt MaintenanceTool：是一个用于Qt安装和维护的工具，可以帮助开发者轻松安装、更新和管理Qt的不同版本，并提供了对Qt组件、模块和许可证的灵活控制。
 
 Qt基本模块：
 
