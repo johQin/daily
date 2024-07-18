@@ -9057,11 +9057,23 @@ int main()
 
 ## 12.6 atomic
 
+1. 一般而言，即使面对基本数据类型，读和写也不是atomic（不可切割，原子的）。因此在多线程读写bool变量的程序中，我们可能会读到一个被写一半的bool值。
+2. 编译生成的代码有可能会改变操作次序，所以生产者有可能在生产数据之前就先设置flag，而消费者也有可能在读取flag前就处理该数据。
+
+如果采用互斥锁mutex，这两个问题则不再会存在，但mutex会存在上下文的切换并且会出让CPU等开销大的操作。所以也许值得以atomic取代mutex和lock
+
 
 
 ![image-20240717104633612](legend/image-20240717104633612.png)
 
-CAS
+原子变量的这两个函数`compare_exchange_strong(expected, desired)`和`compare_exchange_weak(expected, desired)`都是CAS（Compare And Swap）操作。
+
+`compare_exchange_strong`会比较原子变量`atomic<T>`的值和`expected`的值是否相等，
+
+- 如果相等，则将`atomic<T>`的值换为`desired`并且返回true。
+- 如果不相等，则将`expected`的值换为`atomic<T>`的值并且返回为false
+
+`compare_exchange_weak`功能比`compare_exchange_strong`弱一些，他不能保证`atomic<T>`的值和`expected`的值相等时也会做交换，很可能原子变量和预期值相等也会返回false，所以使用要多次循环使用。
 
 
 
@@ -9151,6 +9163,555 @@ void threadFunc() {
     }
 }
 ```
+
+## 12.7 无锁队列
+
+[无锁队列的实现原理主要依赖于原子操作（如CAS，即Compare-and-Swap）来确保多线程环境下对队列的并发访问是线程安全的。](https://blog.csdn.net/kk_flying/article/details/136890675)
+
+无锁队列适用于需要高性能、低延迟和高可靠性的多线程**应用场景**，如：
+
+1. 实时系统：在需要实时响应的系统中，无锁队列可以确保数据的高效传输和处理。
+2. 高并发系统：在需要处理大量并发请求的系统中，无锁队列可以作为线程间安全传递数据的通道。
+3. 分布式系统：在分布式系统中，无锁队列可以作为节点间通信的桥梁，实现数据的可靠传输和同步。
+
+
+
+优点：高并发，低延迟，高可靠，缺陷：队列应尽量存储基本类型量，如果存储对象，拷贝开销会很大。
+
+下面无锁队列的实现，参考了：[恋恋风辰的编程笔记](https://gitbookcpp.llfc.club/sections/cpp/concurrent/concpp13.html)
+
+### 12.7.1 有锁环形队列
+
+```c++
+#include <iostream>
+#include <mutex>
+#include <memory>
+
+template<typename T, size_t Cap>
+class CircularQueLk :private std::allocator<T> {
+public:
+    CircularQueLk() :_max_size(Cap + 1),_data(std::allocator<T>::allocate(_max_size)), _head(0), _tail(0) {}
+    CircularQueLk(const CircularQueLk&) = delete;
+    CircularQueLk& operator = (const CircularQueLk&) volatile = delete;
+    CircularQueLk& operator = (const CircularQueLk&) = delete;
+
+    ~CircularQueLk() {
+        //循环销毁
+        std::lock_guard<std::mutex>  lock(_mtx);
+        //调用内部元素的析构函数
+        while (_head != _tail) {		// 代表环形队列中还有元素
+            std::allocator<T>::destroy(_data + _head);
+            _head = （_head+1）% _max_size;
+        }
+        //调用回收操作
+        std::allocator<T>::deallocate(_data, _max_size);
+    }
+
+    //先实现一个可变参数列表版本的插入函数最为基准函数
+    template <typename ...Args>
+    bool emplace(Args && ... args) {
+        std::lock_guard<std::mutex> lock(_mtx);
+        //判断队列是否满了
+        if ((_tail + 1) % _max_size == _head) {
+            std::cout << "circular que full ! " << std::endl;
+            return false;
+        }
+        //在尾部位置构造一个T类型的对象，构造参数为args...
+        std::allocator<T>::construct(_data + _tail, std::forward<Args>(args)...);
+        //更新尾部元素位置
+        _tail = (_tail + 1) % _max_size;
+        return true;
+    }
+
+    //push 实现两个版本，一个接受左值引用，一个接受右值引用
+
+    //接受左值引用版本
+    bool push(const T& val) {
+        std::cout << "called push const T& version" << std::endl;
+        return emplace(val);
+    }
+
+    //接受右值引用版本，当然也可以接受左值引用，T&&为万能引用
+    // 但是因为我们实现了const T&
+    bool push(T&& val) {
+        std::cout << "called push T&& version" << std::endl;
+        return emplace(std::move(val));
+    }
+
+    //出队函数
+    bool pop(T& val) {
+        std::lock_guard<std::mutex> lock(_mtx);
+        //判断头部和尾部指针是否重合，如果重合则队列为空
+        if (_head == _tail) {
+            std::cout << "circular que empty ! " << std::endl;
+            return false;
+        }
+        //取出头部指针指向的数据
+        val = std::move(_data[_head]);
+        //更新头部指针
+        _head = (_head + 1) % _max_size;
+        return true;
+    }
+private:
+    size_t _max_size;
+    // allocator分配的内存的首地址
+    T* _data;
+    std::mutex _mtx;
+   	// 环形队列之首：相较于_data的偏移量
+    size_t _head = 0;
+    // 环形队列之尾：相较于_data的偏移量
+    size_t _tail = 0;
+};
+```
+
+```c++
+// 测试
+void TestCircularQue() {
+    
+    //最大容量为5
+    CircularQueLk<MyClass, 5> cq_lk;
+    
+    MyClass mc1(1);
+    MyClass mc2(2);
+    cq_lk.push(mc1);
+    cq_lk.push(std::move(mc2));
+    for (int i = 3; i <= 5; i++) {
+        MyClass mc(i);
+        auto res = cq_lk.push(mc);
+        if (res == false) {
+            break;
+        }
+    }
+
+    cq_lk.push(mc2);
+
+    for (int i = 0; i < 5; i++) {
+        MyClass mc1;
+        auto res = cq_lk.pop(mc1);
+        if (!res) {
+            break;
+        }
+        std::cout << "pop success, " << mc1 << std::endl;
+    }
+
+    auto res = cq_lk.pop(mc1);
+}
+
+
+/*
+结果：
+
+called push const T& version
+called push T&& version
+called push const T& version
+called push const T& version
+called push const T& version
+called push const T& version
+circular que full !
+
+pop success, MyClass Data is 1
+pop success, MyClass Data is 2
+pop success, MyClass Data is 3
+pop success, MyClass Data is 4
+pop success, MyClass Data is 5
+circular que empty !
+
+
+
+
+*/
+```
+
+### 12.7.2 单一原子实现无锁
+
+原子变量的这两个函数`compare_exchange_strong(expected, desired)`和`compare_exchange_weak(expected, desired)`都是CAS（Compare And Swap）操作。
+
+`compare_exchange_strong`会比较原子变量`atomic<T>`的值和`expected`的值是否相等，
+
+- 如果相等，则`atomic<T>`赋值为`desired`并且返回true。
+- 如果不相等，则将`expected`赋值为`atomic<T>`的值并且返回为false
+
+`compare_exchange_weak`功能比`compare_exchange_strong`弱一些，他不能保证`atomic<T>`的值和`expected`的值相等时也会做交换，很可能原子变量和预期值相等也会返回false，所以使用要多次循环使用。
+
+无锁队列就是会利用这两个函数来制作一个类似于锁（自旋锁）的一种结构，但这不是锁。
+
+```c++
+template<typename T, size_t Cap>
+class CircularQueSeq :private std::allocator<T> {
+public:
+    CircularQueSeq() :_max_size(Cap + 1), _data(std::allocator<T>::allocate(_max_size)), _atomic_using(false),_head(0), _tail(0) {}
+    CircularQueSeq(const CircularQueSeq&) = delete;
+    CircularQueSeq& operator = (const CircularQueSeq&) volatile = delete;
+    CircularQueSeq& operator = (const CircularQueSeq&) = delete;
+
+    ~CircularQueSeq() {
+        //循环销毁
+        bool use_expected = false;
+        bool use_desired = true;
+        
+        // 原子变量实现的上锁
+        do
+        {
+            use_expected = false;
+            use_desired = true;
+        }
+        while (!_atomic_using.compare_exchange_strong(use_expected, use_desired));
+        
+        
+        
+        //调用内部元素的析构函数
+        while (_head != _tail) {
+            std::allocator<T>::destroy(_data + _head);
+            _head = （_head+1）% _max_size;
+        }
+        //调用回收操作
+        std::allocator<T>::deallocate(_data, _max_size);
+		
+        // 原子变量实现的解锁
+        do
+        {
+            use_expected = true;
+            use_desired = false;
+        }
+        while (!_atomic_using.compare_exchange_strong(use_expected, use_desired));
+        
+        
+    }
+
+    //先实现一个可变参数列表版本的插入函数最为基准函数
+    template <typename ...Args>
+    bool emplace(Args && ... args) {
+
+        bool use_expected = false;
+        bool use_desired = true;
+		
+        // 原子变量实现的上锁
+        do
+        {
+            use_expected = false;
+            use_desired = true;
+        }
+        while (!_atomic_using.compare_exchange_strong(use_expected, use_desired));
+        
+
+        //判断队列是否满了
+        if ((_tail + 1) % _max_size == _head) {
+            std::cout << "circular que full ! " << std::endl;
+            do
+            {
+                use_expected = true;
+                use_desired = false;
+            }
+            while (!_atomic_using.compare_exchange_strong(use_expected, use_desired));
+            return false;
+        }
+        //在尾部位置构造一个T类型的对象，构造参数为args...
+        std::allocator<T>::construct(_data + _tail, std::forward<Args>(args)...);
+        //更新尾部元素位置
+        _tail = (_tail + 1) % _max_size;
+
+        // 原子变量实现的解锁
+        do
+        {
+            use_expected = true;
+            use_desired = false;
+        }
+        while (!_atomic_using.compare_exchange_strong(use_expected, use_desired));
+        
+        
+
+        return true;
+    }
+
+    //push 实现两个版本，一个接受左值引用，一个接受右值引用
+
+    //接受左值引用版本
+    bool push(const T& val) {
+        std::cout << "called push const T& version" << std::endl;
+        return emplace(val);
+    }
+
+    //接受右值引用版本，当然也可以接受左值引用，T&&为万能引用
+    // 但是因为我们实现了const T&
+    bool push(T&& val) {
+        std::cout << "called push T&& version" << std::endl;
+        return emplace(std::move(val));
+    }
+
+    //出队函数
+    bool pop(T& val) {
+
+        bool use_expected = false;
+        bool use_desired = true;
+        do
+        {
+            use_desired = true;
+            use_expected = false;
+        } while (!_atomic_using.compare_exchange_strong(use_expected, use_desired));
+        //判断头部和尾部指针是否重合，如果重合则队列为空
+        if (_head == _tail) {
+            std::cout << "circular que empty ! " << std::endl;
+            do
+            {
+                use_expected = true;
+                use_desired = false;
+            }
+            while (!_atomic_using.compare_exchange_strong(use_expected, use_desired));
+            return false;
+        }
+        //取出头部指针指向的数据
+        val = std::move(_data[_head]);
+        //更新头部指针
+        _head = (_head + 1) % _max_size;
+
+        do
+        {
+            use_expected = true;
+            use_desired = false;
+        }while (!_atomic_using.compare_exchange_strong(use_expected, use_desired));
+        return true;
+    }
+private:
+    size_t _max_size;
+    T* _data;
+    std::atomic<bool> _atomic_using;				// bool类型的原子变量作为锁，初始为false
+    size_t _head = 0;
+    size_t _tail = 0;
+};
+```
+
+### 12.7.3 多原子实现无锁
+
+单原子实现无锁的缺陷是同一时刻仅有一个线程pop或者push，其实，我们需要的是同一时刻，只要读和写在不同的位置，读和写都可同时操作。
+
+#### 双原子的问题
+
+`双原子_head，_tail`
+
+```c++
+template<typename T, size_t Cap>
+class CircularQueLight: private std::allocator<T>
+{
+public:
+    CircularQueLight():_max_size(Cap + 1),
+    _data(std::allocator<T>::allocate(_max_size))
+    , _head(0), _tail(0) {}
+
+    CircularQueLight(const CircularQueLight&) = delete;
+    CircularQueLight& operator = (const CircularQueLight&) volatile = delete;
+    CircularQueLight& operator = (const CircularQueLight&) = delete;
+private:
+    size_t _max_size;
+    T* _data;
+    std::atomic<size_t>  _head;
+    std::atomic<size_t> _tail;
+};
+```
+
+```c++
+    bool pop(T& val) {
+
+        size_t h;
+        do
+        {
+            h = _head.load();  //1 处
+            //判断头部和尾部指针是否重合，如果重合则队列为空
+            if(h == _tail.load())
+            {
+                return false;
+            }
+            val = _data[h]; // 2处，
+            // 切记这里不能使用std::move，因为在多个线程都在pop的时候，只有一个线程会到达3处
+            // 如果使用move，并且有两个线程，线程a先move，线程b后move（这时b拿到了一个无效的值），然而因为某种原因线程b先到达3处，b出来之后，却拿到了一个无效的值，所以不能使用move
+
+        } while (!_head.compare_exchange_strong(h, 
+            (h+1)% _max_size)); //3 处
+
+        return true;
+    }
+	
+	// push v1
+    bool push(T& val)
+    {
+        size_t t;
+        do
+        {
+            t = _tail.load(); //1
+            //判断队列是否满
+            if( (t+1)%_max_size == _head.load())
+            {
+                return false;
+            }
+
+            _data[t] = val; //2
+            
+            // 这里是有问题的
+            // 这里有三个程序关键点1，2，3
+            // 如果a，b两个个线程
+            // 执行时序：a.1->a.2->b.1->b.2->a.3
+            // b.2的操作，将a.2的操作覆盖，而最后出去的是a线程，但它push的值被线程b覆盖了
+
+        } while (!_tail.compare_exchange_strong(t,
+            (t + 1) % _max_size)); //3
+
+        return true;
+    }
+
+	// push v2
+    bool push(T& val)
+    {
+        size_t t;
+        do
+        {
+            t = _tail.load();  //1
+            //判断队列是否满
+            if( (t+1)%_max_size == _head.load())
+            {
+                return false;
+            }
+
+
+
+        } while (!_tail.compare_exchange_strong(t,
+            (t + 1) % _max_size));  //3
+
+        _data[t] = val; //2，
+        // 在2与3的过程之间
+        // 看似没有问题，只有一个线程a出来，出来后写值
+        // 但_tail的值先发生改变，如果此时有另外的线程在push，这时候_tail是原来的tail值+1，但此时队列中还没有赋值（这两个操作按理说是一个事务操作）
+        // 恰巧此时_head就在之前tail的位置，pop出的值是旧有的队列值，而不是最新的赋值
+        // 
+        
+        
+        return true;
+    }
+```
+
+#### 三原子实现无锁
+
+为了解决这个问题，我们可以增加另一个原子变量`_tail_update`来标记尾部数据是否修改完成，如果尾部数据没有修改完成，此时其他线程pop时获取的数据就是不安全的，所以pop要返回false。
+
+```c++
+    bool push(const T& val)
+    {
+        size_t t;
+        do
+        {
+            t = _tail.load();  //1
+            //判断队列是否满
+            if( (t+1)%_max_size == _head.load())
+            {
+                return false;
+            }
+
+
+
+        } while (!_tail.compare_exchange_strong(t,
+            (t + 1) % _max_size));  //3
+
+        _data[t] = val; //2
+        size_t tailup;
+        do
+        {
+            tailup = t;
+
+        } while (_tail_update.compare_exchange_strong(tailup, 
+            (tailup + 1) % _max_size));
+        return true;
+    }
+
+    bool pop(T& val) {
+
+        size_t h;
+        do
+        {
+            h = _head.load();  //1 处
+            //判断头部和尾部指针是否重合，如果重合则队列为空
+            if(h == _tail.load())
+            {
+                return false;
+            }
+
+            //判断如果此时要读取的数据和tail_update是否一致，如果一致说明尾部数据未更新完
+            if(h == _tail_update.load())
+            {
+                return false;
+            }
+            val = _data[h]; // 2处
+
+        } while (!_head.compare_exchange_strong(h, 
+            (h+1)% _max_size)); //3 处
+
+        return true;
+    }
+```
+
+#### 内存顺序优化无锁
+
+因为我们知道原子操作默认采用的是`memory_order_seq_cst`内存顺序，性能上不是最优的，我们可以用`acquire`和`release`的内存顺序实现同步的效果。
+
+```c++
+    bool pop(T& val) {
+
+        size_t h;
+        do
+        {
+            h = _head.load(std::memory_order_relaxed);  //1 处
+            //判断头部和尾部指针是否重合，如果重合则队列为空
+            if (h == _tail.load(std::memory_order_acquire)) //2处
+            {
+                std::cout << "circular que empty ! " << std::endl;
+                return false;
+            }
+
+            //判断如果此时要读取的数据和tail_update是否一致，如果一致说明尾部数据未更新完
+            if (h == _tail_update.load(std::memory_order_acquire)) //3处
+            {
+                return false;
+            }
+            val = _data[h]; // 2处
+
+        } while (!_head.compare_exchange_strong(h,
+            (h + 1) % _max_size, std::memory_order_release, std::memory_order_relaxed)); //4 处
+        std::cout << "pop data success, data is " << val << std::endl;
+        return true;
+    }
+
+
+
+	bool push(const T& val)
+    {
+        size_t t;
+        do
+        {
+            t = _tail.load(std::memory_order_relaxed);  //5
+            //判断队列是否满
+            if ((t + 1) % _max_size == _head.load(std::memory_order_acquire))
+            {
+                std::cout << "circular que full ! " << std::endl;
+                return false;
+            }
+
+
+
+        } while (!_tail.compare_exchange_strong(t,
+            (t + 1) % _max_size, std::memory_order_release, std::memory_order_relaxed));  //6
+
+        _data[t] = val; 
+        size_t tailup;
+        do
+        {
+            tailup = t;
+
+        } while (_tail_update.compare_exchange_strong(tailup,
+            (tailup + 1) % _max_size, std::memory_order_release, std::memory_order_relaxed)); //7
+
+        std::cout << "called push data success " << val << std::endl;
+        return true;
+    }
+```
+
+
 
 # 13 常用类库
 

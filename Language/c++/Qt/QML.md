@@ -252,6 +252,8 @@ Rectangle{
 
 如果要在调用方设置组件里子元素的属性需要在根元素通过property alias声明属性别名
 
+**使用“this”解决属性绑定的歧义**
+
 ```q
 // 组件Button
 
@@ -348,6 +350,140 @@ Window{
     }
 }
 ```
+
+### 0.2.3 [组件交互](https://blog.csdn.net/qq_35662333/article/details/140108539)
+
+1. 子组件通过父组件的id直接引用父组件的全部组件和属性值。（缺点：子组件中父组件的id是写死的，不灵活）
+
+   ```q
+   // 父界面
+   import QtQuick 2.15
+   import QtQuick.Layouts 1.15
+   import QtQuick.Controls 1.4
+   
+   ColumnLayout {
+       anchors.fill: parent
+       Rectangle {
+           id: rootRec
+           Layout.fillWidth: true
+           Layout.preferredHeight: Math.round(parent.height / 5)
+           color: "gray"
+           opacity: 0.5
+           Text {
+               id: rootRecSize
+               text: rootRec.width + " * " + rootRec.height
+               font.pixelSize: 22
+               anchors.centerIn: parent
+           }
+       }
+   
+       // 子界面
+       SecondPane {
+           Layout.alignment: Qt.AlignHCenter
+           Layout.topMargin: 50
+           Layout.fillWidth: true
+           Layout.preferredHeight: 80
+       }
+   }
+   
+   // 子界面
+   import QtQuick 2.15
+   import QtQuick.Controls 1.4
+   
+   TextField {
+       id: secondText
+       // 内部明确size, 便于预览效果，   实际size在调用处再次设置
+       width: 200
+       // 子界面可以直接调用父界面的组件
+       text: "second call root:  " + rootRecSize.text						// 通过父组件id，
+       font.pixelSize: 20
+       horizontalAlignment: Qt.AlignHCenter
+       verticalAlignment: Qt.AlignVCenter
+   }
+   
+   
+   
+   ```
+
+   
+
+2. [属性绑定](https://zhuanlan.zhihu.com/p/561088573)：
+
+   - 使用冒号进行单向绑定
+
+     ```q
+     Text {
+             id: text1
+             x: 205
+             y: 176
+             width: 230
+             height: 40
+             //将slider的value属性与text1的text进行绑定。当slider的value的值改变时将会改变text1的显示文本。
+             text: qsTr("%1".arg(slider.value))
+             font.pixelSize: 33
+             horizontalAlignment: Text.AlignHCenter
+             verticalAlignment: Text.AlignVCenter
+         }
+     ```
+
+     
+
+   - **在属性绑定中，静态值的赋值将删除对象之间的绑定**。
+
+     ```q
+     Window {
+         id: window
+         width: 640
+         height: 480
+         visible: true
+         color: "#99c4e9"
+         title: qsTr("Hello World")
+     
+         Text {
+             id: text1
+             x: 205
+             y: 176
+             width: 230
+             height: 40
+             text: qsTr("%1".arg(slider.value))
+             font.pixelSize: 33
+             horizontalAlignment: Text.AlignHCenter
+             verticalAlignment: Text.AlignVCenter
+         }
+     
+         Button {
+             id: button
+             x: 270
+             y: 253
+             text: qsTr("点击我")
+             onClicked:
+             {
+                 //如果此点击事件处理函数得以执行，那么text1的text属性将被重新赋值为“999”。此后
+                 //text1对象将与slider对象解除绑定。【那么再滑动slider，text1的文本将不会改变】
+                 text1.text = qsTr("999");
+             }
+         }
+     
+         Slider {
+             id: slider
+             x: 459
+             y: 105
+             width: 40
+             height: 315
+             to: 100
+             orientation: Qt.Vertical
+             value: 0
+         }
+     }
+     ```
+
+   - 两个对象之间各做一次属性绑定，即可实现双向绑定。
+
+3. 信号传递
+
+4. 条件信号传递connect
+
+5. Connections
 
 ## 0.3 [布局](https://blog.csdn.net/weixin_42219627/article/details/134771466)
 
@@ -1361,167 +1497,23 @@ Repeater类型用于创建大量类似项。与其他视图类型一样，Repeat
 
 # C 其他
 
-## C.1 QML与QWidget
+## C.1  [C++与QML混合编程](https://blog.csdn.net/m0_37845735/article/details/128551956)
 
-在 QML 中直接使用 C++ 的 QWidget 是不支持的，因为 QWidget 是基于传统的 QWidget 核心，而 QML 是基于更现代的 Qt Quick 核心。这两个技术栈之间有着根本的差异，无法直接混合使用。
+混合编程就是通过Qml高效便捷的构建UI界面，而使用C ++来实现业务逻辑和复杂算法。
 
-但是，你可以通过嵌入 QML 到 QWidget 或嵌入 QWidget 到 QML 来实现两者的互操作。
-
-### C.1.1 QWidget嵌入QML
-
-```c++
-#include <QApplication>
-#include <QQmlApplicationEngine>
-#include <QWidget>
-#include <QQuickWidget>
-#include <QVBoxLayout>
-
-int main(int argc, char *argv[])
-{
-    QApplication app(argc, argv);
-
-    QWidget mainWindow;
-    QVBoxLayout layout(&mainWindow);
-
-    QQuickWidget *quickWidget = new QQuickWidget;
-    quickWidget->setSource(QUrl(QStringLiteral("qrc:/main.qml")));
-    quickWidget->setResizeMode(QQuickWidget::SizeRootObjectToView);
-
-    layout.addWidget(quickWidget);
-    mainWindow.setLayout(&layout);
-    mainWindow.resize(800, 600);
-    mainWindow.show();
-
-    return app.exec();
-}
-
-```
-
-### C.1.2 QML嵌入 QWidget
-
-尽管不能直接在 QML 中使用 QWidget，但你可以使用 `QQuickPaintedItem` 或 `QQuickFramebufferObject` 来包装 QWidget 并将其渲染到 QML 中。这是一种高级技巧，需要对 QQuickPaintedItem 或 QQuickFramebufferObject 有深入的了解。
-
-```c++
-// 自定义的MyWidget.h
-#ifndef MYWIDGET_H
-#define MYWIDGET_H
-
-#include <QWidget>
-
-class MyWidget : public QWidget
-{
-    Q_OBJECT
-public:
-    MyWidget(QWidget *parent = nullptr);
-
-protected:
-    void paintEvent(QPaintEvent *event) override;
-};
-
-#endif // MYWIDGET_H
+Qt集成了**QML引擎**和**Qt元对象系统**，使得QML很容易从C ++中得到扩展，在一定的条件下，QML就可以访问**QObject派生类**的成员，例如信号、槽函数、枚举类型、属性、成员函数等。
 
 
 
-// 自定义的MyWidget.cpp
-#include "MyWidget.h"
-#include <QPainter>
-
-MyWidget::MyWidget(QWidget *parent)
-    : QWidget(parent)
-{
-    setFixedSize(200, 200);
-}
-
-void MyWidget::paintEvent(QPaintEvent *event)
-{
-    QPainter painter(this);
-    painter.setBrush(Qt::blue);
-    painter.drawRect(rect());
-}
-
-```
-
-```c++
-// 包装MyQuickItem.h
-#ifndef MYQUICKITEM_H
-#define MYQUICKITEM_H
-
-#include <QQuickPaintedItem>
-#include "MyWidget.h"
-
-class MyQuickItem : public QQuickPaintedItem
-{
-    Q_OBJECT
-public:
-    MyQuickItem(QQuickItem *parent = nullptr);
-    void paint(QPainter *painter) override;
-
-private:
-    MyWidget widget;
-};
-
-#endif // MYQUICKITEM_H
 
 
-// 包装MyQuickItem.cpp
-#include "MyQuickItem.h"
+## C.2 [QWidgets 与 Qml 相互嵌入](https://blog.csdn.net/u011283226/article/details/117398629)
 
-MyQuickItem::MyQuickItem(QQuickItem *parent)
-    : QQuickPaintedItem(parent)
-{
-}
 
-void MyQuickItem::paint(QPainter *painter)
-{
-    widget.render(painter);
-}
 
-```
 
-```c++
-// qml项目的main.cpp
-#include <QGuiApplication>
-#include <QQmlApplicationEngine>
-#include <QQmlContext>
-#include "MyQuickItem.h"
 
-int main(int argc, char *argv[])
-{
-    QGuiApplication app(argc, argv);
-
-    qmlRegisterType<MyQuickItem>("CustomControls", 1, 0, "MyQuickItem");
-
-    QQmlApplicationEngine engine;
-    engine.load(QUrl(QStringLiteral("qrc:/main.qml")));
-
-    if (engine.rootObjects().isEmpty())
-        return -1;
-
-    return app.exec();
-}
-
-```
-
-```q
-// qml中使用自定义的QWidget
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import CustomControls 1.0
-
-ApplicationWindow {
-    visible: true
-    width: 640
-    height: 480
-
-    MyQuickItem {
-        width: 200
-        height: 200
-    }
-}
-
-```
-
-## C.2 js,qml,img资源
+## C.3 js,qml,img资源
 
 - 作为一种静态资源使用
 
@@ -1530,7 +1522,9 @@ ApplicationWindow {
   import "qrc:/scripts/js/Test.js" as Test
   ```
 
-C.3 
+
+
+## C.4 [基于qml的FluentUI ](https://blog.csdn.net/summer__7777/article/details/139819435)
 
 
 
