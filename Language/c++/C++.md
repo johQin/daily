@@ -9057,6 +9057,14 @@ int main()
 
 ## 12.6 atomic
 
+
+
+![image-20240717104633612](legend/image-20240717104633612.png)
+
+CAS
+
+
+
 [atomic也支持自定义类型，但并不支持所有自定义类型，如果自定义类型在以下表达式的值均为true方可生成atomic变量](https://blog.csdn.net/qq_44875284/article/details/123994575#:~:text=atomic%E4%B9%9F%E6%94%AF%E6%8C%81%E8%87%AA%E5%AE%9A%E4%B9%89%E7%B1%BB%E5%9E%8B%EF%BC%8C%E4%BD%86%E6%98%AF%E5%B9%B6%E4%B8%8D%E6%94%AF%E6%8C%81%E6%89%80%E6%9C%89%E7%9A%84%E8%87%AA%E5%AE%9A%E4%B9%89%E7%B1%BB%E5%9E%8B%E3%80%82%E5%A6%82%E6%9E%9C%E8%87%AA%E5%AE%9A%E4%B9%89%E7%B1%BB%E5%9E%8B%E5%9C%A8%E4%BB%A5%E4%B8%8B%E8%A1%A8%E8%BE%BE%E5%BC%8F%E7%9A%84%E5%80%BC%E5%9D%87%E4%B8%BAtrue%E6%96%B9%E5%8F%AF%E7%94%9F%E6%88%90atomic%E5%8F%98%E9%87%8F%EF%BC%9A)
 
 ```c++

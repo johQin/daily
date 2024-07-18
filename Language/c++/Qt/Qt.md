@@ -52,6 +52,10 @@ Qt扩展模块：
 | **Qt Location**  | 提供定位机制、地图和导航技术、位置搜索等功能的 QML 和 C++ API。 |
 | **Qt Bluetooth** | 提供用于访问蓝牙无线设备的 C++ 和 QML API                    |
 
+[帮助文档的查找](https://blog.csdn.net/xuxu_123_/article/details/135070790)：
+
+![](./legend/qt帮助检索.png)
+
 # 0 基础
 
 ## 0.0 环境搭建
