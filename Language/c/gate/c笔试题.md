@@ -1,3 +1,65 @@
+# 理论
+
+1. **数组作为参数退化为指针问题**
+
+   ```c
+   // 将 数组 作为 函数参数 , 传递时会 退化为高一级的指针 ;如果是多维数组，也只能退化高一级的指针
+   // 无论数组是普通数组，还是指针数组都会退化为指针
+   
+   #include <stdio.h>
+   
+   void fun(int array[3])			// 退化为int* array， 数组的首地址, 变为指针地址, 函数中无法判定数组的大小;
+   {
+       printf("fun : sizeof(array)=%d\n", sizeof(array));
+   }
+   
+   int main(int argc, char **args)
+   {
+       // 将要作为实参的数组
+       int array[3] = {1, 2, 3};
+       printf("main : sizeof(array)=%d\n", sizeof(array));
+   
+       // 将数组作为参数传递到函数中
+       fun(array);
+   
+       return 0;
+   }
+   
+   // main : sizeof(array)=12
+   // fun : sizeof(array)=8
+   
+   // 编译器会将 形参中的数组 作为指针处理 , 只会为其分配 指针 所占用的内存;
+   // 如果 编译器 将 形参作为 数组处理 , 需要 将数组中的所有元素 , 都要拷贝到栈中 , 如果这个数组很大 , 有几千上万个元素 , 那么该函数的执行效率就很低了 ;
+   ```
+
+   - [**不能用二级指针做参数传递二维数组**](https://blog.csdn.net/u011232393/article/details/88298851)
+
+   ```c
+   #include <stdio.h>
+   
+   void fun(int array[][2])		// 退化为int (*array)[2]，只能退化一级，不能完全退化
+   {
+       printf("fun : sizeof(array)=%d\n", sizeof(array));
+   }
+   
+   int main(int argc, char **args)
+   {
+       int **ptr;
+       fun(ptr);
+   
+       return 0;
+   }
+   
+   // 多维数组作为函数的形参int array[][y][z]会退化为int (*array)[y][z]
+   // 在这里函数形参类型会退化为int (*array)[2]，如果将实参int **ptr赋值给形参int (*array)[2]，会报error: cannot convert 'int**' to 'int (*)[2]'
+   ```
+
+   
+
+2. 
+
+# 习题
+
 1. ["abc" 在常量区还是栈区](https://blog.csdn.net/qq_40024275/article/details/100526940)
 
    ```c
@@ -208,4 +270,30 @@
    	return 0;
    ```
 
-6. 
+6. **函数 fun 的声明为 int fun(int *p[4]), 以下哪个变量可以作为fun的合法参数（）**
+
+   - **n 维数组名称本质 是 n-1 维数组 的指针**
+   - **`type** (**p)[]`，type 类型后面描述的是数组存储的类型，括号里面是指针的级别**
+   - **将 数组 作为 函数参数 , 传递时会 退化为高一级的指针 ;如果是多维数组，也只能退化高一级的指针**
+
+   ```c
+   A int a[4][4];				// a 是 二级指针
+   B int **a;					// a 是 二级指针
+   C int **a[4];				// a 是 三级指针
+   D int (*a)[4];				// a 是 一级指针
+   
+   // 数组作为函数形参会退化为指针，所以这里的int fun(int *p[4])会退化为int fun(int** p)
+   
+   // int a[4][4]，a本质上是一个一维数组包含4个元素的指针int (*p)[4]
+   // 由于函数参数退化为int **p， 所以这里的类型转化将失败，报 error: cannot convert 'int (*)[2]' to 'int**'
+   
+   // int** a[4]; a 指向数组，数组里面存放的是二级指针, a 可以看做三级指针
+   
+   // int (**a)[4]; a 是一个二级指针，数组里面存放 int 型，error: cannot convert 'int (**)[2]' to 'int**'
+   
+   // int (*a)[4]; a 是个一级指针，数组里面存放 int 型, int(*a)[4]和 int a[4]的区别在于一个是指针，一个是数组名(指针常量)
+   // error: cannot convert 'int (*)[2]' to 'int**'
+   
+   ```
+
+7. 
