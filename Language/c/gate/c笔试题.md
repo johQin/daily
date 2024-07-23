@@ -1,62 +1,60 @@
 # 理论
 
-1. **数组作为参数退化为指针问题**
+## [数组作为函数参数退化为指针问题](https://blog.51cto.com/u_14202100/5079786)
 
-   ```c
-   // 将 数组 作为 函数参数 , 传递时会 退化为高一级的指针 ;如果是多维数组，也只能退化高一级的指针
-   // 无论数组是普通数组，还是指针数组都会退化为指针
-   
-   #include <stdio.h>
-   
-   void fun(int array[3])			// 退化为int* array， 数组的首地址, 变为指针地址, 函数中无法判定数组的大小;
-   {
-       printf("fun : sizeof(array)=%d\n", sizeof(array));
-   }
-   
-   int main(int argc, char **args)
-   {
-       // 将要作为实参的数组
-       int array[3] = {1, 2, 3};
-       printf("main : sizeof(array)=%d\n", sizeof(array));
-   
-       // 将数组作为参数传递到函数中
-       fun(array);
-   
-       return 0;
-   }
-   
-   // main : sizeof(array)=12
-   // fun : sizeof(array)=8
-   
-   // 编译器会将 形参中的数组 作为指针处理 , 只会为其分配 指针 所占用的内存;
-   // 如果 编译器 将 形参作为 数组处理 , 需要 将数组中的所有元素 , 都要拷贝到栈中 , 如果这个数组很大 , 有几千上万个元素 , 那么该函数的执行效率就很低了 ;
-   ```
+```c
+// 将 数组 作为 函数参数 , 传递时会 退化为高一级的指针 ;如果是多维数组，也只能退化高一级的指针
+// 无论数组是普通数组，还是指针数组都会退化为指针
 
-   - [**不能用二级指针做参数传递二维数组**](https://blog.csdn.net/u011232393/article/details/88298851)
+#include <stdio.h>
 
-   ```c
-   #include <stdio.h>
-   
-   void fun(int array[][2])		// 退化为int (*array)[2]，只能退化一级，不能完全退化
-   {
-       printf("fun : sizeof(array)=%d\n", sizeof(array));
-   }
-   
-   int main(int argc, char **args)
-   {
-       int **ptr;
-       fun(ptr);
-   
-       return 0;
-   }
-   
-   // 多维数组作为函数的形参int array[][y][z]会退化为int (*array)[y][z]
-   // 在这里函数形参类型会退化为int (*array)[2]，如果将实参int **ptr赋值给形参int (*array)[2]，会报error: cannot convert 'int**' to 'int (*)[2]'
-   ```
+void fun(int array[3])			// 退化为int* array， 数组的首地址, 变为指针地址, 函数中无法判定数组的大小;
+{
+    printf("fun : sizeof(array)=%d\n", sizeof(array));
+}
 
-   
+int main(int argc, char **args)
+{
+    // 将要作为实参的数组
+    int array[3] = {1, 2, 3};
+    printf("main : sizeof(array)=%d\n", sizeof(array));
 
-2. 
+    // 将数组作为参数传递到函数中
+    fun(array);
+
+    return 0;
+}
+
+// main : sizeof(array)=12
+// fun : sizeof(array)=8
+
+// 编译器会将 形参中的数组 作为指针处理 , 只会为其分配 指针 所占用的内存;
+// 如果 编译器 将 形参作为 数组处理 , 需要 将数组中的所有元素 , 都要拷贝到栈中 , 如果这个数组很大 , 有几千上万个元素 , 那么该函数的执行效率就很低了 ;
+```
+
+- [**不能用二级指针做参数传递二维数组**](https://blog.csdn.net/u011232393/article/details/88298851)
+
+```c
+#include <stdio.h>
+
+void fun(int array[][2])		// 退化为int (*array)[2]，只能退化一级，不能完全退化
+{
+    printf("fun : sizeof(array)=%d\n", sizeof(array));
+}
+
+int main(int argc, char **args)
+{
+    int **ptr;
+    fun(ptr);
+
+    return 0;
+}
+
+// 多维数组作为函数的形参int array[][y][z]会退化为int (*array)[y][z]
+// 在这里函数形参类型会退化为int (*array)[2]，如果将实参int **ptr赋值给形参int (*array)[2]，会报error: cannot convert 'int**' to 'int (*)[2]'
+```
+
+
 
 # 习题
 
@@ -187,6 +185,7 @@
 3. strlen遇0不再计数
 
    ```c++
+   
    	char a[1000];
    	int i;
    	for (i = 0; i < 1000; i++)
@@ -200,7 +199,40 @@
 
    
 
-4. [复数以补码的形式存储](https://blog.csdn.net/b1480521874/article/details/102723491)
+4. strlen和指针的混用
+
+   ```c
+   #include<stdio.h>
+   #include<string.h>
+   int main(void) {
+       int n;
+       char y[10] = "ntse";
+       char* x = y;
+       n = strlen(x);
+       *x = x[n];
+       x++;
+       printf("x=%s,", x);
+       printf("y=%s\n", y);
+       return 0;
+   }
+   // 问题：此程序打印出来是什么？
+   int main(void) {
+       int n;
+       char y[10] = "ntse";
+       char* x = y;			// x指向y[0]
+       n = strlen(x);			// n = 4
+       *x = x[n];				// x[4]='\0'，x -> y[0]，所以y[0]='\0'，
+       						// y-> {'\0','t','s','e','\0'}
+       x++;					// x -> y[1]
+       printf("x=%s,", x);		// tse
+       printf("y=%s\n", y);	// ''
+       return 0;
+   }
+   ```
+
+   
+
+5. [复数以补码的形式存储](https://blog.csdn.net/b1480521874/article/details/102723491)
 
    - 补码：
 
@@ -239,17 +271,16 @@
        ```c
            signed char i;
            i=-129;
-           printf("%d\n",i);	// 127，-127 = 类型的最小值（-128） - 1
+           printf("%d\n",i);	// 127，-129 = 类型的最小值（-128） - 1
            i=129;
            printf("%d\n",i);	// -127，-128 = 类型的最大值（127） + 1，-128 + 1 = -127
        
        
-       
        ```
-     
+       
      - signed short最大值：32767，最小值：-32768
 
-5. 指针指向
+6. 指针指向
 
    - 取星*元素维度降一维，取址&元素维度加一维
 
@@ -270,7 +301,7 @@
    	return 0;
    ```
 
-6. **函数 fun 的声明为 int fun(int *p[4]), 以下哪个变量可以作为fun的合法参数（）**
+7. **函数 fun 的声明为 int fun(int *p[4]), 以下哪个变量可以作为fun的合法参数（）**
 
    - **n 维数组名称本质 是 n-1 维数组 的指针**
    - **`type** (**p)[]`，type 类型后面描述的是数组存储的类型，括号里面是指针的级别**
@@ -296,4 +327,355 @@
    
    ```
 
-7. 
+8. 类的权限
+
+   - **public:**可以被任意实体访问，类外部可以访问
+   - **protected:**只允许本类**及子类**的成员函数访问，类外部访问不可见
+   - **private:**只允许本类的成员函数访问，类外部访问不可见。
+
+   ```c++
+   // 派生类对象可以访问基类成员中的
+   // A 公有继承的私有成员
+   // B 私有继承的公有成员
+   // C 公有继承的保护成员
+   // D 以上都错
+   
+   // 类外不能直接访问 类的私有(private)和保护(protected)数据
+   // 类外，对象只能访问public成员
+   // 子类对象只能访问公共(public)继承的公共(public)成员。
+   ```
+
+9. 拷贝构造函数，移动构造函数，重载赋值运算符函数调用时机
+
+   - 拷贝构造调用时机
+     - 旧对象赋值新对象
+     - 普通对象而非对象的引用 作为函数参数
+     - 函数返回  普通对象而非对象的引用
+   - 移动构造调用时机
+     - 右值（临时（匿名）对象、不可寻址的字面常量）初始化新对象时
+   - 重载赋值运算符函数调用时机
+     - 将一个已有对象的值赋给另一个已有对象。
+
+   ```c++
+   #include <stdio.h>
+   class A
+   {
+       public:
+       A(){
+       	printf("1");
+       }
+       A(const A& a){
+       	printf("2");
+       }
+   	A& operator=(const A& a){
+           printf("3");
+           return *this;
+       }
+   };
+   int main()
+   {
+       A a;			// 调用无参构造
+       A b = a;		// 旧对象初始化新对象，调用拷贝构造
+   }
+   
+   // 答案:12
+   ```
+
+   
+
+10. char ** 和 char *
+
+    - 指针+1，地址的偏移量都是sizeof(所指向类型)
+
+    ```c
+    #include<stdio.h>
+    int main()
+    {
+        char * str[3] = { (char*)"stra",(char*)"strb",(char*)"strc" };
+        char * p = str[0];
+        int i = 0;
+        while (i < 3)
+        {
+            printf("%p\t", str +i);         // 以16进制的方式打印变量，特别是用在显示内存地址的时候
+            printf("%s\t", *(str+i));
+            printf("%s\n", p+i);
+            i++;
+        }
+        return 0;
+    }
+    
+    /*
+    000000357e1ffc60        stra    00007ff62e47a001        stra
+    000000357e1ffc68        strb    00007ff62e47a002        tra
+    000000357e1ffc70        strc    00007ff62e47a003        ra
+    */
+    
+    // str是一个char** 指针常量，地址偏移量的大小为sizeof(char *)
+    // p是一个char* 指针变量，在+1时，地址偏移量的大小为sizeof(char)
+
+11. 友元函数
+
+    - 类的私有成员无法在类的外部访问，但是有时候，需要在类的外部访问私有成员
+
+    - **什么可以作友元？**
+
+      1. 普通的全局函数可以作为类的友元。(友元函数，没有this指针)
+
+      2. 一个类的成员函数可以作为另一个类的友元。(友元函数，可以使用this指针)
+
+      3. 一个类可以作为另一个类的友元。(友元类)
+
+    - **友元关系不能被继承。** 友元函数不是作为另一个类的成员，所以不能继承。**并没有破坏继承机制。**
+
+    - **友元关系是单向的。**类A是类B的朋友，但类B不一定是类A的朋友。
+
+    - **友元关系不具有传递性。**类B是类A的朋友，类C是类B的朋友，但类C不一定是类A的朋友
+
+12. 转义字符
+
+    ```c++
+    void main() {
+    	char s[] = "\\123456\123456\t";
+    	printf("%d\n", strlen(s));
+        // \\  \123  \t 这些都是转义字符
+        // \\ 就是\
+        // \123，由于ascii码最大的8进制表达为\177(对应十进制127)，所以这里只能取\123，它10进制为83，对应asii码中代表S
+        // \t 就是制表符
+        
+        // 这些转义的字符都代表了一个字符，所以长度为12
+    }
+    ```
+
+    
+
+13. 运算符优先级
+
+    - ！> 算术运算符 > 关系运算符 > && 和 || > 条件运算符（? :）> 赋值运算符
+
+    ```c
+    int a =0;
+    printf("%d", a=-1? 2:3);			// 先计算 -1?2:3，然后再执行赋值运算
+    printf("%d", a=0? 2:3);
+    
+    // 结果：23
+    ```
+
+    
+
+14. scanf输入
+
+    ```c
+        int a[3][2] = { 0 }, (*ptr)[2], i, j;
+        for (i = 0; i < 3; i++)
+        {
+            ptr = a + i;
+            scanf("%d", ptr);
+            printf("scanf execute %dth time\n", i);
+        }
+    
+        for (i = 0; i < 5; i++)
+        {
+            for (j = 0; j < 2; j++)
+                printf("%2d", a[i][j]);
+            printf("\n");
+        }
+    /*
+    // 如果scanf那里的循环执行了三次，那么会打印出如下
+    1 2 3 4
+    scanf execute 0th time
+    scanf execute 1th time
+    scanf execute 2th time
+     1 0
+     2 0
+     3 0
+     0 1
+    -112826942427
+    */
+    
+    
+    int a[3][2] = { 0 }, (*ptr)[2], i, j;
+        for (i = 0; i < 4; i++)
+        {
+            ptr = a + i;
+            scanf("%d", ptr);
+            printf("scanf execute %dth time\n", i);
+        }
+    
+        for (i = 0; i < 5; i++)
+        {
+            for (j = 0; j < 2; j++)
+                printf("%2d", a[i][j]);
+            printf("\n");
+        }
+    
+    /*
+    // 如果scanf那里的循环执行了4次，那么会打印出如下
+    1 2 3 4
+    scanf execute 0th time
+    scanf execute 1th time
+    scanf execute 2th time
+    scanf execute 3th time
+     1 0
+     2 0
+     3 0
+     4 1
+    -71304504236
+    
+    
+    // 在C语言中，数组越界通常不会在运行时由语言本身直接检测到，这是因为C语言不会在运行时检查数组边界。
+    // 你的代码尝试访问或修改数组边界之外的内存时，它不会抛出错误，而是会继续执行，这可能导致未定义行为，
+    // 包括但不限于以下几种情况：
+    
+    	1. 访问无效的内存，可能会导致程序崩溃。
+    	2. 修改了不应该修改的内存，可能会导致数据损坏或其他程序部分的异常行为。
+    	3. 读取了无效的内存，可能会得到垃圾数据。
+    */
+    ```
+
+    
+
+15. 后自加++，后自减--
+
+    ```c
+    int x;
+    scanf("%d", &x);		// 输入5 回车
+    if (x++ > 5)
+    	printf("%d\n", x);
+    else
+    	printf("%d\n", x--);
+    // 结果打印出：6
+    
+    // x++ > 5，这个运算先执行比较，比较出结果false后，执行++操作，x = 6
+    // printf("%d\n", x--), 先执行printf操作，打印出6，然后执行--操作，x=5
+    ```
+
+    
+
+16. 用数组 M[0..N-1] 用来表示一个循环队列， FRONT 指向队头元素，REAR 指向队尾元素的**后一个位置**，则当前队列中的元素个数是几个？
+
+    - 队列中 rear 指向为下一个地址，rear-front=已经存入的个数 。队列是一个循环队列，所以rear 的序号可能就比 front 序号小，所以需要+n
+
+      再%n。
+
+17. 若数组 S[1..n]作为两个栈 S1 和 S2 的存储空间，对任何一个栈，只有当[1..n]全满时才不能进行进栈操作。那么如何设置栈底的位置，使存储空间利用更加有效？
+
+    - **栈 S1** 的栈底设置在数组的起始位置，即索引 1。S1 向右增长，即它的栈顶位置随着元素的进栈而增加。
+
+    - **栈 S2** 的栈底设置在数组的末尾位置，即索引 n。S2 向左增长，即它的栈顶位置随着元素的进栈而减少。
+
+    - ```
+      栈 S1 的栈底  ->  栈 S1 的栈顶        空闲空间        栈 S2 的栈顶  <-  栈 S2 的栈底
+      |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |
+      1    2    3    4    5    6    7    8    9   10   11   12   13   14   15   16
+      
+      ```
+
+    - 
+
+18. C语言入口函数main的原型
+
+    - 返回值必须为int类型
+    - 参数列表，可以为void
+
+    ```c
+    int main(void);
+    int main(int argc , char* argv[]);
+    // 由于数组作为函数形参会退化为指针，所以也可以如下写
+    int main(int argc, char ** argv);
+    
+    
+    // 访问命令行参数
+    int main(int argc, char ** argv){
+        for(int i = 0; i<argc;i++){
+            printf("%s\n",*(argv+i));
+        }
+    }
+    
+    ```
+
+    
+
+19. 在C语言中，函数的隐含存储类别是
+
+    - 在 C 语言中，函数的隐含存储类别是 `extern`，可以在多个文件之间共享。
+    - static，只在它的文件内部可见
+
+20. const用法
+
+    - [const 修饰变量](https://blog.csdn.net/weiyuanzhang123/article/details/117592035)：**const默认作用于其左边的东西，如果左边没东西，则作用于其右边的东西。**
+
+      - const int * ：`(const int) *`——指针指向一个整型常量，不可改变指针指向的内容，但指针本身可以改变
+      - int const *：`(int const) *`——同上
+      - int * const：`int (* const)`——指针常量指向一个整型变量，可改变指针指向的内容，但指针本身不可改变
+      - const int * const：`(const int) (* const) `——指针常量指向整型常量
+      - int const *const：`(int const) (* const)`——同上
+
+      ```c
+      int main()
+      {
+          int x = 5;
+          const int* const p = &x;			// (const int) (* const) p;	p是一个指针常量，指向整型常量
+          const int & q = x;					// (const int) & q; q是一个整型常量的左值引用
+          int const * next = &x;				// (int const) *next: next是一个指针变量，指向整型常量
+          const int * j = &x;					// (const int) *j: j是一个指针变量，指向指针常量
+      }
+      
+      /*
+      题目：
+      则有语法错误的是（）
+      A * p =1;
+      B q++;
+      C next++;
+      D (*j)++;
+      正确答案：A B D
+      
+      1>p 是指向常量的常量指针,(*p)是常量不能再赋值,
+      2>q 是常量的引用,不能赋值
+      3>next 是指向常量的指针,next 本身可以改变
+      4>j 是指向常量的指针,值不能改变
+      
+      */
+      ```
+
+      
+
+21. 字符串的初始化
+
+    ```c++
+    // 下面三个等效
+    char s[5]={"abc"};
+    char s[5]={'a','b','c'};
+    char s[5]="abc";
+    
+    chars[5]="abcdef";		// 这个会报错：error: initializer-string for 'char [5]' is too long [-fpermissive]
+    ```
+
+    
+
+22. 对象的指针类型的成员变量如何使用
+
+    ```c++
+    class A
+    {
+        public:
+            int m;
+            int* p;
+    };
+    int main()
+    {
+        A s;
+        s.m = 10;
+        cout << s.m << endl; //10
+        s.p = &s.m;
+        () = 5;			// 这里应该填什么
+        cout << s.m << endl; //5
+    	return 0;
+    }
+    
+    
+    // 应该填：*s.p = 5
+    ```
+
+    
+
+23. 
