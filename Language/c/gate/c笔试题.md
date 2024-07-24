@@ -458,6 +458,22 @@ int main(int argc, char **args)
     printf("%d", a=0? 2:3);
     
     // 结果：23
+    
+    // 下面的循环体会被执行几次？
+    for(int i=10, j=1; i=j=0; i++, j--);
+    
+    // 答案0次
+    // i = j = 0; 这里的条件部分是一个赋值表达式。按照C语言的运算符优先级，先执行 j = 0，再将结果赋给 i，即 i = 0。因此，整个条件部分的值是 0
+        
+    
+    // 下面的程序会打印什么
+    int a = 5, b = 0, c = 0;
+    if (a = b + c) printf("***\n");
+    else printf("$$$\n");
+    
+    // 答案：$$$
+    // if 后面的表达式可以是任何类型的表达式，当然可以是赋值表达式
+    // a = b + c，先执行b+c，等于0，然后将0赋值给a，a等于0，然后if(a)，所以走else
     ```
 
     
@@ -647,7 +663,7 @@ int main(int argc, char **args)
     char s[5]={'a','b','c'};
     char s[5]="abc";
     
-    chars[5]="abcdef";		// 这个会报错：error: initializer-string for 'char [5]' is too long [-fpermissive]
+    char s[5]="abcdef";		// 这个会报错：error: initializer-string for 'char [5]' is too long [-fpermissive]
     ```
 
     
@@ -678,4 +694,218 @@ int main(int argc, char **args)
 
     
 
-23. 
+23. 指针值传递
+
+    ```c
+    void GetMemeory(char* p) {
+    	p = (char *)malloc(100);
+    }
+    void Test() {
+        char* str = NULL;
+        GetMemeory(str);
+        strcpy(str,"Thunder");
+        strcat(str + 2,"Downloader");
+        printf(str);
+    }
+    // 这个程序的运行结果是：崩溃
+    // str将指针值，传递给形参p，而后，p接受了新的地址值，而str的指针值，并未发生变化，仍旧为NULL
+    // 如果str那里没错的话，那么字符操作的结果为：ThunderDownloader
+    // 应该使用二级指针 
+    
+    // 正确做法
+    void GetMemeory(char** p) {
+    	*p = (char *)malloc(100);
+    }
+    void Test() {
+        char* str = NULL;
+        GetMemeory(&str);
+        strcpy(str,"Thunder");
+        strcat(str + 2,"Downloader");
+        printf(str);
+    }
+    ```
+
+    
+
+24. 有无virtual修饰符的函数，父类指针调用函数将会出现不同的行为。参数为数组时，数组会退化为指针
+
+    ```c++
+    #include<iostream>
+    using namespace std;
+    
+    class Base
+    {
+    public:
+        virtual int foo(int x)
+        {
+            return x * 10;
+        }
+    
+        int foo(char x[14])
+        {
+            return sizeof(x) + 10;
+        }
+    };
+    
+    class Derived: public Base
+    {
+        int foo(int x)
+        {
+            return x * 20;
+        }
+    
+        virtual int foo(char x[10])
+        {
+            return sizeof(x) + 20;
+        }
+    } ;
+    
+    int main()
+    {
+        Derived stDerived;
+        Base *pstBase = &stDerived;
+    
+        char x[10];
+        printf("%d\n", pstBase->foo(100) + pstBase->foo(x));
+    
+        return 0;
+    }
+    
+    // 答案：2014
+    
+    // 如果你想要通过基类指针调用子类中重写的函数，你需要在基类中将该函数声明为虚函数（使用 virtual 关键字），然后在子类中重写这个函数。否则将无法通过父类指针调用子类中重写的函数
+    
+    // 所以pstBase->foo(100)，在基类中有virtual修饰，所以调用的是子类中重写的函数
+    // pstBase->foo(x),在基类中无virtual修饰，所以调用的是基类中的函数
+    // 2000 + 14 = 2014
+    ```
+
+25. 数组名表达式
+
+    ```c
+    // 已知 ii，j 都是整型变量，下列表达式中，与下标引用X[ii][j]不等效的是（）。
+    A *(X[ii]+j);
+    B *(X+ii)[j];
+    C *(X+ii+j);
+    D *(*(X+ii)+j);
+        
+    
+    // X+ii -> X[ii] -> X[ii][0]
+    // *(X + ii) = X[ii]
+    // []与*，前者优先级高
+    ```
+
+    
+
+26. 类占用内存空间的问题
+
+    - 空类的内存大小至少１个字节，每个类的实例都需要有一个唯一的地址，这个地址的大小至少1字节
+    - 计算一个类实例所占用的内存大小时，是不考虑**函数**和**静态成员变量**的。
+    - 子类和基类各自有自己虚函数表和虚函数指针，在多继承的情况下，子类可以有多个虚函数表指针和多个虚函数表。
+
+27. 迭代器失效问题：
+
+    - 容器的类型
+
+      - 顺序型容器：内存连续（vector，deque），内存不连续（list）
+      - 关联性容器：有序关联（map，multimap，set，multiset），无序关联（unordered_set/unordered_multiset，unordered_map/unordered_multimap）
+
+      ```
+      当向 vector 容器插入（push_back）一个元素后，end 操作返回的迭代器肯定失效（true）
+      当向 vector 容器插入(push_back)一个元素后，capacity 返回值与没有插入元素之前相比有改变,此时 first 和 end 操作返回的迭代器都会失效（true）
+      在 deque 容器非头尾的任何位置的插入和删除操作将使指向该容器元素的所有迭代器失效（true）
+      对于节点式容器(map, list, set)元素的删除，插入操作会导致指向该元素的迭代器失效，其他元素迭代器不受影响（true）
+      ```
+
+28. 协议
+
+    - 基于TCP的：**HTTP，FTP，TELNET（远程登录终端），EMAIL**
+    - 基于UDP的：**DNS，TFTP(Trivial File Transfer Protocol,简单文件) 和 SNMP(Simple Network Management Protoco,简单网关监控协议)**：数据量传输很小
+
+29. 设置抽象类（虚基类）的目的是消除二义性
+
+30. 内存对齐：
+
+    - 字节对齐的三个准则：
+      - 结构体变量的首地址能够被其最宽基本类型成员的大小所整除； 
+      - 结构体每个成员相对于结构体首地址的偏移量都是成员大小的整数倍，如有需要编译器会在成员之间加上填充字节； 
+      - 结构体的总大小为结构体最宽基本类型成员大小的整数倍，如有需要编译器会在最末一个成员之后加上填充字节。
+
+    ```c
+    struct T {
+        char a;				// 1byte
+        int *d;				// 8byte
+        int b;				// 4byte
+        int c:16;			// 2byte，位段，C语言允许在一个结构体中以位为单位来指定其成员所占内存长度，这种以位为单位的成员称为位段。利用位段能够用较少的位数存储数据。
+        double e;			// 8byte，float 4byte
+    };
+    T *p;
+    在64位系统以及64位编译器下，以下描述正确的是
+    A sizeof(p) == 24
+    B sizeof(*p) == 24
+    C sizeof(p->a) == 1
+    D sizeof(p->e) == 4
+    ```
+
+    
+
+31. 构造与析构的顺序
+
+    - 创建派生类对象时，程序先调用基类构造函数，再调用子类成员的构造函数，最后调用派生类构造函数
+    - 派生类有的多个基类中有虚基类（虚拟继承的父类）时，优先调用虚基类的构造函数。
+    - 派生类有多个基类时，按派生类声明中的基类列表顺序调用构造函数（和子类成员调用顺序规则一致）
+    - 派生类构造函数的参数列表后，应当指明基类的构造函数，否则使用基类的默认构造函数；该指明顺序（初始化序列顺序）与基类构造函数调用顺序无关
+    - 在多重派生中，由同一个初始基类派生的多个类（都虚继承初始基类）作为派生类的基类时，该初代基类的构造函数只调用一次。如果没有虚拟继承初始基类，那么会初始基类会调用多次。
+    - 析构函数顺序，与构造函数调用顺序相反。
+
+    ```c++
+    #include<iostream>
+    using namespace std;
+    class A {
+    public:
+        A(char* s)
+        {
+            cout << s << endl;
+        }
+        ~A() {}
+    };
+    class B :virtual public A
+    {
+    public:
+        B(char* s1, char* s2) :A(s1) {
+            cout << s2 << endl;
+        }
+    };
+    class C :virtual public A
+    {
+    public:
+        C(char* s1, char* s2) :A(s1) {
+            cout << s2 << endl;
+        }
+    };
+    class D :public B, public C
+    {
+    public:
+        D(char* s1, char* s2, char* s3, char* s4) :B(s1, s2), C(s1, s3), A(s1)
+        {
+            cout << s4 << endl;
+        }
+    };
+    int main() {
+        D* p = new D("class A", "class B", "class C", "class D");
+        delete p;
+        return 0;
+    }
+    
+    /*
+    class A
+    class B
+    class C
+    class D
+    
+    */
+    ```
+
+    
+
+32. 
