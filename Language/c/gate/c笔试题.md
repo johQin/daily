@@ -182,7 +182,14 @@ int main(int argc, char **args)
    }
    ```
 
-3. strlen遇0不再计数
+3. sizeof(void)
+
+   - `sizeof(void)`：编译报错，非法的 sizeof 操作数
+   - `sizeof(void *)`：返回的值 与编译器的目标平台有关
+
+   
+
+4. strlen遇0不再计数
 
    ```c++
    
@@ -199,7 +206,7 @@ int main(int argc, char **args)
 
    
 
-4. strlen和指针的混用
+5. strlen和指针的混用
 
    ```c
    #include<stdio.h>
@@ -232,7 +239,7 @@ int main(int argc, char **args)
 
    
 
-5. [复数以补码的形式存储](https://blog.csdn.net/b1480521874/article/details/102723491)
+6. [复数以补码的形式存储](https://blog.csdn.net/b1480521874/article/details/102723491)
 
    - 补码：
 
@@ -280,7 +287,7 @@ int main(int argc, char **args)
        
      - signed short最大值：32767，最小值：-32768
 
-6. 指针指向
+7. 指针指向
 
    - 取星*元素维度降一维，取址&元素维度加一维
 
@@ -301,7 +308,7 @@ int main(int argc, char **args)
    	return 0;
    ```
 
-7. **函数 fun 的声明为 int fun(int *p[4]), 以下哪个变量可以作为fun的合法参数（）**
+8. **函数 fun 的声明为 int fun(int *p[4]), 以下哪个变量可以作为fun的合法参数（）**
 
    - **n 维数组名称本质 是 n-1 维数组 的指针**
    - **`type** (**p)[]`，type 类型后面描述的是数组存储的类型，括号里面是指针的级别**
@@ -327,7 +334,7 @@ int main(int argc, char **args)
    
    ```
 
-8. 类的权限
+9. 类的权限
 
    - **public:**可以被任意实体访问，类外部可以访问
    - **protected:**只允许本类**及子类**的成员函数访问，类外部访问不可见
@@ -345,7 +352,7 @@ int main(int argc, char **args)
    // 子类对象只能访问公共(public)继承的公共(public)成员。
    ```
 
-9. 拷贝构造函数，移动构造函数，重载赋值运算符函数调用时机
+10. 拷贝构造函数，移动构造函数，重载赋值运算符函数调用时机
 
    - 拷贝构造调用时机
      - 旧对象赋值新对象
@@ -383,7 +390,7 @@ int main(int argc, char **args)
 
    
 
-10. char ** 和 char *
+11. char ** 和 char *
 
     - 指针+1，地址的偏移量都是sizeof(所指向类型)
 
@@ -413,7 +420,7 @@ int main(int argc, char **args)
     // str是一个char** 指针常量，地址偏移量的大小为sizeof(char *)
     // p是一个char* 指针变量，在+1时，地址偏移量的大小为sizeof(char)
 
-11. 友元函数
+12. 友元函数
 
     - 类的私有成员无法在类的外部访问，但是有时候，需要在类的外部访问私有成员
 
@@ -431,7 +438,7 @@ int main(int argc, char **args)
 
     - **友元关系不具有传递性。**类B是类A的朋友，类C是类B的朋友，但类C不一定是类A的朋友
 
-12. 转义字符
+13. 转义字符
 
     ```c++
     void main() {
@@ -448,7 +455,7 @@ int main(int argc, char **args)
 
     
 
-13. 运算符优先级
+14. 运算符优先级
 
     - ！> 算术运算符 > 关系运算符 > && 和 || > 条件运算符（? :）> 赋值运算符
 
@@ -478,7 +485,7 @@ int main(int argc, char **args)
 
     
 
-14. scanf输入
+15. scanf输入
 
     ```c
         int a[3][2] = { 0 }, (*ptr)[2], i, j;
@@ -550,7 +557,7 @@ int main(int argc, char **args)
 
     
 
-15. 后自加++，后自减--
+16. 后自加++，后自减--
 
     ```c
     int x;
@@ -567,13 +574,13 @@ int main(int argc, char **args)
 
     
 
-16. 用数组 M[0..N-1] 用来表示一个循环队列， FRONT 指向队头元素，REAR 指向队尾元素的**后一个位置**，则当前队列中的元素个数是几个？
+17. 用数组 M[0..N-1] 用来表示一个循环队列， FRONT 指向队头元素，REAR 指向队尾元素的**后一个位置**，则当前队列中的元素个数是几个？
 
     - 队列中 rear 指向为下一个地址，rear-front=已经存入的个数 。队列是一个循环队列，所以rear 的序号可能就比 front 序号小，所以需要+n
 
       再%n。
 
-17. 若数组 S[1..n]作为两个栈 S1 和 S2 的存储空间，对任何一个栈，只有当[1..n]全满时才不能进行进栈操作。那么如何设置栈底的位置，使存储空间利用更加有效？
+18. 若数组 S[1..n]作为两个栈 S1 和 S2 的存储空间，对任何一个栈，只有当[1..n]全满时才不能进行进栈操作。那么如何设置栈底的位置，使存储空间利用更加有效？
 
     - **栈 S1** 的栈底设置在数组的起始位置，即索引 1。S1 向右增长，即它的栈顶位置随着元素的进栈而增加。
 
@@ -588,7 +595,7 @@ int main(int argc, char **args)
 
     - 
 
-18. C语言入口函数main的原型
+19. C语言入口函数main的原型
 
     - 返回值必须为int类型
     - 参数列表，可以为void
@@ -611,12 +618,12 @@ int main(int argc, char **args)
 
     
 
-19. 在C语言中，函数的隐含存储类别是
+20. 在C语言中，函数的隐含存储类别是
 
     - 在 C 语言中，函数的隐含存储类别是 `extern`，可以在多个文件之间共享。
     - static，只在它的文件内部可见
 
-20. const用法
+21. const用法
 
     - [const 修饰变量](https://blog.csdn.net/weiyuanzhang123/article/details/117592035)：**const默认作用于其左边的东西，如果左边没东西，则作用于其右边的东西。**
 
@@ -655,7 +662,7 @@ int main(int argc, char **args)
 
       
 
-21. 字符串的初始化
+22. 字符串的初始化
 
     ```c++
     // 下面三个等效
@@ -668,7 +675,7 @@ int main(int argc, char **args)
 
     
 
-22. 对象的指针类型的成员变量如何使用
+23. 对象的指针类型的成员变量如何使用
 
     ```c++
     class A
@@ -694,7 +701,7 @@ int main(int argc, char **args)
 
     
 
-23. 指针值传递
+24. 指针值传递
 
     ```c
     void GetMemeory(char* p) {
@@ -727,7 +734,7 @@ int main(int argc, char **args)
 
     
 
-24. 有无virtual修饰符的函数，父类指针调用函数将会出现不同的行为。参数为数组时，数组会退化为指针
+25. 有无virtual修饰符的函数，父类指针调用函数将会出现不同的行为。参数为数组时，数组会退化为指针
 
     ```c++
     #include<iostream>
@@ -780,7 +787,7 @@ int main(int argc, char **args)
     // 2000 + 14 = 2014
     ```
 
-25. 数组名表达式
+26. 数组名表达式
 
     ```c
     // 已知 ii，j 都是整型变量，下列表达式中，与下标引用X[ii][j]不等效的是（）。
@@ -797,13 +804,13 @@ int main(int argc, char **args)
 
     
 
-26. 类占用内存空间的问题
+27. 类占用内存空间的问题
 
     - 空类的内存大小至少１个字节，每个类的实例都需要有一个唯一的地址，这个地址的大小至少1字节
     - 计算一个类实例所占用的内存大小时，是不考虑**函数**和**静态成员变量**的。
     - 子类和基类各自有自己虚函数表和虚函数指针，在多继承的情况下，子类可以有多个虚函数表指针和多个虚函数表。
 
-27. 迭代器失效问题：
+28. 迭代器失效问题：
 
     - 容器的类型
 
@@ -817,14 +824,14 @@ int main(int argc, char **args)
       对于节点式容器(map, list, set)元素的删除，插入操作会导致指向该元素的迭代器失效，其他元素迭代器不受影响（true）
       ```
 
-28. 协议
+29. 协议
 
     - 基于TCP的：**HTTP，FTP，TELNET（远程登录终端），EMAIL**
     - 基于UDP的：**DNS，TFTP(Trivial File Transfer Protocol,简单文件) 和 SNMP(Simple Network Management Protoco,简单网关监控协议)**：数据量传输很小
 
-29. 设置抽象类（虚基类）的目的是消除二义性
+30. 设置抽象类（虚基类）的目的是消除二义性
 
-30. 内存对齐：
+31. 内存对齐：
 
     - 字节对齐的三个准则：
       - 结构体变量的首地址能够被其最宽基本类型成员的大小所整除； 
@@ -849,7 +856,7 @@ int main(int argc, char **args)
 
     
 
-31. 构造与析构的顺序
+32. 构造与析构的顺序
 
     - 创建派生类对象时，程序先调用基类构造函数，再调用子类成员的构造函数，最后调用派生类构造函数
     - 派生类有的多个基类中有虚基类（虚拟继承的父类）时，优先调用虚基类的构造函数。
@@ -908,4 +915,337 @@ int main(int argc, char **args)
 
     
 
-32. 
+33. 操作符重载
+
+    - ` . , .* , :: , ? : , sizeof , typeid `这几个运算符不能被重载，其他运算符都能被重载。
+    - ` .* `表示指向成员操作的指针
+
+    ```c++
+    #include <iostream>
+    
+    class MyClass {
+    public:
+        int data;
+        void display() {
+            std::cout << "Data: " << data << std::endl;
+        }
+    };
+    
+    int main() {
+        MyClass obj;
+        obj.data = 10;
+    
+        // 定义指向 MyClass 类的 int 型数据成员的指针
+        int MyClass::*pData = &MyClass::data;
+    
+        // 使用 .* 运算符访问数据成员
+        std::cout << "Data: " << obj.*pData << std::endl;
+    
+        // 定义指向 MyClass 类的成员函数的指针
+        void (MyClass::*pFunc)() = &MyClass::display;
+    
+        // 使用 .* 运算符调用成员函数
+        (obj.*pFunc)();
+    
+        return 0;
+    }
+    ```
+
+    - f
+
+    ```c++
+    #include <iostream>
+    #include <typeinfo>
+    
+    class Base {
+    public:
+        virtual ~Base() {}  // 多态基类需要一个虚析构函数
+    };
+    
+    class Derived : public Base {};
+    
+    int main() {
+        Base* b = new Base();
+        Base* d = new Derived();
+    
+        std::cout << "Type of b: " << typeid(*b).name() << std::endl;
+        std::cout << "Type of d: " << typeid(*d).name() << std::endl;
+    
+        delete b;
+        delete d;
+    
+        return 0;
+    }
+    /*
+    Type of b: 4Base
+    Type of d: 7Derived
+    */
+    
+    // 在C++中，typeid 运算符用于获取对象或类型的类型信息。它返回一个 std::type_info 对象，该对象包含了关于类型的信息，比如类型名。
+    // typeid 主要在运行时识别对象的实际类型，尤其在多态上下文中很有用。
+    
+    // 注意：typeid 仅在基类拥有至少一个虚函数时，才能正确获取多态类型对象的动态类型。如果没有虚函数，typeid 会返回指针或引用的静态类型。
+    ```
+
+    
+
+34. 继承方式，成员默认修饰符
+
+    - 继承方式：继承方式大于成员修饰方式时，可保证成员修饰方式不变。继承方式小于成员修饰方式时，成员修饰方式缩小为继承方式。
+    - 成员默认修饰符：private
+
+    ```c++
+    #include <iostream>
+    using namespace std;
+    class A {
+    	int a1;
+    protected:
+        int a2;
+    public:
+        int a3;
+    };
+    class B : public A {
+    	int b1;
+    protected:
+    	int b2;
+    public:
+    	int b3;
+    };
+    class C :private B {
+    	int c1;
+    protected:
+    	int c2;
+    public:
+    	int c3;
+    };
+    int main() {
+        B obb;
+        C obc;
+        cout << obb.a1;		// x
+        cout << obb.a2;		// x
+        cout << obb.a3;		// √
+        cout << obc.b1;		// x
+        cout << obc.b2;		// x
+        cout << obc.b3;		// x
+        cout << obc.c3;		// √
+        return 0;
+    }
+    ```
+
+    
+
+35. 构造函数调用顺序，多态
+
+    - 构造函数调用顺序：虚基类构造函数（多个虚基类的话，按照继承顺序）-> 基类构造函数（多个非虚基类的话，按照继承顺序）->  成员变量构造函数（多个成员变量按照声明顺序）-> 类自身构造函数
+    - 如果你想要通过基类指针调用子类中重写的函数，你必须在基类中将该函数声明为虚函数（使用 `virtual` 关键字），然后在子类中重写这个函数。否则将无法达到目的
+
+    ```c++
+    class A {
+    public:
+    	A() :m_iVal(0) { test(); }
+    	virtual void func() { std::cout << m_iVal << ' '; }
+    	void test() { func(); }
+    public:
+    	int m_iVal;
+    };
+    class B : public A {
+    public:
+        B() { test(); }
+        virtual void func() {
+            ++m_iVal;
+            std::cout << m_iVal << ' ';
+        }
+    };
+    int main(int argc , char* argv[]) {
+        A* p = new B;
+        p->test();
+        return 0;
+    }
+    /*
+    0 1 2
+    */
+    ```
+
+    
+
+36. `strlen(char *)和sizeof(char *)`
+
+    ```c++
+    char* GetWelcome(void) {
+        char* pcWelcome;
+        char* pcNewWelcome;
+        pcWelcome = "Welcome to Huawei Test";
+        pcNewWelcome = (char*)malloc(strlen(pcWelcome)); //1
+        if (NULL == pcNewWelcome) {
+        	return NULL; //2
+        }
+        strcpy(pcNewWelcome, pcWelcome); //3
+        return pcNewWelcome; //4
+    }
+    
+    printf("%s\n", GetWelcome());
+    
+    
+    // 这段代码，哪里存在问题？
+    
+    // sizeof(char *) = strlen(char *) + 1
+    // 任何字符串字面值都会自动包含一个结尾的 '\0' 字符，所以要想完整的从pcWelcome中复制到pcNewWelcome，pcNewWelcome的内存分配还差一个字节，
+    // 1和3有问题，修改了1，3的问题自然解决
+    ```
+
+    
+
+37. 指针
+
+    ```c++
+    以下叙述中正确的是（）
+    A 即使不进行强制类型转换，在进行指针赋值运算时，指针变量的基类型也可以不同	// 通常情况下，进行指针赋值运算时，指针变量的基类型应该相同
+        											 //尽管在某些特定场景下可以进行不同类型的指针赋值，但这种做法是不安全的，容易导致错误。
+    B 如果企图通过一个空指针来访问一个存储单元，将会得到一个出错信息			 // 空指针：指针变量被赋值为空指针常量
+        															// 访问空指针指向的存储单元（0地址），会报错
+    C 设变量p是一个指针变量，则语句p=0;是非法的，应该使用p=NULL;			// 0，NULL 是等价的
+    D 指针变量之间不能用关系运算符进行比较								// 同类型的两个指针是可以相互比较的
+    ```
+
+    
+
+38. 指针指向
+
+    ```c++
+    // 当参数*x=1,*y=1,*z=1 时，下列不可能是函数 add 的返回值的( )?
+    int add(int *x, int *y, int *z){
+        *x += *x;
+        *y += *x;
+        *z += *y;
+        return *z;
+     }
+    
+    // 分析：x，y，z三个参数是否指向同一地址（或者说调用该函数时是否实参相同）
+    // x,y,z指向同一区域：8
+    // x,y指向同一区域:5
+    // x,z指向同一区域:5
+    // y,z指向同一区域:6
+    // x,y,z都指向不同区域：4
+    ```
+
+    
+
+39. 下列关于数组的描述，错误的是
+
+    ```c++
+    A C++中数组的存储方式为列优先存储				// x，行优先
+    B 数组名可以作为实参赋值给指针类型的形参		// √	
+    C 数组下标索引从 1 开始，至数组长度 n 结束		// x, 0~n-1
+    D 数组指针的语法形式：类型名 *数组名[下标表达式]		//x type (*arr_name)[n]
+    ```
+
+    
+
+40. 父子进程
+
+    ```c++
+    int main(){
+       int pid;
+       int num = 1;
+       pid = fork();
+        // 子进程中fork的返回值是0，父进程中fork的返回值是子进程的进程号
+       if(pid > 0){
+       		num++;
+       		printf("in parent:num:%d addr:%x\n", num, &num);
+       }
+       else if(pid == 0){
+       		printf("in child:num:%d addr:%x\n", num, &num);
+       }
+    }
+    
+    // 父子进程中输出的num不同,num地址相同
+    
+    // 其实刚刚fork出来不止虚拟地址一样，物理地址也一样。当进程发生分歧时，即修改此变量时，才会分配不同的物理地址，也就是copy-on-write，写时复制。
+    // 写时复制（Copy-On-Write，简称 COW）是一种优化技术，常用于内存管理和数据结构的实现中。它的基本思想是在复制资源时，延迟实际的复制操作，直到有必要对资源进行修改为止。
+    ```
+
+    
+
+41. 对象中存储的内容
+
+    ```c++
+    #include<iostream>
+    using namespace std;
+    class animal
+    {
+    protected:
+        int age;
+    public:
+        virtual void print_age(void) = 0;
+    };
+    class dog : public animal
+    {
+    public:
+           dog() {this -> age = 2;}
+           ~dog() { }
+           virtual void print_age(void) 
+           {
+               cout<<"Wang, my age = "<<this -> age<<endl;
+           }
+    };
+    class cat: public animal
+    {
+    public:
+        cat() {this -> age = 1;}
+        ~cat() { }
+        virtual void print_age(void) 
+        {
+            cout<<"Miao, my age = "<<this -> age<<endl;
+        }
+    };
+    int main(void)
+    {
+        cat kitty;
+        dog jd;
+        animal * pa;
+        int * p = (int *)(&kitty);
+        int * q = (int *)(&jd);
+        p[0] = q[0];
+        pa = &kitty;
+        pa -> print_age();
+        return 0;
+    }
+    /*
+    
+    Wang, my age = 1
+    
+    
+    首先这里需要清楚几个概念：
+    1.类的首地址一般是指向类的第一个成员变量的地址，但是如果类中含有虚函数那么类内存中头4字节指向的是虚函数表指针项(32bit系统)，那么p[0] =  q[0];把q[0]的虚指针给了p，那么调用p当中的虚函数就不再是原来的那个虚函数了，而是新赋值的。
+    2.类的函数参数中都默认带有this，这里是编译器编译的时候生成的，一般我们看不见。那么这里当我们调用kitty这个类的函数的时候传递的this还是指向原来的cat类对象，但是调用的函数是dog里的函数。所以这题答案就明确了。
+    */
+    ```
+
+    
+
+42. 当一个类的某个函数被说明为virtual，则在该类的所有派生类中的同原型函数 `__都是虚函数__`
+
+43. 在 32位机器上用 gcc编译以上代码，求sizeof(A)，sizeof(B)分别是（)
+
+    ```c++
+    class A {
+        int a;
+        short b;
+        int c;
+        char d;
+    };
+    class B {
+        double a;
+        short b;
+        int c;
+        char d;
+    };
+    
+    // 16 20
+    
+    // GCC 默认 4 字节对齐，所以double按照两个4字节对齐
+    ```
+
+    
+
+44. 
