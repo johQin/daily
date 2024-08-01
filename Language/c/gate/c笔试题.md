@@ -1246,6 +1246,74 @@ int main(int argc, char **args)
     // GCC 默认 4 字节对齐，所以double按照两个4字节对齐
     ```
 
+44. [零长度数组（柔性数组，变长数组）](https://blog.csdn.net/gatieme/article/details/64131322)
+
+    ```c
+    // 对以下数据结构中 data 的处理方式描述正确的是
+    
+    struct Node
+    {
+    	int size;
+        char data[0];
+    }
+    
+    A data 将会被编译成一个 char *类型指针
+    B 全部描述都不正确
+    C 编译器会认为这就是一个长度为 0 的数组,而且会支持对于数组 data 的越界访问
+    D 编译器会默认将数组 data 的长度设置为 1
+    
+    // 答案：C
+    编译器会认为这就是一个长度为 0 的数组,而且会支持对于数组 data 的越界访问
+    ```
+
     
 
-44. 
+45. 类
+
+    ```c++
+    链接：https://www.nowcoder.com/questionTerminal/ef421bf0f5304868b27e5c0ac41116e5
+    
+    下列关于C++类的说法中错误的有哪些？
+    A. 一个空类默认会生成构造函数,拷贝构造函数,赋值操作符,析构函数
+    B. 一个类可以有多个析构函数
+    C. 类中析构函数可以为virtual,可以被重载
+    D. 类的构造函数如果都不是public访问属性,则类的实例无法创建
+        
+    /*
+    B. 一个类只有一个析构函数，并且析构函数无参数，无返回值
+    C. 类中析构函数可以为virtual，可以被重写，不可以被重载
+    D. 类的构造函数一般是共有的（public），但有时也把构造函数声明为私有的（private），其作用是限制其创建该类对象的范围，这时，只能在本类和友元中创建该类对象。
+    */
+    ```
+
+    
+
+46. 智能父类指针指向子类对象
+
+    ```c++
+    class A {
+    public:
+        A();
+        ~A();
+        Data* data;
+    };
+    
+    class AX : public A {
+    public:
+        AX();
+        ~AX();
+        AXData* ax_data;
+    };
+    以下哪些不会引起内存泄漏？（多选）
+    A AX* p = new AX(); delete p;
+    B A* p = new AX(); delete p;
+    C std::shared_ptr<AX> p{new AX()};
+    D std::shared_ptr<A> p{new AX()};
+    
+    // 答案: A C D
+    // 基类 A 析构函数不是虚函数，B 选项会引起内存泄漏。shared_ptr 可以保留原始指针类型，所以可以正确析构。
+    ```
+
+    
+
+47. 

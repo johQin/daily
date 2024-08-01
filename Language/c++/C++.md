@@ -1039,7 +1039,9 @@ C++提供了**构造函数和析构函数**，这两个函数会被编译器**�
 
 如果用户不提供构造函数，编译器会自动添加一个默认的构造函数（空函数）。
 
-构造函数和类名相同，没有返回值类型（没有return，连void都不可以有，析构函数也是），可以有参数，可以重载，权限必须为public
+构造函数和类名相同，没有返回值类型（没有return，连void都不可以有，析构函数也是），可以有参数，可以重载。
+
+类的构造函数一般是共有的（public），但有时也把构造函数声明为私有的（private），其作用是限制其创建该类对象的范围，这时，只能在本类和友元中创建该类对象。
 
 #### 构造函数的定义
 
@@ -2590,6 +2592,49 @@ enum class Status:std::uint32_t; //修改底层型别为uint32_t
 类成员函数是被放在代码区。为运行函数而分配的局部变量、函数参数、返回数据、返回地址等存放在栈区；
 
 对于非静态成员变量，我们是在类的实例化过程中(构造对象)才在栈区或者堆区为其分配内存，是为每个对象生成一个拷贝，所以它是属于对象的。
+
+
+
+## 其他
+
+### typeid
+
+在C++中，typeid 运算符用于获取对象或类型的类型信息。它返回一个 std::type_info 对象，该对象包含了关于类型的信息，比如类型名。
+
+typeid 主要在运行时识别对象的实际类型，尤其在多态上下文中很有用。
+
+注意：typeid 仅在基类拥有至少一个虚函数时，才能正确获取多态类型对象的动态类型。如果没有虚函数，typeid 会返回指针或引用的静态类型。
+
+```c++
+#include <iostream>
+#include <typeinfo>
+
+class Base {
+public:
+    virtual ~Base() {}  // 多态基类需要一个虚析构函数
+};
+
+class Derived : public Base {};
+
+int main() {
+    Base* b = new Base();
+    Base* d = new Derived();
+
+    std::cout << "Type of b: " << typeid(*b).name() << std::endl;
+    std::cout << "Type of d: " << typeid(*d).name() << std::endl;
+
+    delete b;
+    delete d;
+
+    return 0;
+}
+/*
+Type of b: 4Base
+Type of d: 7Derived
+*/
+```
+
+
 
 # 3 继承
 
@@ -7489,6 +7534,32 @@ int main() {
     return 0;
 }
 ```
+
+
+
+#### shared_ptr父类指针指向子类对象
+
+```c++
+class A {
+public:
+    A();
+    ~A();
+	Data* data;
+};
+class AX : public A {
+public:
+    AX();
+    ~AX();
+    AXData* ax_data;
+};
+
+// 这里会内存泄漏吗？答案：不会内存泄漏
+std::shared_ptr<A> p{new AX()};
+
+// shared_ptr 可以保留原始指针类型，所以可以正确析构。
+```
+
+
 
 ### 10.5.3 weak_ptr
 
