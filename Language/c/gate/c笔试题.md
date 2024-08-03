@@ -1316,4 +1316,76 @@ int main(int argc, char **args)
 
     
 
-47. 
+47. 继承与访问权限
+
+    ```c++
+    链接：https://www.nowcoder.com/questionTerminal/156f95a4eb23498ba03b5c4b1d340ad0
+    
+    在哪种派生方式中，派生类可以访问基类中的protected成员（        ）
+    A. public和private
+    B. public和protected
+    C. protected和private
+    D. public、protected、private均可
+    
+    // 答案：D
+    // 子类以任意方式进行派生，父类的private成员变量不可直接访问，即使通过private继承，父类中的成员变量的修饰符只会变成private，但是是可以访问的
+    ```
+
+    
+
+48. 静态局部变量，与`*=`运算符
+
+    ```c
+    int x = 4;
+    void incre()
+    {
+        static int x = 1;
+        x *= x + 1;
+        printf("% d", x);
+    }
+    
+    int main(){
+        int i = 0;
+        for(i=1;i<x;i++){
+            incre();
+        }
+        return 0;
+    }
+    
+    // 2 6 42
+    ```
+
+    
+
+49. 数组越界访问，栈地址由高到低。
+
+    ```c
+    int main () {
+        int i,a[5];
+        for (i = 0; i <= 30; i++) {
+            a[i] = 0;
+            printf("%d:hello\n", i);
+        }
+        printf("%d:hello world",i);
+        return 0;
+    }
+    // 在32位系统下运行以下程序，可能的输出结果为
+    链接：https://www.nowcoder.com/questionTerminal/cc49fd222f8948b795349660a2cfa34a
+    
+    A 三十行的 i:hello (i∈[0,30]) 和一行 30:hello world
+    B 三十行的 i:hello (i∈[0,30]) 和一行 31:hello world
+    C 多行的 i:hello (i∈[0,30] )
+    D 多行的 i:hello (i∈[0,31])
+        
+    // 在c语言中，数组溢出是不会报错的
+    // 局部变量声明在栈中，栈地址由高到低分布：
+    // 先声明i，假设i的地址为10024
+    // 后声明a[5]，a[0]的地址为10000，a[4]的地址为10020，a[5]的地址为10024
+    // 所以i和a[5]同一个地址，修改a[5]就是修改i
+    // 当每次程序循环到i=5时，a[5] = 0，此时i又变成了0，所以for循环每次循环到i=5，就又开始从0开始循环，所以这是一个无限的循环。
+    // 所以选C
+    ```
+
+    ![](./legend/栈地址和数组越界访问.png)
+
+50. 
