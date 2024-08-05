@@ -559,6 +559,16 @@ int main() {
 - 构造函数的形参必须为引用类型
 - 初始化必须在成员初始化链表内完成
 
+### 指针和引用的区别
+
+- 指针是一个变量，存储的是一个地址，引用跟原来的变量实质上是同一个东西，是原变量的别名
+- 指针可以有多级，引用只有一级
+- 指针通常指的是一个指针变量，引用可以认为是一个指针常量
+  - 指针可以为空，引用不能为 NULL 且在定义时必须初始化
+  - 指针在初始化后可以改变指向，而引用在初始化之后不可再改变
+- sizeof 指针得到的是本指针的大小，sizeof 引用得到的是引用所指向变量的大小
+- 当把指针作为参数进行传递时，也是将实参的一个拷贝传递给形参，两者指向的地址相同，但不是 同一个变量，在函数中改变这个变量的指向不影响实参，而引用却可以。
+
 ## 1.7 [内联函数](https://blog.csdn.net/nyist_zxp/article/details/119697882)
 
 如果函数是内联的，编译器在编译时，会把内联函数的实现（函数体）替换到每个调用内联函数的地方（函数调用处），避免函数开销。
@@ -607,7 +617,7 @@ inline int myAdd(int x, int y){
 
 **注意事项：**
 
-1. 类中的成员函数默认都是内联函数（不加inline也是内联函数）
+1. **类中的成员函数默认都是内联函数（不加inline也是内联函数）**
 2. 有时候，就算加上inline修饰，也不一定是内联函数
 3. 有时候，就算没加inline修饰，它也有可能是内联函数
 4. 函数是不是内联函数由编译器决定。
@@ -11166,7 +11176,7 @@ Help -> Find Action，打开搜索栏, 接着输入 `Registry`，搜索找到如
 
     - 我认为一个比较关键的点在于，这个实例必须是这个类的静态成员变量（static），而非这个类对象的实例变量
 
-21. 取绝对值
+20. 取绝对值
 
     ```c++
     #define ABS(n) ((n)>=0 ? (n) : -(n))
@@ -11177,7 +11187,7 @@ Help -> Find Action，打开搜索栏, 接着输入 `Registry`，搜索找到如
 
     
 
-22. c++在使用c语言代码的时候出现大量的undefined reference to
+21. c++在使用c语言代码的时候出现大量的undefined reference to
 
     - 原因：
 
@@ -11206,7 +11216,7 @@ Help -> Find Action，打开搜索栏, 接着输入 `Registry`，搜索找到如
 
         
 
-23. [程序执行时无法找到库（动态库）](https://blog.csdn.net/djfjkj52/article/details/131243531)
+22. [程序执行时无法找到库（动态库）](https://blog.csdn.net/djfjkj52/article/details/131243531)
 
     - 法一：/etc/ld.so.conf 
 
@@ -11222,7 +11232,7 @@ Help -> Find Action，打开搜索栏, 接着输入 `Registry`，搜索找到如
 
     - 法三：修改LD_LIBRARY_PATH
 
-24. 查看g++支持的版本
+23. 查看g++支持的版本
 
     ```bash
     # 查看g++是否支持c++11
@@ -11231,7 +11241,7 @@ Help -> Find Action，打开搜索栏, 接着输入 `Registry`，搜索找到如
 
     
 
-25. multiple definition of `xxx'  ........first defined here ...
+24. multiple definition of `xxx'  ........first defined here ...
 
     - [头文件中只做变量和函数的声明，而不要定义，否则就会有重复定义的错误。但是有几种情况是例外的。](https://blog.csdn.net/huangdenan/article/details/120716473)
       - 内联函数的定义
@@ -11240,6 +11250,8 @@ Help -> Find Action，打开搜索栏, 接着输入 `Registry`，搜索找到如
         - 用类创建对象的时候，编译器要知道对象如何布局才能分配内存，因此类的定义需要在头文件中。一般情况下，我们把类内成员函数的定义放在cpp文件中，但是如果直接在class中完成函数声明+定义的话，这种函数会被编译器当作inline的，因此满足上面inline函数可以放在头文件的规则。但是如果声明和定义分开实现，但是都放在头文件中，那就会报重复定义了
       - const 和 static 变量
         - const对象默认是static的，而不是extern的，所以即使放在头文件中声明和定义。多个cpp引用同一个头文件，互相也没有感知，所以不会导致重复定义。
+
+25. [missing 'typename' prior to dependent type name 'T::const_iterator'](https://blog.csdn.net/flyingshineangel/article/details/136842836)
 
 26. 
 

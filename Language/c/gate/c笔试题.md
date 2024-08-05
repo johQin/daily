@@ -87,6 +87,7 @@ int main(int argc, char **args)
 2. sizeof()
 
    - 函数的实参若为数组，那么传址
+   - sizeof（类），计算的是类中存在栈中的变量的大小
    - sizeof(x)在**编译**时确定其值, 计算出x在内存中所占字节数。所以, **括号内的赋值和函数, 不会被执行，但括号内的运算还是会执行**
 
    ```c++
@@ -186,6 +187,7 @@ int main(int argc, char **args)
 
    - `sizeof(void)`：编译报错，非法的 sizeof 操作数
    - `sizeof(void *)`：返回的值 与编译器的目标平台有关
+   - sizeof 指针得到的是本指针的大小，sizeof 引用得到的是引用所指向变量的大小
 
    
 
@@ -386,6 +388,40 @@ int main(int argc, char **args)
    }
    
    // 答案:12
+   
+   
+   
+   // 下面这段程序输出的结果是什么？
+   using namespace std;
+   class MyClass
+   {
+   public:
+       MyClass(int i = 0)
+       {
+           cout << i;
+       }
+       MyClass(const MyClass &x)
+       {
+           cout << 2;
+       }
+       MyClass &operator=(const MyClass &x)
+       {
+           cout << 3;
+           return *this;
+       }
+       ~MyClass()
+       {
+           cout << 4;
+       }
+   };
+   int main()
+   {
+       MyClass obj1(1), obj2(2);
+       MyClass obj3 = obj1;
+       return 0;
+   }
+   
+   // 答案：122444
    ```
 
    
@@ -1216,7 +1252,7 @@ int main(int argc, char **args)
     
     
     首先这里需要清楚几个概念：
-    1.类的首地址一般是指向类的第一个成员变量的地址，但是如果类中含有虚函数那么类内存中头4字节指向的是虚函数表指针项(32bit系统)，那么p[0] =  q[0];把q[0]的虚指针给了p，那么调用p当中的虚函数就不再是原来的那个虚函数了，而是新赋值的。
+    1.类的首地址一般是指向类的第一个成员变量的地址，但是如果类中含有虚函数那么类内存中头4字节指向的是虚函数表指针项(32bit系统)，那么p[0] =  q[0];把q[0]的虚指针给了p，那么调用p当中的虚函数就不再是原来的那个虚函数了，而是新赋值的。在这里p[1]和q[1]则是第一个成员变量。
     2.类的函数参数中都默认带有this，这里是编译器编译的时候生成的，一般我们看不见。那么这里当我们调用kitty这个类的函数的时候传递的this还是指向原来的cat类对象，但是调用的函数是dog里的函数。所以这题答案就明确了。
     */
     ```
@@ -1388,4 +1424,142 @@ int main(int argc, char **args)
 
     ![](./legend/栈地址和数组越界访问.png)
 
-50. 
+50. 空的类A，sizeof(A)的值为1, C++对空类或者空结构体， 对其 sizeof 操作时候，默认都是 1 个字节
+
+51. 栈的增长方向，
+
+    ```c
+    int i=0x22222222； 
+    char szTest[]="aaaa";  //a的ascii码为0x61 
+    func(I, szTest);    //函数原型为void func(int a,char *sz);
+    
+    请问刚进入func函数时，参数在栈中的形式可能为 （左侧为地址，右侧为数据—）
+        
+        
+    链接：https://www.nowcoder.com/questionTerminal/66d21ec011e844e9977425825a046a0f
+    
+    A:
+    0x0013FCF0	0x61616161				
+    0x0013FCF4	0x22222222				  
+    0x0013FCF8	0x00000000
+      
+    B:    
+    0x0013FCF0	0x22222222
+    0x0013FCF4	0x0013FCF8
+    0x0013FCF8	0x61616161
+      
+    C:    
+    0x0013FCF0	0x22222222				
+    0x0013FCF4	0x61616161				
+    0x0013FCF8	0x00000000
+      
+    D:    
+    0x0013FCF0	0x0013FCF8
+    0x0013FCF4	0x22222222
+    0x0013FCF8	0x61616161
+        
+        
+    
+     1，对于x86，栈的增长方向是从大地址到小地址
+     2，对于函数调用，参数的入栈顺序是从右向左
+     3，函数调用入栈顺序是  右边参数-->左边参数-->函数返回地址
+        
+    答案：D
+    ```
+
+52. 类的空指针调用函数
+
+    ```c++
+    class Demo {
+    public:
+        Demo() :count(0) {}
+        ~Demo() {}
+        void say(const std::string& msg) {
+            fprintf(stderr, "%s\n", msg.c_str());
+        }
+    private:
+        int count;
+    
+    };
+    int main(int argc, char** argv) {
+        Demo* v = NULL;
+        v->say("hello world");
+    }
+    
+    // 结果：正常输出：hello world
+    // 对象的空指针调用函数，只有当函数为非虚函数并且函数体内没有调用成员变量
+    // C++ 非虚的成员函数是静态绑定，如果say是虚函数，那么这里的调用就会出错。
+    ```
+
+    
+
+53. 构造器调用次数
+
+    ```c++
+    // 有一个类：AB,当执行完下面这一句时，构造器被调用了几次
+    AB a(4),b(5),c[3],*p[2]={&a,&b};
+    // 5次，2次有参，3次无参，定义指针时没有调用构造函数
+    ```
+
+54. 在C++中，为了让某个类只能通过new来创建（即如果直接创建对象，编译器将报错），应该将类的析构函数是私有的，则编译器不会在栈上为类对象分配内存。
+
+55. 下面哪些地方可能存在问题
+
+    ```c++
+    #include <stdio.h>
+    #include <string.h>
+    class CBuffer
+    {
+        char* m_pBuffer;
+        int m_size;
+    public:
+        CBuffer()
+        {
+        	m_pBuffer = NULL;
+        }
+        ~CBuffer()
+        {
+        	Free();
+        }
+        void Allocte(int size) { //（1）
+            m_size = size;
+            m_pBuffer = new char[size];
+        }
+    private:
+        void Free()
+        {
+            if (m_pBuffer != NULL)// (2)
+            {
+                delete[] m_pBuffer;
+                m_pBuffer = NULL;
+            }
+        }
+    public:
+        void SaveString(const char* pText) const //(3)
+        {
+        	strcpy(m_pBuffer, pText);// (4)
+        }
+        char* GetBuffer() const
+        {
+    		return m_pBuffer;
+    	}
+    };
+    void main(int argc, char* argv[])
+    {
+        CBuffer buffer1;
+        buffer1.SaveString("Microsoft");
+        printf(buffer1.GetBuffer());
+    }
+    
+    /*
+    答案：
+    
+    1处：分配内存时, 未检测 m_pBuffer 是否为空, 容易造成内存泄露; 如果进行两次 Alllocate，那么第一次 Allocate 申请的内存，会在第二次 Allocate 后被悬挂起来，没有任何指针指向他，那么内存泄露。
+    3处：常成员函数不应该对数据成员做出修改, 虽然可以修改指针数据成员指向的数据, 但原则上不应该这么做
+    4处：字符串拷贝时, 未检测是否有足够空间, 可能造成程序崩溃。
+    */    
+    ```
+
+    
+
+56. 
