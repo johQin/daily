@@ -745,6 +745,12 @@ int arr[][4] = {{1}, {5}, {9}};
 
 **`array_name[dim1_index][dim2_index]`**
 
+### 多维数组声明
+
+在 C99 及更高版本的 C 中，无论 `numRows` 和 `rowMaxLen` 是常量表达式还是运行时计算出的变量，这样的声明`char dst[numRows][rowMaxLen];` 是有效的。
+
+在 C89 标准中，这种声明只在 `numRows` 和 `rowMaxLen` 是编译时已知的常量时有效。
+
 ## 4.3 字符数组
 
 ```c

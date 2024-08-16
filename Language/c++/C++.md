@@ -4866,6 +4866,7 @@ string& replace(int pos, int n, const char* s); //替换从 pos 开始的 n 个�
 // 6.string 比较操作
 
 //比较区分大小写，比较时参考字典顺序，排越前面的越小。大写的 A 比小写的 a 小。
+// 返回值：0表示相同，>0表示第一个差异字母大于参数字符串，<0表示第一个差异字母小于参数字符串
 int compare(const string &s) const;//与字符串 s 比较
 int compare(const char *s) const;//与字符串 s 比较
 
