@@ -3,7 +3,7 @@
 1. C语言因UNIX系统而生。
 2. GNU（GNU's Not UNIX）项目始于1987年，是一个开发大量自由UNIX软件的集合。
 3. GCC——GNU编译器集合（GNU Compiler Collection，GCC），
-   - 其中包含GCC C编译器。
+   - 其中包含GCC C编译器gcc。
    - GCC有各种版本以适应不用硬件平台和操作系统，包括UNIX，LINUX，Windows
    - gcc命令便可调用GCC C编译器，许多系统都用cc作为gcc的别名
 4. c语言优点
@@ -290,6 +290,378 @@ x *= x + 1;		//等价于 x = x * (x + 1)
 ```
 
 优先级：`！> 算术运算符 > 关系运算符 > && 和 || > 条件运算符（? :）> 赋值运算符`
+
+<table aria-label="Table 1" class="table table-sm margin-top-none">
+<thead>
+<tr>
+<th>Operator Description</th>
+<th>Operator</th>
+<th>Alternative</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Group 1 precedence, no associativity</strong></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/scope-resolution-operator?view=msvc-170" data-linktype="relative-path">Scope resolution</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/scope-resolution-operator?view=msvc-170" data-linktype="relative-path"><code>::</code></a></td>
+<td></td>
+</tr>
+<tr>
+<td><strong>Group 2 precedence, left to right associativity</strong></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/member-access-operators-dot-and?view=msvc-170" data-linktype="relative-path">Member selection (object or pointer)</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/member-access-operators-dot-and?view=msvc-170" data-linktype="relative-path"><code>.</code> or <code>-&gt;</code></a></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/subscript-operator?view=msvc-170" data-linktype="relative-path">Array subscript</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/subscript-operator?view=msvc-170" data-linktype="relative-path"><code>[]</code></a></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/function-call-operator-parens?view=msvc-170" data-linktype="relative-path">Function call</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/function-call-operator-parens?view=msvc-170" data-linktype="relative-path"><code>()</code></a></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/postfix-increment-and-decrement-operators-increment-and-decrement?view=msvc-170" data-linktype="relative-path">Postfix increment</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/postfix-increment-and-decrement-operators-increment-and-decrement?view=msvc-170" data-linktype="relative-path"><code>++</code></a></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/postfix-increment-and-decrement-operators-increment-and-decrement?view=msvc-170" data-linktype="relative-path">Postfix decrement</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/postfix-increment-and-decrement-operators-increment-and-decrement?view=msvc-170" data-linktype="relative-path"><code>--</code></a></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/typeid-operator?view=msvc-170" data-linktype="relative-path">Type name</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/typeid-operator?view=msvc-170" data-linktype="relative-path"><code>typeid</code></a></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/const-cast-operator?view=msvc-170" data-linktype="relative-path">Constant type conversion</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/const-cast-operator?view=msvc-170" data-linktype="relative-path"><code>const_cast</code></a></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/dynamic-cast-operator?view=msvc-170" data-linktype="relative-path">Dynamic type conversion</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/dynamic-cast-operator?view=msvc-170" data-linktype="relative-path"><code>dynamic_cast</code></a></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/reinterpret-cast-operator?view=msvc-170" data-linktype="relative-path">Reinterpreted type conversion</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/reinterpret-cast-operator?view=msvc-170" data-linktype="relative-path"><code>reinterpret_cast</code></a></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/static-cast-operator?view=msvc-170" data-linktype="relative-path">Static type conversion</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/static-cast-operator?view=msvc-170" data-linktype="relative-path"><code>static_cast</code></a></td>
+<td></td>
+</tr>
+<tr>
+<td><strong>Group 3 precedence, right to left associativity</strong></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/sizeof-operator?view=msvc-170" data-linktype="relative-path">Size of object or type</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/sizeof-operator?view=msvc-170" data-linktype="relative-path"><code>sizeof</code></a></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/prefix-increment-and-decrement-operators-increment-and-decrement?view=msvc-170" data-linktype="relative-path">Prefix increment</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/prefix-increment-and-decrement-operators-increment-and-decrement?view=msvc-170" data-linktype="relative-path"><code>++</code></a></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/prefix-increment-and-decrement-operators-increment-and-decrement?view=msvc-170" data-linktype="relative-path">Prefix decrement</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/prefix-increment-and-decrement-operators-increment-and-decrement?view=msvc-170" data-linktype="relative-path"><code>--</code></a></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/one-s-complement-operator-tilde?view=msvc-170" data-linktype="relative-path">One's complement</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/one-s-complement-operator-tilde?view=msvc-170" data-linktype="relative-path"><code>~</code></a></td>
+<td><strong><code>compl</code></strong></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/logical-negation-operator-exclpt?view=msvc-170" data-linktype="relative-path">Logical not</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/logical-negation-operator-exclpt?view=msvc-170" data-linktype="relative-path"><code>!</code></a></td>
+<td><strong><code>not</code></strong></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/unary-plus-and-negation-operators-plus-and?view=msvc-170" data-linktype="relative-path">Unary negation</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/unary-plus-and-negation-operators-plus-and?view=msvc-170" data-linktype="relative-path"><code>-</code></a></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/unary-plus-and-negation-operators-plus-and?view=msvc-170" data-linktype="relative-path">Unary plus</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/unary-plus-and-negation-operators-plus-and?view=msvc-170" data-linktype="relative-path"><code>+</code></a></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/address-of-operator-amp?view=msvc-170" data-linktype="relative-path">Address-of</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/address-of-operator-amp?view=msvc-170" data-linktype="relative-path"><code>&amp;</code></a></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/indirection-operator-star?view=msvc-170" data-linktype="relative-path">Indirection</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/indirection-operator-star?view=msvc-170" data-linktype="relative-path"><code>*</code></a></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/new-operator-cpp?view=msvc-170" data-linktype="relative-path">Create object</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/new-operator-cpp?view=msvc-170" data-linktype="relative-path"><code>new</code></a></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/delete-operator-cpp?view=msvc-170" data-linktype="relative-path">Destroy object</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/delete-operator-cpp?view=msvc-170" data-linktype="relative-path"><code>delete</code></a></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/cast-operator-parens?view=msvc-170" data-linktype="relative-path">Cast</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/cast-operator-parens?view=msvc-170" data-linktype="relative-path"><code>()</code></a></td>
+<td></td>
+</tr>
+<tr>
+<td><strong>Group 4 precedence, left to right associativity</strong></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/pointer-to-member-operators-dot-star-and-star?view=msvc-170" data-linktype="relative-path">Pointer-to-member (objects or pointers)</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/pointer-to-member-operators-dot-star-and-star?view=msvc-170" data-linktype="relative-path"><code>.*</code> or <code>-&gt;*</code></a></td>
+<td></td>
+</tr>
+<tr>
+<td><strong>Group 5 precedence, left to right associativity</strong></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/multiplicative-operators-and-the-modulus-operator?view=msvc-170" data-linktype="relative-path">Multiplication</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/multiplicative-operators-and-the-modulus-operator?view=msvc-170" data-linktype="relative-path"><code>*</code></a></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/multiplicative-operators-and-the-modulus-operator?view=msvc-170" data-linktype="relative-path">Division</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/multiplicative-operators-and-the-modulus-operator?view=msvc-170" data-linktype="relative-path"><code>/</code></a></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/multiplicative-operators-and-the-modulus-operator?view=msvc-170" data-linktype="relative-path">Modulus</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/multiplicative-operators-and-the-modulus-operator?view=msvc-170" data-linktype="relative-path"><code>%</code></a></td>
+<td></td>
+</tr>
+<tr>
+<td><strong>Group 6 precedence, left to right associativity</strong></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/additive-operators-plus-and?view=msvc-170" data-linktype="relative-path">Addition</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/additive-operators-plus-and?view=msvc-170" data-linktype="relative-path"><code>+</code></a></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/additive-operators-plus-and?view=msvc-170" data-linktype="relative-path">Subtraction</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/additive-operators-plus-and?view=msvc-170" data-linktype="relative-path"><code>-</code></a></td>
+<td></td>
+</tr>
+<tr>
+<td><strong>Group 7 precedence, left to right associativity</strong></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/left-shift-and-right-shift-operators-input-and-output?view=msvc-170" data-linktype="relative-path">Left shift</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/left-shift-and-right-shift-operators-input-and-output?view=msvc-170" data-linktype="relative-path"><code>&lt;&lt;</code></a></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/left-shift-and-right-shift-operators-input-and-output?view=msvc-170" data-linktype="relative-path">Right shift</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/left-shift-and-right-shift-operators-input-and-output?view=msvc-170" data-linktype="relative-path"><code>&gt;&gt;</code></a></td>
+<td></td>
+</tr>
+<tr>
+<td><strong>Group 8 precedence, left to right associativity</strong></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/relational-operators-equal-and-equal?view=msvc-170" data-linktype="relative-path">Less than</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/relational-operators-equal-and-equal?view=msvc-170" data-linktype="relative-path"><code>&lt;</code></a></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/relational-operators-equal-and-equal?view=msvc-170" data-linktype="relative-path">Greater than</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/relational-operators-equal-and-equal?view=msvc-170" data-linktype="relative-path"><code>&gt;</code></a></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/relational-operators-equal-and-equal?view=msvc-170" data-linktype="relative-path">Less than or equal to</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/relational-operators-equal-and-equal?view=msvc-170" data-linktype="relative-path"><code>&lt;=</code></a></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/relational-operators-equal-and-equal?view=msvc-170" data-linktype="relative-path">Greater than or equal to</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/relational-operators-equal-and-equal?view=msvc-170" data-linktype="relative-path"><code>&gt;=</code></a></td>
+<td></td>
+</tr>
+<tr>
+<td><strong>Group 9 precedence, left to right associativity</strong></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/equality-operators-equal-equal-and-exclpt-equal?view=msvc-170" data-linktype="relative-path">Equality</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/equality-operators-equal-equal-and-exclpt-equal?view=msvc-170" data-linktype="relative-path"><code>==</code></a></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/equality-operators-equal-equal-and-exclpt-equal?view=msvc-170" data-linktype="relative-path">Inequality</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/equality-operators-equal-equal-and-exclpt-equal?view=msvc-170" data-linktype="relative-path"><code>!=</code></a></td>
+<td><strong><code>not_eq</code></strong></td>
+</tr>
+<tr>
+<td><strong>Group 10 precedence left to right associativity</strong></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/bitwise-and-operator-amp?view=msvc-170" data-linktype="relative-path">Bitwise AND</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/bitwise-and-operator-amp?view=msvc-170" data-linktype="relative-path"><code>&amp;</code></a></td>
+<td><strong><code>bitand</code></strong></td>
+</tr>
+<tr>
+<td><strong>Group 11 precedence, left to right associativity</strong></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/bitwise-exclusive-or-operator-hat?view=msvc-170" data-linktype="relative-path">Bitwise exclusive OR</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/bitwise-exclusive-or-operator-hat?view=msvc-170" data-linktype="relative-path"><code>^</code></a></td>
+<td><strong><code>xor</code></strong></td>
+</tr>
+<tr>
+<td><strong>Group 12 precedence, left to right associativity</strong></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/bitwise-inclusive-or-operator-pipe?view=msvc-170" data-linktype="relative-path">Bitwise inclusive OR</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/bitwise-inclusive-or-operator-pipe?view=msvc-170" data-linktype="relative-path"><code>|</code></a></td>
+<td><strong><code>bitor</code></strong></td>
+</tr>
+<tr>
+<td><strong>Group 13 precedence, left to right associativity</strong></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/logical-and-operator-amp-amp?view=msvc-170" data-linktype="relative-path">Logical AND</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/logical-and-operator-amp-amp?view=msvc-170" data-linktype="relative-path"><code>&amp;&amp;</code></a></td>
+<td><strong><code>and</code></strong></td>
+</tr>
+<tr>
+<td><strong>Group 14 precedence, left to right associativity</strong></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/logical-or-operator-pipe-pipe?view=msvc-170" data-linktype="relative-path">Logical OR</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/logical-or-operator-pipe-pipe?view=msvc-170" data-linktype="relative-path"><code>||</code></a></td>
+<td><strong><code>or</code></strong></td>
+</tr>
+<tr>
+<td><strong>Group 15 precedence, right to left associativity</strong></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/conditional-operator-q?view=msvc-170" data-linktype="relative-path">Conditional</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/conditional-operator-q?view=msvc-170" data-linktype="relative-path"><code>? :</code></a></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/assignment-operators?view=msvc-170" data-linktype="relative-path">Assignment</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/assignment-operators?view=msvc-170" data-linktype="relative-path"><code>=</code></a></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/assignment-operators?view=msvc-170" data-linktype="relative-path">Multiplication assignment</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/assignment-operators?view=msvc-170" data-linktype="relative-path"><code>*=</code></a></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/assignment-operators?view=msvc-170" data-linktype="relative-path">Division assignment</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/assignment-operators?view=msvc-170" data-linktype="relative-path"><code>/=</code></a></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/assignment-operators?view=msvc-170" data-linktype="relative-path">Modulus assignment</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/assignment-operators?view=msvc-170" data-linktype="relative-path"><code>%=</code></a></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/assignment-operators?view=msvc-170" data-linktype="relative-path">Addition assignment</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/assignment-operators?view=msvc-170" data-linktype="relative-path"><code>+=</code></a></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/assignment-operators?view=msvc-170" data-linktype="relative-path">Subtraction assignment</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/assignment-operators?view=msvc-170" data-linktype="relative-path"><code>-=</code></a></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/assignment-operators?view=msvc-170" data-linktype="relative-path">Left-shift assignment</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/assignment-operators?view=msvc-170" data-linktype="relative-path"><code>&lt;&lt;=</code></a></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/assignment-operators?view=msvc-170" data-linktype="relative-path">Right-shift assignment</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/assignment-operators?view=msvc-170" data-linktype="relative-path"><code>&gt;&gt;=</code></a></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/assignment-operators?view=msvc-170" data-linktype="relative-path">Bitwise AND assignment</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/assignment-operators?view=msvc-170" data-linktype="relative-path"><code>&amp;=</code></a></td>
+<td><strong><code>and_eq</code></strong></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/assignment-operators?view=msvc-170" data-linktype="relative-path">Bitwise inclusive OR assignment</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/assignment-operators?view=msvc-170" data-linktype="relative-path"><code>|=</code></a></td>
+<td><strong><code>or_eq</code></strong></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/assignment-operators?view=msvc-170" data-linktype="relative-path">Bitwise exclusive OR assignment</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/assignment-operators?view=msvc-170" data-linktype="relative-path"><code>^=</code></a></td>
+<td><strong><code>xor_eq</code></strong></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/try-throw-and-catch-statements-cpp?view=msvc-170" data-linktype="relative-path">throw expression</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/try-throw-and-catch-statements-cpp?view=msvc-170" data-linktype="relative-path"><code>throw</code></a></td>
+<td></td>
+</tr>
+<tr>
+<td><strong>Group 16 precedence, left to right associativity</strong></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/comma-operator?view=msvc-170" data-linktype="relative-path">Comma</a></td>
+<td><a href="https://learn.microsoft.com/en-us/cpp/cpp/comma-operator?view=msvc-170" data-linktype="relative-path">,</a></td>
+<td></td>
+</tr>
+</tbody>
+</table>
 
 
 
@@ -754,6 +1126,8 @@ int arr[][4] = {{1}, {5}, {9}};
 在 C99 及更高版本的 C 中，无论 `numRows` 和 `rowMaxLen` 是常量表达式还是运行时计算出的变量，这样的声明`char dst[numRows][rowMaxLen];` 是有效的。
 
 在 C89 标准中，这种声明只在 `numRows` 和 `rowMaxLen` 是编译时已知的常量时有效。
+
+但需要清楚，如果使用变量来声明数组，初始化方式不能使用 `{ }`的方式，必须通过遍历的方式为数组的每个元素赋值。如果不做初始化工作，那么数组里的元素将会是随机值。
 
 ## 4.3 字符数组
 
