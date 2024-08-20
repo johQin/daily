@@ -888,7 +888,7 @@ for(int i=0;i<5;i++){
     cout << arr[i] << " ";
 }
 cout<<endl;
-delete [] arr;
+delete [] arr;		// 指针名前只有一对方括号符号，不需要理会所删除数组的维数
 ```
 
 ### [delete 指针变量后还要置为NULL吗](https://blog.csdn.net/yikunbai5708/article/details/102000944)
