@@ -4897,7 +4897,7 @@ string& append(const string &s, int pos, int n);//把字符串 s 中从 pos 开�
 string& append(int n, char c);//在当前字符串结尾添加 n 个字符 c
 
 // 5.查找和替换
-
+// 如果找不到，返回string::npos
 int find(const string& str, int pos = 0) const; //查找 str 第一次出现位置, 从 pos 开始查找
 int find(const char* s, int pos = 0) const; //查找 s 第一次出现位置,从 pos开始查找
 int find(const char* s, int pos, int n) const; //从 pos 位置查找 s 的前 n 个字符第一次位置
