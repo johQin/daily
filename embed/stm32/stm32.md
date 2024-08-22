@@ -2875,6 +2875,12 @@ WWDG时钟来自于PCLK1（36MHz）
 
 ![img](./legend/37994eadbdfe4c56927d05605548d399.png)
 
+# 9 wifi
+
+[STM32 ESP8266WiFi模块的使用：基于机智云平台开发](https://blog.csdn.net/han2205277149/article/details/140648461)
+
+[**esp8266wifi模块如何与STM32连接 esp8266连接stm32入网**](https://blog.51cto.com/u_16213720/11731839)
+
 # 其它
 
 1. 代码跳转需要先编译后才能跳转
