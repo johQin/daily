@@ -2877,9 +2877,31 @@ WWDG时钟来自于PCLK1（36MHz）
 
 # 9 wifi
 
+首先stm32和wifi模块，这两个分属两个独立的模块。
+
+- stm32与wifi模块（**ESP8266**）通过串口UART连接
+- wifi模块用于连接wifi或提供wifi热点，在wifi模块上可以建立UDP/TCP服务为局域网内的设备通信，或者连接MQTT服务器，或者发起http请求，与外界服务器通信。
+- wifi模块从网络上获取到的数据，可以通过UART串口返回给STM32，同时STM32也可以通过串口发送数据给wifi模块，wifi模块再处理数据，发送给网络中的服务器。
+
+
+
+
+
+[NodeMCU开发](https://nodemcu.readthedocs.io/en/release/getting-started/)
+
 [STM32 ESP8266WiFi模块的使用：基于机智云平台开发](https://blog.csdn.net/han2205277149/article/details/140648461)
 
 [**esp8266wifi模块如何与STM32连接 esp8266连接stm32入网**](https://blog.51cto.com/u_16213720/11731839)
+
+
+
+
+
+云平台
+
+- [OneNet](https://open.iot.10086.cn/)
+- [thingscloud](https://www.thingscloud.xyz/)
+- [阿里云](https://www.aliyun.com/)：物联网平台
 
 # 其它
 

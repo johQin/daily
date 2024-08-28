@@ -3813,6 +3813,8 @@ module_usb_driver(usb_mouse_driver);
    - 【Ctrl + F】文件中查找操作
    - 【ctrl + /】 全局搜索关键字
 
+2. sourceinsight中，如果不小心关掉了Symbol Categories 面板，可以依次点击菜单的`View` -> `Panels` -> `Project Window`，勾选`Project Window`后面的几个可以恢复窗口。
+
 2. [sourceinsight 自动补全](https://blog.csdn.net/byhyf83862547/article/details/137090831)
 
    - 选项卡options -> preference -> symbol lookups -> import symbols for all Projects -> add， 加入相关头文件文件夹到list表
@@ -3841,6 +3843,19 @@ module_usb_driver(usb_mouse_driver);
    
 
 5. error: stray '\357' in program：在复制别处代码，粘到本地项目后，可能会报如此错，只要自己重新写一遍就好了。
+
+6. 固件与驱动
+
+   - 驱动程序作为一种程序，其实是软件的一种，它基于系统层面和硬件进行交互控制。（那是谁，让它干什么活）
+   - 固件，直接运行在硬件内部，不需要借助操作系统，每个硬件都有一套自己的固件，用来保证硬件底层的运作。（我是谁，我能干什么活）
+
+   ![image-20240826105020732](legend/image-20240826105020732.png)
+
+   CPU用的是主板BIOS里的固件，而不用系统里的驱动，因为在系统运行前，CPU已经开始工作，用于加载系统资源等等。
+
+   ![image-20240826105843236](legend/image-20240826105843236.png)
+
+7. 
 
 
 

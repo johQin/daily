@@ -2947,7 +2947,9 @@ QList<QNetworkInterface> list=QNetworkInterface::allInterfaces();
 
 
 
+# 7 [安装和卸载](https://blog.csdn.net/weixin_44069765/article/details/121868710)
 
+参考2：[QT生成.exe安装包详细全文（保姆级教程）--打包软件及问题大全](https://blog.csdn.net/qq_44094415/article/details/121889028)
 
 # log
 
