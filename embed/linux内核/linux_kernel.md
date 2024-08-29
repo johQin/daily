@@ -727,7 +727,7 @@ struct rb_root root = RB_ROOT;
 
 不同设备对应的中断不同，而每个中断都可以通过一个唯一的数字标志，这样操作系统才能给不同的中断提供对应的中断处理程序。
 
-从物理
+从物理学角度看，中断是一个电信号，由硬件设备生成，并直接送入中断控制器的输入引脚。中断控制器是一个芯片，其作用是将多路中断管线，采用复用技术只通过一个和处理器相连的管线与处理器通信。当接收到一个中断后，中断控制器会给处理器发送一个电信号，处理器一经检测到此信号，便中断自己当前的工作转而处理中断。
 
 ## 5.1 异常
 
@@ -747,7 +747,7 @@ struct rb_root root = RB_ROOT;
 
 ### 5.2.1 上半部和下半部
 
-又想中断处理程序运行的快，又想中断处理程序法完成的工作量多。基于这个目的，我们把中断处理分为两个部分，
+又想中断处理程序运行的快，又想中断处理程序完成的工作量多。基于这个目的，我们把中断处理分为两个部分，
 
 上半部：接收中断，立即执行，只做很快的工作，例如：中断应答或复位硬件
 
@@ -761,23 +761,396 @@ struct rb_root root = RB_ROOT;
 
 ```c
 #include<linux/interrupt.h>
+
+// 注册中断处理程序
 int request_irq(unsigned int irq,
                irq_handler_t handler,
                 unsigned long flags,
                 const char *name,
                 void * dev
                );
+// 成功返回0，失败返回非0，request_irq可能会睡眠，所以不能再中断上下文中，或其他不允许阻塞的代码中调用该函数
+
 // irq：表示要分配的中断号，对于某些设备，如传统pc设备上的系统时钟或键盘，这个值通常是预先确定的。而对于大多数其他设备来说，要么是可以探测获取，要么可以通过编程动态确定
 
 // handler:指向处理这个中断的实际中断处理程序
 typedef irqreturn_t (*irq_handler_t)(int irq, void * dev_id);
+//irq_return_t:
+// IRQ_NONE: 中断产生源不匹配
+// IRQ_HANDLED: 中断已处理
+// IRQ_RETVAL(val): val为非0，那么返回IRQ_HANDLED，否则IRQ_NONE
 
-// flags: 中断处理程序标志
-// IRQF_DISABLED
-// IRQF_SAMPLE_RANDOM
-// IRQF_TIMER
-// IRQF_SHARED
+// flags: 中断处理程序标志，定义linux/interrupt.h，不止下面几类，当然还有其他文件中有声明，eg:linux/irq.h
+// IRQF_DISABLED：意味着内核在处理当前中断时，禁止其他中断的打断，这种用法通常留给希望快速执行的轻量级中断
+// IRQF_SAMPLE_RANDOM：表明这个设备的中断对内核熵池有贡献。
+// 						内核熵池负责从各种随机事件导出的真随机数，如果指定了该标志，那么来自此设备的中断时间间隔就会作为熵填充到熵池。
+// IRQF_TIMER：特别为系统定时器的中断处理而准备的。
+// IRQF_SHARED：多个中断处理程序之间共享中断线。在同一个给定线上注册的每个中断处理程序必须指定这个标志，否则，在每条线上只能有一个中断处理程序。
+
+// name：是与中断设备相关的文本表示，这些名字会被/proc/irq和/proc/interrupts文件使用，以便与用户通信。
+
+// dev:用于共享中断线，当一个中断处理程序需要释放时，dev将提供唯一的标志信息，以便从共享中断线的诸多中断处理程序中删除指定的那一个。如果无需共享中断线，那么该参数可以为null，但是如果中断线是被共享的，那么就必须传递唯一信息。
+
+
+// 释放中断处理程序，卸载驱动程序时，需注销处理程序，释放中断线
+void free_irq(unsigned int irq, int irq, void *dev);
+
 ```
+
+#### 中断重入
+
+当一个给定的中断处理程序正在执行时，相应的中断线在所有处理上都会被屏蔽掉，以防止在同一中断线上接收另一个新的中断。所以，同一中断处理程序绝对不会被同时调用以处理嵌套的中断。
+
+
+
+## 5.3 中断上下文
+
+中断上下文和进程没有任何瓜葛，与current宏也不相关。
+
+中断上下文不可以睡眠，不能调用含有睡眠的函数，因为不能像进程一样被调度。上半部要快，下半部可以执行繁重的任务。
+
+中断处理程序拥有一个大小为一页（32位4KB）中断栈，所以尽量要节省。
+
+## 5.4 中断处理机制
+
+![image-20240829103942503](legend/image-20240829103942503.png)
+
+## 5.5 中断控制
+
+![image-20240829104544603](legend/image-20240829104544603.png)
+
+# 6 下半部
+
+上半部就是前面的中断处理程序，下半部需要其他机制实现。
+
+因为我们希望在中断处理程序中完成的工作量越少越好，我们期望中断处理程序能够尽快地返回。但是，中断处理程序注定要完成一部分工作，例如：中断处理程序几乎都需要通过操作硬件对中断的到达进行确认，有时它还会从硬件拷贝数据。剩下的几乎所有其他工作都是下半部执行的目标。
+
+下半部的实现方式：
+
+1. 软中断
+2. tasklet
+3. 工作队列
+
+![执行绪关系](legend/20161030104807713.bmp)
+
+## 6.1 软中断
+
+它的特性包括：
+
+- 产生后并不是马上可以执行，必须要等待内核的调度才能执行。**软中断不能被自己打断(即单个cpu上软中断不能嵌套执行)，只能被硬件中断打断（上半部）。**
+- **可以并发运行在多个CPU上（即使同一类型的也可以）。**所以软中断必须设计为可重入的函数（允许多个CPU同时操作），因此也**需要使用自旋锁**来保其数据结构。
+
+```c
+#include<linux/interrupt.h>
+// 软中断结构体
+struct softirq_action{
+    void (*action)(struct softirq_action*);			//软中断处理程序函数
+};
+
+// 在kernel/softirq.c中定义了一个包含有32个该结构体的数组
+static struct softirq_action softirq_vec[NR_SOFTIRQS];
+
+// 所以最多只有32个软中断
+
+// 当内核运行一个软中断程序时，它就会执行action软中断处理程序函数，其唯一参数就是软中断结构体指针softirq_action *
+// 如果my_softirq 指向softirq_vec数组的某一项，那么内核会用如下方式调用软中断处理程序中的函数
+my_softirq->action(my_softirq);
+
+
+```
+
+### 软中断的实现机制
+
+一个注册的软中断必须在被标记后才会执行，这叫做触发软中断，通常，中断处理程序会在返回前标记它的软中断，使其在稍后被执行。
+
+在下列地方软中断会被检查和执行
+
+1. 硬件中断代码处返回时
+2. 在ksoftirqd内核线程中
+3. 在那些显式检查和执行待处理的软中断的代码中
+
+无论用什么办法唤醒，软中断都会在do_softirq()中执行。该函数很简单，如果有待处理的软中断，do_softirq会遍历每一个，调用他们的处理程序。
+
+### 使用软中断
+
+在你需要用软中断前，先问问自己为什么不用tasklet，因为后者用起来方便，对加锁要求不高。
+
+
+
+```c
+//注册软中断
+void open_softirq(int nr, void (*action)(struct softirq_action *));
+```
+
+nr的取值：你必须根据希望赋予它的优先级来决定加入的位置。优先级值越小，越优先执行
+
+![image-20240829151403007](legend/image-20240829151403007.png)
+
+如果同一个软中断在它被执行的同时再次被触发，那么另外一个处理器可以同时运行其处理程序。这意味着任何共享数据都需要严格的锁保护。所以这就是tasklet更受青睐的原因，如果单纯加锁互斥，软中断就失去了意义，所以大部分软中断处理程序，都采用的是单处理器数据（仅属于某一个处理器的数据）
+
+```c
+// 触发软中断
+raise_softirq(unsigned int nr){
+	unsigned long flags;
+
+	local_irq_save(flags);
+	raise_softirq_irqoff(nr);
+	local_irq_restore(flags);
+}
+// 在open_softirq注册后，新的软中断处理程序就可以运行，raise_softirq函数将一个软中断设置为挂起，让它在下次调用do_softirq()投入运行
+// raise_softirq()在触发一个软中断之前，先要禁止中断，然后再恢复
+```
+
+## 6.2 tasklet
+
+1. **一种特定类型的tasklet只能运行在一个CPU上**，不能并行，只能串行执行。对于同类tasklet中的共享数据不需要保护
+2. **多个不同类型的tasklet可以并行在多个CPU上**。需要对共享数据加锁
+3. 软中断是静态分配的，在内核编译好之后，就不能改变。但tasklet就灵活许多，可以在运行时改变（比如添加模块时）。
+
+tasklet基于软中断实现，tasklet由两类软中断代表：HI_SOFTIRQ和TASKLET_SOFTIRQ。
+
+```c
+struct tasklet_struct
+{
+	struct tasklet_struct *next;
+	unsigned long state;
+	atomic_t count;
+	void (*func)(unsigned long);
+	unsigned long data;
+};
+
+// state: 枚举值：0，TASKLET_STATE_SCHED(已被调度，准备运行) 和 TASKLET_STATE_RUN(正在运行)
+// count: tasklet的引用计数器，如果不为0，tasklet被禁止运行，为0时，tasklet被激活，并被设置为挂起状态，该tasklet才能够执行。
+// func: task的处理程序
+// data: func的唯一参数
+// 
+```
+
+已被调度的tasklet（等同于已被触发的软中断）存放在两个**单处理器数据结构**：`tasklet_vec和tasklet_hi_vec（高优先级）`，都是tasklet_struct的链表。
+
+tasklet由`tasklet_schedule()和tasklet_hi_schedule()`调度（tasklet本身是无类型，如果采用不同的schedule，那么底层将使用不同的tasklet类型HI_SOFTIRQ和TASKLET_SOFTIRQ），都接收一个`tasklet_struct`结构体
+
+tasklet_schedule执行流程：
+
+1. 检查tasklet的state，如果为TASKLET_STATE_SCHED，则返回
+2. 调用`_tasklet_schedule()`
+3. 保存中断状态，禁止本地中断
+4. 把需要调度的tasklet加到每一个处理器一个的tasklet_vec或tasklet_hi_vec链表头部
+5. 唤起`HI_SOFTIRQ和TASKLET_SOFTIRQ`软中断，这样下一次调用do_softirq时就执行tasklet
+   - do_softirq中有两个处理程序：`tasklet_action()和tasklet_hi_action()`
+   - tasklet_action这里面有些流程，自己看吧
+   - ![image-20240829161707279](legend/image-20240829161707279.png)
+6. 恢复中断到原状态并返回。
+
+
+
+### 6.2.1 使用
+
+```c
+
+// 定义名字为name的非激活tasklet
+#define DECLARE_TASKLET(name, func, data) \
+struct tasklet_struct name = { NULL, 0, ATOMIC_INIT(0), func, data }
+
+// 定义名字为name的激活tasklet
+#define DECLARE_TASKLET_DISABLED(name, func, data) \
+struct tasklet_struct name = { NULL, 0, ATOMIC_INIT(1), func, data }
+
+// 动态初始化tasklet
+void tasklet_init(struct tasklet_struct *t,void (*func)(unsigned long), unsigned long data);
+
+// tasklet不能睡眠，不能使用阻塞式函数
+
+//调度 tasklet 执行
+static inline void tasklet_schedule(struct tasklet_struct *t)
+// 如果tasklet在运行中被调度, 它在完成后会再次运行; 这保证了在其他事件被处理当中发生的事件受到应有的注意. 这个做法也允许一个 tasklet 重新调度它自己
+
+
+
+static inline void tasklet_disable(struct tasklet_struct *t)
+
+static inline void tasklet_enable(struct tasklet_struct *t)
+
+
+tasklet_hi_schedule(struct tasklet_struct *t)
+//和tasklet_schedule类似，只是在更高优先级执行。当软中断处理运行时, 它处理高优先级 tasklet 在其他软中断之前，只有具有低响应周期要求的驱动才应使用这个函数, 可避免其他软件中断处理引入的附加周期.
+tasklet_kill(struct tasklet_struct *t)
+//确保了 tasklet 不会被再次调度来运行，通常当一个设备正被关闭或者模块卸载时被调用。如果 tasklet 正在运行, 这个函数等待直到它执行完毕。若 tasklet 重新调度它自己，则必须阻止在调用 tasklet_kill 前它重新调度它自己，如同使用 del_timer_sync
+
+```
+
+## 6.3  工作队列
+
+
+
+# 7 内核同步方法
+
+## 7.1 原子操作
+
+### 7.1.1 原子整数操作
+
+```c
+#include<linux/types.h>
+
+// 原子整数类型
+/*32位系统下*/
+typedef struct {
+	int counter;
+} atomic_t;
+
+/*64位系统下*/
+#ifdef CONFIG_64BIT
+typedef struct {
+	long counter;
+} atomic64_t;
+#endif
+
+
+
+// 定义并初始化原子变零 v=0
+atomic_t v = ATOMIC_INIT(0);		 
+// 设置 v=10
+atomic_set(10);
+// 读取
+atomic_read(&v); 
+// +1操作
+atomic_inc(&v); 					/* v 的值加 1， v=11 */
+
+```
+
+
+
+ 对原子整数的操作声明`#include<asm/atomic.h>`，对于64位的原子整数，也有一套对应的64位操作操作，名字在atomic后面加64，`eg: atomic64_read`
+
+<table><thead><tr><th>API</th><th>含义</th></tr></thead><tbody><tr><td>ATOMIC_INIT(int i)</td><td>定义原子变量的时候对其初始化。</td></tr><tr><td>int atomic_read(atomic_t *v)</td><td>读取 v 的值，并且返回。</td></tr><tr><td>void atomic_set(atomic_t *v, int i)</td><td>向 v 写入 i 值。</td></tr><tr><td>void atomic_add(int i, atomic_t *v)</td><td>给 v 加上 i 值。</td></tr><tr><td>void atomic_sub(int i, atomic_t *v)</td><td>从 v 减去 i 值。</td></tr><tr><td>void atomic_inc(atomic_t *v)</td><td>给 v 加 1，也就是自增。</td></tr><tr><td>void atomic_dec(atomic_t *v)</td><td>从 v 减 1，也就是自减</td></tr><tr><td>int atomic_dec_return(atomic_t *v)</td><td>从 v 减 1，并且返回 v 的值。</td></tr><tr><td>int atomic_inc_return(atomic_t *v)</td><td>给 v 加 1，并且返回 v 的值。</td></tr><tr><td>int atomic_sub_and_test(int i, atomic_t *v)</td><td>从 v 减 i，如果结果为 0 就返回真，否则返回假</td></tr><tr><td>int atomic_dec_and_test(atomic_t *v)</td><td>从 v 减 1，如果结果为 0 就返回真，否则返回假</td></tr><tr><td>int atomic_inc_and_test(atomic_t *v)</td><td>给 v 加 1，如果结果为 0 就返回真，否则返回假</td></tr><tr><td>int atomic_add_negative(int i, atomic_t *v)</td><td>给 v 加 i，如果结果为负就返回真，否则返回假</td></tr></tbody></table>
+
+### 7.1.2 原子位操作
+
+位操作也是很常用的操作， Linux 内核也提供了一系列的原子位操作 API 函数，只不过原子位操作不像原子整形变量那样有个 atomic_t 的数据结构，原子位操作是直接对内存进行操作。
+
+只要指针指向了任何你希望的数据，你就可以对他操作。
+
+`#include<asm/bitops.h>`
+
+<table><thead><tr><th>API</th><th>描述</th></tr></thead><tbody><tr><td>void set_bit(int nr, void *p)</td><td>将 p 地址的第 nr 位置 1。</td></tr><tr><td>void clear_bit(int nr,void *p)</td><td>将 p 地址的第 nr 位清零。</td></tr><tr><td>void change_bit(int nr, void *p)</td><td>将 p 地址的第 nr 位进行翻转。</td></tr><tr><td>int test_bit(int nr, void *p)</td><td>获取 p 地址的第 nr 位的值。</td></tr><tr><td>int test_and_set_bit(int nr, void *p)</td><td>将 p 地址的第 nr 位置 1，并且返回 nr 位原来的值。</td></tr><tr><td>int test_and_clear_bit(int nr, void *p)</td><td>将 p 地址的第 nr 位清零，并且返回 nr 位原来的值。</td></tr><tr><td>int test_and_change_bit(int nr, void *p)</td><td>将 p 地址的第 nr 位翻转，并且返回 nr 位原来的值。</td></tr></tbody></table>
+
+## 7.2 自旋锁
+
+自旋锁最多只可能被一个可执行线程持有。如果一个执行线程试图获取一个被已经持有的自旋锁，那么该线程就会一直忙循环（旋转）等待锁重新可获得。
+
+场景：
+
+- 一般用于对公共资源访问频率比较高，资源占用时间比较短的场合
+- 可以用在中断服务程序中（中断顶半部），它不会导致睡眠，而一直忙等待。
+
+```c
+#include <linux/spinlock.h>
+
+// 定义自旋锁变量
+struct spinlock my_spinlock;
+// 或
+spinlock_t my_spinlock;
+
+// 自旋锁初始化
+spin_lock_init(&my_spinlock);
+
+// 获得自旋锁(可自旋等待，保存中断状态并关闭软、硬件中断)
+void spin_lock_irqsave(spinlock_t *my_spinlock,unsigned long flags);
+// 如果不禁止本地中断（在当前处理器上的中断请求），中断处理程序就会打断正持有锁的内核代码。
+// 这样一来，新中断处理程序就会等待锁可用，可是锁的持有者（旧中断）在这个中断处理程序执行完毕前，不可能运行。
+// 如果中断发生在不同的处理器上，就不会发生这样的事情。	
+
+// 释放自旋锁，退出临界区后，恢复中断
+void spin_unlock_irqrestore(spinlock_t *lock,unsigned long flags);
+
+// 不推荐使用下面两个
+// 获得自旋锁（可自旋等待，可被软、硬件中断）
+void spin_lock(spinlock_t *my_spinlock);
+// 释放自旋锁，退出临界区
+void spin_unlock(spinlock_t *lock);
+
+
+// 尝试获得自旋锁（不自旋等待，成功返回1、失败则返回0）
+int spin_trylock(spinlock_t *lock)
+```
+
+自旋锁不可递归：在获得锁a后，不能在获得的情况下再去获得锁a，如果这样做，将会被锁死。
+
+### 读-写自旋锁
+
+当更新（写）临界资源时，不能有其他代码并发的读或写。
+
+当读临界资源时，不能有其他代码并发的写，但是可以并发地读
+
+```c
+DEFINE_RWLOCK(my_rwlock);
+
+read_lock(&my_rwlock);
+/* 临界区只读 */
+read_unlock(&my_rwlock);
+
+write_lock(&my_rwlock);
+/* 临界区读写 */
+write_unlock(&my_rwlock);
+```
+
+
+
+## 7.3 信号量
+
+信号量**采用睡眠等待机制**。
+
+应用场景：
+
+- 一般用于对公共资源访问频率比较低，资源占用时间比较长的场合
+- 不可用在中断程序顶半部中
+
+
+
+```c
+#include <linux/semaphore.h>
+
+// 定义一个信号量
+struct semaphore my_sem;
+
+// 初始化信号量
+void sema_init(struct semaphore *sem, int val);
+// val: 信号量的计数值，val设置为>1的非0值时，这是被称作计数信号量，等于1时，被称作互斥信号量
+
+// 以计数值为1初始化动态创建的信号量
+init_MUTEX(struct semaphore *);
+// 以计数值为0初始化动态创建的信号量（初始为加锁状态）
+init_MUTEX_LOCKED(struct semaphore *);
+
+// 获取信号量(减操作)，在拿不到信号量的时候，会导致调用者睡眠（挂起），睡眠不可被系统消息中断。
+// 也就是说，如果进入睡眠，并且没有收到其他地方释放信号量（up）的消息，那么这个进程将永远睡眠，无法被中断（CTRL + C 也不可以，只有关机才行）
+void down(struct semaphore *sem);
+// 获取信号量(减操作)，会导致调用者睡眠，但可以被系统消息中断
+int down_interruptible(struct semaphore *sem);
+// 尝试获取信号量,成功返回0,失败返回非0，不会导致调用者睡眠
+int down_trylock(struct semaphore *sem);
+
+// 释放信号量，即使信号量加1（如果线程睡眠，将其唤醒）
+void up(struct semaphore *sem);
+```
+
+### 读-写信号量
+
+
+
+## 7.4 互斥体
+
+一种低开销的信号量，它也可以睡眠。
+
+
+
+## 7.5 完成变量
+
+如果内核中一个任务需要发出信号通知另一任务发生了某种特定的事件，利用完成变量是使两个任务得以同步的方法。
+
+这个很像信号量，事实上，完成变量仅仅提供了代替信号量的一个简单解决方法。
+
+## 7.6 顺序锁
 
 
 
