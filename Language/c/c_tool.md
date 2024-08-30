@@ -542,7 +542,7 @@ lrwxrwxrwx 1 yepanl yepanl 12 Oct  9 16:59 libtest.so -> libtest.2.so
 
 ## 2.3 总结
 
-![](/home/buntu/gitRepository/daily/Language/c/legend/库文件使用总结.png)
+![](./legend/库文件使用总结.png)
 
 ## 2.4 [动态链接库dll](https://zhuanlan.zhihu.com/p/490440768?utm_id=0)
 

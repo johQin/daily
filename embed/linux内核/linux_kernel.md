@@ -1154,6 +1154,359 @@ void up(struct semaphore *sem);
 
 
 
+# 8 定时器和时间管理
+
+系统定时器是一种可编程硬件芯片，它能以固定频率产生中断，该中断就是定时器中断（时钟中断）。
+
+
+
+## 8.1 节拍率HZ
+
+系统定时器频率——节拍率（tick rate），它是通过静态预处理定义的，也就是**HZ**宏。当编译内核的时候设置了CONFIG_HZ配置选项，系统就可以调整节拍率
+
+连续两次时钟中断的间隔时间——节拍（tick）。`tick = 1 / tick rate`
+
+![image-20240830094123860](legend/image-20240830094123860.png)
+
+## 8.2 jiffies
+
+全局变量jiffies用来记录自系统启动以来产生的**节拍**的总数。
+
+系统运行时间 = `jiffies * 1 / HZ`
+
+```c
+#include<linux/jiffies.h>
+extern unsigned long volatile  jiffies;
+
+// unsigned long，在32位操作系统上，是32位的，在64位操作系统上，是64位的。
+// 32位的jiffies变量，在时钟频率为100HZ情况下，497天后会溢出。在1000HZ情况下，49.7天后会溢出
+// 64位的jiffies变量，任何人都别指望会看到它溢出。	
+
+// 内核提供了四个宏来帮助比较节拍计数
+#define time_after(unknown,known)	((long) (known) - (long) (unknown) < 0)
+#define time_before(unknown,known)	((long) (unknown) - (long) (known) < 0)
+#define time_after_eq(unknown,known)	((long) (unknown) - (long) (known) >= 0)
+#define time_before_eq(unknown,known)	((long) (known) - (long) (unknown) >= 0)
+```
+
+
+
+## 8.3 实时时钟和定时器
+
+实时时钟（RTC）是用来**持久**存放系统时间的设备
+
+- 当系统启动时，内核通过读取RTC来初始化**墙上时间（实际时间）**，该时间存放在xtime中。
+- 实时时钟最主要的作用仍是在内核启动时初始化xtime变量。
+
+```c
+struct timespec xtime;
+struct timespec {
+	__kernel_time_t	tv_sec;			/* seconds */
+	long		tv_nsec;		/* nanoseconds */
+};
+
+// 从用户空间取得墙上时间的主要接口gettimeofday(), 在内核中对应的系统调用为sys_gettimeofday()，定义与kernel/time.c
+```
+
+
+
+
+
+定时器就是上面讨论的可编程硬件芯片，它提供了一种周期性触发中断的机制。
+
+它是会**睡眠**的。
+
+```c
+#include<linux/timer.h>
+struct timer_list {
+	struct list_head entry;				// 定时器列表入口
+	unsigned long expires;				// 以jiffies为单位的定时值，如果当前的jiffies>=expires，就会立即执行function
+	struct tvec_base *base;				// 定时器内部值，用户不要使用
+	void (*function)(unsigned long);	// 定时器处理函数
+	unsigned long data;					// 定时器处理函数参数
+};
+
+struct timer_list my_timer;
+ 
+//初始化定时器
+init_timer(&my_timer);
+my_timer.expires = jiffies + delay;
+my_timer.data = 0;
+my_timer.function = my_function;
+
+//激活定时器
+add_timer(&my_timer);
+mod_timer(&my_timer,jiffies + new_delay);	
+
+//删除定时器
+del_timer(&my_timer);			// 已经超时的定时器会自动删除，无需调用此函数
+// 等待其他处理器上运行的定时器处理程序都退出，再执行删除工作
+del_timer_sync(&my_timer);		// 不能再中断上下文中使用
+
+```
+
+
+
+## 8.4 延迟执行
+
+### 8.4.1 忙等待
+
+```c
+unsigned long timeout = jiffies + 10;		// 延迟10个节拍
+while(time_before(jiffies,timeout));		// 处理器自旋空转
+
+
+unsigned long timeout = jiffies + 2*HZ;		// 延迟2s
+
+while(time_before(jiffies,timeout))
+    cond_resched();		// 允许内核调用其他进程，前提设置完need_resched标志后，才能生效。并且只能在进程上下文中使用。
+```
+
+### 8.4.2 短延迟
+
+当延迟时间小于1ms，甚至更低时，使用jiffies的延迟方法就失效了，因为即使节拍率HZ为1000hz，节拍间隔也只能达到1ms，所以通过jiffies的方式就不再适用。
+
+内核提供了三个可以处理ms，us， ns级别的延迟函数
+
+```c
+void ndelay(unsigned long nsecs)
+void udelay(unsigned long usecs)
+void mdelay(unsigned long msecs)
+```
+
+### 8.4.3 schedule_timeout()
+
+延迟执行的任务**睡眠**到指定的延时时间耗尽后在重新运行。
+
+基于内核定时器实现，所以可以睡眠。
+
+```c
+set_current_state(TASK_INTERRUPTIBLE);		// 将任务设置为可中断睡眠状态。
+
+schedule_timeout(s * HZ);	//s 秒后唤醒，函数的单位是jiffies
+```
+
+# 9 内存管理
+
+## 9.1 页
+
+内核将物理页作为内存管理的基本单位。体系结构不同，页的大小不同。大多32位结构一页：4KB，64位：8KB。
+
+```c
+#include<linux/mm_types.h>
+struct page{
+    unsigned long flags;
+    atomic_t _count;
+    atomic_t _mapcount;
+    unsigned long private;
+    struct address_space *mapping;
+    pgoff_t index;
+    struct list_head lru;
+    void  *virtual;
+}
+
+// flags：用来存放页的状态，这些状态包括页是不是脏的，是不是被锁定在内存中等，至少可以同时表示32种状态。
+// _count：存放页的引用计数，当变为-1时，就说明这页并没有被引用，于是可以在新的分配中使用它，通常使用page_count()来访问页的count是空闲还是非空闲
+// 一个页可以由页缓存使用（这时，mapping指向和这个页相关联的address_space对象，或者作为私有数据（由private指向），或者作为进程页表中的映射。
+// virtual域是页的虚拟地址，它就是页在虚拟内存中的地址，可动态变化。
+```
+
+## 9.2 区
+
+内核使用区对具有相似特性的页进行分组。
+
+linux中主要使用了四种区：
+
+- ZONE_DMA：这个区包含的页用来执行DMA操作
+- ZONE_DMA32：也用来执行DMA操作，但只能没32位设备访问
+- ZONE_NORMAL：包含能正常映射的页
+- ZONE_HIGHEM：高端内存，其中页不能永久地映射到内核地址空间。
+
+x86-32上的区如下图：
+
+![image-20240830121512335](legend/image-20240830121512335.png)
+
+高端内存：指物理地址大于896M的内存，内核直接映射的空间最大也只有896MB。
+
+低端内存：低于896M的空间。
+
+## 9.3 获得页
+
+如果你需要获得以页为单位的内核内存
+
+```c
+#include<linux/gfp.h>
+// 分配2的order幂次的连续物理页，返回首页指针
+struct page* alloc_pages(gfp_t gfp_mask, unsigned int order);
+// 把页转换为逻辑地址
+void* page_address(struct page * page);
+
+// 上两个函数的合体，分配并获取第一页的逻辑地址
+unsigned long __get_free_gages(gfp_t gfp_mask, unsigned int order);
+
+// 分配单页
+struct page* alloc_page(gfp_t gfp_mask);
+// 分配单页并获取此页的逻辑地址
+unsigned long __get_free_gage(gfp_t gfp_mask);
+
+
+// 分配一页并填充0，返回页的逻辑地址
+unsigned long get_zeroed_gage(unsigned int gfp_mask);
+
+// 释放页
+void __free_pages(struct page* page, unsigned int order);
+void free_pages(unsigned long addr, unsigned int order);
+void free_page(unsigned long addr);
+```
+
+### gfp_mask标志
+
+标志可分为三类：
+
+- 行为修饰符：表示内核应当如何分配所需的内存，eg：分配时允不允许睡眠。
+- 区修饰符：指明到底从哪一区分配
+- 类型标志：组合了行为和区修饰符，将各种可能用到的组合归纳为不同的类型，简化修饰符的使用。
+- 尽量使用类型标志，下面是它的解释
+
+![image-20240830144052825](legend/image-20240830144052825.png)
+
+![image-20240830144224389](legend/image-20240830144224389.png)
+
+## 9.4 kmalloc
+
+kmalloc与用户空间的malloc一族函数相似，不过它多了一个flags参数。
+
+用它可以获得以字节为单位的一块内核内存。
+
+```c
+#include<linux/slab.h>
+
+// 分配内存
+void * kmalloc(size_t size, gfp_t flags);
+// 成功，返回指向size字节大小内存的指针，内存物理连续
+// 失败，返回NULL
+
+// 释放内存
+void kfree(const void * ptr);
+```
+
+## 9.5 vmalloc
+
+分配的内存虚拟地址是连续的，而物理地址无需连续。这也是用户空间分配函数的工作方式（malloc）。
+
+大多数情况下，只有硬件设备需要得到物理地址连续的内存。而仅供软件使用的内存块则无需如此。
+
+对内核而言，所有的内存看起来都是逻辑上连续的。
+
+尽管在某些情况下才需要物理连续的内存块，但是很多代码都使用了kmalloc，而不是vmalloc，这主要出于性能考虑。
+
+vmalloc函数为了把物理上不连续的页转换为虚拟地址空间上连续的页，需要专门建立页表项。
+
+```c
+#include<linux/vmalloc.h>
+void * vmalloc(unsigned long size);
+void vfree(const void *addr);
+```
+
+## 9.6 slab
+
+为了方便数据频繁分配和回收，slab分配器扮演了通用数据结构缓存层的角色。
+
+就像内存池，用了放进去，但不释放，再用的时候直接拿出来。
+
+每个高速缓存包含多个slab，每个slab包含一个页或多个页，这些页里放的是多个高频访问的对象
+
+![image-20240830150951722](legend/image-20240830150951722.png)
+
+每个高速缓存都使用kmem_cache结构来表示，这个结构包含三个链表：slabs_full，slabs_partial，slab_empty，这些链表中存放所有的slab，一个slabs_full中没有空闲的对象。当内核某一部分需要新的对象时，先从partial中拿。
+
+## 9.7 内核栈
+
+每个内核进程都有两页的内核栈，每个中断栈页也有自己的中断栈。
+
+## 9.8 高端内存映射
+
+“直接映射空间” 通常是指内核对物理内存的直接线性映射。
+
+传统的 32 位 Linux 系统采用了 4 GB 的虚拟地址空间，其中 3 GB 分配给用户空间，1 GB 分配给内核空间。一旦这些页全被分配，那么就一定有3G~4G的虚拟地址空间映射到内核空间。
+
+所以内核空间有1G的空间，最多有896M的地址空间内存可以被直接映射（参见区），那么还剩下104M就留给内核动态地映射空间。如果1G的地址空间必须全部映射，就必须使用高端内存（因为低端内存最多只有896M）。当然这894M的地址空间里面不一定只能给低端内存，也可以给高端内存。
+
+对 于高端内存，可以通过 alloc_page() 或者其它函数获得对应的 page，但是要想访问实际物理内存，还得把 page 转为线性地址才行（为什么？想想 MMU 是如何访问物理内存的），也就是说，我们需要为高端内存对应的 page 找一个线性空间，这个过程称为高端内存映射。
+
+高端内存映射有三种方式：
+
+- 映射到"内核动态映射空间"：通过 vmalloc() ，在”内核动态映射空间“申请内存的时候，就可能从高端内存获得页面（参看 vmalloc 的实现），因此说高端内存有可能映射到”内核动态映射空间“ 中。
+
+- 永久映射：
+
+  ```c
+  #include<linux/highmem.h>
+  
+  void *kmap(struct page* page);
+  // 在高端内存和低端内存上都可以使用，允许睡眠
+  
+  // 解除映射
+  void *kunmap(struct page* page);
+  
+  ```
+
+  
+
+- 临时映射
+
+  ```c
+  // 当必须创建一个映射而当前上下文又不能睡眠时，内核提供了临时映射
+  void *kmap_atomic(struct page *page, enum km_type type);
+  
+  //解除映射
+  void kunmap_atomic(void *kvaddr, enum km_type type);
+  ```
+
+  
+
+## 9.9 CPU类型数据
+
+```c
+#include<linux/percpu.h>
+//编译时定义CPU变量
+DEFINE_PER_CPU(type, name);
+
+// 如果你要在别处声明变量
+DECLARE_PER_CPU(type, name);
+
+//获取cpu变量，并禁止抢占
+get_cpu_var(name);
+// 恢复可抢占
+put_cpu_var(name);
+```
+
+# 10 虚拟文件系统
+
+虚拟文件系统VFS作为内核子系统，为用户空间程序提供文件和文件系统相关的接口。
+
+
+
+# 11 进程地址空间
+
+
+
+
+
+# 12 设备和模块
+
+## 12.1 设备类型
+
+linux中，把设备分为三类：
+
+- 字符设备
+- 块设备
+- 网络设备
+
+## 12.2 模块
+
+
+
 # 其他
 
 1. [current](https://blog.csdn.net/weixin_45030965/article/details/126508703)
