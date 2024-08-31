@@ -1387,6 +1387,11 @@ $(patsubst <pattern>,<replacement>,<text> )
 $(strip <string> )
 # 去掉<string>字串中开头和结尾的空字符。
 # 返回被去掉空格的字符串值
+
+# 查找字符串函数
+$(findstring <find>,<in> )
+# 功能：在字串<in>中查找<find>字串
+# 返回：如果找到，那么返回<find>，否则返回空字符串。
 ```
 
 
