@@ -106,7 +106,7 @@ linux实现线程的机制非常独特，从内核角度来说，它并没有现
 
 每个线程都有唯一隶属于自己的task_struct。
 
-线程的创建和进程的创建类似，只不过在调用的时候clone()需要传递一些参数标志来指明需要共享的资源：
+线程的创建和进程的创建类似，只不过在调用的时候`clone()`需要传递一些参数标志来指明需要共享的资源：
 
 ```c
 clone(CLONE_VM | CLONE_PS | CLONE_FILES | CLONE_SIGHAND, 0);
@@ -817,6 +817,8 @@ void free_irq(unsigned int irq, int irq, void *dev);
 
 ## 5.5 中断控制
 
+
+
 ![image-20240829104544603](legend/image-20240829104544603.png)
 
 # 6 下半部
@@ -1489,7 +1491,67 @@ put_cpu_var(name);
 
 # 11 进程地址空间
 
+## 11.1 内存描述符
 
+内核使用内存描述符结构体表示进程的地址空间，该结构包含了和进程地址空间有关的全部信息。
+
+![在这里插入图片描述](legend/1671793f17f8f403571f4c298122ac8c.png)
+
+```c
+#include<linux/mm_types.h>
+
+struct mm_struct {
+	struct vm_area_struct * mmap;    				//指向虚拟区间(VMA)的链表
+    struct rb_root mm_rb;            				// VMA形成的红黑树
+    struct vm_area_struct * mmap_cache;     		//最近使用的内存区域
+    unsigned long free_area_cache;          		//内核从这个地址开始搜索进程地址空间中线性地址的空闲区域
+    pgd_t * pgd;                            		//指向页全局目录
+    atomic_t mm_users;                      		//次使用计数器，使用这块空间的个数（用户数，进程数）
+    atomic_t mm_count;                      		//主使用计数器，是mm_struct结构体的主引用计数
+    int map_count;                          		//线性区的个数，内存区域个数
+    struct rw_semaphore mmap_sem;           		//线性区的读/写信号量
+    spinlock_t page_table_lock;             		//线性区的自旋锁和页表的自旋锁
+    struct list_head mmlist;		                //指向内存描述符链表中的相邻元素
+    
+   	unsigned long start_code, end_code, start_data, end_data;
+    //start_code 可执行代码的起始地址
+    //end_code 可执行代码的最后地址
+    //start_data已初始化数据的起始地址
+    //end_data已初始化数据的最后地址
+    
+    unsigned long start_brk, brk, start_stack;
+    //start_stack堆的起始位置
+    //brk堆的当前的最后地址
+    //用户堆栈的起始地址
+    
+     unsigned long arg_start, arg_end, env_start, env_end;
+     //arg_start 命令行参数的起始地址
+     //arg_end命令行参数的起始地址
+     //env_start环境变量的起始地址
+     //env_end环境变量的最后地址
+    
+     unsigned long total_vm, locked_vm, shared_vm, exec_vm;
+     //total_vm 进程地址空间的大小(页数）
+     //locked_vm 锁住而不能换出的页的个数
+     //shared_vm 共享文件内存映射中的页数
+   	 //exec_vm 虚拟可执行页数（不可写）
+    
+    unsigned long saved_auxv[AT_VECTOR_SIZE];		// /proc/PID/auxv
+    cpumask_t cpu_vm_mask; 							//用于惰性TLB交换的位掩码
+    mm_context_t context; 							//指向有关特定结构体系信息的表
+    unsigned long flags;							// 状态标志
+    
+    struct core_state *core_state;					// 核心转储的支持
+    spinlock_t ioctx_lock;							//用于保护异步I/O上下文链表的锁
+    struct hlist_head ioctx_list;					//异步I/O上下文链表
+}
+```
+
+
+
+## 11.2 虚拟内存区域
+
+内存区域由vm_area_struct结构体描述，内存区域在linux内核中也经常称作虚拟内存区域（Virtual Memory Areas，VMA），这个结构体描述了指定地址空间内连续区间上的一个独立内存范围。
 
 
 
@@ -1504,6 +1566,43 @@ linux中，把设备分为三类：
 - 网络设备
 
 ## 12.2 模块
+
+
+
+# 13 调试
+
+调试工作艰难是内核级开发区别于用户级开发的一个显著特定。内核的一个错误往往立刻就能让系统崩溃。
+
+## 13.1 通过打印调试
+
+`printk()`可以中断上下文和进程上下文中被调用，可以在任何持有锁时被调用，可以在多处理器上同时调用。
+
+在系统启动过程中，终端还没有初始化前，`printk()`将黔驴技穷。此时，如果依靠工作的硬件设备（eg: 串口）与外界通信，然后打印出来，大多数硬件体系都可以，包括x86
+
+![image-20240902164627689](legend/image-20240902164627689.png)
+
+内核把级别比当前终端的记录等级console_loglevel（默认是KERN_WARNING）低的消息打印到终端。
+
+内核消息都被保存在一个LOG_BUF_LEN大小的环形队列中，该缓冲区大小可以在编译时通过设置CONFIG_LOG_BUF_SHIFT进行调整。
+
+## 13.2 syslogd和klogd
+
+查看linux系统日志的途径：
+
+- dmesg命令：从kernel 的ring buffer(环缓冲区)中读取信息的
+- /var/log下的文件：通过syslogd守护进程实现。
+
+LINUX系统启动后，由/etc/init.d/sysklogd先后启动klogd,syslogd两个守护进程。
+
+klogd：
+
+- 是一个专门截获并记录 Linux 内核消息的守护进程
+- 可以指定输出到控制台，文件或syslogd守护进程等，常用情况是把内核消息输出到syslogd进程，由syslogd统一处理。
+
+syslogd：
+
+- 负责记录系统中kenel或应用程序(邮件、新闻等)产生的各种log信息的工具。
+- 这些信息根据`/etc/syslog.conf`配置，写入到系统文件中，通常是/var/log目录下，或者是输出到远程server，让使用者进行故障排除、追踪尝试非法入侵的使用者等等。
 
 
 
