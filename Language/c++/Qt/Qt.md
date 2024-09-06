@@ -1317,6 +1317,33 @@ int main(int argc, char *argv[]) {
 
 ####  [QString](https://blog.csdn.net/qq_41802658/article/details/121490656)
 
+##### [转换](https://blog.csdn.net/superrunner_wujin/article/details/103950512)
+
+```c++
+// char * 转QString
+char* ch = "acuity";
+QString str(ch);
+
+// QString 转 char *
+Qstring  str;
+char*  ch;
+QByteArray ba = str.toUtf8();    
+ch=ba.data();
+
+// string 转 QString
+QString qstr;
+string str;
+qstr = QString::fromStdString(str);
+
+// QString 转 string
+QString qstr;
+string str;
+str = qstr.toStdString();
+
+```
+
+
+
 1. 组合（操作）字符串方法：
    - 后向追加append/push_back，前向追加prepend/push_front
    - 模板字符串sprintf/arg
@@ -1327,7 +1354,8 @@ int main(int argc, char *argv[]) {
 3. 转换
    - 字符数字转换：toInt/toLong/toFloat/toDouble
    - QString转UTF-8(ASCII)：toUtf8
-4. 
+
+
 
 ```c++
 #include <QCoreApplication>//QT 提供一个事件循环
@@ -2941,15 +2969,407 @@ QList<QNetworkInterface> list=QNetworkInterface::allInterfaces();
 
 # 6 多线程
 
+# 7 包
+
+## 7.1 [定时器](https://blog.csdn.net/andy_93/article/details/52776283)
 
 
 
 
 
+
+
+# 8 媒体播放器
+
+基于libvlc包
+
+## 8.1 [开发](https://blog.csdn.net/qq_30398269/article/details/136006798)
+
+[代码参考](https://github.com/leixiaohua1020/simplest_libvlc_example/blob/master/simplest_libvlc_player/simplest_libvlc_player.cpp)
+
+1. 选择对应的包下载（本次使用的是3.0.20-win64）[下载地址](https://ftp.heanet.ie/pub/videolan/vlc/)
+
+2. 解压后：
+
+   - 将sdk复制到项目根目录下
+   - 将plugins、libvlc.dll、libvlccore.dll复制到打包生成的exe同级目录下，否则会报缺少libvlc.dll
+
+   ![image-20240906185415936](legend/image-20240906185415936.png)
+
+3. 在项目的CMakeLists.txt
+
+   ```cmake
+   target_link_libraries(VLC
+       PRIVATE Qt${QT_VERSION_MAJOR}::Widgets
+       PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/sdk/lib/libvlc.lib
+       PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/sdk/lib/libvlccore.lib
+   )
+   # 在项目中使用 libvlc.lib 静态库链接，libvlc 实际上依赖于动态链接库 (libvlc.dll) 来执行运行时功能。这意味着，虽然你在编译时链接了 libvlc.lib，但在运行时 libvlc.dll 仍然是必需的。
+   ```
+
+4. 创建项目
+
+   ```c++
+   // 头文件
+   
+   #ifndef MAINWINDOW_H
+   #define MAINWINDOW_H
+   
+   #include <QMainWindow>
+   #include <vlc/vlc.h>
+   #include<windows.h>
+   #include<QDebug>
+   #include<QString>
+   #include<QTimer>
+   
+   QT_BEGIN_NAMESPACE
+   namespace Ui {
+   class MainWindow;
+   }
+   QT_END_NAMESPACE
+   
+   class MainWindow : public QMainWindow
+   {
+       Q_OBJECT
+   
+   public:
+       MainWindow(QWidget *parent = nullptr);
+       ~MainWindow();
+   
+   private slots:
+       void on_btn_start_clicked();
+   
+       void on_btn_stop_clicked();
+       void onTimeOut();
+   
+       void on_btn_pause_clicked();
+   
+   private:
+       static void on_player_event(const libvlc_event_t *event, void *data);
+       static void playMedia(QString& url, MainWindow* that);
+   
+   private:
+       Ui::MainWindow *ui;
+       QTimer *tim;
+       bool isStart = false;
+       bool mediaStatus;
+       libvlc_instance_t* m_instence;
+       libvlc_media_player_t* m_vlcplayer = nullptr;
+   };
+   #endif // MAINWINDOW_H
+   ```
+
+   ```c++
+   #include "mainwindow.h"
+   #include "./ui_mainwindow.h"
+   
+   MainWindow::MainWindow(QWidget *parent)
+       : QMainWindow(parent)
+       , ui(new Ui::MainWindow)
+   {
+       ui->setupUi(this);
+       m_instence = libvlc_new(0,nullptr);
+   
+       // libvlc_event_manager_t *event_manager = libvlc_media_player_event_manager(m_vlcplayer);
+       // libvlc_event_attach(event_manager, libvlc_MediaPlayerEndReached, on_player_event, this);
+   
+       tim = new QTimer();
+       tim->setInterval(1000);
+       connect(tim,SIGNAL(timeout()),this,SLOT(onTimeOut()));
+   }
+   
+   MainWindow::~MainWindow()
+   {
+       if(m_vlcplayer) libvlc_media_player_release (m_vlcplayer);
+       if(m_instence) libvlc_release (m_instence);
+       if(tim->isActive()) tim->stop();
+       delete ui;
+   }
+   
+   void MainWindow::onTimeOut()
+   {
+       if(isStart){
+           if(libvlc_media_player_is_playing(m_vlcplayer) == 1){
+               if(ui->media_status->text() != "playing") ui->media_status->setText("playing");
+           }else{
+               if(ui->media_status->text() != "loading") ui->media_status->setText("loading");
+               qDebug()<<"loading\n";
+           }
+       }
+   }
+   void MainWindow::on_btn_start_clicked()
+   {
+       QString url = this->ui->lineEdit->text().trimmed();
+       if(url.length() == 0 ){
+           qDebug()<< "视频地址错误";
+           if(tim->isActive()){
+               tim->stop();
+               ui->media_status->setText("no_media");
+           }
+   
+           return ;
+       }
+       playMedia(url, this);
+   }
+   
+   void MainWindow::playMedia(QString& url, MainWindow* that){
+       that->ui->media_status->setText("loading");
+   
+       // rtsp://192.168.0.2:554/live/test/0
+       // http://192.168.0.2/record/transport.mp4
+       // http://192.168.0.2/record/c3.mp4
+       libvlc_media_t* media = libvlc_media_new_location (that->m_instence, url.toStdString().c_str());
+       // 这个函数本身不会校验地址的有效性
+   
+       // 创建一个媒体播放器播放环境
+       if(!that->m_vlcplayer){
+           that->m_vlcplayer = libvlc_media_player_new_from_media (media);
+           libvlc_media_player_set_hwnd(that->m_vlcplayer,(void*)that->ui->q_player->winId());
+       }else{
+           libvlc_media_player_set_media(that->m_vlcplayer, media);
+       }
+   
+       //  No need to keep the media now
+       libvlc_media_release (media);
+   
+   
+   
+       // 播放
+       libvlc_media_player_play (that->m_vlcplayer);
+       that->isStart = true;
+       that->tim->start();
+   
+   
+       unsigned int width;
+       unsigned int height;
+       int wait_time=5000;
+       libvlc_video_get_size(that->m_vlcplayer, 0, &width, &height);
+       qDebug()<<"width: "<<width<<" height: "<< height;
+   }
+   void MainWindow::on_btn_stop_clicked()
+   {
+       // Stop playing
+       libvlc_media_player_stop (m_vlcplayer);
+       isStart = false;
+       tim->stop();
+       ui->media_status->setText("no_media");
+   }
+   
+   // void MainWindow::on_player_event(const libvlc_event_t *event, void *data) {
+   //     MainWindow *that = (MainWindow *)data;
+   //     that->isStart = false;
+   //     that->tim->stop();
+   //     // that->ui->q_player
+   //     if (event->type == libvlc_MediaPlayerEndReached) {
+   //         // 播放下一个视频
+   //         QString url("http://192.168.0.2/record/transport.mp4");
+   //         // libvlc_media_player_stop(that->m_vlcplayer);
+   //         libvlc_media_player_release(that->m_vlcplayer);
+   //         that->m_vlcplayer = nullptr;
+   //         libvlc_release (that->m_instence);
+   //         that->m_instence = libvlc_new(0,nullptr);
+   //         playMedia(url,that);
+   //     }
+   // }
+   
+   
+   void MainWindow::on_btn_pause_clicked()
+   {
+       if(libvlc_media_player_is_playing(m_vlcplayer) == 1) libvlc_media_player_set_pause(m_vlcplayer, 1);
+       else libvlc_media_player_set_pause(m_vlcplayer, 0);
+   }
+   
+   
+   ```
+
+   ![image-20240906193458739](legend/image-20240906193458739.png)
+
+
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>813</width>
+    <height>567</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <widget class="QWidget" name="horizontalLayoutWidget">
+    <property name="geometry">
+     <rect>
+      <x>40</x>
+      <y>20</y>
+      <width>691</width>
+      <height>61</height>
+     </rect>
+    </property>
+    <layout class="QHBoxLayout" name="horizontalLayout">
+     <item>
+      <widget class="QLabel" name="label">
+       <property name="text">
+        <string>URL：</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="lineEdit"/>
+     </item>
+    </layout>
+   </widget>
+   <widget class="QWidget" name="q_player" native="true">
+    <property name="geometry">
+     <rect>
+      <x>40</x>
+      <y>100</y>
+      <width>691</width>
+      <height>331</height>
+     </rect>
+    </property>
+    <property name="sizePolicy">
+     <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+      <horstretch>0</horstretch>
+      <verstretch>0</verstretch>
+     </sizepolicy>
+    </property>
+   </widget>
+   <widget class="QWidget" name="horizontalLayoutWidget_2">
+    <property name="geometry">
+     <rect>
+      <x>40</x>
+      <y>450</y>
+      <width>381</width>
+      <height>51</height>
+     </rect>
+    </property>
+    <layout class="QHBoxLayout" name="horizontalLayout_2">
+     <item>
+      <widget class="QPushButton" name="btn_start">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+         <horstretch>0</horstretch>
+         <verstretch>1</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="sizeIncrement">
+        <size>
+         <width>0</width>
+         <height>1</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>start</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="btn_pause">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="text">
+        <string>pause</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="btn_stop">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="text">
+        <string>stop</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+   <widget class="QWidget" name="layoutWidget">
+    <property name="geometry">
+     <rect>
+      <x>620</x>
+      <y>460</y>
+      <width>124</width>
+      <height>18</height>
+     </rect>
+    </property>
+    <layout class="QHBoxLayout" name="horizontalLayout_3">
+     <item>
+      <widget class="QLabel" name="label_2">
+       <property name="text">
+        <string>视频状态：</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="media_status">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="text">
+        <string>no_media</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>813</width>
+     <height>21</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
+
+```
+
+
+
+
+
+![simplest_libvlc_player.jpg](legend/simplest_libvlc_player.jpg)
+
+## 8.2 打包安装
+
+1. [windows查看exe需要依赖哪些动态库](https://zhuanlan.zhihu.com/p/395557318)
+   - 下载lucasg/Dependencies
+   - 下载解压后，找到 `DependenciesGui.exe` 打开软件。命令行使用则用 `Dependencies.exe`。
+   - [windows 64 下载包](https://objects.githubusercontent.com/github-production-release-asset-2e65be/95366680/71a5aa00-2a64-11ea-9331-73b8e1147ba9?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=releaseassetproduction%2F20240906%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20240906T114634Z&X-Amz-Expires=300&X-Amz-Signature=c176d59f61127023dfd15e8dea2d9d11d01ffc7c3bd9d9bef1337d822bbe8524&X-Amz-SignedHeaders=host&actor_id=46484763&key_id=0&repo_id=95366680&response-content-disposition=attachment%3B%20filename%3DDependencies_x64_Release.zip&response-content-type=application%2Foctet-stream)
+2. 
 
 # 7 [安装和卸载](https://blog.csdn.net/weixin_44069765/article/details/121868710)
 
 参考2：[QT生成.exe安装包详细全文（保姆级教程）--打包软件及问题大全](https://blog.csdn.net/qq_44094415/article/details/121889028)
+
+
+
+
 
 # log
 
