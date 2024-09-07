@@ -6,7 +6,7 @@
 apt install ffmpeg
 ```
 
-
+[windows 包](https://github.com/BtbN/FFmpeg-Builds/releases)
 
 ffmpeg的命令行参数非常多，可以分成五个部分。
 

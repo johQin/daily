@@ -3068,8 +3068,11 @@ QList<QNetworkInterface> list=QNetworkInterface::allInterfaces();
        , ui(new Ui::MainWindow)
    {
        ui->setupUi(this);
+       // 引用qrc的图片
+       this->ui->img->setPixmap(QPixmap(":/images/camera.png").scaled(64,64));
+       
        m_instence = libvlc_new(0,nullptr);
-   
+   	
        // libvlc_event_manager_t *event_manager = libvlc_media_player_event_manager(m_vlcplayer);
        // libvlc_event_attach(event_manager, libvlc_MediaPlayerEndReached, on_player_event, this);
    
@@ -3330,6 +3333,31 @@ QList<QNetworkInterface> list=QNetworkInterface::allInterfaces();
      </item>
     </layout>
    </widget>
+   <widget class="QLabel" name="img">
+    <property name="geometry">
+     <rect>
+      <x>520</x>
+      <y>440</y>
+      <width>64</width>
+      <height>64</height>
+     </rect>
+    </property>
+    <property name="sizePolicy">
+     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+      <horstretch>0</horstretch>
+      <verstretch>0</verstretch>
+     </sizepolicy>
+    </property>
+    <property name="sizeIncrement">
+     <size>
+      <width>64</width>
+      <height>64</height>
+     </size>
+    </property>
+    <property name="text">
+     <string/>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
@@ -3355,17 +3383,206 @@ QList<QNetworkInterface> list=QNetworkInterface::allInterfaces();
 
 ![simplest_libvlc_player.jpg](legend/simplest_libvlc_player.jpg)
 
-## 8.2 打包安装
+## 8.2 打包
 
 1. [windows查看exe需要依赖哪些动态库](https://zhuanlan.zhihu.com/p/395557318)
+
    - 下载lucasg/Dependencies
    - 下载解压后，找到 `DependenciesGui.exe` 打开软件。命令行使用则用 `Dependencies.exe`。
    - [windows 64 下载包](https://objects.githubusercontent.com/github-production-release-asset-2e65be/95366680/71a5aa00-2a64-11ea-9331-73b8e1147ba9?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=releaseassetproduction%2F20240906%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20240906T114634Z&X-Amz-Expires=300&X-Amz-Signature=c176d59f61127023dfd15e8dea2d9d11d01ffc7c3bd9d9bef1337d822bbe8524&X-Amz-SignedHeaders=host&actor_id=46484763&key_id=0&repo_id=95366680&response-content-disposition=attachment%3B%20filename%3DDependencies_x64_Release.zip&response-content-type=application%2Foctet-stream)
-2. 
 
-# 7 [安装和卸载](https://blog.csdn.net/weixin_44069765/article/details/121868710)
+2. [dll动态链接库路径搜索机制](https://blog.csdn.net/superbinlovemiaomi/article/details/121178763)
 
-参考2：[QT生成.exe安装包详细全文（保姆级教程）--打包软件及问题大全](https://blog.csdn.net/qq_44094415/article/details/121889028)
+   - 通过manifest文件指定。
+   - DLL重定向技术可以使LoadLibrary 优先在应用程序所在目录查找。
+   - 如果上面两种方法都没有使用，则会做下面的检查：
+     - 如果同名的DLL已经在内存里，则会直接使用，不会开启搜索。
+     - 如果DLL在知名的DLL列表里（在这个注册表下： HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\KnownDLLs），则会使用这些知名DLL，不会开启搜索。
+   - 如果以上条件都没有满足，则会开启DLL搜索。
+   - 另外，对于DLL依赖的其他DLL，比如a.dll依赖b.dll，系统会直接用b.dll的名字调用LoadLibrary，而不会加入额外的路径。
+
+3. [项目添加logo](https://blog.csdn.net/qq_43331089/article/details/127628067)
+
+   - 在CMakeLists.txt同级目录下新建文件“`XXX.rc`”，并放入准备好的ico图标文件；在rc文件中添加以下内容
+
+     - 这里的ico地址是相对于rc文件所在位置的，ico为当前xxx.rc所在路径下的images文件夹下的mliao.ico
+
+     ```
+     IDI_ICON1    ICON    DISCARDABLE    "images/mliao.ico"
+     ```
+
+   - 在CMakeList.txt中
+
+     ```cmake
+     add_executable(PROJECT_NAME
+         main.cpp
+         xxx.rc
+     )
+     ```
+
+   - [参考2的做法，它还将ico文件作为静态文件放入了qrc中](https://blog.csdn.net/weixin_41255248/article/details/129538146)
+
+   - [qt5官方指引](https://doc.qt.io/qt-5/appicon.html)
+
+4. [获取项目的release版本](https://blog.csdn.net/Hat_man_/article/details/120616932)
+
+   - 在开发过程中，我们在建项目的时候，通常只会建一个debug版本，而只需在发布的时候，获取release版本，在这个时候，我们怎么去添加一个release方式呢？
+
+   - ![](./legend/release.png)
+
+   - 在构建release后，需要保证能运行起来。
+
+   - 然后对应版本的qt 命令行工具，因为在构建release版本的时候使用的是5.16.2 MinGW 64-bit，那么命令行也需要使用对应版本的命令行。将构建的exe文件放到一个空文件夹中，然后使用windeployqt命令
+
+     - `windeployqt` 是 Qt 框架中的一个命令行工具，专门用于在 Windows 平台上部署 Qt 应用程序。它的主要作用是自动分析你的 Qt 应用程序所依赖的库和插件，并将它们复制到应用程序的输出目录中，以确保你的应用程序在目标机器上能够正确运行。
+       - 它的任务：复制QT库，复制平台相关插件，处理QML等工作，
+       - `windeployqt` 主要负责复制 Qt 库及其相关的插件和依赖项，但 **不会** 自动复制应用程序依赖的非 Qt 第三方动态库。所以第三方的库包，还是需要手动拷贝到此目录。
+
+     ```bash
+     # 这里的release文件夹是自己建的一个空文件夹
+     E:\qt\projects\VLC\build\release>windeployqt VLC.exe
+     E:\qt\projects\VLC\build\release\VLC.exe 64 bit, release executable
+     Adding Qt5Svg for qsvgicon.dll
+     Direct dependencies: Qt5Core Qt5Gui Qt5Widgets
+     All dependencies   : Qt5Core Qt5Gui Qt5Widgets
+     To be deployed     : Qt5Core Qt5Gui Qt5Svg Qt5Widgets
+     Updating Qt5Core.dll.
+     Updating Qt5Gui.dll.
+     Updating Qt5Svg.dll.
+     Updating Qt5Widgets.dll.
+     Updating libGLESv2.dll.
+     Updating libEGL.dll.
+     Updating D3Dcompiler_47.dll.
+     Updating opengl32sw.dll.
+     Updating libgcc_s_seh-1.dll.
+     Updating libstdc++-6.dll.
+     Updating libwinpthread-1.dll.
+     Creating directory E:/qt/projects/VLC/build/release/iconengines.
+     Updating qsvgicon.dll.
+     Creating directory E:/qt/projects/VLC/build/release/imageformats.
+     Updating qgif.dll.
+     Updating qicns.dll.
+     Updating qico.dll.
+     Updating qjpeg.dll.
+     Updating qsvg.dll.
+     Updating qtga.dll.
+     Updating qtiff.dll.
+     Updating qwbmp.dll.
+     Updating qwebp.dll.
+     Creating directory E:/qt/projects/VLC/build/release/platforms.
+     Updating qwindows.dll.
+     Creating directory E:/qt/projects/VLC/build/release/styles.
+     Updating qwindowsvistastyle.dll.
+     Creating E:\qt\projects\VLC\build\release\translations...
+     Creating qt_ar.qm...
+     Creating qt_bg.qm...
+     Creating qt_ca.qm...
+     Creating qt_cs.qm...
+     Creating qt_da.qm...
+     Creating qt_de.qm...
+     Creating qt_en.qm...
+     Creating qt_es.qm...
+     Creating qt_fi.qm...
+     Creating qt_fr.qm...
+     Creating qt_gd.qm...
+     Creating qt_he.qm...
+     Creating qt_hu.qm...
+     Creating qt_it.qm...
+     Creating qt_ja.qm...
+     Creating qt_ko.qm...
+     Creating qt_lv.qm...
+     Creating qt_pl.qm...
+     Creating qt_ru.qm...
+     Creating qt_sk.qm...
+     Creating qt_tr.qm...
+     Creating qt_uk.qm...
+     Creating qt_zh_TW.qm...
+     ```
+
+## 8.3 安装
+
+1. [打包release版本后，生成setup安装包](https://blog.csdn.net/weixin_44069765/article/details/121868710)
+
+   - 使用inno Setup向导进行打包。
+
+   - 通过它的脚本创建向导，可以完成一个类似于以下的脚本
+
+   - ```python
+     ; Script generated by the Inno Setup Script Wizard.
+     ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
+     
+     #define MyAppName "MyVLC"
+     #define MyAppVersion "1.0"
+     #define MyAppPublisher "Kang Heng lmt co"
+     #define MyAppURL "https://github.com/johQin/daily"
+     #define MyAppExeName "VLC.exe"
+     #define MyAppAssocName MyAppName + "_file"
+     #define MyAppAssocExt ".myp"
+     #define MyAppAssocKey StringChange(MyAppAssocName, " ", "") + MyAppAssocExt
+     
+     [Setup]
+     ; NOTE: The value of AppId uniquely identifies this application. Do not use the same AppId value in installers for other applications.
+     ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
+     AppId={{8C6E5404-880A-4A1D-AF91-EE336458A926}
+     AppName={#MyAppName}
+     AppVersion={#MyAppVersion}
+     ;AppVerName={#MyAppName} {#MyAppVersion}
+     AppPublisher={#MyAppPublisher}
+     AppPublisherURL={#MyAppURL}
+     AppSupportURL={#MyAppURL}
+     AppUpdatesURL={#MyAppURL}
+     DefaultDirName=D:/{#MyAppName}
+     ; "ArchitecturesAllowed=x64compatible" specifies that Setup cannot run
+     ; on anything but x64 and Windows 11 on Arm.
+     ArchitecturesAllowed=x64compatible
+     ; "ArchitecturesInstallIn64BitMode=x64compatible" requests that the
+     ; install be done in "64-bit mode" on x64 or Windows 11 on Arm,
+     ; meaning it should use the native 64-bit Program Files directory and
+     ; the 64-bit view of the registry.
+     ArchitecturesInstallIn64BitMode=x64compatible
+     ChangesAssociations=yes
+     DisableProgramGroupPage=yes
+     ; Uncomment the following line to run in non administrative install mode (install for current user only.)
+     ;PrivilegesRequired=lowest
+     OutputDir=E:\vlc
+     OutputBaseFilename=myvlcsetup
+     Compression=lzma
+     SolidCompression=yes
+     WizardStyle=modern
+     
+     [Languages]
+     Name: "english"; MessagesFile: "compiler:Default.isl"
+     
+     [Tasks]
+     Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+     
+     [Files]
+     Source: "E:\qt\projects\VLC\build\release\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+     Source: "E:\qt\projects\VLC\build\release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+     ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
+     
+     [Registry]
+     Root: HKA; Subkey: "Software\Classes\{#MyAppAssocExt}\OpenWithProgids"; ValueType: string; ValueName: "{#MyAppAssocKey}"; ValueData: ""; Flags: uninsdeletevalue
+     Root: HKA; Subkey: "Software\Classes\{#MyAppAssocKey}"; ValueType: string; ValueName: ""; ValueData: "{#MyAppAssocName}"; Flags: uninsdeletekey
+     Root: HKA; Subkey: "Software\Classes\{#MyAppAssocKey}\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\{#MyAppExeName},0"
+     Root: HKA; Subkey: "Software\Classes\{#MyAppAssocKey}\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"" ""%1"""
+     Root: HKA; Subkey: "Software\Classes\Applications\{#MyAppExeName}\SupportedTypes"; ValueType: string; ValueName: ".myp"; ValueData: ""
+     
+     [Icons]
+     Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
+     Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
+     
+     [Run]
+     Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
+     
+     
+     ```
+
+   - 脚本完成后，compile脚本之后，就会在脚本指定的文件夹（OutputDir）下生成指定名称（myvlcsetup）的exe文件，这个文件运行起来就可以对我们的release项目文件进行安装。
+
+   - [脚本各项解释](https://zhuanlan.zhihu.com/p/168690637)
+
+   
 
 
 
@@ -3383,4 +3600,44 @@ QList<QNetworkInterface> list=QNetworkInterface::allInterfaces();
 
    
 
-2. ​       
+2. [静态资源引入项目，eg：图片等](https://blog.csdn.net/qq_43331089/article/details/127633361)
+
+   - 通过qrc引入静态资源文件的好处：
+
+     - 无需使用图片静态资源的绝对路径
+     - 打包之后，图片资源无需随包，已经将静态资源在应用程序的可执行文件中存储为二进制文件
+
+   - 通过添加新文件->模板QT（Qt Resource File）为项目添加一个qrc文件
+
+     - `.qrc`文件中列出的资源文件是属于应用程序源树的一部分的文件。指定的路径是相对于包含`.qrc`文件的目录的。请注意，列出的资源文件必须与`.qrc`文件位于同一目录或其子目录之一。
+
+     - ```xml
+       <RCC>
+           <qresource prefix="/">
+               <file>images/mliao.ico</file>			<!--静态文件夹必须与qrc文件同层-->
+               <file>images/camera.png</file>			<!--文件在代码中的路径 = prefix + file标签内的内容-->
+           </qresource>
+       </RCC>
+       ```
+
+     - qrc文件等同于代码源文件，需要修改`CMakeLists.txt`
+
+     - ```cmake
+       # 用于rcc解析qrc文件，所以要打开
+       set(CMAKE_AUTORCC ON)
+       # qrc作为源文件需要，打入exe包中
+       add_executable(VLC
+                   ${PROJECT_SOURCES}
+                   imgRes.qrc
+               )
+       ```
+
+   - 在代码中使用
+
+     ```c++
+     // 资源地址 = qrc前缀 + 文件相对于qrc文件所在目录的地址
+     // 在这里前缀为: /，文件相对于qrc文件所在目录的地址：images/camera.png
+     this->ui->img->setPixmap(QPixmap(":/images/camera.png").scaled(64,64));
+     ```
+
+3. 
