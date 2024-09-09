@@ -4991,6 +4991,7 @@ void iteratorUsing() {
 	// 遍历该容器
 	// 定义一个迭代器iterator,保存起始迭代器
 	vector<int>::iterator it = v1.begin();
+   
 	for (; it != v1.end(); it++) {
         // it是当前元素的迭代器。可以把it看成是指针，但不要认为it是指针，它底层有很多细节
 		cout << *it << " ";
@@ -5089,6 +5090,10 @@ cout<<"容量:"<<v1.capacity()<<", 大小:"<<v1.size()<<endl;//4 4
 vector<int> v1;
 v1.reserve(100);
 ```
+
+
+
+
 
 ### 8.3.4 案例
 
@@ -5195,6 +5200,10 @@ void vectorIntSort() {
 	printVector03(v1);
 }
 ```
+
+
+
+
 
 ## 8.4 deque容器
 
@@ -5940,6 +5949,129 @@ SGI-STL规定以128字节作为小块内存和大块内存的分界线
   - 为什么不直接用C++的new和delete，因为这里并不需要调用构造函数和析构函数
 - 二级空间配置器处理小块内存。
   - SGI-STL采用了**内存池**的技术来提高申请空间的速度以及减少额外空间的浪费，采用**哈希桶**的方式来提高用户获取空间的速度和高效管理（有的也采用链表的方式）
+
+## 8.14 容器删除元素
+
+容器删除任何一个元素，这个元素的迭代器就会失效，所以再使用当前这个迭代器，就会出现不确定的行为。
+
+### 8.14.1 vector和deque删除元素
+
+对于顺序容器的vector、deque来说，使用erase后，后面每个元素的迭代器都会失效，后面每一个元素都会往前移动一位。erase返回下一个有效迭代器。
+
+```c++
+#include<vector>
+#include<iostream>
+using namespace std;
+
+vector<string> vec;
+vec.push_back("123");
+vec.push_back("hello");
+vec.push_back("123");
+vec.push_back("hello");
+
+
+
+// 通过erase返回下一个元素的迭代器
+// vector<int>::iterator it = vec.begin();
+
+for (auto iter = vec.begin(); iter != vec.end();) {
+    if(*iter == "hello"){
+        iter = vec.erase(iter);			// 删除迭代器指向的元素， 返回值是一个迭代器，指向删除元素下一个元素。
+    }else{
+       iter++; 
+    }
+}
+
+
+// 看似正确，实则错误的方法如下
+// erase当前的迭代器后，当前的迭代器自动变为下一个元素的迭代器
+for(auto iter = vec.begin();iter!=vec.end();){
+    if(*iter == "hello"){
+        vec.erase(iter);	
+    }else{
+        iter++;
+    }
+}
+// 在erase(iter)后，原来的迭代器 iter 变为无效迭代器，不应该再使用。虽然有时候它可能会指向下一个元素，但这是未定义行为，可能因不同的编译器、优化级别、标准库实现等因素而变化。
+```
+
+### 8.14.2 map和set
+
+对于关联容器map、set来说，使用了erase后，当前元素的迭代器会失效，但其结构是红黑树，删除当前元素，不会影响下一个元素的迭代器，所以在调erase方法之前，记录下一个元素的迭代器即可
+
+```c++
+	#include<map>
+	#include<iostream>
+	using namespace std;
+
+    map<int,string> m;
+    m.insert(make_pair(1,"mmm"));
+    m.insert(make_pair(2,"hello"));
+    m.insert(make_pair(3,"mmm"));
+    m.insert(make_pair(4,"hello"));
+    map<int, string>::iterator iter_tmp;
+	
+	// 方式1，通过erase返回下一个元素的迭代器
+    for(auto iter = m.begin(); iter!=m.end();){
+        if(iter->second == "hello"){
+
+            iter=m.erase(iter);
+        }else{
+            iter++;
+        }
+    }
+
+	// 方式2：在删除前，记录下一个迭代器
+    for(auto iter = m.begin(); iter!=m.end();){
+        if(iter->second == "hello"){
+            iter_tmp = std::next(iter);
+            m.erase(iter);
+            iter = iter_tmp;
+        }else{
+            iter++;
+        }
+    }
+
+	
+    for(auto iter = m.begin(); iter!=m.end();iter++){
+        cout<<"first: "<< iter->first << "  second: "<< iter->second<<endl;
+    }
+```
+
+### 8.14.3 list删除元素
+
+对于list来说，它使用了不连续的内存，并且erase会返回下一个有效的迭代器，因此上面两种方式都可用。
+
+```c++
+#include<list>
+using namespace std;
+   list<string> l;
+   l.push_back("lll");
+   l.push_back("hello");
+   l.push_back("lll");
+   l.push_back("hello");
+   list<string>::iterator iter_tmp;
+   for(auto iter = l.begin();iter!= l.end();){
+       if(*iter == "hello"){
+           iter_tmp = std::next(iter);
+           l.erase(iter);
+           iter = iter_tmp;
+       }else{
+           iter++;
+       }
+   }
+   for(auto iter = l.begin();iter!= l.end();){
+       if(*iter == "hello"){
+           iter = l.erase(iter);
+       }else{
+           iter++;
+       }
+   }
+
+    for(auto iter = l.begin(); iter!=l.end();iter++){
+        cout<< *iter<<endl;
+    }
+```
 
 
 
@@ -6833,6 +6965,26 @@ int& r2=i*42;		// 错误，i*42是一个右值
 const int& r3=i*42;	// 正确：可以将一个const的引用绑定到一个右值上
 int&& rr2=i*42;		// 正确：将 rr2 绑定到乘法结果上，这个乘法结果是一个右值。
 ```
+
+左值引用还是右值引用**声明时都必须被初始化**
+
+```c++
+int &refVal4 = 10;      // f，左值引用不能赋一个右值
+double dval = 3.14;
+int &refVal5 = dval;           //f，整型左值引用不能赋一个浮点类型的左值
+int i = 42;
+int &ref;                       // f，不论左值引用还是右值引用，声明时，都必须初始化
+int &r = i;
+int && rr = i;                  //f，右值引用不能赋一个左值
+int &r2 = i * 42;                 // f， 左值引用不能赋一个右值
+const int & r3 = i*42;
+int &&rr2 = i*42;
+int &&rr1 = 42;
+int && rr3 = rr1;               //f，右值引用本身是一个左值，左值不能赋给右值
+int && rr4 = std::move(rr1);	
+```
+
+
 
 #### 3 移动构造函数
 
@@ -7745,6 +7897,41 @@ int main() {
     //超出uptr作用域，内存释放
 }
 ```
+
+```c++
+#include<memory>
+using namespace std;
+void process(shared_ptr<int> ptr){
+
+}
+unique_ptr<int> clone(int p){
+    unique_ptr<int> ret(new int(p));
+    return ret;
+}
+int myFunc(){
+    int *x(new int(1024));
+    process(x);             		// f，could not convert 'x' from 'int*' to 'std::shared_ptr<int>'
+    process(shared_ptr<int> (x));
+    
+    int j = *x;
+    unique_ptr<string> p1(new string("Stegos"));
+    unique_ptr<string> p2(p1);      // f，不能拷贝，unique_ptr(const unique_ptr&) = delete;
+    unique_ptr<string> p3;
+    p3 = p1;                    	// f, 不能赋值，unique_ptr& operator=(const unique_ptr&) = delete;
+    unique_ptr<string> p4(p1.release());
+
+    p3.reset(new string("rres"));       // reset方法重新指定指针
+
+    p2.reset(p3.release());              // 通过release方法释放所有权
+
+    p2.release();
+
+}
+```
+
+
+
+
 
 ## 10.6 关键字
 

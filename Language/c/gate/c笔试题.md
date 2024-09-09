@@ -1593,4 +1593,59 @@ int main(int argc, char **args)
 
 57. c++中，重载：返回值类型相同，函数同名，不同参数类型，个数，**是否const修饰**，都能构成重载
 
-58. 
+58. 左值，右值，左值引用，右值引用
+
+    ```c++
+    int &refVal4 = 10;      // false，左值引用不能赋一个右值
+    double dval = 3.14;
+    int &refVal5 = dval;           //f，整型左值引用不能赋一个浮点类型的左值
+    int i = 42;
+    int &ref;                       // f，不论左值引用还是右值引用，声明时，都必须初始化
+    int &r = i;
+    int && rr = i;                  //f，右值引用不能赋一个左值
+    int &r2 = i * 42;                 // f， 左值引用不能赋一个右值
+    const int & r3 = i*42;
+    int &&rr2 = i*42;
+    int &&rr1 = 42;
+    int && rr3 = rr1;               //f，右值引用本身是一个左值，左值不能赋给右值
+    int && rr4 = std::move(rr1);	
+    ```
+
+    
+
+59. 智能指针的用法
+
+    ```c++
+    #include<memory>
+    using namespace std;
+    void process(shared_ptr<int> ptr){
+    
+    }
+    unique_ptr<int> clone(int p){
+        unique_ptr<int> ret(new int(p));
+        return ret;
+    }
+    int myFunc(){
+        int *x(new int(1024));
+        process(x);             		// f，could not convert 'x' from 'int*' to 'std::shared_ptr<int>'
+        process(shared_ptr<int> (x));
+        
+        int j = *x;
+        unique_ptr<string> p1(new string("Stegos"));
+        unique_ptr<string> p2(p1);      // f，不能拷贝，unique_ptr(const unique_ptr&) = delete;
+        unique_ptr<string> p3;
+        p3 = p1;                    	// f, 不能赋值，unique_ptr& operator=(const unique_ptr&) = delete;
+        unique_ptr<string> p4(p1.release());
+    
+        p3.reset(new string("rres"));       // reset方法重新指定指针
+    
+        p2.reset(p3.release());              // 通过release方法释放所有权
+    
+        p2.release();
+    
+    }
+    ```
+
+    
+
+60. 

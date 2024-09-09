@@ -598,9 +598,192 @@ FFMPEG有8个常用库：
 
 ## 5.1 [ffmpeg常用结构体]()
 
+以解码为例
+
+### 5.1.1 AVFormatContext
+
+该结构体描述了一个媒体文件或媒体流的构成和基本信息。它是一个贯穿始终的数据结构，很多函数调用需要使用到它。
+
+它也是FFMPEG解封装（flv，avi，mp4）功能的结构体。
+
+```c
+struct AVInputFormat *iformat;					// 输入数据的封装格式。仅解封装用，由avformat_open_input()设置（第三个参数）
+struct AVOutputFormat *oformat;					// 输出数据的封装格式。仅封装用，调用者在avformat_write_header()之前设置。
+AVIOContext *pb;								// I/O上下文。
+// 解封装：由用户通过avformat_open_input()设置或在avformat_open_input()之前设置（然后用户必须手动关闭它）
+// 封装：由用户在avformat_write_header()之前设置。 调用者必须注意关闭/释放IO上下文。
 
 
-### 5.1.1 [AVPacket实现](https://blog.csdn.net/qq_38731735/article/details/126109751)
+// 下面两个信息，可以通过avformat_find_stream_info获取
+unsigned int nb_streams;					//AVFormatContext.streams中元素的个数。
+AVStream **streams;							//文件中所有流的列表。char filename[1024];//输入输出文件名。
+
+ 
+int64_t start_time;//第一帧的位置。
+int64_t duration;//流的持续时间
+int64_t bit_rate;//总流比特率（bit / s），如果不可用则为0。 
+int64_t probesize;
+// 从输入读取的用于确定输入容器格式的数据的最大大小。
+// 仅封装用，由调用者在avformat_open_input()之前设置。
+AVDictionary *metadata;//元数据
+AVCodec *video_codec;//视频编解码器
+AVCodec *audio_codec;//音频编解码器
+AVCodec *subtitle_codec;//字母编解码器
+AVCodec *data_codec;//数据编解码器
+
+int (*io_open)(struct AVFormatContext *s, AVIOContext **pb, const char *url, int flags, AVDictionary **options);
+//打开IO stream的回调函数。
+void (*io_close)(struct AVFormatContext *s, AVIOContext *pb);
+//关闭使用AVFormatContext.io_open()打开的流的回调函数。
+```
+
+
+
+#### 使用
+
+```c
+	//获取AVFormatContext上下文
+	AVFormatContext *fmt_ctx = avformat_alloc_context();   
+
+    //打开视频地址并获取里面的内容(解封装，也就是解复用)
+    if (avformat_open_input(&fmt_ctx, inputPath, NULL, NULL) < 0) {
+        LOGE("打开视频失败")
+        return;
+    }
+	
+	// 调用 avformat_find_stream_info 后，AVFormatContext 结构体中的 streams 字段将包含所有检测到的流的 AVStream 结构体
+	// AVStream 结构体中包括了每个流的详细信息。通过这些信息，程序可以更准确地选择和解码目标流。
+    if (avformat_find_stream_info(fmt_ctx, NULL) < 0) {
+        LOGE("获取内容失败")
+        return;
+    }
+```
+
+### 5.1.2 AVCodec
+
+  ffmpeg中的解码器及编码器都用AVCodec结构体保存一些编解码的配置信息。
+
+```c
+  //解码H264流  
+  AVCodec*   codec = NULL;
+  codec = avcodec_find_decoder(AV_CODEC_ID_H264);
+  
+  //或者直接通过解码器名字找到解码器 
+  codec = avcodec_find_decoder_by_name("h264_mediacodec");
+ 
+```
+
+### 5.1.3 AVCodecContext
+
+该结构体用于存储编解码器上下文的数据结构，包含了众多编解码需要的参数信息。这些信息参数需要进行初始化，使用avcodec_parameters_to_context进行初始化。不初始化解析一些格式的封装视频会导致编解码失败。该**结构体内很多参数是编码时使用的，解码用不上。**
+
+```c
+// 编解码器的类型（视频，音频...）
+enum AVMediaType codec_type;
+
+// 采用的解码器AVCodec（H.264,MPEG2...）
+struct AVCodec  *codec;
+
+// 码率，每秒所需要的带宽
+int bit_rate;
+
+
+// 时基：决定了时间戳的精度或单位 
+AVRational time_base;
+// 帧率：每秒播放多少帧
+AVRational framerate;
+// 通常与 framerate 相关联。例如，帧率为 30 fps 时，time_base 可能设置为 1/30 或更小的分数以确保时间戳能够精确表示。
+ 
+// 如果是视频的话，代表宽和高
+int width, height;
+ 
+int refs：运动估计参考帧的个数（H.264的话会有多帧，MPEG2这类的一般就没有了）
+ //采样率（音频）
+int sample_rate;
+// 声道数（音频）
+int channels;
+ 
+
+// 针对特定编码器包含的附加信息（例如对于H.264解码器来说，存储SPS，PPS等）
+uint8_t *extradata; int extradata_size;
+
+enum AVSampleFormat sample_fmt：采样格式
+int profile：型（H.264里面就有，其他编码标准应该也有）
+int level：级（和profile差不太多）
+    
+
+```
+
+```c
+    // 设置编码参数 (replace with your desired parameters)
+        codec_ctx->bit_rate = 500000; // Adjust as needed
+        codec_ctx->width = static_cast<int>(input_si.width); // Frame width
+        codec_ctx->height = static_cast<int>(input_si.height); // Frame height
+        codec_ctx->time_base = (AVRational) {1,input_si.fps};
+        codec_ctx->framerate = (AVRational) {input_si.fps,1}; //Frame rate: 30 fps
+        codec_ctx->gop_size = input_si.fps;       // gop_size 参数定义了两个相邻关键帧之间的帧数。例如，如果 gop_size 设置为 30，那么每隔30帧就会出现一个关键帧。较小的 GOP 大小可能会提高编码效率，但会增加解码的计算量。较大的 GOP 大小可能会降低编码效率，但会减少视频流的比特率。
+        codec_ctx->max_b_frames = 3;    // max_b_frames 参数用于限制一个 GOP 中的最大 B 帧数量。在设置 max_b_frames 时，需要考虑编码效率和解码复杂性之间的权衡。通常情况下，可以选择一个适度的值，以满足特定应用场景的需求。
+        codec_ctx->pix_fmt = AV_PIX_FMT_YUV420P;    //pix_fmt（pixel format）是视频帧的像素格式，它定义了每个像素的表示方式，包括颜色和亮度等信息。在 H.264 编码中，常见的像素格式包括 AV_PIX_FMT_YUV420P、AV_PIX_FMT_YUV422P、AV_PIX_FMT_YUV444P，AV_PIX_FMT_YUV420P 是一种常见的选择，因为它在保持图像质量的同时具有较高的压缩效率。
+```
+
+#### 使用
+
+```c
+
+AVCodecContext* codec_ctx = NULL;
+
+// 根据编解码器申请编解码上下文
+codec_ctx = avcodec_alloc_context3(codec);
+
+// 根据流类型，从fmt_ctx的streams数组中找到对应的index
+int mVideoStreamIdx = -1;
+mVideoStreamIdx = av_find_best_stream(fmt_ctx, AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
+
+// 根据fmt_ctx->streams[mVideoStreamIdx]流的codecpar（codec-parameter），初始化codec_ctx
+avcodec_parameters_to_context(codec_ctx, fmt_ctx->streams[mVideoStreamIdx]->codecpar);
+ 
+```
+
+### 5.1.4 AVStream
+
+该结构体用于描述一个流媒体，可以在AVFormatContext看到这个结构体。该结构体中大部分值域可以由avformat_open_input函数根据文件头的信息确定，缺少的信息需要通过调用av_find_stream_info进一步获得。
+
+av_find_stream_info函数读取一部分音视频来获取有关视频文件的一些信息，如编码宽高、视频时长等。对于一些没有头部信息的视频文件（如mpeg编码的文件）调用该函数是必须的。调用该函数可能会带了很大的延迟。
+
+```c
+int index/id：index对应流的索引，这个数字是自动生成的，根据index可以从AVFormatContext::streams表中索引到该流；而id则是流的标识，依赖于具体的容器格式。比如对于MPEG TS格式，id就是pid。
+ 
+// 流的时间基准，是一个实数，该流中媒体数据的pts和dts都将以这个时间基准为粒度。通常，使用av_rescale/av_rescale_q可以实现不同时间基准的转换。
+AVRational time_base;
+
+// 流的起始时间，以流的时间基准为单位，通常是该流中第一个帧的pts
+int64_t start_time：
+
+// 流的总时间，以流的时间基准为单位。
+int64_t duration;
+ 
+// 对该流parsing过程的控制域。
+need_parsing;
+ 
+//流内的帧数目。
+int64_t nb_frames;
+
+// 帧率相关。
+avg_frame_rate;
+ 
+// 指向该流对应的AVCodecContext结构，调用avformat_open_input时生成。
+AVCodecContext *codec;
+
+// 用于存储编解码器的静态参数，比如比特率、宽度、高度、采样率、通道数等。这些参数主要用来描述媒体流的属性。不会直接参与编解码过程，它主要用于传递流的参数
+AVCodecParameter *codecpar
+
+// 指向该流对应的AVCodecParserContext结构，调用av_find_stream_info时生成。
+AVCodecParserContext *parser;
+```
+
+### 5.1.1 [AVPacket](https://blog.csdn.net/qq_38731735/article/details/126109751)
+
+ 
 
 AVPacket 作为解码器的输入 或 编码器的输出。
 
@@ -626,11 +809,13 @@ AVPacket 内存模型如下图所示，AVBuffer存放具体数据，AVBufferRef�
 ```c
 typedef struct AVPacket {
     AVBufferRef *buf; //在av_new_packet后，指向一个AVBufferRef，
-    int64_t pts;
-    int64_t dts;
-    uint8_t *data;
+    int64_t pts;	// 显示时间戳(Presentation Timestamp)，用于表示当前数据包（例如一帧视频或一帧音频）应该在什么时间点进行显示或播放。
+    int64_t dts;	// 解码时间戳(Decoding Timestamp)，表示数据包何时被解码。通常，dts 用于决定数据包解码顺序
+    // 在大多数情况下，pts 和 dts 相同，但在视频帧有重新排序（如B帧）的情况下，二者可能不同。
+    
+    uint8_t *data;	// 压缩编码的数据。
     int   size;
-    int   stream_index;	//用于区分该packet是视频流，还是音频流，或是其他元素流
+    int   stream_index;	//标识该AVPacket所属的视频/音频流。
     int   flags;
     AVPacketSideData *side_data;
     int side_data_elems;
@@ -665,7 +850,52 @@ AVPacket和AVFrame都有一个指针AVBufferRef，指向存放具体数据的AVB
 
 采用引用计数的方式进行内存释放。
 
-### 5.1.2  AVFrame实现
+### 5.1.2  AVFrame
+
+AVFrame结构体一般用于存储原始数据（非压缩的[YUV](https://so.csdn.net/so/search?q=YUV&spm=1001.2101.3001.7020)，RGB数据等），此外还包含一些相关信息。
+
+```c
+// 解码后原始数据（对视频来说是YUV，RGB，对音频来说是PCM）
+uint8_t *data[AV_NUM_DATA_POINTERS];
+
+// data中“一行”数据的大小。注意：未必等于图像的宽，一般大于图像的宽。
+int linesize[AV_NUM_DATA_POINTERS];
+ 
+// 视频帧宽和高（1920x1080,1280x720…）
+int width, height;
+ 
+// 音频的一个AVFrame中可能包含多个音频帧，在此标记包含了几个
+int nb_samples;
+ 
+// 解码后原始数据类型（YUV420，YUV422，RGB24…）
+int format;
+ 
+// 是否是关键帧
+int key_frame;
+ 
+//帧类型（I,B,P…）
+enum AVPictureType pict_type;
+ 
+// 宽高比（16:9，4:3…）
+AVRational sample_aspect_ratio;
+ 
+// 显示时间戳
+int64_t pts;
+ 
+//编码帧序号
+int coded_picture_number;
+ 
+// 显示帧序号
+int display_picture_number;
+ 
+// 是否是隔行扫描
+int interlaced_frame;
+ 
+// 一个宏块中的运动矢量采样个数，取log的
+uint8_t motion_subsample_log2;
+```
+
+
 
 AVFrame表示解码过后的一个数据帧（可能是音频帧，也可能是视频帧）
 
@@ -678,75 +908,13 @@ AVFrame实现原理与AVPacket 一致，都是利用AVBufferRef进行引用计�
 
 AVFrame帧的操作与packet分配原理一致，使用方式也类似。主要包括几个步骤一个是av_frame_alloc分配一个AVFrame帧，然后稍微有点不同的是需要为帧进行初始化，然后来确认是视频帧还是音频帧。第二步是av_frame_get_buffer获取帧的数据区也就是AVBufferRef和AVBuffer这里有一个比较特殊的地方是这里预制了一个长度为8的AVBufferRef指针数组，主要是用于不同的数据存储格式不一样需要多个内存空间。最后是确保AVFrame是可写的，在进行数据操作。释放利用av_frame_free。
 
-### 5.1.3 AVPacket与AVFrame的关系
+#### AVPacket与AVFrame的关系
 
 [参考1](https://www.cnblogs.com/renhui/p/12217958.html)
 
 av_read_frame得到压缩的数据包AVPacket，一般有三种压缩的数据包(视频、音频和字幕)，都用AVPacket表示。
 
 然后调用avcodec_send_packet 和 avcodec_receive_frame对AVPacket进行解码得到AVFrame。
-
-### 5.1.1 AVFormatContext
-
-该结构体描述了一个媒体文件或媒体流的构成和基本信息。它是一个贯穿始终的数据结构，很多函数调用需要使用到它。
-
-它也是FFMPEG解封装（flv，avi，mp4）功能的结构体。
-
-```c
-struct AVInputFormat *iformat;					// 输入数据的封装格式。仅解封装用，由avformat_open_input()设置（第三个参数）
-struct AVOutputFormat *oformat;					// 输出数据的封装格式。仅封装用，调用者在avformat_write_header()之前设置。
-AVIOContext *pb;								// I/O上下文。
-// 解封装：由用户通过avformat_open_input()设置或在avformat_open_input()之前设置（然后用户必须手动关闭它）
-// 封装：由用户在avformat_write_header()之前设置。 调用者必须注意关闭/释放IO上下文。
-
-
-// 下面两个信息，可以通过avformat_find_stream_info获取
-unsigned int nb_streams;					//AVFormatContext.streams中元素的个数。
-AVStream **streams;							//文件中所有流的列表。char filename[1024];//输入输出文件名。
-
-
- 
-int64_t start_time;//第一帧的位置。
-int64_t duration;//流的持续时间
-int64_t bit_rate;//总流比特率（bit / s），如果不可用则为0。 
-int64_t probesize;
-// 从输入读取的用于确定输入容器格式的数据的最大大小。
-// 仅封装用，由调用者在avformat_open_input()之前设置。
-AVDictionary *metadata;//元数据
-AVCodec *video_codec;//视频编解码器
-AVCodec *audio_codec;//音频编解码器
-AVCodec *subtitle_codec;//字母编解码器
-AVCodec *data_codec;//数据编解码器
-
-int (*io_open)(struct AVFormatContext *s, AVIOContext **pb, const char *url, int flags, AVDictionary **options);
-//打开IO stream的回调函数。
-void (*io_close)(struct AVFormatContext *s, AVIOContext *pb);
-//关闭使用AVFormatContext.io_open()打开的流的回调函数。
-```
-
-
-
-#### 使用
-
-```c
-	//获取AVFormatContext上下文
-	AVFormatContext *avFormatContext = avformat_alloc_context();   
-
-    //打开视频地址并获取里面的内容(解封装，也就是解复用)
-    if (avformat_open_input(&avFormatContext, inputPath, NULL, NULL) < 0) {
-        LOGE("打开视频失败")
-        return;
-    }
-	
-	// 调用 avformat_find_stream_info 后，AVFormatContext 结构体中的 streams 字段将包含所有检测到的流的 AVStream 结构体
-	// AVStream 结构体中包括了每个流的详细信息。通过这些信息，程序可以更准确地选择和解码目标流。
-    if (avformat_find_stream_info(avFormatContext, NULL) < 0) {
-        LOGE("获取内容失败")
-        return;
-    }
-```
-
-
 
 
 
@@ -833,12 +1001,10 @@ int main(int argc, char **argv)
     //打开媒体文件成功
     printf_s("\n==== av_dump_format in_filename:%s ===\n", in_filename);
     
-    // 打印关于输入或输出格式的详细信息
+    // 以下这一大段，都是打印关于输入或输出格式的详细信息-------------------------------------------------------------
     // void av_dump_format(AVFormatContext *ic,int index,const char *url,int is_output);
     av_dump_format(ifmt_ctx, 0, in_filename, 0);
     printf_s("\n==== av_dump_format finish =======\n\n");
-    
-    
     // url: 调用avformat_open_input读取到的媒体文件的路径/名字
     printf("media name:%s\n", ifmt_ctx->url);
     // nb_streams: nb_streams媒体流数量
@@ -855,6 +1021,11 @@ int main(int argc, char **argv)
     //通过上述运算，可以得到媒体文件的总时长
     printf("total duration: %02d:%02d:%02d\n", hour, minute, second);
     printf("\n");
+    // ------------------------------------------------------------------------------------------------------
+    
+    
+    
+    // 以下这一大段都是读取各个流的信息。-----------------------------------------------------------------------------
     /*
      * 老版本通过遍历的方式读取媒体文件视频和音频的信息
      * 新版本的FFmpeg新增加了函数av_find_best_stream，也可以取得同样的效果
@@ -950,7 +1121,12 @@ int main(int argc, char **argv)
             videoindex = i;
         }
     }
-
+	// --------------------------------------------------------------------------------------------------------
+    
+    
+    
+    
+    // 解复用，但不解码---------------------------------------------------------------------------------------------
     AVPacket *pkt = av_packet_alloc();
 
     int pkt_count = 0;
@@ -958,6 +1134,9 @@ int main(int argc, char **argv)
     printf("\n-----av_read_frame start\n");
     while (1)
     {
+        // 从输入的媒体文件或流中读取一个完整的压缩数据包，并将其存储在提供的 AVPacket 结构体中。
+        // 这个数据包可能是一个视频帧、一段音频数据，或者是其他类型的流数据（如字幕数据）。
+		// 这个函数不会对数据进行解码，仅仅是从文件或流中提取数据包，并准备好供解码器处理。
         ret = av_read_frame(ifmt_ctx, pkt);
         if (ret < 0)
         {
@@ -1237,7 +1416,7 @@ failed:
 
 #### h264 编码原理
 
-H26使⽤帧内压缩（I）和帧间压缩（P, B）的⽅式提⾼编码压缩率；H264采⽤了独特的I帧、P帧和B帧策略 来实现，连续帧之间的压缩；
+H264使⽤帧内压缩（I）和帧间压缩（P, B）的⽅式提⾼编码压缩率；H264采⽤了独特的I帧、P帧和B帧策略 来实现，连续帧之间的压缩；
 
 压缩率 B > P > I
 
@@ -1753,20 +1932,169 @@ int main(int argc, char **argv)
 
 ```
 
-#### 解视频
+#### 视频流解码
 
-关键函数说明：
+![img](legend/94c7df4abb26056dd0a4602d189346e0.png)
 
-- avcodec_find_decoder：根据指定的AVCodecID查找注册的解码器。 
-- av_parser_init：初始化AVCodecParserContext。 
-- avcodec_alloc_context3：为AVCodecContext分配内存。
-- avcodec_open2：打开解码器。
-- av_parser_parse2：解析获得⼀个Packet。 
-- avcodec_send_packet：将AVPacket压缩数据给解码器。
-- avcodec_receive_frame：获取到解码后的AVFrame数据。
-- av_get_bytes_per_sample: 获取每个sample中的字节数。
+```c
 
-![](./legend/解视频码流流程.png)
+	//获取AVFormatContext上下文---------------------------------------------------------------------
+	AVFormatContext *fmt_ctx = avformat_alloc_context();   
+
+    //打开视频地址并获取里面的内容(解封装，也就是解复用)
+    if (avformat_open_input(&fmt_ctx, inputPath, NULL, NULL) < 0) {
+        LOGE("打开视频失败");
+        return;
+    }
+	
+	// 调用 avformat_find_stream_info 后，AVFormatContext 结构体中的 streams 字段将包含所有检测到的流的 AVStream 结构体
+	// AVStream 结构体中包括了每个流的详细信息。通过这些信息，程序可以更准确地选择和解码目标流。
+    if (avformat_find_stream_info(fmt_ctx, NULL) < 0) {
+        LOGE("获取内容失败");
+        return;
+    }
+
+	
+    int mVideoStreamIdx = -1;
+	// 从fmt_ctx->streams找类型为AVMEDIA_TYPE_VIDEO的视频流，返回对应的index
+    mVideoStreamIdx = av_find_best_stream(fmt_ctx, AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
+    if (mVideoStreamIdx < 0) {
+        av_log(NULL, AV_LOG_ERROR, "Can't find video stream in input file\n");
+        return -1;
+    }
+    LOGE("成功找到视频流");
+	
+	// 获取对应流的编解码参数
+	AVCodecParameters *codec_par = fmt_ctx->streams[mVideoStreamIdx]->codecpar;
+	//-----------------------------------------------------------------------------------------------
+
+
+
+	// 寻找解码器----------------------------------------------------------------------------------------
+
+    AVCodec *codec = NULL;
+    AVCodecContext *code_ctx = NULL;
+    codec = avcodec_find_decoder(codec_par->codec_id);
+    code_ctx = avcodec_alloc_context3(codec);
+    if (!code_ctx || !codec) {
+        return;
+    }
+ 
+ 
+    //不初始化解码器context会导致MP4封装的mpeg4码流解码失败
+	// 描述媒体流的静态参数从 AVCodecParameters 转移到 AVCodecContext，以便后续的编解码操作。
+    int ret = avcodec_parameters_to_context(code_ctx, codec_par);
+    if (ret < 0) {
+        av_log(NULL, AV_LOG_ERROR, "Error initializing the decoder context.\n");
+    }
+ 
+    // 打开解码器
+    if (avcodec_open2(code_ctx, codec, NULL) != 0){
+        LOGE("打开失败");
+        return;
+    }
+    LOGE("解码器打开成功");
+    // ---------------------------------------------------------------------------------------------------
+    
+	
+	//申请AVPacket
+    AVPacket *packet = av_packet_alloc();
+    
+   //申请AVFrame
+    AVFrame *frame = av_frame_alloc();		//分配一个AVFrame结构体,AVFrame结构体一般用于存储原始数据，指向解码后的原始帧
+
+	// 解码后的数据，按照YUV相关格式保存为yuv文件，先申请buf，用于存放解码后的数据，并按照yuv格式排列保存
+	uint8_t *byte_buffer = NULL;
+    int byte_buffer_size = av_image_get_buffer_size(
+        code_ctx->pix_fmt, 
+        code_ctx->width, 
+        code_ctx->height, 
+        32);
+    byte_buffer = (uint8_t*)av_malloc(byte_buffer_size);
+    if (!byte_buffer) {
+        av_log(NULL, AV_LOG_ERROR, "Can't allocate buffer\n");
+        return AVERROR(ENOMEM);
+    }
+
+
+      
+	// 解码------------------------------------------------------------------------------------------------------------
+    while(1)
+    {
+        // 从多媒体文件或流中读取一个压缩的数据包（AVPacket）。这个数据包可以是音频或视频数据，它尚未解码，是编码器生成的压缩数据。
+        int ret = av_read_frame(fmt_ctx, packet);
+        
+        if (ret != 0){
+            av_strerror(ret,buf,sizeof(buf));
+            LOGE("--%s--\n",buf);
+            av_packet_unref(packet);
+            break;
+        }
+ 		
+        // 读视频帧，而不是音频帧
+        if (ret >= 0 && packet->stream_index != mVideoStreamIdx) {
+            av_packet_unref(packet);
+            continue;
+        }
+ 
+        {
+            // 将接收到的packet送入解码器
+            int result = avcodec_send_packet(code_ctx, packet);
+            av_packet_unref(packet);
+            if (result < 0) {
+                av_log(NULL, AV_LOG_ERROR, "Error submitting a packet for decoding\n");
+                continue;
+            }
+ 
+            // 接收解码数据
+            while (result >= 0){
+                
+                // 从解码器中读取帧
+                result = avcodec_receive_frame(code_ctx, frame);
+                if (result == AVERROR_EOF)
+                    break;
+                else if (result == AVERROR(EAGAIN)) {
+                    result = 0;
+                    break;
+                } else if (result < 0) {
+                    av_log(NULL, AV_LOG_ERROR, "Error decoding frame\n");
+                    av_frame_unref(frame);
+                    break;
+                }
+ 
+                int number_of_written_bytes = av_image_copy_to_buffer(byte_buffer, 
+                                                                      byte_buffer_size,
+                                                                      (const uint8_t* const *)frame->data, 
+                                                                      (const int*) frame->linesize,
+                                                                      mAvContext->pix_fmt,
+                                                                      mAvContext->width, 
+                                                                      mAvContext->height, 
+                                                                      1);
+                if (number_of_written_bytes < 0) {
+                    av_log(NULL, AV_LOG_ERROR, "Can't copy image to buffer\n");
+                    av_frame_unref(frame);
+                    continue;
+                }
+ 
+                // 写文件保存视频数据
+                fwrite(byte_buffer, number_of_written_bytes, 1, fp_YUV);
+                fflush(fp_YUV);
+ 
+                av_frame_unref(frame);
+            }
+        }
+ 
+    }
+    
+	//释放
+    fclose(fp_YUV);
+	av_packet_free(packet);
+    av_frame_free(&frame);
+    avcodec_close(code_ctx);
+    avformat_free_context(fmt_ctx);
+```
+
+
 
 ```c
 /**
@@ -1867,6 +2195,8 @@ int main(int argc, char **argv)
     const AVCodec *codec;
     AVCodecContext *codec_ctx= NULL;
     AVCodecParserContext *parser = NULL;
+    
+    
     int len = 0;
     int ret = 0;
     FILE *infile = NULL;
