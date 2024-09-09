@@ -3503,7 +3503,7 @@ QList<QNetworkInterface> list=QNetworkInterface::allInterfaces();
 
 1. [打包release版本后，生成setup安装包](https://blog.csdn.net/weixin_44069765/article/details/121868710)
 
-   - 使用inno Setup向导进行打包。
+   - 使用inno Setup向导进行打包。[inno setup安装包](https://jrsoftware.org/isdl.php#stable)
 
    - 通过它的脚本创建向导，可以完成一个类似于以下的脚本
 

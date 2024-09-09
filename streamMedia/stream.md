@@ -55,6 +55,22 @@
 - VP8   Google阵营
 - VP9 Google阵营
 
+
+
+### [YUV](https://blog.csdn.net/xkuzhang/article/details/115423061)
+
+YUV444：完全取样，每个像素都有独立的Y/U/V值
+
+YUV422：每两个Y共用一对U/V值
+
+YUV420：每四个Y共用一对U/V值
+
+YUV411：每四个Y共用一对U/V值（水平方向上）
+
+![](./legend/yuv解释.png)
+
+
+
 ## 1.2 音频
 
 **模拟信号数字化**：
@@ -131,6 +147,12 @@ qt创建的项目目录里面不能有中文路径，否则无法编译。
 qt如果要使用msvc的调试器，必须安装windows sdk 中的 debugger tools（下载winsdksetup.exe）
 
 
+
+# 3 音视频业务模型图
+
+![](./legend/直播架构基本逻辑.png)
+
+![](./legend/采集端和播放端逻辑.png)
 
 # 4 SDL
 
@@ -484,17 +506,37 @@ _FAIL:
 
 # 6 RTMP推拉流
 
-![](./legend/直播架构基本逻辑.png)
+RTMP（Real Time Messaging Protocol） 实时消息传送协议（基于TCP），用于在Flash平台传递音视频以及数据，与 RTSP + RTP 组合提供流媒体服务的方式不同， **RTMP 协议本身既可以传输多媒体数据也可以控制多媒体播放。**
+
+协议中基本的数据单元称为消息( Message) 。当 RTMP 协议在互联网中传 输数据的时候,消息会被拆分成更小的单元,称为消息块( Chunk) 。
 
 
 
+## 6.1 消息
 
+消息首部( Message Header) 有四部分组成: 
 
+- 标志消息 类型的 Message Type ID
+  - Message Type ID 在 1 - 7 的消息用于协议控制，这些消息一般是 RTMP 协议自身管理要使用的消息,用户一般情况下无需操作其中的数据。
+  - Message Type ID 为 8,9 的消息分别用于传输音频和视频数据。
+  - Message Type ID 为 15-20的消息用于发送AMF编码的命令,负责 用户与服务器之间的交互,比如播放,暂停等等。
+- 标 志 消 息 长 度 的 Payload Length
+- 标识时间戳的 Timestamp
+- 标识消息所属媒 体流的 Stream ID
 
+![在这里插入图片描述](legend/8fc045a97ddec1ac89e9cd8e84c8df65.png)
 
-![](./legend/采集端和播放端逻辑.png)
+## 6.2 消息块
 
+在网络上传输数据时,消息需要被拆分成较小的数据块,才适合在相应的网络环境上传输。RTMP 协议中规定,消息在网络上传输时被拆分成消息块 ( Chunk) 。
 
+消息块首部( Chunk Header) 有三部分组成:
+
+- 用于标识本块的 Chunk Basic Header
+- 用于标识 本块负载所属消息的 Chunk Message Header
+- 当 时间戳溢出时才出现的 Extended Timestamp
+
+![在这里插入图片描述](legend/44a5e872ffcacbda4cb02370e8721ce0.png)
 
 
 

@@ -6,7 +6,7 @@
 apt install ffmpeg
 ```
 
-[windows 包](https://github.com/BtbN/FFmpeg-Builds/releases)
+
 
 ffmpeg的命令行参数非常多，可以分成五个部分。
 
@@ -596,19 +596,11 @@ FFMPEG有8个常用库：
 
 [ubuntu下FFmpeg安装和使用以及CMakeLists.txt模板](https://blog.csdn.net/mao_hui_fei/article/details/132192108)
 
-## 5.1 [ffmpeg内存模型](https://blog.csdn.net/qq_38731735/article/details/126109751)
+## 5.1 [ffmpeg常用结构体]()
 
 
 
-只新增数据包对象，用于管理数据对象，对于数据本身采用同一个内存空间进行管理，当所有的内存引用为0时释放这片内存空间。
-
-FFmpeg正是采用这种内存管理的方式进行数据包和数据帧的管理。
-
-AVPacket和AVFrame都有一个指针AVBufferRef，指向存放具体数据的AVBuffer
-
-采用引用计数的方式进行内存释放。
-
-### 5.1.1 AVPacket实现
+### 5.1.1 [AVPacket实现](https://blog.csdn.net/qq_38731735/article/details/126109751)
 
 AVPacket 作为解码器的输入 或 编码器的输出。
 
@@ -665,7 +657,13 @@ struct AVBuffer {
 };
 ```
 
+只新增数据包对象，用于管理数据对象，对于数据本身采用同一个内存空间进行管理，当所有的内存引用为0时释放这片内存空间。
 
+FFmpeg正是采用这种内存管理的方式进行数据包和数据帧的管理。
+
+AVPacket和AVFrame都有一个指针AVBufferRef，指向存放具体数据的AVBuffer
+
+采用引用计数的方式进行内存释放。
 
 ### 5.1.2  AVFrame实现
 
@@ -687,6 +685,70 @@ AVFrame帧的操作与packet分配原理一致，使用方式也类似。主要�
 av_read_frame得到压缩的数据包AVPacket，一般有三种压缩的数据包(视频、音频和字幕)，都用AVPacket表示。
 
 然后调用avcodec_send_packet 和 avcodec_receive_frame对AVPacket进行解码得到AVFrame。
+
+### 5.1.1 AVFormatContext
+
+该结构体描述了一个媒体文件或媒体流的构成和基本信息。它是一个贯穿始终的数据结构，很多函数调用需要使用到它。
+
+它也是FFMPEG解封装（flv，avi，mp4）功能的结构体。
+
+```c
+struct AVInputFormat *iformat;					// 输入数据的封装格式。仅解封装用，由avformat_open_input()设置（第三个参数）
+struct AVOutputFormat *oformat;					// 输出数据的封装格式。仅封装用，调用者在avformat_write_header()之前设置。
+AVIOContext *pb;								// I/O上下文。
+// 解封装：由用户通过avformat_open_input()设置或在avformat_open_input()之前设置（然后用户必须手动关闭它）
+// 封装：由用户在avformat_write_header()之前设置。 调用者必须注意关闭/释放IO上下文。
+
+
+// 下面两个信息，可以通过avformat_find_stream_info获取
+unsigned int nb_streams;					//AVFormatContext.streams中元素的个数。
+AVStream **streams;							//文件中所有流的列表。char filename[1024];//输入输出文件名。
+
+
+ 
+int64_t start_time;//第一帧的位置。
+int64_t duration;//流的持续时间
+int64_t bit_rate;//总流比特率（bit / s），如果不可用则为0。 
+int64_t probesize;
+// 从输入读取的用于确定输入容器格式的数据的最大大小。
+// 仅封装用，由调用者在avformat_open_input()之前设置。
+AVDictionary *metadata;//元数据
+AVCodec *video_codec;//视频编解码器
+AVCodec *audio_codec;//音频编解码器
+AVCodec *subtitle_codec;//字母编解码器
+AVCodec *data_codec;//数据编解码器
+
+int (*io_open)(struct AVFormatContext *s, AVIOContext **pb, const char *url, int flags, AVDictionary **options);
+//打开IO stream的回调函数。
+void (*io_close)(struct AVFormatContext *s, AVIOContext *pb);
+//关闭使用AVFormatContext.io_open()打开的流的回调函数。
+```
+
+
+
+#### 使用
+
+```c
+	//获取AVFormatContext上下文
+	AVFormatContext *avFormatContext = avformat_alloc_context();   
+
+    //打开视频地址并获取里面的内容(解封装，也就是解复用)
+    if (avformat_open_input(&avFormatContext, inputPath, NULL, NULL) < 0) {
+        LOGE("打开视频失败")
+        return;
+    }
+	
+	// 调用 avformat_find_stream_info 后，AVFormatContext 结构体中的 streams 字段将包含所有检测到的流的 AVStream 结构体
+	// AVStream 结构体中包括了每个流的详细信息。通过这些信息，程序可以更准确地选择和解码目标流。
+    if (avformat_find_stream_info(avFormatContext, NULL) < 0) {
+        LOGE("获取内容失败")
+        return;
+    }
+```
+
+
+
+
 
 ## 5.2 ffmpeg解复用 + 解码
 
@@ -2354,6 +2416,22 @@ enc_ctx->hw_device_ctx = av_buffer_ref(hw_device_ctx);
 ```
 
 ffmpeg
+
+# windows ffmpeg
+
+[windows 包](https://github.com/BtbN/FFmpeg-Builds/releases)
+
+[.dll、.lib、.dll.a 的区别](https://blog.csdn.net/vincent3678/article/details/122091845)
+
+
+
+- libavcodec：包含音视频编码器和解码器
+- libavutil：包含多媒体应用常用的简化编程的工具，如随机数生成器、数据结构、数学函数等功能
+- libavformat：包含多种多媒体容器格式的封装、解封装工具
+- libavfilter：包含多媒体处理常用的滤镜功能
+- libavdevice：用于音视频数据采集和渲染等功能的设备相关
+- libswscale：用于图像缩放和色彩空间和像素格式转换功能
+- libswresample：用于音频重采样和格式转换等功能
 
 # log
 
