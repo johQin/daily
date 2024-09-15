@@ -14,15 +14,18 @@ BSP（Board Support Package，板级支持包）
 - 电源：5V/2A
 - 串口线：
   - 连接电脑与开发版，在设备管理器的端口一栏显示：Prolific PL2303GT USB Serial COM Port，如果不显示这个设备，那么需要去驱动精灵扫描电脑，安装驱动。
-  - 使用xshell控制开发板，
+  - 使用xshell控制开发板，板子一开机，就可以通过xshell与串口建立的连接，看到这个板子的相关打印内容。
 - usb下载线：安卓接口线（作用：将系统从pc下载到开发板），插入电脑后，有可能电脑没有发现（设备管理器也看不到相关它的设备），没关系，先向后执行 。
 
 ## 0.2 开发板烧写系统
 
 1. 通过xshell和串口线连接开发板
 
+   - 必须先在主机上安装USB转串口的驱动，在设备管理器的端口一栏看到：Prolific PL2303GT USB Serial COM Port（COM8）号，才能在xshell中连接。
+
    - ![image-20240618161248643](./legend/image-20240618161248643.png)
    - ![image-20240618161602120](./legend/image-20240618161602120.png)
+   - 打开这个链接，重启设备，就可以看到板子打印的相关内容。
 
 2. 连接完成usb下载线不一定会出现设备，
 
@@ -47,13 +50,17 @@ BSP（Board Support Package，板级支持包）
 
 5. 启动电脑后，再次更新驱动程序，强制执行。然后在设备管理器就会有
 
+   - 有时候也需要在设备上的uboot中执行fastboot，才会出现
+
    ![](./legend/驱动成功.png)
 
-6. 烧写系统
+6. 烧写uboot
 
    - 一定在xshell的连接中输入fastboot，然后设备就会等待下载
 
      ```bash
+     # Fastboot模式通常是设备自带的一个低级引导模式，特别是在许多Android设备和其他基于ARM架构的嵌入式系统中。它由设备的固件提供，通常用于设备的维护和调试。
+     
      tarena# fastboot
      
      Fastboot Partitions:
@@ -75,16 +82,21 @@ BSP（Board Support Package，板级支持包）
      Load USB Driver: android
      Core usb device tie configuration done
      OTG cable Connected!
+     
+     # 在输入fastboot之后，出现了分区的相关内容，这些内容可能来自于以下几个方面：
+     # 1. 出现的分区名称可能是由U-Boot源码中的预定义配置或环境变量加载的默认名称，特别是在Android设备中，这些名称通常已经在设备固件中硬编码。
+     # 2. 要更改这些名称或分区布局，可能需要修改U-Boot的源代码或配置，或者手动在U-Boot命令行中更改分区表。
+     
      ```
 
-   - 执行下载命令.bat，[bat文件中如何书写注释](https://blog.csdn.net/weixin_42109053/article/details/127891822)
+   - 执行下载命令.bat，[bat文件中如何书写注释](https://blog.csdn.net/weixin_42109053/article/details/127891822)，只有设备端执行了fastboot后，主机执行含有fastboot的批处理命令时，.bat文件才会有效。
 
      ```bat
      :: ubootpak.bin文件一定要和bat文件的位置，按照如下路径相对应，否则将会找不到ubootpak.bin文件
      fastboot flash ubootpak ./imagev3.0/ubootpak.bin
      ```
 
-   - 开发板会显示flashing ubootpad:done
+   - 开发板会显示flashing ubootpak:done
 
    - 在xshell中会显示
 
@@ -108,6 +120,11 @@ BSP（Board Support Package，板级支持包）
    - 在xshell中，3秒内回车，进入uboot，输入分区命令
 
      ```bash
+     # MMC 是一种早期的闪存存储卡，现在已经被 SD 卡等技术取代。
+     # 在现代设备中，MMC 技术的一个变种——eMMC，仍然广泛用于嵌入式系统和消费电子设备中，提供内置存储功能。
+     # 所以我们板子用的是emmc存储卡，可用通过uboot的mmc命令去操作mmc设备。
+     
+     
      qfedu-uboot# mmc erase 0x400 0x40
      
      MMC erase: dev # 2, block # 1024, count 64 ... 
@@ -117,14 +134,25 @@ BSP（Board Support Package，板级支持包）
      
      64 blocks erased: OK
      
+     # mmc erase 0x400 0x40 命令用于擦除 eMMC 存储器中特定区域的数据。这个命令通常用于嵌入式系统的维护和管理操作，例如在 U-Boot 环境下处理 eMMC 分区或准备新的镜像写入。在执行这个命令之前，务必确认擦除区域不会包含重要的数据。
+     
+     
+     
      qfedu-uboot# fdisk 2 8 100000:4000000 4100000:2f200000 33300000:1ac00000 4e000000:800000 4e900000:1600000 50000000:0xc800000 0x5c900000:0x1f400000 0x7be00000:0x0
+     
+     # fdisk 磁盘分区命令
+     # 2 磁盘的设备号，第2个磁盘
+     # 8 分8个区
+     # 100000:4000000：这个格式通常表示分区的起始地址和分区的大小。
+     # 0x7be00000:0x0：起始地址 0x7be00000，大小 0x0，这表示最后一个区域可能是一个结束标记或未使用的空间。
+     
      qfedu-uboot# 
      
      ```
-
+     
      
 
-8. 下载内核和文件系统
+8. 烧写内核和文件系统
 
    - 按下开发板的重启按键，在x-shell中按回车键（3s内），输入fastboot，双击包含一下命令的bat文件
 
@@ -177,13 +205,6 @@ BSP（Board Support Package，板级支持包）
     
 
     
-
-    
-
-
-
-
-
 
 
 ## 0.3 嵌入式概念
@@ -1698,4 +1719,12 @@ make_ext4fs -s -l 314572800 -a root -L linux gtk.img /home/edu/rootfs
 
    
 
-3. 
+3. **Android系统分区介绍**
+
+   hboot——系统开机引导类似电脑BIOS，这块刷错手机就会变成砖
+   radio——通讯模块、基带、WIFI、Bluetooth等衔接硬件的驱动软件
+   recovery——系统故障时负责恢复
+   boot——Linux嵌入式系统内核
+   system——系统文件、应用
+   cache——系统运行时产生的缓存
+   userdata——用户使用APP产生的缓存数据

@@ -614,6 +614,10 @@ LED的部分
 
 // 设置引脚功能
 nxp_soc_gpio_set_io_func(unsigned int io,int func); 		// io:寄存器地址，func：功能0,1,2,3
+
+// NXP（NXP Semiconductors）提供的一个函数，用于在基于 NXP SoC（System on Chip）的设备上配置 GPIO（通用输入输出）引脚的功能。这个函数通常在编写针对 NXP SoC 的 Linux 内核字符驱动程序时使用，用于设置 GPIO 引脚的特定功能。
+
+
 // 确定GPIO输入输出方向
 nxp_soc_gpio_set_io_dir(unsigned int io, int out);			//out：0输入，1输出
 // 设置 GPIOl引脚输出电平
@@ -3548,6 +3552,8 @@ USB电气特性：
 - USB设备驱动程序(USB device drivers)：控制器端驱动，**控制插入其中的USB设备**（运行在主机端）
 - USB器件驱动程序(USB gadget drivers)：设备端驱动，控制该设备如何作为一个USB设备和主机通信（运行在从机端）
 - 在这里我们主要讨论运行在主机端的控制器驱动。
+
+![feed8d7e9c712228f82ec1cb900a7adc.png](legend/111fc66679f01abf02d68927166fabd7.jpeg)
 
 ![image-20240710174844897](legend/image-20240710174844897.png)
 

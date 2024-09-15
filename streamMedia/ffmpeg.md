@@ -596,7 +596,7 @@ FFMPEG有8个常用库：
 
 [ubuntu下FFmpeg安装和使用以及CMakeLists.txt模板](https://blog.csdn.net/mao_hui_fei/article/details/132192108)
 
-## 5.1 [ffmpeg常用结构体]()
+## 5.1 [ffmpeg常用结构体](https://blog.csdn.net/weekend_y45/article/details/125168344)
 
 以解码为例
 
@@ -619,17 +619,17 @@ unsigned int nb_streams;					//AVFormatContext.streams中元素的个数。
 AVStream **streams;							//文件中所有流的列表。char filename[1024];//输入输出文件名。
 
  
-int64_t start_time;//第一帧的位置。
-int64_t duration;//流的持续时间
-int64_t bit_rate;//总流比特率（bit / s），如果不可用则为0。 
+int64_t start_time;				//第一帧的位置。
+int64_t duration;				//流的持续时间
+int64_t bit_rate;				//总流比特率（bit / s），如果不可用则为0。 
 int64_t probesize;
 // 从输入读取的用于确定输入容器格式的数据的最大大小。
 // 仅封装用，由调用者在avformat_open_input()之前设置。
-AVDictionary *metadata;//元数据
-AVCodec *video_codec;//视频编解码器
-AVCodec *audio_codec;//音频编解码器
-AVCodec *subtitle_codec;//字母编解码器
-AVCodec *data_codec;//数据编解码器
+AVDictionary *metadata;				//元数据
+AVCodec *video_codec;				//视频编解码器
+AVCodec *audio_codec;				//音频编解码器
+AVCodec *subtitle_codec;			//字母编解码器
+AVCodec *data_codec;				//数据编解码器
 
 int (*io_open)(struct AVFormatContext *s, AVIOContext **pb, const char *url, int flags, AVDictionary **options);
 //打开IO stream的回调函数。
@@ -2010,6 +2010,9 @@ int main(int argc, char **argv)
         code_ctx->width, 
         code_ctx->height, 
         32);
+	// 指定像素格式、图像宽、图像高来计算所需的内存大小
+	// int av_image_get_buffer_size(enum AVPixelFormat pix_fmt, int width, int height, int align);
+
     byte_buffer = (uint8_t*)av_malloc(byte_buffer_size);
     if (!byte_buffer) {
         av_log(NULL, AV_LOG_ERROR, "Can't allocate buffer\n");
@@ -2331,6 +2334,382 @@ int main(int argc, char **argv)
 
 
 ## 5.3  ffmpeg 编码 + 封装
+
+```c++
+//
+// 头文件
+//
+
+#ifndef HELLO_STREAMPREANDPOSTPROCESS_H
+#define HELLO_STREAMPREANDPOSTPROCESS_H
+#include <iostream>
+#include <string>
+#include <vector>
+#include <algorithm>
+#include <numeric>
+#include <unistd.h>
+#include "common_utils.h"
+#include "logger.h"
+#include <opencv2/opencv.hpp>
+#include "opencv2/opencv_modules.hpp"
+#include <opencv2/core/utility.hpp>
+#include <opencv2/core.hpp>
+#include <opencv2/core/opengl.hpp>
+#include <opencv2/cudacodec.hpp>
+#include <opencv2/cudaimgproc.hpp>
+#include <opencv2/highgui.hpp>
+
+extern "C" {
+#include <libavformat/avformat.h>
+#include <libavutil/hwcontext.h>
+#include <libavcodec/avcodec.h>
+#include <libswscale/swscale.h>
+#include <libavutil/imgutils.h>
+#include <libavutil/error.h>
+}
+
+struct StreamInfo{
+    int fps;
+    int width;
+    int height;
+};
+class StreamPreAndPostProcess{
+public:
+    StreamPreAndPostProcess(char* input_url, char* output_url);
+    StreamPreAndPostProcess(std::string input_url, std::string output_url);
+    ~StreamPreAndPostProcess();
+    int init(int gpuId=0, bool first= false);
+    int sendFrameToStream(cv::Mat &cv_frame);
+    int CVMatToAVFrame(cv::Mat &mat, AVFrame *frame);
+    int endStream();
+    int freeSource();
+    bool readFrame(cv::cuda::GpuMat &gmat, cv::Mat &cmat);
+public:
+    std::string input_url;
+    std::string output_url;
+    StreamInfo input_si;
+    cv::Ptr<cv::cudacodec::VideoReader> d_reader;
+    int gpuId;
+    AVBufferRef* hw_device_ctx;
+    AVFormatContext *out_ctx;
+    AVCodec *codec;
+    AVCodecContext *codec_ctx;
+    AVStream *video_stream;
+    AVPacket* pkt;
+    AVFrame *frame;
+    int64_t frame_index;
+    bool alreadySentSuccess=false;
+    int failReadCount;
+
+};
+#endif //HELLO_STREAMPREANDPOSTPROCESS_H
+
+```
+
+```c++
+//
+// Created by buntu on 2024/3/1.
+//
+#include "StreamPreAndPostProcess.h"
+
+StreamPreAndPostProcess::StreamPreAndPostProcess(char* input_url, char* output_url):input_url(input_url),output_url(output_url){}
+StreamPreAndPostProcess::StreamPreAndPostProcess(std::string input_url, std::string output_url):input_url(input_url),output_url(output_url){}
+int StreamPreAndPostProcess::init(int gpuId, bool first){
+    if(first){
+        this->gpuId = gpuId;
+    }
+        while(true){
+            try{
+                d_reader = cv::cudacodec::createVideoReader(std::string(input_url));
+                if(!d_reader) {
+                    std::cerr << "Can't open input video file" << std::endl;
+                    sleep(2);
+                    continue;
+                }
+                break;
+            }catch(...){
+                sleep(2);
+                std::cerr << std::string(input_url) + " Can't open input video file" << std::endl;
+                mLogger.error(std::string(input_url) + "输入视频流无法打开");
+            }
+        }
+
+
+        double DFPS, DCAP_WIDTH, DCAP_HEIGHT;
+        if(!d_reader->get(cv::CAP_PROP_FPS, DFPS) || !d_reader->get(cv::CAP_PROP_FRAME_WIDTH, DCAP_WIDTH) || !d_reader->get(cv::CAP_PROP_FRAME_HEIGHT, DCAP_HEIGHT)){
+            std::cerr << "Can't read input video information" << std::endl;
+            return -1;
+        }
+        input_si.fps = static_cast<int>(DFPS);
+        input_si.width = static_cast<int>(DCAP_WIDTH);
+        input_si.height = static_cast<int>(DCAP_HEIGHT);
+        cv::Size size(input_si.width, input_si.height);
+        std::cout << "Video info: size = " << size << ", fps = " << input_si.fps << std::endl;
+
+
+        av_log_set_level(AV_LOG_DEBUG);
+        // FFmpeg initialization
+        av_register_all();
+        avcodec_register_all();
+        avformat_network_init();
+
+        char device[128] = {0};
+        sprintf(device, "%d", this->gpuId);
+        av_hwdevice_ctx_create(&hw_device_ctx, AV_HWDEVICE_TYPE_CUDA, device, nullptr, 0);
+        avformat_alloc_output_context2(&out_ctx, nullptr, "flv", output_url.c_str());
+        if (!out_ctx) {
+            std::cerr << "Error creating output context" << std::endl;
+            return -1;
+        }
+
+        codec = avcodec_find_encoder_by_name("h264_nvenc");
+        if (!codec) {
+            std::cerr << "Error finding H.264 codec" << std::endl;
+            return -1;
+        }
+        // Print codec information (optional)
+        std::cout << "Codec Name: " << codec->name << std::endl;
+        std::cout << "Codec ID: " << codec->id << std::endl;
+        std::cout << "Codec Long Name: " << codec->long_name << std::endl;
+
+        codec_ctx = avcodec_alloc_context3(codec);
+        if (!codec_ctx) {
+            std::cerr << "Error allocating codec context" << std::endl;
+            return -1;
+        }
+        codec_ctx->hw_device_ctx = av_buffer_ref(hw_device_ctx);
+
+        // 设置编码参数 (replace with your desired parameters)
+        codec_ctx->bit_rate = 500000; // Adjust as needed
+        codec_ctx->width = static_cast<int>(input_si.width); // Frame width
+        codec_ctx->height = static_cast<int>(input_si.height); // Frame height
+        codec_ctx->time_base = (AVRational) {1,input_si.fps};
+        codec_ctx->framerate = (AVRational) {input_si.fps,1}; //Frame rate: 30 fps
+        codec_ctx->gop_size = input_si.fps;       // gop_size 参数定义了两个相邻关键帧之间的帧数。例如，如果 gop_size 设置为 30，那么每隔30帧就会出现一个关键帧。较小的 GOP 大小可能会提高编码效率，但会增加解码的计算量。较大的 GOP 大小可能会降低编码效率，但会减少视频流的比特率。
+        codec_ctx->max_b_frames = 3;    // max_b_frames 参数用于限制一个 GOP 中的最大 B 帧数量。在设置 max_b_frames 时，需要考虑编码效率和解码复杂性之间的权衡。通常情况下，可以选择一个适度的值，以满足特定应用场景的需求。
+        codec_ctx->pix_fmt = AV_PIX_FMT_YUV420P;    //pix_fmt（pixel format）是视频帧的像素格式，它定义了每个像素的表示方式，包括颜色和亮度等信息。在 H.264 编码中，常见的像素格式包括 AV_PIX_FMT_YUV420P、AV_PIX_FMT_YUV422P、AV_PIX_FMT_YUV444P，AV_PIX_FMT_YUV420P 是一种常见的选择，因为它在保持图像质量的同时具有较高的压缩效率。
+
+        // 初始化编码器
+        if (avcodec_open2(codec_ctx, codec, nullptr) < 0) {
+            std::cerr << "Error opening video codec" << std::endl;
+            return -1;
+        }
+
+        // 创建视频流
+        video_stream = avformat_new_stream(out_ctx, codec);
+        // avformat_new_stream 创建的 AVStream 是由 AVFormatContext 管理的一部分，因此你无需手动释放 AVStream。当你调用 avformat_free_context 来释放整个 AVFormatContext 时，相关的 AVStream 也会被释放。
+        if (!video_stream) {
+            std::cerr << "Error creating video stream" << std::endl;
+            return -1;
+        }
+//    video_stream->codecpar->codec_type = AVMEDIA_TYPE_VIDEO;
+        avcodec_parameters_from_context(video_stream->codecpar, codec_ctx);
+//    video_stream->codecpar->width = codec_ctx->width;  // Set your desired width
+//    video_stream->codecpar->height = codec_ctx->height;
+
+
+        // 创建AVPacket结构
+        pkt = av_packet_alloc();
+        if(!pkt){
+            std::cerr << "Error: could not allocate AVPacket" << std::endl;
+        }
+        pkt->data = nullptr;
+        pkt->size = 0;
+
+        // 分配帧指针，并设置帧参数
+        frame = av_frame_alloc();
+        if (!frame) {
+            std::cerr << "Error allocating frame" << std::endl;
+            return -1;
+        }
+        frame->width = codec_ctx->width;
+        frame->height = codec_ctx->height;
+        frame->format = codec_ctx->pix_fmt;
+
+        // Allocate frame data
+        if (av_frame_get_buffer(frame, 32) < 0) {       // align 参数表示要求内存对齐的字节数。
+            std::cerr << "Error allocating frame data" << std::endl;
+            return -1;
+        }
+
+        // SwsContext for frame conversion
+        // SwsContext（Software Scaler Context）是用于图像缩放、颜色空间转换等操作的上下文对象。
+//    SwsContext *sws_ctx = sws_getContext(codec_ctx->width, codec_ctx->height, AV_PIX_FMT_BGR24,
+//                                         codec_ctx->width, codec_ctx->height, codec_ctx->pix_fmt,
+//                                         SWS_BILINEAR, nullptr, nullptr, nullptr);
+//
+//    if (!sws_ctx) {
+//        std::cerr << "Error creating SwsContext" << std::endl;
+//        return -1;
+//    }
+
+        // Open output URL
+        if (avio_open(&out_ctx->pb, output_url.c_str(), AVIO_FLAG_WRITE) < 0) {
+            // avio_open 函数是 FFmpeg 中用于打开和初始化输入/输出流的函数之一。它通常用于配合 FFmpeg 的文件 I/O 操作，例如读取媒体文件或写入媒体文件。
+            // avio_open 被用于打开名为 rtmp_url ，并通过 format_ctx->pb 初始化输入上下文的 I/O 上下文。
+            std::cerr << "Error opening output URL" << std::endl;
+            return -1;
+        }
+
+        // Write header to output context
+        int ret = avformat_write_header(out_ctx, nullptr);
+        if ( ret < 0) {
+//            fprintf(stderr, "Error writing header: %s\n", av_err2str(ret));
+            std::cerr << "Error writing header" << std::endl;
+            return -1;
+        }
+        frame_index = 0;
+        return 0;
+    }
+int StreamPreAndPostProcess::sendFrameToStream(cv::Mat &cv_frame){
+        CVMatToAVFrame(cv_frame, frame);
+        frame->pts = frame_index;
+        if (avcodec_send_frame(codec_ctx, frame) < 0) {
+            // avcodec_send_frame 是 FFmpeg 中的一个函数，用于将原始图像帧（AVFrame）发送到编码器的输入缓冲区。
+            // 具体来说，它的作用是将未压缩的音视频帧送入编码器，以供后续进行编码操作。
+            std::cerr << "Error sending frame" << std::endl;
+            return -1;
+        }
+
+        if (avcodec_receive_packet(codec_ctx, pkt) == 0) {
+            // avcodec_receive_packet 是 FFmpeg 中的一个函数，用于从编码器中接收编码后的数据包。
+            // 具体来说，它的作用是从编码器的输出缓冲区中取出已经编码的音视频数据包，以供后续的处理、存储或传输。
+            if (pkt->dts < 0 || pkt->pts < 0 || pkt->dts > pkt->pts) {
+                pkt->dts = pkt->pts = pkt->duration = 0;
+            }
+            // Write packet to output context
+            // av_write_frame 函数用于将已经编码的音视频帧写入媒体文件。
+
+            pkt->pts = av_rescale_q(pkt->pts, codec_ctx->time_base, video_stream->time_base); // 显示时间
+            pkt->dts = av_rescale_q(pkt->dts, codec_ctx->time_base, video_stream->time_base); // 解码时间
+            pkt->duration = av_rescale_q(pkt->duration, codec_ctx->time_base, video_stream->time_base); // 数据时长
+
+//                pkt->pts = frame_index;
+//                pkt->dts = pkt->pts;
+//                pkt->duration = 1 / av_q2d(codec_ctx->time_base);
+            std::cout<<pkt->pts<<"/"<<pkt->dts<<"/"<<pkt->duration<<std::endl;
+            if (av_write_frame(out_ctx, pkt) < 0) {
+                std::cerr << "Error writing frame" << std::endl;
+                av_packet_unref(pkt);
+                return -1;
+            }
+            // 释放数据包的内存
+            av_packet_unref(pkt);
+        }
+        ++frame_index;
+        alreadySentSuccess = true;
+        return 0;
+    }
+int StreamPreAndPostProcess::CVMatToAVFrame(cv::Mat &mat, AVFrame *frame){
+
+        // Allocate frame data
+//        if (av_frame_get_buffer(frame, 32) < 0) {       // align 参数表示要求内存对齐的字节数。
+//            std::cerr << "Error allocating frame data" << std::endl;
+//            return -1;
+//        }
+//         // 调用多次av_frame_get_buffer，就要调用多次av_frame_free，否则会造成内存泄漏
+        int cvtFormat = cv::COLOR_BGR2YUV_I420;
+        cv::cvtColor(mat, mat, cvtFormat);
+
+        int frame_size = codec_ctx->height * codec_ctx->width;
+        unsigned char *data = mat.data;
+
+        memcpy(frame->data[0], data, frame_size);
+        memcpy(frame->data[1], data + frame_size, frame_size/4);
+        memcpy(frame->data[2], data + frame_size * 5/4, frame_size/4);
+
+        return 0;
+    }
+int StreamPreAndPostProcess::endStream(){
+        // Flush encoder
+        avcodec_send_frame(codec_ctx, nullptr);
+        // 通知编码器当前没有更多的输入帧要发送，即输入帧发送结束。这通常在编码器的输入流结束时使用，以便编码器完成所有可能的编码操作。
+
+        // Write trailer to output context
+        av_write_trailer(out_ctx);
+        // 通常用于在编码器操作结束后，将文件的尾部信息写入输出流。
+
+        return 0;
+    }
+int StreamPreAndPostProcess::freeSource(){   // Release resources
+        failReadCount = 0;
+        input_si = {0,0,0};
+        frame_index = 0;
+
+        if(alreadySentSuccess){
+            endStream();
+            alreadySentSuccess = false;
+        }
+        av_buffer_unref(&hw_device_ctx);
+        if(pkt){
+            av_packet_free(&pkt);
+        }
+
+        // 用于关闭编码器或解码器。具体而言，它用于释放由编码器或解码器占用的资源，包括释放上下文（AVCodecContext）和关闭相关的硬件设备。
+        if (codec_ctx) {
+            avcodec_close(codec_ctx);
+        }
+
+        // 用于释放由 av_frame_alloc 分配的图像帧（AVFrame）所占用的内存
+        av_frame_free(&frame);
+
+        // 释放图像转换上下文（SwsContext）所占用的内存
+        //sws_freeContext(sws_ctx);
+
+        // 用于关闭由 avio_open 或者其他方式打开的输入/输出流（AVIOContext）。这个函数的主要功能是释放相关的资源并关闭流。
+        avio_close(out_ctx->pb);
+        //用于释放输入或输出格式上下文（AVFormatContext），主要负责释放 AVFormatContext 结构体以及其关联的资源，包括已打开的输入或输出流。
+        avformat_free_context(out_ctx);
+
+        d_reader.release();
+    }
+bool StreamPreAndPostProcess::readFrame(cv::cuda::GpuMat &gmat, cv::Mat &cmat) {
+    try{
+        if(!d_reader) throw "不存在";
+        if(!d_reader->grab()){
+            std::cout<< "grab fail" <<std::endl;
+            sleep(1);
+            failReadCount += 1;
+            if(failReadCount >= 25){
+                d_reader.release();
+                failReadCount = 0;
+            }
+            return false;
+        };
+        d_reader->set(cv::cudacodec::ColorFormat::BGR);
+        if(!d_reader->retrieve(gmat) || gmat.empty()){
+            std::cout<< "retrieve fail" <<std::endl;
+            usleep(1000);
+            return false;
+        };
+
+    }catch(...){
+        d_reader.release();
+        sleep(1);
+        std::cout<< "休眠" <<std::endl;
+        try{
+            freeSource();
+            init();
+        }catch(...){
+            std::cout<< "重启摄像头出错" <<std::endl;
+        }
+        failReadCount = 0;
+        return false;
+    }
+
+    failReadCount = 0;
+//    cv::cuda::cvtColor(gmat,gmat,cv::COLOR_BGRA2BGR);
+    gmat.download(cmat);
+
+
+    return true;
+}
+StreamPreAndPostProcess::~StreamPreAndPostProcess(){
+    freeSource();
+}
+```
+
+
 
 ## 5.4 [ffmpeg使用gpu硬解码](https://blog.csdn.net/weicao1990/article/details/128969734)
 
