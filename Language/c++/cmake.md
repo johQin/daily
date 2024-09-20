@@ -740,7 +740,7 @@ foreach(var IN LISTS myList)
     message("var = ${var}")
 endforeach()
 
-foreach(<loop_var>... IN ZIP_LISTS <lists>)
+foreach(<loop_var>... IN ZIP_LISTS <lists>)						# 3.18版本才支持
 eg:
 set(myList0 a b c d)
 set(myList1 1 2 3 4)
@@ -1161,6 +1161,7 @@ find_path (
           NAMES name1 [name2 ...] 
           [HINTS [path | ENV var]... ]
           [PATHS [path | ENV var]... ]
+          [PATH_SUFFIXES suffix1 [suffix2 ...]]
           [NO_CACHE]
           [REQUIRED]
 )
@@ -1173,6 +1174,7 @@ find_path (
   - PATHS：先搜索系统路径，后搜索指定路径
 - NO_CACHE：搜索结果将存储在普通变量中而不是缓存条目（即CMakeCache.txt）中
 - REQUIRED：如果没有找到指定头文件，就出发错误提示，变量会设为` <VAR>-NOTFOUND`
+- PATH_SUFFIXES：若在PATHS或HINTS指定的路径中没有找到，则继续会在PATHS/PATH_SUFFIXES或HINTS/PATH_SUFFIXES指定的路径中搜索。
 
 ```cmake
 include(CMakePrintHelpers)		# 这是一个打印帮助工具

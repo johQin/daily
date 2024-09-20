@@ -264,9 +264,90 @@ GPU版TensorFlow：conda install tensorflow-gpu
    conda deactivate
    ```
 
+4. 在linux上安装anaconda
+
+   ```bash
+   chmod +x Anaconda3-2023.09-0-Linux-x86_64.sh
+   
+   ./Anaconda3-2023.09-0-Linux-x86_64.sh
+   
+   
+   Do you accept the license terms? [yes|no]
+   [no] >>> YES
+   
+   Anaconda3 will now be installed into this location:
+   /root/anaconda3
+   
+     - Press ENTER to confirm the location
+     - Press CTRL-C to abort the installation
+     - Or specify a different location below
+   
+   [/root/anaconda3] >>> 
+   PREFIX=/root/anaconda3
+   Unpacking payload ...
+   
+   ....
+   
+   installation finished.
+   Do you wish to update your shell profile to automatically initialize conda?
+   This will activate conda on startup and change the command prompt when activated.
+   If you'd prefer that conda's base environment not be activated on startup,
+      run the following command when conda is activated:
+   
+   conda config --set auto_activate_base false
+   
+   You can undo this by running `conda init --reverse $SHELL`? [yes|no]
+   [no] >>> yes
+   no change     /root/anaconda3/condabin/conda
+   no change     /root/anaconda3/bin/conda
+   no change     /root/anaconda3/bin/conda-env
+   no change     /root/anaconda3/bin/activate
+   no change     /root/anaconda3/bin/deactivate
+   no change     /root/anaconda3/etc/profile.d/conda.sh
+   no change     /root/anaconda3/etc/fish/conf.d/conda.fish
+   no change     /root/anaconda3/shell/condabin/Conda.psm1
+   no change     /root/anaconda3/shell/condabin/conda-hook.ps1
+   no change     /root/anaconda3/lib/python3.11/site-packages/xontrib/conda.xsh
+   no change     /root/anaconda3/etc/profile.d/conda.csh
+   modified      /root/.bashrc
+   
+   ==> For changes to take effect, close and re-open your current shell. <==
+   
+   Thank you for installing Anaconda3!
+   
+   
+   
+   # 去看看，anaconda是否帮我们写入了一些环境变量相关的东西
+   vim /root/.bashrc
+   
+   # >>> conda initialize >>>
+   # !! Contents within this block are managed by 'conda init' !!
+   __conda_setup="$('/root/anaconda3/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
+   if [ $? -eq 0 ]; then
+       eval "$__conda_setup"
+   else
+       if [ -f "/root/anaconda3/etc/profile.d/conda.sh" ]; then
+           . "/root/anaconda3/etc/profile.d/conda.sh"
+       else
+           export PATH="/root/anaconda3/bin:$PATH"
+       fi
+   fi
+   unset __conda_setup
+   # <<< conda initialize <<<
+   
+   
+   
+   
+   # 如果写了直接，使环境变量生效
+   source /root/.bashrc
+   
+   conda --version
+   conda 23.7.4
+   ```
+
    
 
-4. 
+5. 
 
 ## 1.1 [conda环境和迁移](https://zhuanlan.zhihu.com/p/87344422)
 
@@ -297,5 +378,35 @@ conda config --add channels https://pypi.tuna.tsinghua.edu.cn/simple
  # 生成环境
  conda install --yes --file requirements.txt
  pip install -r requirements.txt
+```
+
+[如果新电脑的操作系统和旧电脑操作系统相同，那么可以通过copy env文件夹的方式完成](https://blog.csdn.net/qq_40968179/article/details/128990022)
+
+```bash
+# 旧电脑
+
+# 找到目标环境位置
+conda env list
+# conda environments:
+#
+djg_conf_server          /home/buntu/.conda/envs/djg_conf_server
+
+
+# 新电脑，找到存放环境的位置，在这里就是/root/anaconda3/envs
+conda env list
+# conda environments:
+#
+base                  *  /root/anaconda3
+test310                  /root/anaconda3/envs/test310
+
+# 然后把旧电脑的djg_conf_server环境文件夹，拷到新电脑的/root/anaconda3/envs下
+
+# 拷贝完成后，在新电脑上查看
+conda env list
+# conda environments:
+#
+base                  *  /root/anaconda3
+djg_conf_server          /root/anaconda3/envs/djg_conf_server
+test310                  /root/anaconda3/envs/test310
 ```
 

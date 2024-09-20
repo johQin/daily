@@ -67,6 +67,16 @@
 
 6. [apt-get详细](https://blog.csdn.net/qq_44885775/article/details/124278721)
 
+   ```bash
+   apt-get remove: 卸载软件
+   apt-get purge: 卸载软件和配置文件
+   apt-get autoremove: 移除没有使用的依赖
+   apt-get clean: 删除/var/cache/apt/archives/下的所有deb包
+   apt-get autoclean: 删除/var/cache/apt/archives/下的过期deb包
+   ```
+
+   
+
 7. [tar](https://www.runoob.com/w3cnote/linux-tar-gz.html)，unrar
 
    ```bash
@@ -83,7 +93,8 @@
 8. [linux查询文件名 或 文件内容中 包含特定字符串的所有文件](https://blog.csdn.net/weixin_40482816/article/details/121425903)
 
    - `find ./ -name '*2021-11-01*'`，查看当前文件夹（及子目录中）下，文件名包含2021-11-01的文件
-   - `find ./ -name '*2021-11-01*' -maxdepth 1 `，查看当前文件夹下
+   - `find ./ -name '*2021-11-01*' -maxdepth 1 `，查看当前文件夹下，
+   - `-type f`：查找文件而非文件夹
 
 9. 查看系统信息
 
@@ -716,7 +727,7 @@
 
    - [密钥环概念](https://zhuanlan.zhihu.com/p/128133025)
 
-   - [密钥存储在过时的 trusted.gpg密钥环中 ](https://blog.csdn.net/m0_67517854/article/details/133034521)
+   - [密钥存储在过时的 trusted.gpg密钥环中： （英文如后面）Key is stored in legacy trusted.gpg keyring (/etc/apt/trusted.gpg), see the DEPRECATION section in apt-key(8) for details ](https://blog.csdn.net/m0_67517854/article/details/133034521)
 
      - ```
        cd /etc/apt

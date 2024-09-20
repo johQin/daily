@@ -1088,6 +1088,8 @@ opencv_version
 
 ### 8.1.1 安装Video_Codec_SDK
 
+在编译opencv的时候，会使用到这个sdk，编译的时候，他会去寻找对应的头文件，如果没有这个头文件是不会编译出对应的模块的。
+
 **要求：nvidia 驱动安装530及以上。下面的例子不是530以上请注意**
 
 最新版本在[在开发者社区里面找sdk](https://developer.nvidia.cn/)，建议安装12.0.16
@@ -1108,11 +1110,35 @@ download now下载下来，解压：
 - 其实在GPU驱动安装过程中，已经将nvidai-video-codec-sdk的库文件（.so）进行了安装，一般安装在/usr/lib/x86_64-linux-gnu/目录下，比如525.89.02版本的GPU驱动安装后，在/usr/lib/x86_64-linux-gnu/目录下存在libnvcuvid.so.525.89.02、libnvidia-encode.so.525.89.02的库文件，所以无需将Video_Codec_SDK_12.1.14/Lib/linux/stubs/x86_64/下面的动态库copy到/usr/local/cuda/lib64，只需要安装头文件即可，如下命令将头文件拷贝至cuda/目录。但如果/usr/lib/x86_64-linux-gnu/里面没有对应的动态库，那么需要复制对应的动态库到/usr/local/cuda/lib64
   ```bash
   cp Video_Codec_SDK_12.0.16/Interface/* /usr/local/cuda/include/
+  # cuviddec.h nvcuvid.h nvEncodeAPI.h
   
-  # 尽量使用宿主机的libnvcuvid.so.525.89.02、libnvidia-encode.so.525.89.02，copy到对应的位置/usr/local/cuda/lib64
+  # 尽量使用宿主机的libnvcuvid.so.525.89.02、libnvidia-encode.so.525.89.02，copy到对应的位置/usr/local/cuda/lib64，如果在docker中，请copy到/usr/lib/x86_64-linux-gnu下（lib首选copy到这个位置）
   ```
-
+  
   注：上述只用了nvidia-video-codec-sdk中的头文件，而没有使用nvidia-video-codec-sdk中的libnvcuvid.so、libnvidia-encode.so库，原因是在安装显卡驱动的时候会默认安装与驱动版本兼容的libnvcuvid.so、libnvidia-encode.so，而nvidia-video-codec-sdk中的库很可能与我们安装的显卡驱动版本不一致，**如果使用了nvidia-video-codec-sdk中的libnvcuvid.so、ibnvidia-encode.so编译的时候，可能不会有问题，但是运行时很可能会因为与驱动版本不兼容而报错，因为，拒绝使用nvidia-video-codec-sdk中的libnvcuvid.so、ibnvidia-encode.so库。这个可谓是Nvidia的天坑，一定要注意。**
+
+```bash
+# 将动态库libnvcuvid.so.550.107.02，libnvidia-encode.so.550.107.02
+# 拷贝到/usr/lib/x86_64-linux-gnu下，然后，逐个建立软链接，否则后面opencv无法生成NVCUVID，NVCUVENC
+# 如果在docker容器中，nvidia-container-toolkit会帮你做这些事，但有可能做不全，所以一定要检查
+# ln -s src_file link_file
+
+ln -s libnvcuvid.so.550.107.02 libnvcuvid.so.1
+ln -s libnvcuvid.so.1 libnvcuvid.so
+
+ln -s libnvidia-encode.so.550.107.02 libnvidia-encode.so.1
+ln -s libnvidia-encode.so.1 libnvidia-encode.so
+
+
+/usr/lib/x86_64-linux-gnu# ll libnvcuvid.so*
+lrwxrwxrwx 1 root root       15 Sep 19 07:44 libnvcuvid.so -> libnvcuvid.so.1
+lrwxrwxrwx 1 root root       24 Sep 19 02:29 libnvcuvid.so.1 -> libnvcuvid.so.550.107.02
+-rw-r--r-- 1 root root 10566992 Jul 31 14:13 libnvcuvid.so.550.107.02
+/usr/lib/x86_64-linux-gnu# ll libnvidia-encode.so*
+lrwxrwxrwx 1 root root     47 Dec 11  2023 libnvidia-encode.so -> libnvidia-encode.so.1
+lrwxrwxrwx 1 root root     30 Sep 19 02:29 libnvidia-encode.so.1 -> libnvidia-encode.so.550.107.02
+-rw-r--r-- 1 root root 277152 Jul 31 14:13 libnvidia-encode.so.550.107.02
+```
 
 
 
@@ -1187,6 +1213,7 @@ ldconfig
 ```bash
 sudo apt update
 
+# 下面的依赖包，一个一个的安装，不要一起安，有问题。
 sudo apt install autoconf \
 automake \
 build-essential \
@@ -1210,6 +1237,12 @@ yasm \
 zlib1g-dev
 
 # pkg-config 可以确保opencv可以找到ffmpeg
+
+
+
+apt install libvpx7
+libx264-163
+libmpg123-dev
 ```
 
 [ffmpeg 编译选项详解](https://blog.csdn.net/Mr_Tony/article/details/131052939)
@@ -1245,6 +1278,7 @@ zlib1g-dev
 如果下面的编译通不过，直接通过apt安装吧，因为编译太难了
 
 ```bash
+# 在install ffmpeg之前一定要，先安装依赖，就是前面写的依赖
 sudo apt install ffmpeg
 ffmpeg -version
 ```
@@ -1345,6 +1379,7 @@ cd build
 # 注意不要忘了末尾的“..”，
 # OPENCV_EXTRA_MODULES_PATH 需要按照你的路径指定，
 # CUDA_ARCH_BIN需要按照你的GPU的计算能力来指定，查计算能力：https://developer.nvidia.com/zh-cn/cuda-gpus#compute
+# Geforce RTX 2080：75，GeForce RTX 3050（有无ti）：86
 # 当您使用 CMake 构建项目并运行 make install 时，CMake 会根据您设置的 CMAKE_INSTALL_PREFIX 值，将项目的文件、库、头文件等复制到指定的安装路径。
 cmake -D CMAKE_BUILD_TYPE=RELEASE \
       -D CMAKE_INSTALL_PREFIX=/usr/local/opencv-4.8.0 \			# 指定最后安装的位置
@@ -1363,11 +1398,43 @@ cmake -D CMAKE_BUILD_TYPE=RELEASE \
       -D WITH_NVCUVENC=ON \
       -D CUDA_ARCH_BIN=8.6 \											# 需要查询GPU的计算能力
       -D OPENCV_EXTRA_MODULES_PATH=../opencv_contrib-4.8.0/modules \	# 需要指定扩展包相对的位置
+      -D CUDA_INC_HEADER=/usr/local/cuda/include \						# 指定cuda头文件的位置
       -D WITH_QT=ON \
       -D WITH_OPENGL=ON \
       -D WITH_FFMPEG=ON \
-      -D DIR_OPENCV_ROOT=/home/buntu/opencv-4.8.0		# 这一行指定opencv的编译根目录，在后面需要修改的cmake中都有用到
+      -D DIR_OPENCV_ROOT=/home/buntu/opencv-4.8.0 \		# 这一行指定opencv的编译根目录，在后面需要修改的cmake中都有用到
       ..
+ 
+ 
+ # 如果在后面的make过程中出现，python，dnn的相关错误，你就需要禁用python和dnn模块
+ cmake -D CMAKE_BUILD_TYPE=RELEASE \
+      -D CMAKE_INSTALL_PREFIX=/usr/local/opencv-4.8.0 \
+      -D WITH_TBB=ON \
+      -D BUILD_TBB=ON  \
+      -D ENABLE_FAST_MATH=1 \
+      -D CUDA_FAST_MATH=1 \
+      -D WITH_CUBLAS=1 \
+      -D WITH_V4L=ON \
+      -D WITH_LIBV4L=ON \
+      -D WITH_CUDA=ON \
+      -D WITH_CUDEV=ON \
+      -D WITH_GTK_2_X=ON \
+      -D WITH_NVCUVID=ON \
+      -D WITH_NVCUVENC=ON \
+      -D CUDA_ARCH_BIN=7.5 \
+      -D OPENCV_EXTRA_MODULES_PATH=../opencv_contrib-4.8.0/modules \
+      -D CUDA_INC_HEADER=/usr/local/cuda/include \
+      -D WITH_QT=ON \
+      -D WITH_OPENGL=ON \
+      -D WITH_FFMPEG=ON \
+      -D BUILD_opencv_python2=OFF \
+      -D BUILD_opencv_python3=OFF \
+      -D BUILD_opencv_dnn=OFF \
+      -D DIR_OPENCV_ROOT=/var/docker/opencv-4.8.0 \
+      ..
+ 
+ 
+ 
  
  
  # 在编译的时候会出现以下下载ippicv_2020_lnx_intel64_20191018_general.tgz很慢的问题
@@ -1452,6 +1519,7 @@ ocv_download(
 # 在build文件夹下，编译
 make -j$(nproc)
 
+
 # 安装编译好的opencv到之前你指定的CMAKE_INSTALL_PREFIX路径下
 make install
 
@@ -1460,7 +1528,58 @@ make install
 
 ```
 
+##### 报错纪实
 
+1. NV_ENC_CONFIG_HEVC
+
+   ```bash
+   # 如果报：
+   /NvEncoder.cpp:129:70: error: 'NV_ENC_CONFIG_HEVC' has no member named 'pixelBitDepthMinus8'
+    pIntializeParams->encodeConfig->encodeCodecConfig.hevcConfig.pixelBitDepthMinus8
+    # 你就要确认NVIDIA Video Codec SDK 的版本是否不兼容，
+    # 建议安装NVIDIA Video Codec SDK 12.0.16
+    # 然后把对应的头文件替换成12.0.16的
+   ```
+
+2. python的相关错误
+
+   ```bash
+   typing_stubs_generation.nodes.type_node.TypeResolutionError: Failed to resolve "cv2" namespace against "None". Errors: 
+   [
+   'Failed to resolve "cv2.cuda" namespace against "cv2". 
+   Errors: [\'Failed to resolve "cv2.cuda.NvidiaOpticalFlow_1_0" class against "cv2". 
+   Errors: [\\\'Failed to resolve "cv2.cuda.NvidiaOpticalFlow_1_0.create" function against "cv2". 
+   Errors: [0]: Failed to resolve "perfPreset" argument: Failed to resolve "cuda_NvidiaOpticalFlow_1_0_NVIDIA_OF_PERF_LEVEL" exposed as "cuda_NvidiaOpticalFlow_1_0_NVIDIA_OF_PERF_LEVEL"\\\']\', 
+   
+   \'Failed to resolve "cv2.cuda.NvidiaOpticalFlow_2_0" class against "cv2". 
+   Errors: [\\\'Failed to resolve "cv2.cuda.NvidiaOpticalFlow_2_0.create" function against "cv2". 
+   Errors: [0]: Failed to resolve "perfPreset" argument: Failed to resolve "cuda_NvidiaOpticalFlow_2_0_NVIDIA_OF_PERF_LEVEL" exposed as "cuda_NvidiaOpticalFlow_2_0_NVIDIA_OF_PERF_LEVEL", 
+   [1]: Failed to resolve "outputGridSize" argument: Failed to resolve "cuda_NvidiaOpticalFlow_2_0_NVIDIA_OF_OUTPUT_VECTOR_GRID_SIZE" exposed as "cuda_NvidiaOpticalFlow_2_0_NVIDIA_OF_OUTPUT_VECTOR_GRID_SIZE", 
+   [2]: Failed to resolve "hintGridSize" argument: Failed to resolve "cuda_NvidiaOpticalFlow_2_0_NVIDIA_OF_HINT_VECTOR_GRID_SIZE" exposed as "cuda_NvidiaOpticalFlow_2_0_NVIDIA_OF_HINT_VECTOR_GRID_SIZE", 
+   [3]: Failed to resolve "perfPreset" argument: Failed to resolve "cuda_NvidiaOpticalFlow_2_0_NVIDIA_OF_PERF_LEVEL" exposed as "cuda_NvidiaOpticalFlow_2_0_NVIDIA_OF_PERF_LEVEL", 
+   [4]: Failed to resolve "outputGridSize" argument: Failed to resolve "cuda_NvidiaOpticalFlow_2_0_NVIDIA_OF_OUTPUT_VECTOR_GRID_SIZE" exposed as "cuda_NvidiaOpticalFlow_2_0_NVIDIA_OF_OUTPUT_VECTOR_GRID_SIZE", 
+   [5]: Failed to resolve "hintGridSize" argument: Failed to resolve "cuda_NvidiaOpticalFlow_2_0_NVIDIA_OF_HINT_VECTOR_GRID_SIZE" exposed as "cuda_NvidiaOpticalFlow_2_0_NVIDIA_OF_HINT_VECTOR_GRID_SIZE"\\\']\']',
+   
+   
+   
+   # 解决方案
+   # 在cmake的时候禁用python模块
+   -D BUILD_opencv_python2=OFF \
+   -D BUILD_opencv_python3=OFF \
+   
+   ```
+
+   
+
+3. 还有报dnn的错误的时候，也禁用
+
+   ```bash
+   -D BUILD_opencv_dnn=OFF \
+   ```
+
+   
+
+4. 
 
 #### make opencv 4.5.0
 

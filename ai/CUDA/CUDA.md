@@ -2348,9 +2348,23 @@ CUDA内存管理包含GPU内存分配、释放、数据在主机和设备（GPU�
        && \
          sudo apt-get update
      # 要记得解决，安装源重复配置的警告，在ubuntu文档里可以看到解决方案关于“使用 apt-get update 命令提示 ...中被配置了多次”
+     
+     # 如果配置安装源的方式失败，可通过离线安装包的方式安装
+     # nvidia-container-toolkit安装包地址：https://github.com/NVIDIA/nvidia-container-toolkit/releases
+     # 选择nvidia-container-toolkit_1.16.1_deb_amd64.tar.gz
+     # 如果是x86_64就选amd64，如果是arm服务器，则选择arm
+     tar -xzvf nvidia-container-toolkit_1.16.1_deb_amd64.tar.gz
+     cd xxxx/release-v1.16.1-stable/packages/ubuntu18.04/amd64
+     # 后面就无需通过apt-get安装了
+     dpkg -i ./*.deb
+     
+     
      # 2. 安装nvidia-container-toolkit
      sudo apt-get install -y nvidia-container-toolkit
      # 这一步就安装了 libnvidia-container-tools libnvidia-container1 nvidia-container-toolkit nvidia-container-toolkit-base
+     
+     
+     
      # 3. 这里就应该去重启docker 服务
      systemctl restart  docker
      service docker status
@@ -2610,5 +2624,4 @@ ps aux | head -1 && ps aux | grep "ffmpeg -re"
      ```
 
    - 参考：[CUDA lazy loading is not enabled. Enabling it can significantly reduce device memory usage and speed](https://blog.csdn.net/s1_0_2_4/article/details/135026761)
-
 
