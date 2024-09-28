@@ -635,13 +635,11 @@ app.use(cors())
 - **latest：**安装的永远是最新发布的版本。
 - **>，>=，<，<=**：意思也很简单，就是大于，或者大于等于，小于或者小于等于后面的版本号。
 
-# 8 [npm script](<http://www.ruanyifeng.com/blog/2016/10/npm_scripts.html>)
 
-Node 开发离不开 npm，而脚本功能是 npm 最强大、最常用的功能之一。
 
-npm 允许在`package.json`文件里面，使用`scripts`字段定义脚本命令。定义在`package.json`里面的脚本，就称为 npm 脚本。
 
-npm 脚本的原理非常简单。每当执行`npm run`，就会自动新建一个 Shell，在这个 Shell 里面执行指定的脚本命令。因此，只要是 Shell（一般是 Bash）可以运行的命令，就可以写在 npm 脚本里面。
+
+
 
 # 9 [命令行程序](<https://blog.csdn.net/weixin_44786530/article/details/90166308>)
 
@@ -841,6 +839,24 @@ shebang 作为一个 shell 脚本的**第一行**，严格的来讲*shebang 指�
 ## 10.1 npm与nodejs的关系
 
 npm是nodejs内置的一套包管理工具。
+
+
+
+## 10.2 [npm script](<http://www.ruanyifeng.com/blog/2016/10/npm_scripts.html>)
+
+Node 开发离不开 npm，而脚本功能是 npm 最强大、最常用的功能之一。
+
+npm 允许在`package.json`文件里面，使用`scripts`字段定义脚本命令。定义在`package.json`里面的脚本，就称为 npm 脚本。
+
+npm 脚本的原理非常简单。每当执行`npm run`，就会自动新建一个 Shell，在这个 Shell 里面执行指定的脚本命令。因此，只要是 Shell（一般是 Bash）可以运行的命令，就可以写在 npm 脚本里面。
+
+### 10.2.1 脚本里的命令
+
+在 `package.json` 文件的 `scripts` 部分定义的命令（例如 `{"start": "electron ."}`）会在你运行 `npm run start` 时执行。具体来说，`npm` 会在以下几个地方查找并执行 `electron` 命令：
+
+1. 本地 `node_modules/.bin` 目录
+2. 全局 `node_modules/.bin` 目录
+3. 系统环境变量 `PATH`
 
 # 随记
 

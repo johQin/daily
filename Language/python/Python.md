@@ -2269,6 +2269,35 @@ localhost:10.0
 
 5. 
 
+
+
+# python 安装包
+
+## 自带的轻量级沙箱环境
+
+[python venv虚拟环境的使用](https://blog.csdn.net/weixin_45314192/article/details/122266992)
+
+[python自带的轻量级虚拟环境venv](https://blog.csdn.net/ybdesire/article/details/123079085)
+
+```bash
+# 在当前文件夹下创建一个叫MYvenv的文件夹，这个沙箱环境也叫做MYvenv
+python -m venv MYvenv
+# 有时候直接写环境名，会不生效，需要你写清楚环境所放置的位置
+# python -m venv /path/to/new/virtual/environment
+
+# 进入MYvenv虚拟环境
+cd  MYvenv
+# Scripts目录
+cd .\Scripts
+# 运行activate激活虚拟环境
+activate
+
+# 退出虚拟环境
+deactivate
+```
+
+![在这里插入图片描述](legend/e0039c75d8a21a4ac73ebb7a5c65a1cb.png)
+
 # 常用函数
 
 1. **id( obj )**：
