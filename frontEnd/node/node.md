@@ -139,11 +139,35 @@ console.log(cat)//Cat { name: 'cat' }
 └── test			   # 测试文件
 ```
 
+##  3.5 [npm](<https://www.npmjs.cn/getting-started/what-is-npm/>)
+
+npm是nodejs内置的一套包管理工具。
+
+### 3.5.1 [npm scripts](<http://www.ruanyifeng.com/blog/2016/10/npm_scripts.html>)
+
+Node 开发离不开 npm，而脚本功能是 npm 最强大、最常用的功能之一。
+
+npm 允许在`package.json`文件里面，使用`scripts`字段定义脚本命令。定义在`package.json`里面的脚本，就称为 npm 脚本。
+
+npm 脚本的原理非常简单。每当执行`npm run`，就会自动新建一个 Shell，在这个 Shell 里面执行指定的脚本命令。因此，只要是 Shell（一般是 Bash）可以运行的命令，就可以写在 npm 脚本里面。
+
+#### 脚本里的命令
+
+在 `package.json` 文件的 `scripts` 部分定义的命令（例如 `{"start": "electron ."}`）会在你运行 `npm run start` 时执行。具体来说，`npm` 会在以下几个地方查找并执行 `electron` 命令：
+
+1. 本地 `node_modules/.bin` 目录
+2. 全局 `node_modules/.bin` 目录
+3. 系统环境变量 `PATH`
+
+## 3.6 npx
+
+运行 `npx commandname` 会自动地在项目的 `node_modules` 文件夹中找到命令的正确引用，而无需知道确切的路径，也不需要在全局和用户路径中安装软件包。
+
 # 4 内置模块
 
 ## 4.1 [文件系统 fs](http://nodejs.cn/api/fs.html#fs_file_system)
 
-`fs` 模块提供了用于与文件系统进行交互（以类似于标准 POSIX 函数的方式）的 API。
+fs` 模块提供了用于与文件系统进行交互（以类似于标准 POSIX 函数的方式）的 API。
 
 ```js
 const fs=require('fs');
@@ -834,31 +858,9 @@ shebang 作为一个 shell 脚本的**第一行**，严格的来讲*shebang 指�
 
 `progress：进度条工具`
 
-# 10 [npm](<https://www.npmjs.cn/getting-started/what-is-npm/>)
+3. 
 
-## 10.1 npm与nodejs的关系
-
-npm是nodejs内置的一套包管理工具。
-
-
-
-## 10.2 [npm script](<http://www.ruanyifeng.com/blog/2016/10/npm_scripts.html>)
-
-Node 开发离不开 npm，而脚本功能是 npm 最强大、最常用的功能之一。
-
-npm 允许在`package.json`文件里面，使用`scripts`字段定义脚本命令。定义在`package.json`里面的脚本，就称为 npm 脚本。
-
-npm 脚本的原理非常简单。每当执行`npm run`，就会自动新建一个 Shell，在这个 Shell 里面执行指定的脚本命令。因此，只要是 Shell（一般是 Bash）可以运行的命令，就可以写在 npm 脚本里面。
-
-### 10.2.1 脚本里的命令
-
-在 `package.json` 文件的 `scripts` 部分定义的命令（例如 `{"start": "electron ."}`）会在你运行 `npm run start` 时执行。具体来说，`npm` 会在以下几个地方查找并执行 `electron` 命令：
-
-1. 本地 `node_modules/.bin` 目录
-2. 全局 `node_modules/.bin` 目录
-3. 系统环境变量 `PATH`
-
-# 随记
+# log
 
 1. 安装包：【npm install package -g/-D】-g，全局安装，-D项目安装
 
@@ -890,4 +892,11 @@ npm 脚本的原理非常简单。每当执行`npm run`，就会自动新建一�
    - ALT + [↑↓]，可以将当前行往上往下移一行
    - ALT + SHIFT + [↑↓]，可以复制当前行到上一行/下一行
 
-8. 
+8. [npm install报错版本不匹配(peer啥啥啥）](https://blog.csdn.net/qq_46034741/article/details/130614821)
+
+   - ```bash
+     # 这将忽略依赖项之间的版本不匹配
+     npm install --legacy-peer-deps
+     ```
+
+9. 
