@@ -123,6 +123,10 @@ console.log(cat.__proto__)//Cat {}
 console.log(cat)//Cat { name: 'cat' }
 ```
 
+模块引用require的问题：
+
+在 Node.js 中，当你使用 `require("./index.js")` 引入一个脚本时，`index.js` 文件中的所有代码都会立即执行。这是因为 `require` 函数不仅仅是引入模块，它还会执行模块中的代码。
+
 ## 3.4 包
 
 把一些模块整合在一起，统一管理。
@@ -138,6 +142,8 @@ console.log(cat)//Cat { name: 'cat' }
 ├── doc				   # 包的说明性文档，例如readme.md
 └── test			   # 测试文件
 ```
+
+
 
 ##  3.5 [npm](<https://www.npmjs.cn/getting-started/what-is-npm/>)
 
@@ -158,6 +164,19 @@ npm 脚本的原理非常简单。每当执行`npm run`，就会自动新建一�
 1. 本地 `node_modules/.bin` 目录
 2. 全局 `node_modules/.bin` 目录
 3. 系统环境变量 `PATH`
+
+#### 预执行代码
+
+```json
+ "scripts": {
+    "prestart": "cd gai && npm run build",
+    "start": "node index.js"
+  },
+```
+
+`prestart` 脚本会在 `start` 脚本之前执行，并且 `prestart` 脚本必须完成执行后，`start` 脚本才会开始执行。
+
+如果 `prestart` 脚本启动了一个长时间运行的服务（例如一个服务器进程），并且该服务不会停止，那么 `start` 脚本将永远不会执行。
 
 ## 3.6 npx
 
@@ -565,6 +584,8 @@ app.use(cors())
 
 # 6 [package.json](<https://blog.csdn.net/weixin_44135121/article/details/91674772>)
 
+
+
 ```json
 {
     "name": "exchange",
@@ -860,6 +881,32 @@ shebang 作为一个 shell 脚本的**第一行**，严格的来讲*shebang 指�
 
 3. 
 
+# 10 VSCODE
+
+## 10.1 vscode无法识别@别名的引用
+
+这个问题可以通过在项目根目录下新建一个jsconfig.json。新建后，如果不生效，退出vscode，然后再次打开即可。
+
+```json
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "baseUrl": "./",
+    "paths": {
+      "~/*": ["./*"],
+      "@/*": ["src/*"]
+    },
+    "jsx": "preserve",
+    "experimentalDecorators": true ,
+    "allowJs": true
+  },
+  "resolveExtensions": [".js", ".vue", ".ts"],
+  "exclude": ["node_modules", "dist"]
+}
+```
+
+
+
 # log
 
 1. 安装包：【npm install package -g/-D】-g，全局安装，-D项目安装
@@ -899,4 +946,4 @@ shebang 作为一个 shell 脚本的**第一行**，严格的来讲*shebang 指�
      npm install --legacy-peer-deps
      ```
 
-9. 
+9. `npm --ignore-scripts` 参数用于在安装 npm 包时忽略执行 `package.json` 中定义的生命周期脚本（lifecycle scripts）。
