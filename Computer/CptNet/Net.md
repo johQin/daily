@@ -788,7 +788,10 @@ NAT有三种类型：静态NAT(Static NAT)、动态地址NAT(Pooled NAT)、网�
   - DNAT：修改数据包中的目标IP地址
 - 
 
-
+P2P技术详解(一)：NAT详解——详细原理、P2P简介 https://www.cnblogs.com/mlgjb/p/8243646.htm
+P2P技术详解(二)：P2P中的NAT穿越(打洞)方案详解 https://www.jianshu.com/p/9bfbcbee0abb
+P2P技术详解(三)：P2P技术之STUN、TURN、ICE详解 https://www.jianshu.com/p/258e7d8be2ba
+详解P2P技术中的NAT穿透原理 https://www.jianshu.com/p/f71707892eb2
 
 ### 4.3.4 子网划分、子网掩码、CIDR
 
