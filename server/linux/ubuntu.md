@@ -586,7 +586,8 @@
 2. ubuntu系统的hosts（ip和域名映射）：/etc/hosts
 3. [ubuntu 初次使用root身份登录](https://blog.csdn.net/weixin_56364629/article/details/124608110)
 4. [ubuntu图像化界面不允许root用户登陆](https://blog.csdn.net/Ki_Ki_/article/details/128832659)
-5. [ubuntu安装拼音输入法](https://blog.csdn.net/weixin_61275790/article/details/130787987)
+5. [ubuntu安装拼音输入法](https://blog.csdn.net/weixin_61275790/article/details/130787987)，[法2](https://zhuanlan.zhihu.com/p/529892064)
+6. [ubuntu 24.04.2 桌面版安装](https://blog.csdn.net/Sophia_box/article/details/146524565)
 
 ​     
 
@@ -609,6 +610,27 @@
 4. amd64：一般指X86-64。 x86-64（ 又称x64，即英文词64-bit extended，64位拓展 的简写）是x86架构的64位拓展，向后兼容于16位及32位的x86架构。x64于1999年由AMD设计，AMD首次公开64位集以扩展给x86，称为“*AMD64*”。其后也为英特尔所采用。
 
 5. 
+
+# 8 ubuntu 启动U盘制作
+
+**制作需求**
+
+1. 8G以上 U盘1个。（U盘内容会被清除，请备份资料。）
+2. 系统镜像文件，下载镜像链接：[**http://old-releases.ubuntu.com/releases/**](http://old-releases.ubuntu.com/releases/)
+
+![image-20251103204504234](legend/image-20251103204504234.png)
+
+![image-20251103204532034](legend/image-20251103204532034.png)
+
+3. U盘制作工具。下载链接：[**http://rufus.akeo.ie/?locale=zh_CN**](http://rufus.akeo.ie/?locale=zh_CN)
+
+   ![image-20251103204630928](legend/image-20251103204630928.png)
+
+4. 制作：
+
+   - ![image-20251103204710425](legend/image-20251103204710425.png)
+   - 按照图解依次 选择U盘 – 选择镜像文件 – 开始制作U盘。除了以上提到的选项之外，其它的都可以默认。之后，便可以点击“开始”制作启动盘。进度条满，即ubuntu启动盘制作完毕。
+   - **制作好的U盘插入电脑，开机按快捷键进入到启动菜单，选择U盘。一般服务器主板启动菜单为F11  技嘉/F12 华硕/F8 微星/F11**
 
 # log
 
