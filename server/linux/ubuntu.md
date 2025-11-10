@@ -447,7 +447,9 @@
 
 5. [安装finalshell](https://blog.csdn.net/zhao001101/article/details/128002640)
 
-6. [ubuntu安装git，并设置ssh](https://blog.csdn.net/qq_26849933/article/details/125062667)，如果要可以命名成别的文件地址，如果没加全路径他就会生成到当前文件夹。
+7. [ubuntu安装git，并设置ssh](https://blog.csdn.net/qq_26849933/article/details/125062667)，如果要可以命名成别的文件地址，如果没加全路径他就会生成到当前文件夹。
+
+   - [github添加了ssh key之后进行push还需要登陆的问题](https://blog.csdn.net/m0_55127902/article/details/141941196)
 
 7. [ubuntu安装pycharm](https://blog.csdn.net/m0_37758063/article/details/111573552)
 
