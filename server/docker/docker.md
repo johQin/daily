@@ -2094,6 +2094,8 @@ docker start fb2f614a6861275
 
 不知道容器卷是否也可以通过如此修改，后面再试吧
 
+[添加新端口](https://blog.csdn.net/jimn2000/article/details/142867448)
+
 ## 设置容器的环境变量
 
 1. Dockerfile 中使用 `ENV` 指令

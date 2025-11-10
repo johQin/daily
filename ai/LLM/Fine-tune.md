@@ -19,3 +19,14 @@
 <img src="./legend/sft-adapter.png" style="zoom: 50%;" />
 
 <img src="./legend/sft-prompt.png" style="zoom: 50%;" />
+
+# docker 环境
+
+下载nvidia官方的dockerhub镜像库：[nvidia/cuda](https://hub.docker.com/r/nvidia/cuda/tags)，[按照系统和相关版本信息下载](https://gitlab.com/nvidia/container-images/cuda/blob/master/doc/supported-tags.md)
+
+```bash
+docker pull nvidia/cuda:13.0.2-cudnn-devel-ubuntu24.04
+
+docker run -it --privileged=true --gpus all -v /home/qbuntu/docker:/var/docker -p 8522:22 2735f775e9d8 /bin/bash
+```
+

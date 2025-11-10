@@ -399,7 +399,30 @@
 
 2. [画图工具](https://blog.csdn.net/xhtchina/article/details/122929567)
 
-3. [安装docker](https://blog.csdn.net/u012563853/article/details/125295985)
+3. 安装typora，最好安装最后一个免费版，其他需要key，不好配置
+
+4. [安装docker](https://blog.csdn.net/u012563853/article/details/125295985)
+
+   - 设置docker 开机自启动：
+
+     ```bash
+     # 确保 Docker 服务已安装并运行：可以使用以下命令检查 Docker 服务的状态
+     systemctl status docker
+     # 如果未开启，请开启：systemctl start docker
+     # 设置 Docker 服务开机自启动
+     sudo systemctl enable docker
+     # 查看设置是否成功
+     systemctl is-enabled docker
+     # 如果返回 enabled，则说明设置成功。
+     ```
+
+     
+
+   - [Docker pull时报错](https://zhuanlan.zhihu.com/p/24228872523)：Error response from daemon: Get "https://registry-1.docker.io/v2/": context deadline exceeded
+
+     ```bash
+     #docker的镜像中心无法访问
+     ```
 
    - [**linux arm64安装docker**](https://blog.51cto.com/u_16175462/9979101)
 
@@ -424,7 +447,7 @@
 
 5. [安装finalshell](https://blog.csdn.net/zhao001101/article/details/128002640)
 
-6. [ubuntu安装git，并设置ssh](https://blog.csdn.net/qq_26849933/article/details/125062667)
+6. [ubuntu安装git，并设置ssh](https://blog.csdn.net/qq_26849933/article/details/125062667)，如果要可以命名成别的文件地址，如果没加全路径他就会生成到当前文件夹。
 
 7. [ubuntu安装pycharm](https://blog.csdn.net/m0_37758063/article/details/111573552)
 

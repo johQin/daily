@@ -2298,6 +2298,8 @@ deactivate
 
 ![在这里插入图片描述](legend/e0039c75d8a21a4ac73ebb7a5c65a1cb.png)
 
+[镜像源修改](https://zhuanlan.zhihu.com/p/681420064)
+
 # 常用函数
 
 1. **id( obj )**：
