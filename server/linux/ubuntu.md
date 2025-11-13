@@ -185,10 +185,14 @@
     vi /etc/ssh/sshd_config
     # 找到下面一项并修改
     PermitRootLogin yes
+    # 若无此项则添加
+    PasswordAuthentication yes
     # 修改root密码
     echo 'root:12345' | chpasswd
     
     # 2. ssh设为自启动
+    
+    # 修改ssh配置，允许root登录
     systemctl enable ssh
     
     # 3. 开启ssh服务
@@ -203,6 +207,36 @@
     # 然后在本地连接远程服务器（192.168.100.1），访问宿主机的8022端口就能映射到容器，输入容器内的ssh root的密码，而不是宿主机的密码
     ssh root@192.168.100.1 -p 8022
     ```
+
+14. [解决SSH连接时遇到的“远程主机身份验证已更改 (WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!)”警告](https://blog.csdn.net/weixin_51524504/article/details/145016427)
+
+    ```bash
+# 报错：
+    @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+    @    WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!     @
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+    IT IS POSSIBLE THAT SOMEONE IS DOING SOMETHING NASTY!
+    Someone could be eavesdropping on you right now (man-in-the-middle attack)!
+    It is also possible that a host key has just been changed.
+    The fingerprint for the ED25519 key sent by the remote host is
+    SHA256:b8H/DoLy5qxdBor/kCi4XlBOSvV6IGL1PVBAva3qD4I.
+    Please contact your system administrator.
+    Add correct host key in /home/qbuntu/.ssh/known_hosts to get rid of this message.
+    Offending ECDSA key in /home/qbuntu/.ssh/known_hosts:10
+      remove with:
+      ssh-keygen -f '/home/qbuntu/.ssh/known_hosts' -R '10.1.0.2'
+    Host key for 10.1.0.2 has changed and you have requested strict checking.
+    Host key verification failed.
+    # 直接使用
+    ssh-keygen -f '/home/qbuntu/.ssh/known_hosts' -R '10.1.0.2'
+    
+    # 如果还不行，就继续
+vim /home/user/.ssh/known_hosts
+    # 根据报错删除对应的行
+# Offending ECDSA key in C:\\Users\\Tang/.ssh/known_hosts:10 指出问题出在第37行。在known_hosts 中查找并删除与问题主机相关的旧条目，可以用vscode等打开，vscode会显示行号。
+    ```
+
+    
 
 14. [通过 SSH 在远程和本地系统之间传输文件的 4 种方法](https://zhuanlan.zhihu.com/p/507876254)
 
@@ -926,6 +960,52 @@
 18. 安装新版本的可执行命令后，遇到系统仍旧调用旧版本的问题：
 
     - 原因：通常是由于系统中的执行路径缓存导致的。Linux 系统会缓存执行路径，以提高执行效率。你可以通过执行`hash -r`来清除这些缓存。
+
+19. [ubuntu 24.04中安装python3.12](https://zhuanlan.zhihu.com/p/1940719728374027368)
+
+    ```bash
+    apt install python3.12
+    apt install python3.12-venv
+    
+    # pip设置镜像源
+    # 参考：https://zhuanlan.zhihu.com/p/681420064
+    # 临时
+    pip install xxxx -i https://pypi.tuna.tsinghua.edu.cn/simple
+    # https://mirrors.aliyun.com/pypi/simple/
+    # http://mirrors.cloud.tencent.com/pypi/simple
+    # 永久
+    pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
+    # Writing to /root/.config/pip/pip.conf
+    ```
+
+    
+
+20. ifconfig command not found
+
+    ```bah
+    apt-get install net-tools
+    ```
+
+    
+
+21. [vscode 删除远程连接](https://blog.csdn.net/qq_41483419/article/details/131972522)
+
+    ```bash
+    # 删除对应ip
+    vim /home/user/.ssh/config
+    ```
+
+    
+
+22. [远程主机身份验证已更改 (WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED](https://blog.csdn.net/weixin_51524504/article/details/145016427)
+
+    ```bash
+    vim /home/user/.ssh/known_hosts
+    # 根据报错删除对应的行
+    # Offending ECDSA key in C:\\Users\\Tang/.ssh/known_hosts:37 指出问题出在第37行。在known_hosts 中查找并删除与问题主机相关的旧条目，可以用vscode等打开，vscode会显示行号。
+    ```
+
+    
 
 19. 
 

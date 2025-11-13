@@ -2649,4 +2649,17 @@ deactivate
 
     
 
+24. [查看包的依赖以及包被谁依赖](https://zhuanlan.zhihu.com/p/674840413)
+
+    ```
+    # 显示XXXXX的依赖，而不是依赖XXXXX的包。
+    pip show XXXXX
+    
+    # 显示哪些包依赖于XXXXX
+    pip install pipdeptree
+    pipdeptree -r -p XXXXX
+    ```
+
+    
+
 24. 

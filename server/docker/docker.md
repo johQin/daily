@@ -2256,3 +2256,40 @@ docker info
 
 ```
 
+## vscode 在docker中开发
+
+### 通过remote-ssh插件
+
+1. 在docker容器中，安装ssh-server。
+2. 在本地的vscode 安装remote-ssh。
+3. 在vscode中，remote explore中，去建立ssh连接，连接成功后，会在vscode的左下角显示ssh:xxx.xx.xx.ip
+4. 在右侧编辑面板中，点击open folder 即可打开容器中的项目目录
+5. 当代码中的包下显示无法import的黄色波浪线时，通过选择解释器可以解决：
+   - 按下 `Ctrl + Shift + P`（Windows/Linux）或 `Cmd + Shift + P`（Mac）打开命令面板。
+   - 输入 “Python: Select Interpreter” 并选择该命令。
+   - 在弹出的列表中选择你需要的 Python 解释器。如果列表中没有你需要的解释器，可以选择 “Enter Interpreter Path” 手动输入解释器的路径。
+
+### 通过dev containers插件
+
+参考：https://zhuanlan.zhihu.com/p/496213879
+
+右击容器 —> attacth vscode studio code，然后就可以打开docker中的文件了。
+
+1. 在vscode上，安装插件：docker，remote-ssh，dev containers
+
+2. 如果在使用vscode docker插件时，遇到：permission denied while trying to connect to the Docker daemon socket at unix：[参考1](https://zhuanlan.zhihu.com/p/680737356)，[参考2](https://blog.csdn.net/weixin_41848012/article/details/143403914)
+
+   ```bash
+   sudo chmod 666 /var/run/docker.sock
+   ```
+
+
+
+## [给指定的容器设定固定的ip](https://blog.csdn.net/jjj_web/article/details/149486197)
+
+```bash
+docker network create --subnet=10.1.0.0/16 gpu-net
+# 一般宿主机占据子网的1号ip，所以容器需要设置其他号位
+docker run -it --network gpu-net --ip 10.1.0.2 --privileged=true -v /home/qbuntu/docker:/var/docker dsfegggd /bin/bash
+```
+
