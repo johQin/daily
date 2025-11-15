@@ -2300,6 +2300,36 @@ deactivate
 
 [镜像源修改](https://zhuanlan.zhihu.com/p/681420064)
 
+## 包管理工具
+
+### pip
+
+#### pip install -e  .[xx,xxx]
+
+假设你有一个正在开发中的 Python 项目，目录结构如下：
+
+```bash
+my_project/
+├── setup.py
+├── src/
+│   └── my_package/
+│       ├── __init__.py
+│       └── module.py
+└── README.md
+```
+
+1. **普通安装 (`pip install .`)**：
+   - `pip` 会将你的代码（主要是 `src` 或 `my_package` 目录）**复制**到 Python 的 `site-packages` 目录中（例如 `.../Python39/Lib/site-packages/my_package`）。
+   - 之后，你对本地 `my_project/src/my_package/` 目录下的源代码所做的任何修改，**都不会**影响到已安装的包。你必须重新运行 `pip install .` 才能生效。
+2. **可编辑安装 (`pip install -e .`)**：
+   - `pip` 不会复制你的源代码。它会在 `site-packages` 目录中创建一个特殊的链接文件（通常是一个 `.pth` 文件），这个文件指向你的项目根目录（即包含 `setup.py` 的目录）。
+   - 当你下次在 Python 中 `import my_package` 时，Python 会通过这个链接**直接读取你本地的源代码**。
+   - 因此，你对代码的任何修改都会**立即生效**，无需重新安装。
+3. **指定额外依赖** `".[xxx,xxxx]"` 
+   - 表示安装当前目录下的包，并安装额外的依赖项`torch`和`metrics`（这些在`setup.py`或`pyproject.toml`中定义为extra_requires）。
+
+最常见的用法是在你的项目根目录下（即 `setup.py` 或 `pyproject.toml` 文件所在目录）运行:    `pip install -e .`
+
 # 常用函数
 
 1. **id( obj )**：
@@ -2662,4 +2692,4 @@ deactivate
 
     
 
-24. 
+24.  pip install

@@ -22,6 +22,8 @@
 
 # llama-factory
 
+
+
 ## 加速
 
 LLaMA-Factory项目中liger_kernel与unsloth是两种加速方式。
@@ -49,6 +51,8 @@ unsloth是一种显存垃圾回收优化技术，它通过以下方式降低显�
 [LLaMA-Factory项目中liger_kernel与unsloth的版本适配指南](https://blog.gitcode.com/d2f35dc1d720c6d4f84a0f66cbd16445.html)
 
 [Liger-Kernel与Unsloth性能对比分析](https://blog.gitcode.com/de56af3152e37d2a188818d8c346c9a4.html)
+
+
 
 ## log
 
@@ -119,11 +123,11 @@ unsloth是一种显存垃圾回收优化技术，它通过以下方式降低显�
 下载nvidia官方的dockerhub镜像库：[nvidia/cuda](https://hub.docker.com/r/nvidia/cuda/tags)，[按照系统和相关版本信息下载](https://gitlab.com/nvidia/container-images/cuda/blob/master/doc/supported-tags.md)
 
 ```bash
-docker pull nvidia/cuda:13.0.2-cudnn-devel-ubuntu24.04
+docker pull nvidia/cuda:12.6.2-cudnn-devel-ubuntu24.04
 
 docker network create --subnet=10.1.0.0/16 gpu-net
 # 一般宿主机占据子网的1号ip，所以容器需要设置其他号位
-docker run -it --network gpu-net --ip 10.1.0.2 --privileged=true --gpus all -v /home/qbuntu/docker:/var/docker --name cu130 dsfegggd /bin/bash
+docker run -it --network gpu-net --ip 10.1.0.2 --privileged=true --gpus all -v /home/qbuntu/docker:/var/docker --name cu126 dsfegggd /bin/bash
 
 apt-get update
 apt install vim
@@ -146,6 +150,10 @@ apt install python3.12
 apt install python3.12-venv
 
 cd LLaMA-Factory
+
 pip install -e ".[torch,metrics]"
+# 点. 代表在项目根目录下（即 `setup.py` 或 `pyproject.toml` 文件所在目录）
+# -e ，可编辑的项目，将当前项目的包，安装到site-package（通过软链接，链接到当前项目），在当前目录的修改可以同步到包中，因为是软链接
+
 ```
 
