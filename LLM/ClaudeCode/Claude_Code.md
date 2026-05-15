@@ -2,51 +2,55 @@
 
 # 1 安装配置
 
-```bash
-# 安装
-C:\Users\35900>winget install Anthropic.ClaudeCode
-The `msstore` source requires that you view the following agreements before using.
-Terms of Transaction: https://aka.ms/microsoft-store-terms-of-transaction
-The source requires the current machine's 2-letter geographic region to be sent to the backend service to function properly (ex. "US").
+## 安装claude code
 
-Do you agree to all the source agreements terms?
-[Y] Yes  [N] No: Y
-Found Claude Code [Anthropic.ClaudeCode] Version 2.1.126
-This application is licensed to you by its owner.
-Microsoft is not responsible for, nor does it grant any licenses to, third-party packages.
-Downloading https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases/2.1.126/win32-x64/claude.exe
-  ██████████████████████████████   234 MB /  234 MB
-Successfully verified installer hash
-Starting package install...
-Path environment variable modified; restart your shell to use the new value.
-Command line alias added: "claude"
-Successfully installed
+```bash
+# 法一(推荐)：node npm 安装
+npm install -g @anthropic-ai/claude-code
+# 法二：powershell
+winget install Anthropic.ClaudeCode
 
 # 版本查看
 claude -v
 2.1.126 (Claude Code)
-
-# 使用cmd中，claude命令进入对话，如果出现下面的文字，则账号有问题
-# Not logged in · Run /login
-# 法一：使用官方账号，在控制台直接输入 /login 并按回车。它会弹出一个网页，你登录你的 Anthropic (Claude.ai) 账号并授权即可。
-# 法二：登录欺骗
-echo '{"hasCompletedOnboarding": true}' > ~/.claude.json
-echo '{"primaryApiKey": "any-string"}' > ~/.claude/config.json
 
 # 使用本地代理，配置多个国内模型，可以在claude对话里通过/model切换
 # Claude Code Router (CCR) → 最强大方式（支持运行中动态切换）
 # https://musistudio.github.io/claude-code-router/zh-CN/
 npm install -g claude-code-router
 
+# 使用ccr code进入claude code 交互命令窗
+ccr code
+# 如果你直接使用claude 命令进入交互命令窗，可能会出现下面的问题
+# Not logged in · Run /login
+# 法一：使用官方账号，在控制台直接输入 /login 并按回车。它会弹出一个网页，你登录你的 Anthropic (Claude.ai) 账号并授权即可。
+# 法二：登录欺骗
+echo '{"hasCompletedOnboarding": true}' > ~/.claude.json
+echo '{"primaryApiKey": "any-string"}' > ~/.claude/config.json
 ```
 
-# 2 [claude-code-router]( https://musistudio.github.io/claude-code-router/zh-CN/)
+# 2 核心工作流
+
+### 2.1 工作模式
+
+1. Plan
+   - 让Claude 只规划，不执行，只读取文件理解文本，不修改任何文件，反复讨论，修改方案
+   - Shift + Tab + Tab 进入 Plan模式
+   - Shift + Tab 切换到正常模式
+2. Auto
+   - 用一个AI分类器替你做权限判断。安全操作自动放行，危险操作才拦截
+   - 
+3. 
+
+# 其他内容-----------------------------------------------------------
+
+# 1 [claude-code-router]( https://musistudio.github.io/claude-code-router/zh-CN/)
 
 ```bash
 npm install -g @musistudio/claude-code-router
 ```
 
-## 2.1 Command
+## 1.1 Command
 
 #### start
 
@@ -234,24 +238,11 @@ ccr ui
 # http://127.0.0.1:3456/ui/
 ```
 
-## 2.2 配置
+## 1.2 配置
 
 存在两级的配置：
 
 - 全局配置
 - 项目级配置
 - 
-
-# 2 核心工作流
-
-### 2.1 工作模式
-
-1. Plan
-   - 让Claude 只规划，不执行，只读取文件理解文本，不修改任何文件，反复讨论，修改方案
-   - Shift + Tab + Tab 进入 Plan模式
-   - Shift + Tab 切换到正常模式
-2. Auto
-   - 用一个AI分类器替你做权限判断。安全操作自动放行，危险操作才拦截
-   - 
-3. 
 
