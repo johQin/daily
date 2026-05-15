@@ -246,3 +246,72 @@ ccr ui
 - 项目级配置
 - 
 
+```json
+{
+  "LOG": false,
+  "LOG_LEVEL": "debug",
+  "CLAUDE_PATH": "",
+  "HOST": "127.0.0.1",
+  "PORT": 3456,
+  "APIKEY": "",
+  "API_TIMEOUT_MS": "600000",
+  "PROXY_URL": "",
+  "transformers": [],
+  "Providers": [
+    {
+      "name": "siliconflow",
+      "api_base_url": "https://api.siliconflow.cn/v1/chat/completions",
+      "api_key": "sk-ixxxxxx",
+      "models": [
+        "deepseek-ai/DeepSeek-V4-Flash",
+        "Pro/zai-org/GLM-5.1"
+      ],
+      "transformer": {
+        "use": [
+          [
+            "maxtoken",
+            {
+              "max_tokens": 16384
+            }
+          ]
+        ]
+      }
+    },
+    {
+      "name": "deepseek",
+      "api_base_url": "https://api.deepseek.com/chat/completions",
+      "api_key": "sk-1axxxxx",
+      "models": [
+        "deepseek-v4-flash",
+        "deepseek-v4-pro"
+      ],
+      "transformer": {
+        "use": [
+          "deepseek"
+        ]
+      }
+    }
+  ],
+  "StatusLine": {
+    "enabled": false,
+    "currentStyle": "default",
+    "default": {
+      "modules": []
+    },
+    "powerline": {
+      "modules": []
+    }
+  },
+  "Router": {
+    "default": "deepseek,deepseek-v4-flash",
+    "background": "siliconflow,deepseek-ai/DeepSeek-V4-Flash",
+    "think": "siliconflow,Pro/zai-org/GLM-5.1",
+    "longContext": "",
+    "longContextThreshold": 60000,
+    "webSearch": "",
+    "image": ""
+  },
+  "CUSTOM_ROUTER_PATH": ""
+}
+```
+
