@@ -79,14 +79,210 @@ Jenkins 以 WAR 文件、原生包/安装程序和 Docker 镜像分发。
 export JENKINS_HOME=/home/jenkins/jenkins_home
 # 运行命令，如果在运行后，你中断这个程序，那么jenkins服务就会被关闭
 java -jar jenkins.war
-
+# --httpPort=8080 可以指定浏览器访问jenkins 服务的端口
 #
 # Jenkins initial setup is required. An admin user has been created and a password generated.Please use the following password to proceed to installation:
 # 4f8da39c58b64fbebbb7838a30a6fe026
 # This may also be found at: /root/.jenkins/secrets/initialAdminPassword
 
 # 浏览http://localhost:8080并等到*Unlock Jenkins*页面出现。
+# 
 
 # 继续使用Post-installation setup wizard后面步骤设置向导。
 ```
+
+
+
+## 1.3 初识Jenkins
+
+### 管理jenkins
+
+Manage jenkins选项卡 --> System Configuration 栏下 
+
+- **Configure System** → 管系统全局环境、通知、变量，SSH连接（需要Publish Over ssh插件支持）
+- **Global Tool Configuration** → 管 JDK/Maven/Git 等工具
+- **Manage Plugins** → 安装插件，扩展功能
+- **Manage Nodes and Clouds** → 管理分布式构建节点，多机器干活
+
+工具和插件的区别：
+
+- **插件** = 包工头的**技能**（会用 Git、会做流水线、会发邮件）
+
+- **工具** = 包工头手里的**锤子、电钻、扳手**（JDK、Maven、Git 软件）
+
+
+
+### 新建Item
+
+新建Item ->  任务名称，在任务名称下方有多个项目类型（根据jenkins的插件的多少，下方支持的类型可多可少），可能一开始就包含：
+
+- Freestyle project：
+  - 最简单、最基础的「傻瓜式可视化任务」，纯页面点选配置
+  - **完全不用写代码**，你只需要在界面上一步步勾选：拉代码、执行 shell 命令、打包、发送通知等简单步骤；
+- Pipeline：
+  - 用 **Jenkinsfile（代码文件）** 定义完整的构建流程（拉代码→编译→单元测试→代码扫描→部署→发邮件）；
+- 构建一个多配置项目
+  - 专门解决：**同一个项目，需要在 N 种不同环境下重复构建**的场景
+  - 比如：你的项目要兼容 JDK8 / JDK11、Linux / Windows、MySQL8 / PostgreSQL，不用建 10 个任务，建这一个就能**自动批量执行**；
+- organizations Folder：
+  - 不是用来跑单个构建的，而是**对接代码平台（GitHub/GitLab/ 码云）的「组织 / 团队」**；
+  - 它会**自动扫描**组织下的所有代码仓库，只要仓库里有 Jenkinsfile，就**自动创建 / 更新 Jenkins 任务**；
+  - 完全不用手动一个个新建 Item。
+
+
+
+# 2 maven项目
+
+## 安装
+
+需要在jenkins的服务器上安装：
+
+- **Maven工具** 和**plugin Maven Integration**
+
+- **git**工具
+- **jdk**
+
+- 安装maven
+
+  ```bash
+  # maven 依赖java，所以需要安装jdk，需要注意maven与jdk的版本适配
+  yum install -y java-devel
+  
+  tar -zxvf apache-maven-3.9.6-bin.tar.gz
+  
+  # 编辑/etc/profile，添加 Maven 环境变量
+  export MAVEN_HOME=/usr/local/apache-maven-3.9.6
+  export PATH=$PATH:$MAVEN_HOME/bin
+  
+  source /etc/profile
+  
+  # 验证maven命令
+  mvn -v
+  
+  # maven作为包管理工具，可以配置阿里云镜像站，以加速依赖包的下载。
+  /usr/local/apache-maven-3.9.6/conf/setting.xml
+  # 将阿里的配置拷贝过来，覆盖原有内容
+  
+  ```
+
+- 配置maven工具命令的目录：Dashboard -> Global Tool Configuration，新增maven Maven_Home
+
+- 安装plugin maven
+
+  - 在Manage jenkins选项卡 --> System Configuration -> Manage Plugins ->  Maven Integration
+
+## 新建item
+
+dashboard -> 项目名称 -> 构建一个maven项目（必须先安装插件才有这个项目类型）
+
+然后会有一系列tab页，让你配置，或者采用默认的配置
+
+- General
+
+- 源码管理：拉取代码的仓库相关信息
+
+  - 只要项目构建过一次，已执行代码拉取过程，那么代码会下载到 `~/.jenkins/workspace/项目名称/源码`
+
+- 构建触发器
+
+  - 用于自动化构建，例如git上将feature分支的代码合并到main分支上后，立刻触发构建
+
+  - 触发远程构建
+
+    ```bash
+    # 输入身份验证令牌token，随便输入一个
+    123123
+    #解释：Use the following URL to trigger build remotely：JENKINS_URL/job/项目名称/build?token=123123 or JENKINS_URL/buildWithParameters?job=项目名称&token=123123&xxx=abc to provide text that will be included in record build cause
+    
+    # 一旦发起上述get请求，那么jenkins任务队列中就会出现一条构建任务。
+    ```
+
+  - 如果在登录jenkins的浏览器上，使用链接触发是没有问题的，是可以正常触发任务
+
+  - 但是如果在另一浏览器上触发，那么出现authorization require问题，可以通过 Plugin **Build Authorization Token Root**，并且使用第二种方式就可成功触发`JENKINS_URL/buildWithParameters?job=项目名称&token=123123&xxx=abc`
+
+  - 现在来配置gitlab上的hook
+
+    - 项目仓库-> 设置 -> webhooks，网址填入上面的网址，令牌在地址中已包含，触发来源
+
+- 构建环境
+
+- Pre Steps
+
+  - 清理已传输的文件，关闭之前已启动的服务（端口占用等）
+
+  - add pre-build step 下拉 （Send files or execute commands over SSH）
+
+  - Exec command如果涉及多个命令，可以使用shell脚本
+
+  - ```shell
+    #!/bin/bash
+    
+    # 删除历史数据
+    # rm -rf xxxxx
+    
+    # 获取shell脚本的命令行位置参数
+    echo "arg:$1"
+    appname=$1
+    
+    # 获取正在运行的jar包pid
+    pid=`ps -ef | grep $1 | grep 'java -jar | awk '{printf $2}'`
+    
+    echo $pid
+    
+    # 判断pid是否为空，
+    if [ -z $pid ];
+    	then 
+    		echo "$appname not started"
+    	else
+    		kill -9 $pid
+    		echo "$appname stoping"
+    fi
+    
+    # 检查
+    check=`ps -ef | grep -w $pid | grep java`
+    if [ -z $check ];
+        then
+            echo "$appname pid:$pid is stop"
+        else
+            echo "$appname stop failed"
+    fi
+    ```
+
+  - 
+
+- Build: 构建的配置，添加pom.xml位置
+
+- Post Steps
+
+  - 构建的产物位置：`~/.jenkins/workspace/项目名/有pom.xml文件夹下的target`
+
+  - 如果要将构建好的jar包，发送测试服务器运行，那么需要先安装plugin **Publish Over ssh**
+
+  - Manage jenkins -> System Configuration -> Configure System -> Publish over SSH，然后配置服务器相关信息
+
+  - dashboard -> 点击项目名称 -> 配置 -> Post Steps -> add post-build step 下拉 （Send files or execute commands over SSH）
+
+  - Transfers 中配置需要发送的文件（Sources files），Remove prefix，Remote Directory ，Exec command
+
+  - Exec Command：
+
+    ```bash
+    # 有些命令会在前台阻塞，或者是交互性质的，所以日志，以及运行都不能阻塞，所以需要脱机（nohup），后台运行（&），日志（&>）
+    nohup java -jar /root/mydemo/demo*.jar &>mylog.log &
+    ```
+
+    
+
+- 构建设置
+
+- 构建后操作
+
+
+
+
+
+dashboard -> 点击项目名称 -> 配置 -> Post Steps -> add post-build step 下拉 （Send files or execute commands over SSH）
+
+插件：连接到另一台主机，部署程序。
 
