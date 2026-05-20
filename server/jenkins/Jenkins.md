@@ -133,7 +133,7 @@ Manage jenkins选项卡 --> System Configuration 栏下
 
 # 2 maven项目
 
-## 安装
+## 2.1 安装
 
 需要在jenkins的服务器上安装：
 
@@ -171,7 +171,7 @@ Manage jenkins选项卡 --> System Configuration 栏下
 
   - 在Manage jenkins选项卡 --> System Configuration -> Manage Plugins ->  Maven Integration
 
-## 新建item
+## 2.2 新建item
 
 dashboard -> 项目名称 -> 构建一个maven项目（必须先安装插件才有这个项目类型）
 
@@ -203,7 +203,10 @@ dashboard -> 项目名称 -> 构建一个maven项目（必须先安装插件才�
 
   - 现在来配置gitlab上的hook
 
-    - 项目仓库-> 设置 -> webhooks，网址填入上面的网址，令牌在地址中已包含，触发来源
+    - 项目仓库-> 设置 -> webhooks，网址填入上面的网址，令牌在地址中已包含，触发来源->选择“合并请求事件（创建、更新或合并合并请求）”，去掉启用SSL验证，点击`Add webhook`
+    - 在点完add webhook后，可能会出现`Url is blocked：Request to the local network are not allowed`，这时就需要做其他配置，`菜单-> 切换到管理员身份->设置-> 网络 -> 出站请求 -> 允许来自web hooks和服务对本地网络的请求`，这样就可以搞定
+    - 如果添加hooks成功，会在此页面的底部出现Project hooks的列表，里面可以点击“测试”发出指定的事件，以此来测试功能。
+    - 在gitlab中，触发来源：合并请求事件（创建、更新或合并合并请求），这个会在“创建合并请求”，“合并合并请求” 这两个时间节点都触发构建，所以这不是我们真正想要的。
 
 - 构建环境
 
@@ -280,9 +283,45 @@ dashboard -> 项目名称 -> 构建一个maven项目（必须先安装插件才�
 
 
 
+## 2.3 常见的构建触发器
+
+- 快照依赖构建/Build whenever a SNAPSHOT dependency is built
+  - 当依赖的快照被构建时执行本 job
+- 触发远程构建
+  - 远程调用本 job 的 restapi 时执行本 job
+- job 依赖构建 / Build after other projects are built
+  - 当依赖的 job 被构建时执行本 job
+- 定时构建 / Build periodically
+  - 使用 cron 表达式定时构建本 job
+- 向 **GitHub** 提交代码时触发 Jenkins 自动构建 / GitHub hook trigger for GITScm polling
+  - Github-WebHook 出发时构建本 job
+- 定期检查代码变更 / Poll SCM
+  - 使用 cron 表达式定时检查代码变更，变更后构建本 job
 
 
-dashboard -> 点击项目名称 -> 配置 -> Post Steps -> add post-build step 下拉 （Send files or execute commands over SSH）
 
-插件：连接到另一台主机，部署程序。
+**jenkins cron表达式**可以在网站（https://crontab.guru/）上进行生成测试
+
+- **`*`**星号代表任意
+- **`/`** 斜杠代表 每隔
+- **`-`** 短斜线代表 范围
+- 还有其他语法，可以自行查询
+
+![image-20260520200249051](legend/image-20260520200249051.png)
+
+## 2.4 邮件通知
+
+邮件服务器涉及概念：
+
+- **SMTP**：发邮件 ✉️
+- **POP3**：收邮件，下载到本地，服务器不留
+- **IMAP**：收邮件，存在云端，多设备同步
+
+配置的位置Dashboard -> Manage Jenkins -> Configure System
+
+- **Jenkins Location**：全局系统位置信息，**不直接发邮件**，只用于邮件模板里展示
+
+- **邮件通知（自带默认邮件）**：Jenkins**原生简单邮件**，仅失败时发、功能弱
+
+- **Extended Email Notification（扩展邮件插件）**：**高级自定义邮件**，最常用，可自定义模板、触发条件、收件人、格式
 
