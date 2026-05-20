@@ -1368,8 +1368,13 @@ git config --list
 10. git 配置代理
 
     ```bash
+    # 全局开启代理
     git config --global http.proxy http://127.0.0.1:7890
     git config --global https.proxy https://127.0.0.1:7890
+    
+    # 全局关闭代理
+    git config --global --unset http.proxy
+    git config --global --unset https.proxy
     ```
 
     
