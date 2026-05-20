@@ -211,64 +211,63 @@
 14. [解决SSH连接时遇到的“远程主机身份验证已更改 (WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!)”警告](https://blog.csdn.net/weixin_51524504/article/details/145016427)
 
     ```bash
-# 报错：
     @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
     @    WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!     @
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-    IT IS POSSIBLE THAT SOMEONE IS DOING SOMETHING NASTY!
-    Someone could be eavesdropping on you right now (man-in-the-middle attack)!
-    It is also possible that a host key has just been changed.
-    The fingerprint for the ED25519 key sent by the remote host is
-    SHA256:b8H/DoLy5qxdBor/kCi4XlBOSvV6IGL1PVBAva3qD4I.
-    Please contact your system administrator.
-    Add correct host key in /home/qbuntu/.ssh/known_hosts to get rid of this message.
-    Offending ECDSA key in /home/qbuntu/.ssh/known_hosts:10
-      remove with:
-      ssh-keygen -f '/home/qbuntu/.ssh/known_hosts' -R '10.1.0.2'
-    Host key for 10.1.0.2 has changed and you have requested strict checking.
-    Host key verification failed.
-    # 直接使用
-    ssh-keygen -f '/home/qbuntu/.ssh/known_hosts' -R '10.1.0.2'
-    
+    @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+        IT IS POSSIBLE THAT SOMEONE IS DOING SOMETHING NASTY!
+        Someone could be eavesdropping on you right now (man-in-the-middle attack)!
+        It is also possible that a host key has just been changed.
+        The fingerprint for the ED25519 key sent by the remote host is
+        SHA256:b8H/DoLy5qxdBor/kCi4XlBOSvV6IGL1PVBAva3qD4I.
+        Please contact your system administrator.
+        Add correct host key in /home/qbuntu/.ssh/known_hosts to get rid of this message.
+        Offending ECDSA key in /home/qbuntu/.ssh/known_hosts:10
+          remove with:
+          ssh-keygen -f '/home/qbuntu/.ssh/known_hosts' -R '10.1.0.2'
+        Host key for 10.1.0.2 has changed and you have requested strict checking.
+        Host key verification failed.
+
+- 直接使用： ssh-keygen -f '/home/qbuntu/.ssh/known_hosts' -R '10.1.0.2'
+
+-   ```bash    
     # 如果还不行，就继续
-vim /home/user/.ssh/known_hosts
-    # 根据报错删除对应的行
-# Offending ECDSA key in C:\\Users\\Tang/.ssh/known_hosts:10 指出问题出在第37行。在known_hosts 中查找并删除与问题主机相关的旧条目，可以用vscode等打开，vscode会显示行号。
+    vim /home/user/.ssh/known_hosts
+        # 根据报错删除对应的行
+    
+    Offending ECDSA key in C:\\Users\\Tang/.ssh/known_hosts:10 指出问题出在第37行。在known_hosts 中查找并删除与问题主机相关的旧条目，可以用vscode等打开，vscode会显示行号。
     ```
 
-    
+15. [通过 SSH 在远程和本地系统之间传输文件的 4 种方法](https://zhuanlan.zhihu.com/p/507876254)
 
-14. [通过 SSH 在远程和本地系统之间传输文件的 4 种方法](https://zhuanlan.zhihu.com/p/507876254)
+- [scp：前提是已安装了openssh-server](https://blog.csdn.net/qq_34374664/article/details/81289540)
 
-    - [scp：前提是已安装了openssh-server](https://blog.csdn.net/qq_34374664/article/details/81289540)
+  - -P [port] : 指定SSH端口号
+  - -r : 递归复制整个目录
 
-      - -P [port] : 指定SSH端口号
-      - -r : 递归复制整个目录
+  ```bash
+  # 将本地文件，上传到服务器指定目录下
+  scp local_file remote_username@remote_ip:remote_folder
+  # 将本地的时区文件上传到docker容器中，docker容器的ssh对外暴露的端口为11022，当前本地的pwd为/usr/share/zoneinfo/Asia/
+  # 需要在docker中创建/usr/share/zoneinfo/Asia/
+  sudo scp -P 11022 ./Shanghai root@192.168.101.163:/usr/share/zoneinfo/Asia/
+  
+  # 将本地文件夹，上传到服务器指定目录下
+  scp -r local_folder remote_username@remote_ip:remote_folder
+  
+  # 从远程复制到本地的scp命令与上面的命令雷同，只要将从本地复制到远程的命令后面2个参数互换顺序就行了。
+  scp root@192.168.120.204:/opt/soft/nginx-0.5.38.tar.gz /opt/soft/
+  
+  # 如果ssh服务的端口不是22，那么就需要指定自定义的端口
+  scp -P port local_file remote_username@remote_ip:remote_folder
+  ```
 
-      ```bash
-      # 将本地文件，上传到服务器指定目录下
-      scp local_file remote_username@remote_ip:remote_folder
-      # 将本地的时区文件上传到docker容器中，docker容器的ssh对外暴露的端口为11022，当前本地的pwd为/usr/share/zoneinfo/Asia/
-      # 需要在docker中创建/usr/share/zoneinfo/Asia/
-      sudo scp -P 11022 ./Shanghai root@192.168.101.163:/usr/share/zoneinfo/Asia/
-      
-      # 将本地文件夹，上传到服务器指定目录下
-      scp -r local_folder remote_username@remote_ip:remote_folder
-      
-      # 从远程复制到本地的scp命令与上面的命令雷同，只要将从本地复制到远程的命令后面2个参数互换顺序就行了。
-      scp root@192.168.120.204:/opt/soft/nginx-0.5.38.tar.gz /opt/soft/
-      
-      # 如果ssh服务的端口不是22，那么就需要指定自定义的端口
-      scp -P port local_file remote_username@remote_ip:remote_folder
-      ```
+- rsync：用于文件同步的流行命令
 
-    - rsync：用于文件同步的流行命令
+- sshfs：通过 SSH 挂载远程目录
 
-    - sshfs：通过 SSH 挂载远程目录
+- sftp 客户端：通过 SFTP 访问文件的 GUI 工具（Filezilla）
 
-    - sftp 客户端：通过 SFTP 访问文件的 GUI 工具（Filezilla）
-
-15. [ssh进入服务器或服务器docker](https://blog.csdn.net/weixin_44623010/article/details/105556481)
+14. [ssh进入服务器或服务器docker](https://blog.csdn.net/weixin_44623010/article/details/105556481)
 
     ```bash
     # 安装完ssh-server之后，通过root登陆，报：Permission denied, please try again.
@@ -290,7 +289,7 @@ vim /home/user/.ssh/known_hosts
     exit
     ```
 
-16. vim 查找
+15. vim 查找
 
     ```bash
     # 全局搜索，替换
@@ -305,7 +304,7 @@ vim /home/user/.ssh/known_hosts
     # 查找上一个匹配项，按 N。
     ```
 
-17. grep查找
+16. grep查找
 
     - grep -rn "hello,world!" *
     - \* : 表示当前目录所有文件，也可以是某个文件名
@@ -314,7 +313,7 @@ vim /home/user/.ssh/known_hosts
     - -R 查找所有文件包含子目录
     - -i 忽略大小写
 
-18. [wget](https://zhuanlan.zhihu.com/p/335258413)
+17. [wget](https://zhuanlan.zhihu.com/p/335258413)
 
     ```bash
     wget https://developer.nvidia.com/downloads/c120-cudnn-local-repo-ubuntu2204-88012110-1amd64deb
@@ -322,7 +321,7 @@ vim /home/user/.ssh/known_hosts
     
     ```
 
-19. [统计当前文件夹下的文件情况](https://zhuanlan.zhihu.com/p/377523024)
+18. [统计当前文件夹下的文件情况](https://zhuanlan.zhihu.com/p/377523024)
 
     ```bash
     涉及 3个命令
@@ -350,7 +349,7 @@ vim /home/user/.ssh/known_hosts
     find -name "*.js" | wc -l
     ```
 
-20. apt-get查看已安装的程序的方法
+19. apt-get查看已安装的程序的方法
 
     ```bash
     dpkg -l | grep 'program_name'
@@ -365,7 +364,7 @@ vim /home/user/.ssh/known_hosts
     dpkg-query -L <package-name>
     ```
 
-21. [ubuntu搜索可用安装包`apt search`](https://zhuanlan.zhihu.com/p/661310752)
+20. [ubuntu搜索可用安装包`apt search`](https://zhuanlan.zhihu.com/p/661310752)
 
     ```bash
     # 模糊匹配
@@ -384,13 +383,13 @@ vim /home/user/.ssh/known_hosts
     apt search -r <regex-pattern>
     ```
 
-22. 修改root密码
+21. 修改root密码
 
     ```bash
     echo 'root:12345' | chpasswd
     ```
 
-23. cp复制文件夹
+22. cp复制文件夹
 
     ```bash
     # 不管destination文件夹是否拖一个斜杠“/”
@@ -410,7 +409,7 @@ vim /home/user/.ssh/known_hosts
 
     
 
-24. 重命名文件夹
+23. 重命名文件夹
 
     ```bash
     # 如果folder2不存在，效果：将名为"folder1"的文件夹重命名为"folder2"
@@ -419,7 +418,7 @@ vim /home/user/.ssh/known_hosts
     mv folder1 folder2
     ```
 
-25. 
+24. 
 
 # 3 ubuntu软件安装
 
