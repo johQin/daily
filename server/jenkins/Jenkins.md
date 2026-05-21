@@ -262,7 +262,7 @@ dashboard -> 项目名称 -> 构建一个maven项目（必须先安装插件才�
 
   - 如果要将构建好的jar包，发送测试服务器运行，那么需要先安装plugin **Publish Over ssh**
 
-  - Manage jenkins -> System Configuration -> Configure System -> Publish over SSH，然后配置服务器相关信息
+  - Manage jenkins -> System Configuration -> Configure System -> Publish over SSH，然后**配置服务器相关信息**
 
   - dashboard -> 点击项目名称 -> 配置 -> Post Steps -> add post-build step 下拉 （Send files or execute commands over SSH）
 
@@ -325,3 +325,53 @@ dashboard -> 项目名称 -> 构建一个maven项目（必须先安装插件才�
 
 - **Extended Email Notification（扩展邮件插件）**：**高级自定义邮件**，最常用，可自定义模板、触发条件、收件人、格式
 
+# 3 容器
+
+在容器中部署应用的几种方式
+
+1. 容器卷
+   - 容器映射宿主机的文件系统，然后在容器中执行命令或者重启容器
+2. 应用包 + dockerfile + build = 新镜像
+   - 删除旧有容器和镜像，应用包 与dockerfile 同时上传，然后构建，生成新镜像，然后运行新镜像
+3. 新镜像 上传 harbor，通过K8s编排
+
+# 4 Jenkins集群
+
+集群化构建可以提升构建效率，尤其是团队项目比较多的时候，可以并发在多台机器上执行构建。
+
+Dashboard -> Manage Jenkins -> Manage Nodes and Clouds
+
+进去后，可以看见Nodes列表里包含一个Built-In Node，这个是当前Jenkins节点
+
+
+
+## 新建节点（New Node）
+
+在左侧的菜单中 新建节点（New Node）
+
+- 填入节点名称，勾选Type（permanent Agent，这个type可以查一下有什么用），点击Create
+- 填写节点的其他信息：
+  - 名称不用修改
+  - Number of executors
+  - 远程工作目录
+  - 标签：这里的标签尤为注意，后面在指定谁去构建，或者在pipeline中，都会用到这个标签名
+  - 用法：有两个选项：Use this node as much as possible（由jenkins master自主分配），Only build jobs with label expressions matching this node（通过label匹配slave 去构建）
+  - 启动方式：三个选项
+    - Launch agent by connecting it to the controller：从节点主动连接控制器（主节点），主节点开放端口，**从节点主动发起网络连接**，对接 Jenkins 主节点；
+      - 场景：
+        - **Windows 从节点**（Windows 默认不装 SSH，最常用）；
+        - 网络受限：主节点在内网 / 防火墙后，**主节点无法主动访问从节点**，但从节点能访问主节点；
+        - 容器化、云服务器、隔离环境。
+    - Launch agent via execution of command on the controller：在主节点执行命令启动从节点
+    - Launch agent via SSH：通过 SSH 启动代理（Linux/macOS 专用）
+      - Jenkins 主节点通过 **SSH 协议** 远程登录从节点；
+      - 场景：
+        - **Linux /macOS 从节点**（最主流、标准方式）；
+        - 主节点能直接连通从节点 22 端口，SSH 密钥 / 密码可用；
+        - 服务器集群、内网环境、CI/CD 标准部署。
+      - 选这个选项，
+        - 需要安装插件**Publish Over ssh**，并在System Configuration中配置ssh信息
+        - 或者在当前的位置配置ssh信息，其中Host Key Verification Strategy选择：Non verifying Verification Strategy
+- 最后点击保存，就返回了Nodes 列表了，点击右上角刷新节点状态。也可以通过点击该节点，查看该节点的详情。
+
+新建
