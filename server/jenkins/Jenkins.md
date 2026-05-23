@@ -12,13 +12,12 @@ Jenkins是一款基于java开发的开源 CI&CD 软件，用于自动化各种�
 主要内容：
 
 1. 基础运行环境快速部署
-2. Jenkins传统/Blue Ocean UI使用
 3. 一键Maven拉取git代码完成构建jar包，并提交测试服务器自动运行
 4. IDE提交代码后自动构建并发布任务
 5. 定时构建发布任务
 6. 邮件通知任务执行结果
 7. Jenkins构建项目自动化运行在Docker容器中
-8. Jenkins Pipeline脚本与Jenkinsfile使用
+8. Jenkins Pipeline脚本与Jenkinsfile使用，Blue Ocean UI使用
 9. Jenkins 多分支项目
 
 [Jenkins官方文档](https://www.jenkins.io/zh/doc/)
@@ -93,9 +92,9 @@ java -jar jenkins.war
 
 
 
-## 1.3 初识Jenkins
+# 2 初识Jenkins
 
-### 管理jenkins
+## 2.1 管理jenkins
 
 Manage jenkins选项卡 --> System Configuration 栏下 
 
@@ -112,7 +111,7 @@ Manage jenkins选项卡 --> System Configuration 栏下
 
 
 
-### 新建Item
+## 2.2 新建Item
 
 新建Item ->  任务名称，在任务名称下方有多个项目类型（根据jenkins的插件的多少，下方支持的类型可多可少），可能一开始就包含：
 
@@ -131,9 +130,9 @@ Manage jenkins选项卡 --> System Configuration 栏下
 
 
 
-# 2 maven项目
+# 3 maven项目
 
-## 2.1 安装
+## 3.1 安装
 
 需要在jenkins的服务器上安装：
 
@@ -171,13 +170,19 @@ Manage jenkins选项卡 --> System Configuration 栏下
 
   - 在Manage jenkins选项卡 --> System Configuration -> Manage Plugins ->  Maven Integration
 
-## 2.2 新建item
+## 3.2 新建item
 
 dashboard -> 项目名称 -> 构建一个maven项目（必须先安装插件才有这个项目类型）
 
 然后会有一系列tab页，让你配置，或者采用默认的配置
 
 - General
+
+  - 如果Jenkins有多个节点（多台机器）的时候，在General的下面有一些复选框
+    - “在必要的时候并发构建”：如果有多个节点可以勾选上。
+    - “限制项目的运行节点”：可以使用节点的**标签 or 标签的表达式**
+    - Discard  old build
+    - Throttle build
 
 - 源码管理：拉取代码的仓库相关信息
 
@@ -283,7 +288,7 @@ dashboard -> 项目名称 -> 构建一个maven项目（必须先安装插件才�
 
 
 
-## 2.3 常见的构建触发器
+## 3.3 常见的构建触发器
 
 - 快照依赖构建/Build whenever a SNAPSHOT dependency is built
   - 当依赖的快照被构建时执行本 job
@@ -309,7 +314,7 @@ dashboard -> 项目名称 -> 构建一个maven项目（必须先安装插件才�
 
 ![image-20260520200249051](legend/image-20260520200249051.png)
 
-## 2.4 邮件通知
+## 3.4 邮件通知
 
 邮件服务器涉及概念：
 
@@ -325,7 +330,7 @@ dashboard -> 项目名称 -> 构建一个maven项目（必须先安装插件才�
 
 - **Extended Email Notification（扩展邮件插件）**：**高级自定义邮件**，最常用，可自定义模板、触发条件、收件人、格式
 
-# 3 容器
+# 4 容器
 
 在容器中部署应用的几种方式
 
@@ -335,7 +340,7 @@ dashboard -> 项目名称 -> 构建一个maven项目（必须先安装插件才�
    - 删除旧有容器和镜像，应用包 与dockerfile 同时上传，然后构建，生成新镜像，然后运行新镜像
 3. 新镜像 上传 harbor，通过K8s编排
 
-# 4 Jenkins集群
+# 5 Jenkins集群
 
 集群化构建可以提升构建效率，尤其是团队项目比较多的时候，可以并发在多台机器上执行构建。
 
@@ -345,14 +350,17 @@ Dashboard -> Manage Jenkins -> Manage Nodes and Clouds
 
 
 
-## 新建节点（New Node）
+## 5.1 新建节点（New Node）
+
+新节点（从节点）无需安装Jenkins。
 
 在左侧的菜单中 新建节点（New Node）
 
-- 填入节点名称，勾选Type（permanent Agent，这个type可以查一下有什么用），点击Create
+- 填入节点名称，勾选Type（permanent Agent，这个type可以查一下有什么用。如果已有子节点了，那么也可以选择“复制现有节点”），点击Create
+  - 关于Agent的概念，可以理解Agent就是一个**从节点**。
 - 填写节点的其他信息：
   - 名称不用修改
-  - Number of executors
+  - Number of executors：可以并发执行几个任务
   - 远程工作目录
   - 标签：这里的标签尤为注意，后面在指定谁去构建，或者在pipeline中，都会用到这个标签名
   - 用法：有两个选项：Use this node as much as possible（由jenkins master自主分配），Only build jobs with label expressions matching this node（通过label匹配slave 去构建）
@@ -374,4 +382,84 @@ Dashboard -> Manage Jenkins -> Manage Nodes and Clouds
         - 或者在当前的位置配置ssh信息，其中Host Key Verification Strategy选择：Non verifying Verification Strategy
 - 最后点击保存，就返回了Nodes 列表了，点击右上角刷新节点状态。也可以通过点击该节点，查看该节点的详情。
 
-新建
+## 5.2 配置任务
+
+在新建完节点后，就需要对任务进行配置。
+
+点击任务 -> 在General Tab页 下面勾选，配置项
+
+- “在必要的时候并发构建”
+- “限制项目的运行节点”：可以使用节点的**标签 or 标签的表达式**
+
+在勾选并发配置后，这个任务就可以连续点击多下，然后同一个任务就可以并发构建了。
+
+如果你本身就有多个任务，那就可以每个任务点一下，就可以看见他们一起在多个节点上构建了。
+
+# 6 Pipeline
+
+- 将工作流转换为一个流水线，可以**分阶段单独执行**。
+- 将工作流转换为**groovy脚本**进行编辑
+
+
+
+pipeline必备的组成部分：
+
+- pipeline：整个流水线
+- agent：指定节点
+- stages：所有阶段
+- stage：某个阶段
+- steps：阶段中的多个步骤
+
+## 6.1 新建Pipeline
+
+新建Item -> 输入任务名称，任务类型：Pipeline -> 确定，进入多Tab页配置pipeline信息（任务信息）
+
+- General
+
+- 构建触发器
+
+- 高级项目选项
+
+- 流水线pipeline
+
+  - 这里有两个类型：
+
+    - Pipeline script from SCM：从代码管理工具中拉取Pipeline脚本，SCM（Source Code Management）
+
+    - Pipeline script：直接在下方输入框总，输入脚本内容
+
+      ```groovy
+      pipeline {
+          agent any
+      
+          stages {
+              stage("拉取代码") {
+                  steps {
+                      echo '拉取成功'
+                  }
+              }
+              stage("执行构建") {
+                  steps {
+                      echo '构建完成'
+                  }
+              }
+          }
+      }
+      ```
+
+  - 在编辑框的下方还有个**“流水线语法”**的链接，
+
+    - 片段生成器：他能按照你提供的信息，为你生成jenkins中相关插件的pipeline脚本
+    - Declarative Directive Generator： Jenkins 声明式流水线代码可视化生成器，不用手写语法，点点鼠标就能生成标准 Jenkinsfile 代码
+
+在任务列表中，点击mypipeline任务，详情中看到阶段视图，之前的任务是没有阶段视图的
+
+![image-20260522101814912](legend/image-20260522101814912.png)
+
+## 6.2 插件Blue Ocean
+
+是关于Pipeline功能的一个更优的webUI工具。
+
+## 6.3 一个复杂的pipeline 脚本例子
+
+工作目录：`/root/.jenkins/workspace/mypipeline`
