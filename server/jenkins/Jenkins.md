@@ -462,4 +462,12 @@ pipeline必备的组成部分：
 
 ## 6.3 一个复杂的pipeline 脚本例子
 
-工作目录：`/root/.jenkins/workspace/mypipeline`
+工作目录：`/root/.jenkins/workspace/mypipeline（任务名）`
+
+
+
+# 7 Jenkinsfile 文件构建多分支任务
+
+同一个任务，可以分别打不同branch的包。每个分支应该有不同的Jenkinsfile文件（存放pipeline脚本）
+
+用处不大。
