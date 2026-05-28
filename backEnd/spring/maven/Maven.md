@@ -49,3 +49,21 @@ Path加：`%MAVEN_HOME%\bin`
 ### idea配置maven
 
 ![image-20260527190655397](legend/image-20260527190655397.png)
+
+# 常用包
+
+```xml
+<!--
+Lombok 是一个Java 注解处理器，核心作用是：通过注解自动生成 Java 类的样板代码，简化开发、减少冗余代码，让 Spring Boot 项目的代码更简洁、易维护。
+@Data等注解
+-->
+<dependency>
+    <groupId>org.projectlombok</groupId>
+    <artifactId>lombok</artifactId>
+    <scope>annotationProcessor</scope>
+</dependency>
+```
+
+# 常用插件
+
+1. GenerateAllSetter，在一个类后面`Alt + Enter`生成类的所有Setter
