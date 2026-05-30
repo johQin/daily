@@ -692,5 +692,648 @@ spring:
 
 
 
-# 2 OpenFeign
+# 2 [OpenFeign](https://docs.spring.io/spring-cloud-openfeign/reference/spring-cloud-openfeign.html)
 
+实现远程调用的组件。
+
+OpenFeign，是一种 Declarative REST Client，即声明式 Rest 客户端，与之对应的是编程式 Rest 客户端，比如 RestTemplate。
+
+OpenFeign 由注解驱动：
+
+- 指定远程地址：`@FeignClient`
+- 指定请求方式：`@GetMapping`、`@PostMapping`、`@DeleteMapping`...
+- 指定携带数据：`@RequestHeader`、`@RequestParam`、`@RequestBody`...
+- 指定返回结果：响应模式
+
+`指定请求方式，指定携带数据` 的注解沿用 SpringMVC的注解
+
+- 当它们标记在 Controller 上时，用于接收请求
+- 当他们标记在 FeignClien 上时，用于发送请求
+
+## 2.1 简单使用
+
+1. 使用时引入以下依赖：
+
+   ```xml
+   <dependency>
+       <groupId>org.springframework.cloud</groupId>
+       <artifactId>spring-cloud-starter-openfeign</artifactId>
+   </dependency>
+   ```
+
+2. 在主启动类上使用：`@EnableFeignClients`
+
+3. 场景
+
+   ![](./legend/OpenFeign的远程调用.svg)
+
+   4. 在`com/yanfang/order/feign/ProductFeignClient.java`中
+      ```java
+      package com.yanfang.order.feign;
+      
+      import com.yanfang.product.bean.Product;
+      import org.springframework.cloud.openfeign.FeignClient;
+      import org.springframework.web.bind.annotation.GetMapping;
+      import org.springframework.web.bind.annotation.PathVariable;
+      
+      @FeignClient(value="service-product")
+      public interface ProductFeignClient {
+      	// 自带负载均衡，客户端负载均衡
+          @GetMapping("/product/{id}")
+          Product getProductById(@PathVariable("id") Long id);
+      }
+      
+      ```
+
+   5. 在OrderServiceImpl.java中调用
+      ```java
+      package com.yanfang.order.service.impl;
+      
+      import com.yanfang.order.bean.Order;
+      import com.yanfang.order.feign.ProductFeignClient;
+      import com.yanfang.order.service.OrderService;
+      import com.yanfang.product.bean.Product;
+      import lombok.extern.slf4j.Slf4j;
+      import org.springframework.beans.factory.annotation.Autowired;
+      import org.springframework.cloud.client.ServiceInstance;
+      import org.springframework.cloud.client.discovery.DiscoveryClient;
+      import org.springframework.cloud.client.loadbalancer.LoadBalancerClient;
+      import org.springframework.stereotype.Service;
+      import org.springframework.web.client.RestTemplate;
+      
+      
+      import java.math.BigDecimal;
+      import java.util.Arrays;
+      import java.util.List;
+      @Slf4j
+      @Service
+      public class OrderServiceImpl implements OrderService {
+          
+      	@Autowired
+          ProductFeignClient productFeignClient;
+      
+          @Override
+          public Order createOrder(Long productId,Long userId){
+              Order order = new Order();
+              // 发起时自动负载均衡
+              Product product = productFeignClient.getProductById(productId);
+              order.setId(1L);
+      
+              order.setTotalAmount(product.getPrice().multiply(new BigDecimal(product.getNum())));
+              order.setUserId(userId);
+              order.setNickName("qin");
+              order.setAddress("yanfang");
+              order.setProductList(Arrays.asList(product));
+              return order;
+          }
+      }
+      ```
+
+
+
+### 小技巧
+
+如何编写好 OpenFeign 声明式的远程调用接口：
+
+- 针对业务（自己）的 API：直接复制服务提供方的 Controller 签名即可；
+- 第三方 API：根据接口文档确定请求如何发
+
+![](./legend/客户端负载均衡与服务端负载均衡.svg)
+
+## 2.2 请求日志
+
+1. 在application.yml中设置日志级别
+
+   ```yml
+   logging:
+     level:
+   #    设置这个包下的日志级别，也可以精确到某个类
+       com.yanfang.order.feign: debug
+   ```
+
+2. 在configuration(`src/main/java/com/yanfang/order/config/OrderServiceConfig.java`)中配置bean
+
+   ```java
+   package com.yanfang.order.config;
+   
+   // 这里的Logger时feign的，不是java自带的logging
+   import feign.Logger;
+   
+   import org.springframework.context.annotation.Configuration;
+   
+   @Configuration
+   public class OrderServiceConfig {
+       @Bean
+       public Logger.Level feignlogLevel() {
+           // 指定 OpenFeign 发请求时，日志级别为 FULL
+           return Logger.Level.FULL;
+       }
+   }
+   ```
+
+## 2.3 超时控制
+
+连接超时（connectTimeout），默认 10 秒。
+
+读取超时（readTimeout），默认 60 秒。
+
+1. 在resources中新增一个application-opfeign.yml
+
+   ```yml
+   spring:
+     cloud:
+       openfeign:
+         client:
+           # 可以通过CTRL + CLICK config查看源码
+           config:
+             default:
+               logger-level: full
+               connect-timeout: 1000
+               read-timeout: 2000
+             # 具体 feign 客户端的超时配置
+             # 这里写openfeign客户端的名字contextId，如果没有contextId，那么value值就是客户端的名字。@FeignClient(value="service-product", contextId="product-feigncli")
+             service-product:
+               logger-level: full
+               # 连接超时，3000 毫秒
+               connect-timeout: 3000
+               # 读取超时，5000 毫秒
+               read-timeout: 5000
+   ```
+
+2. 在主application.yml中，添加一个include，包含这个子yml
+
+   ```yml
+   server:
+     port: 8000
+   spring:
+     profiles:
+       active: test
+       include: opfeign
+   ```
+
+## 2.4 重试机制
+
+OpenFeign 底层默认使用 `NEVER_RETRY`，即从不重试策略。
+
+在configration中添加一个Retry类型的bean
+
+```java
+package com.yanfang.order.config;
+import feign.Retryer;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class OrderServiceConfig {
+
+    @Bean
+    public Retryer retryer() {
+        return new Retryer.Default();
+    }
+}
+```
+
+这里使用 OpenFeign 的默认实现 `Retryer.Default`，在这种默认实现下：
+
+```java
+public Default() {
+    this(100L, TimeUnit.SECONDS.toMillis(1L), 5);
+}
+```
+
+OpenFeign 的重试规则是：
+
+- 重试间隔 100ms
+- 最大重试间隔 1s。新一次重试间隔是上一次重试间隔的 1.5 倍，但不能超过最大重试间隔。
+- 最多重试 5 次
+
+
+
+## 2.5 拦截器
+
+![](legend/OpenFeign的拦截器.svg)
+
+1. 定义拦截器：`src/main/java/com/yanfang/order/interceptor/XTokenRequestInterceptor.java`
+
+   ```java
+   package com.yanfang.order.interceptor;
+   
+   import feign.RequestInterceptor;
+   import feign.RequestTemplate;
+   
+   import java.util.UUID;
+   
+   public class XTokenRequestInterceptor implements RequestInterceptor {
+   
+       @Override
+       public void apply(RequestTemplate template){
+           // template 封装本次请求的详细信息，可以获取到本次请求的params，body，header等
+   
+           // 本步骤是往header里面加一个X-Token
+           template.header("X-Token", UUID.randomUUID().toString());
+       }
+   }
+   
+   ```
+
+2. 想要该拦截器生效有两种方法
+
+   - 在配置文件中配置对应 Feign 客户端的请求拦截器，此时该拦截器只对指定的 Feign 客户端生效
+
+     ```yml
+     spring:
+       cloud:
+         openfeign:
+           client:
+             config:
+               # 具体 feign 客户端
+               service-product:
+                 # 该请求拦截器仅对当前客户端有效
+                 request-interceptors:
+                   - com.yanfang.order.interceptor.XTokenRequestInterceptor
+     ```
+
+   - 也可以为这个拦截器添加`@Component`注解，openfeign会在容器中找，只要有拦截器的bean，那么它就会自动给请求应用上。
+
+     ```java
+     @Component
+     public class XTokenRequestInterceptor implements RequestInterceptor {
+         // --snip--
+     }
+     ```
+
+3. 验证请求的header中是否包含X-Token
+
+   ```java
+   package com.yanfang.product.controller;
+   
+   import com.yanfang.product.bean.Product;
+   import com.yanfang.product.services.ProductService;
+   import jakarta.servlet.http.HttpServletRequest;
+   import org.springframework.beans.factory.annotation.Autowired;
+   import org.springframework.web.bind.annotation.GetMapping;
+   import org.springframework.web.bind.annotation.PathVariable;
+   import org.springframework.web.bind.annotation.RestController;
+   
+   @RestController
+   public class ProductController {
+   
+       @Autowired
+       ProductService productService;
+   
+       @GetMapping("/product/{id}")
+       public Product getProduct(@PathVariable("id") Long productId, HttpServletRequest request){
+           String requestURL = request.getRequestURL().toString();
+           System.out.println("请求完整地址："+requestURL);
+           System.out.println("X-token："+request.getHeader("X-Token"));
+           Product product = productService.getProductById(productId);
+           return product;
+       }
+   }
+   
+   ```
+
+
+
+## 2.6 fallback
+
+兜底返回，此功能需要整合Sentinel才能实现
+
+当远程调用超时的时候，返回一个符合格式的业务数据，只是说这个业务数据比较特殊。像商品库存数，可以返回库存数为0
+
+<img src="legend/OpenFeign的Fallback.svg" style="zoom:50%;" />
+
+1. 导入sentinel依赖
+
+   ```xml
+   <dependency>
+       <groupId>com.alibaba.cloud</groupId>
+       <artifactId>spring-cloud-starter-alibaba-sentinel</artifactId>
+   </dependency>
+   ```
+
+2. 在`src/main/resources/application-opfeign.yml`中打开兜底开关
+
+   ```yaml
+   feign:
+     sentinel:
+       enabled: true
+   ```
+
+   
+
+3. 定义兜底类：`src/main/java/com/yanfang/order/feign/fallback/ProductFeignClientFallback.java`
+
+   ```java
+   package com.yanfang.order.feign.fallback;
+   
+   import com.yanfang.order.feign.ProductFeignClient;
+   import com.yanfang.product.bean.Product;
+   import org.springframework.stereotype.Component;
+   
+   import java.math.BigDecimal;
+   
+   // 加入到容器中
+   @Component
+   public class ProductFeignClientFallback implements ProductFeignClient {
+       @Override
+       public Product getProductById(Long id) {
+           System.out.println("Fallback...");
+           Product product = new Product();
+           product.setId(id);
+           product.setPrice(new BigDecimal("0"));
+           product.setProductName("未知商品");
+           product.setNum(0);
+           return product;
+       }
+   }
+   
+   ```
+
+4. 在client `@FeignClient`中，注入fallback：
+
+   ```java
+   package com.yanfang.order.feign;
+   
+   import com.yanfang.order.feign.fallback.ProductFeignClientFallback;
+   import com.yanfang.product.bean.Product;
+   import org.springframework.cloud.openfeign.FeignClient;
+   import org.springframework.web.bind.annotation.GetMapping;
+   import org.springframework.web.bind.annotation.PathVariable;
+   
+   
+   @FeignClient(value="service-product", fallback = ProductFeignClientFallback.class)
+   public interface ProductFeignClient {
+   
+       @GetMapping("/product/{id}")
+       Product getProductById(@PathVariable("id") Long id);
+   }
+   
+   ```
+
+5. 测试：访问`http://localhost:8000/create?userId=15&productId=100`
+
+   ```json
+   {
+     "id": 1,
+     "totalAmount": 0,
+     "userId": 15,
+     "nickName": "qin",
+     "address": "yanfang",
+     "productList": [
+       {
+         "id": 100,
+         "price": 0,
+         "productName": "未知商品",
+         "num": 0
+       }	
+     ]
+   }
+   ```
+
+   
+
+# 3 [Sentinel](https://sentinelguard.io/zh-cn/docs/introduction.html)
+
+[github](https://github.com/alibaba/Sentinel)
+
+## 3.1 工作原理
+
+随着微服务的流行，服务和服务之间的稳定性变得越来越重要。Spring Cloud Alibaba Sentinel 以流量为切入点，从流量控制、流量路由、熔断降级、系统自适应过载保护、热点流量防护等多个维度保护服务的稳定性。
+
+![](legend/Sentinel架构原理.svg)
+
+在Sentinel中，有两个重要的概念：资源和规则，资源是需要规则保护的。
+
+定义规则：
+
+- 主流框架自动适配（Web Servlet、Dubbo、Spring Cloud、gRPC、Spring WebFlux、Reactor），**所有 Web 接口均为资源**
+- 编程式：SphU API
+- 声明式：`@SentinelResource`
+
+定义资源：
+
+- 流量控制（FlowRule）
+- 熔断降级（DegradeRule）
+- 系统保护（SystemRule）
+- 来源访问控制（AuthorityRule）
+- 热点参数（ParamFlowRule）
+
+工作流程原理图：
+
+<img src="legend/Sentinel工作原理.svg" style="zoom: 50%;" />
+
+## 3.2 整合使用
+
+[sentinel dashboard 下载](https://github.com/alibaba/Sentinel/releases)
+
+1. 启动sentinel dashboard
+
+   ```bash
+   java -jar sentinel-dashboard-1.8.8.jar
+   # 访问http://localhost:8080/
+   # 用户名和密码都是sentinel
+   ```
+
+2. 在services中引入依赖
+
+   ```xml
+   <dependency>
+       <groupId>com.alibaba.cloud</groupId>
+       <artifactId>spring-cloud-starter-alibaba-sentinel</artifactId>
+   </dependency>
+   ```
+
+3. 每一个微服务都要连上微服务控制台，
+
+   - 下面仅展示service-product：`cloud-demo1\services\service-product\src\main\resources\application.yml`的配置
+
+   ```yaml
+   server:
+     port: 9000
+   spring:
+     application:
+       name: service-product
+     cloud:
+       nacos:
+         server-addr: 127.0.0.1:8848
+         config:
+           import-check:
+             enabled: false
+       sentinel:
+         transport:
+           # 控制台地址
+           dashboard: localhost:8080
+         # 让项目一启动，就连上sentinel控制台
+         eager: true
+   ```
+
+   
+
+4. 加`@SentinelResource`
+
+   ```java
+   package com.yanfang.order.service.impl;
+   
+   import com.alibaba.csp.sentinel.annotation.SentinelResource;
+   import com.yanfang.order.bean.Order;
+   import com.yanfang.order.feign.ProductFeignClient;
+   import com.yanfang.order.service.OrderService;
+   import com.yanfang.product.bean.Product;
+   
+   import org.springframework.beans.factory.annotation.Autowired;
+   
+   import org.springframework.stereotype.Service;
+   
+   
+   import java.math.BigDecimal;
+   import java.util.Arrays;
+   import java.util.List;
+   
+   @Service
+   public class OrderServiceImpl implements OrderService {
+   
+   
+       @Autowired
+       ProductFeignClient productFeignClient;
+   
+       @SentinelResource(value="createOrder")
+       @Override
+       public Order createOrder(Long productId,Long userId){
+           Order order = new Order();
+           Product product = productFeignClient.getProductById(productId);
+           order.setId(1L);
+   
+           order.setTotalAmount(product.getPrice().multiply(new BigDecimal(product.getNum())));
+           order.setUserId(userId);
+           order.setNickName("qin");
+           order.setAddress("yanfang");
+           order.setProductList(Arrays.asList(product));
+           return order;
+       }
+   
+       
+   }
+   
+   ```
+
+5. 运行后，可以在dashboard上看见
+
+   ![image-20260529171700785](legend/image-20260529171700785.png)
+
+簇点链路只有当资源被请求过后，才会显示。
+
+而且在这里添加的流控，只在service-order运行的当次生效，在微服务重启后，就会失效，必须再次手动添加
+
+
+
+## 3.3 异常处理
+
+![](legend/Sentinel异常处理.svg)
+
+
+
+### `SentinelWebInterceptor`
+
+1. 自定义`BlockExceptionHandler`：它在限流的时候会被触发
+
+   - `cloud-demo1\services\service-order\src\main\java\com\yanfang\order\exception\MyBlockExceptionHandler.java`
+
+   ```java
+   package com.yanfang.order.exception;
+   
+   import com.alibaba.csp.sentinel.adapter.spring.webmvc_v6x.callback.BlockExceptionHandler;
+   import com.alibaba.csp.sentinel.slots.block.BlockException;
+   import com.fasterxml.jackson.databind.ObjectMapper;
+   import com.yanfang.common.R;
+   import jakarta.servlet.http.HttpServletRequest;
+   import jakarta.servlet.http.HttpServletResponse;
+   import org.springframework.beans.factory.annotation.Autowired;
+   import org.springframework.stereotype.Component;
+   
+   import java.io.PrintWriter;
+   
+   @Component
+   public class MyBlockExceptionHandler implements BlockExceptionHandler {
+   
+       @Autowired
+       private ObjectMapper objectMapper;
+   
+       @Override
+       public void handle(HttpServletRequest request,
+                          HttpServletResponse response,
+                          String resourceName, BlockException e)throws Exception{
+           response.setContentType("application/json;charset=utf-8");
+           PrintWriter writer = response.getWriter();
+           R error = R.error(500, resourceName + " 被 Sentinel 限制了, 原因: " + e.getClass());
+   
+           String json = objectMapper.writeValueAsString(error);
+           writer.write(json);
+           writer.flush();
+           writer.close();
+       }
+   
+   }
+   
+   ```
+
+2. 定义公共的请求返回对象：`cloud-demo1\model\src\main\java\com\yanfang\common\R.java`
+
+   ```java
+   package com.yanfang.common;
+   
+   import lombok.Data;
+   
+   @Data
+   public class R {
+       private Integer code;
+       private String msg;
+       private Object data;
+   
+       public static R ok(){
+           R r = new R();
+           r.setCode(200);
+           return r;
+       }
+       public static R ok(String msg, Object data){
+           R r = new R();
+           r.setCode(200);
+           r.setMsg(msg);
+           r.setData(data);
+           return r;
+       }
+   
+       public static R error(){
+           R r = new R();
+           r.setCode(500);
+           return r;
+       }
+       public static R error(Integer code, String msg){
+           R r = new R();
+           r.setCode(code);
+           r.setMsg(msg);
+           return r;
+       }
+   }
+   
+   ```
+
+   
+
+3. 添加流控：
+
+   ![image-20260529184144019](legend/image-20260529184144019.png)
+
+4. 测试：访问`http://localhost:8000/create?userId=15&productId=100`
+
+   频繁请求返回：
+
+   ```json
+   {
+     "code": 500,
+     "msg": "/create 被 Sentinel 限制了, 原因: class com.alibaba.csp.sentinel.slots.block.flow.FlowException",
+     "data": null
+   }
+   ```
+
+   
