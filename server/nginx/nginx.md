@@ -378,6 +378,20 @@ root     2992902 2571514  0 21:18 pts/0    00:00:00 grep --color=auto nginx
 
 常用的设置包括是否开启对多work process下的网络连接进行序列化，是否允许同时接收多个网络连接，选取哪种事件驱动模型来处理连接请求，每个worker process 可以同时支持的最大连接数等。
 
+- 整个配置文件只能有一个 events 块
+  - 只能在 main 里，不能放在 http /server/location 里
+
+```nginx
+events {
+    use epoll;                 # 使用Linux高性能模型
+    worker_connections 65535;  # 最大连接数（高并发设大）
+    multi_accept on;           # 一次性接收所有新连接，而不是一次只接受一个，默认是off
+    accept_mutex on;           # 连接均衡调度，避免惊群（让多个 worker 进程轮流处理新连接，避免争抢）
+}
+```
+
+
+
 ## 3.4 http指令域
 
 是nginx服务器配置最为频繁的部分。
@@ -766,7 +780,7 @@ http {
 
 3. fair
 
-   - 按后端服务器相应时间来分配请求，响应快的优先分配。
+   - 按后端服务器响应时间来分配请求，响应快的优先分配。
 
    - ```bash
      upstream myserver {
@@ -1362,7 +1376,7 @@ location /flv/ {
 	alias /opt/nginx-web/;
 }
 # 请求 http://foofish.net/flv/top.gif 这个地址时，那么在服务器里面对应的真正的资源
-# 是 http://foofish.net/opt/nginx-web/top.gif文件
+# /opt/nginx-web/top.gif文件
 
 location / {
 	try_files /system/maintenance.html $uri $uri/index.html $uri.html @mongrel;

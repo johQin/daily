@@ -2293,3 +2293,31 @@ docker network create --subnet=10.1.0.0/16 gpu-net
 docker run -it --network gpu-net --ip 10.1.0.2 --privileged=true -v /home/qbuntu/docker:/var/docker dsfegggd /bin/bash
 ```
 
+## [默认网段](https://blog.csdn.net/weixin_66397563/article/details/151115199)
+
+- 在 Docker 的默认网络配置中，Docker 会为容器创建一个桥接（bridge）网络，并自动为每个容器分配一个 IP 地址。
+- 默认情况下，这些 IP 地址会来自于 Docker 的预设地址池，通常是 172.x.x.x 或 192.x.x.x 网段（这可能与一些公司内的私有网络冲突）。很多开发者可能会忽略网络配置的细节 —— 直到遇到 **“网段冲突”** 的麻烦。
+
+将默认网段修改为10.x.x.x
+
+```bash
+sudo vim /etc/docker/daemon.json
+
+{
+  "bip": "10.200.0.1/24",
+  "fixed-cidr": "10.200.0.0/24",
+  "fixed-cidr-v6": "2001:db8::/64",
+  "mtu": 1500,
+  "default-address-pools": [
+    {
+      "base": "10.201.0.0/16",
+      "size": 24
+    }
+  ]
+}
+
+# bip：控制 Docker 默认桥接网络（bridge network）的网段。在这里我们将其设置为 10.200.0.0/24。
+# fixed-cidr：为 Docker 的默认 bridge 网络设置静态 IP 地址池。这里我们将其设置为 10.200.0.0/24，即从该网段分配容器 IP 地址。
+# default-address-pools：此配置指定了 Docker 为创建的新网络（包括通过 Docker Compose 创建的默认网络）分配 IP 地址时使用的地址池。在这里，我们设置其为 10.201.0.0/16，并通过 size 指定每次分配的子网大小为 /24。
+```
+
