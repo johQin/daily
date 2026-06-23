@@ -42,6 +42,72 @@ echo '{"primaryApiKey": "any-string"}' > ~/.claude/config.json
    - 
 3. 
 
+# 3 扩展claude的功能
+
+
+
+**初次使用 Claude Code？** 从 CLAUDE.md开始了解项目约定，然后根据需要添加其他扩展当特定触发器出现时。
+
+| 功能                                                         | 作用                                         | 何时使用                                           | 示例                                                      |
+| :----------------------------------------------------------- | :------------------------------------------- | :------------------------------------------------- | :-------------------------------------------------------- |
+| [**CLAUDE.md**](https://code.claude.com/docs/zh-CN/memory)   | 每次对话加载的持久上下文                     | 项目约定、“始终执行 X” 规则                        | ”使用 pnpm，而不是 npm。提交前运行测试。“                 |
+| [**Skill**](https://code.claude.com/docs/zh-CN/skills)       | Claude 可以使用的说明、知识和工作流          | 可重用内容、参考文档、可重复的任务                 | `/deploy` 运行您的部署清单；包含端点模式的 API 文档 skill |
+| [**Subagent**](https://code.claude.com/docs/zh-CN/sub-agents) | 返回摘要结果的隔离执行上下文                 | 上下文隔离、并行任务、专门的工作者                 | 读取许多文件但仅返回关键发现的研究任务                    |
+| [**Agent teams**](https://code.claude.com/docs/zh-CN/agent-teams) | 协调多个独立的 Claude Code 会话              | 并行研究、新功能开发、使用竞争假设进行调试         | 生成审查者同时检查安全性、性能和测试                      |
+| **Code intelligence**                                        | 语言服务器导航和诊断                         | 类型化语言、大型代码库（其中 grep 速度慢或不精确） | 跳转到符号的定义，而不是读取整个文件                      |
+| [**MCP**](https://code.claude.com/docs/zh-CN/mcp)            | 连接到外部服务                               | 外部数据或操作                                     | 查询您的数据库、发布到 Slack、控制浏览器                  |
+| [**Hook**](https://code.claude.com/docs/zh-CN/hooks-guide)   | 由事件触发的脚本、HTTP 请求、提示或 subagent | 必须在每个匹配事件上运行的自动化                   | 每次文件编辑后运行 ESLint                                 |
+| [Plugin](https://code.claude.com/docs/zh-CN/plugins)         | 捆绑和共享功能集                             |                                                    |                                                           |
+| [Marketplaces](https://code.claude.com/docs/zh-CN/plugin-marketplaces) | 托管和分发plugin集合                         |                                                    |                                                           |
+
+| 触发器                                         | 添加                                                         |
+| :--------------------------------------------- | :----------------------------------------------------------- |
+| Claude 两次出错约定或命令                      | 将其添加到 [CLAUDE.md](https://code.claude.com/docs/zh-CN/memory) |
+| 您一直在输入相同的提示来启动任务               | 将其保存为用户可调用的 [skill](https://code.claude.com/docs/zh-CN/skills) |
+| 您第三次将相同的剧本或多步骤过程粘贴到聊天中   | 将其捕获为 [skill](https://code.claude.com/docs/zh-CN/skills) |
+| 您一直在从 Claude 看不到的浏览器标签页复制数据 | 将该系统连接为 [MCP server](https://code.claude.com/docs/zh-CN/mcp) |
+| Claude 读取许多文件以查找符号的定义或使用位置  | 为您的语言安装 [code intelligence plugin](https://code.claude.com/docs/zh-CN/discover-plugins#code-intelligence) |
+| 一个辅助任务用您不会再次引用的输出淹没您的对话 | 通过 [subagent](https://code.claude.com/docs/zh-CN/sub-agents) 路由它 |
+| 您希望每次都发生某事而无需询问                 | 编写 [hook](https://code.claude.com/docs/zh-CN/hooks-guide)  |
+| 第二个存储库需要相同的设置                     | 将其打包为 [plugin](https://code.claude.com/docs/zh-CN/plugins) |
+
+## 3.1 功能比较
+
+### 3.1.1 SubAgent vs Agent team
+
+| 方面         | Subagent                           | Agent team                             |
+| :----------- | :--------------------------------- | :------------------------------------- |
+| **上下文**   | 自己的上下文窗口；结果返回给调用者 | 自己的上下文窗口；完全独立             |
+| **通信**     | 仅向主代理报告结果                 | 队友直接相互发送消息                   |
+| **协调**     | 主代理管理所有工作                 | 具有自我协调的共享任务列表             |
+| **最适合**   | 仅结果重要的专注任务               | 需要讨论和协作的复杂工作               |
+| **令牌成本** | 较低：结果摘要返回到主上下文       | 较高：每个队友是一个单独的 Claude 实例 |
+
+## 3.2 分层定义功能（多级别）
+
+功能可以在多个级别定义：用户范围、每个项目、通过 plugins 或通过托管策略。
+
+## 3.3 功能的上下文消耗
+
+您添加的每个功能都会消耗 Claude 的一些上下文
+
+每个功能都有不同的加载策略和上下文成本：
+
+| 功能                  | 何时加载          | 加载内容                           | 上下文成本                   |
+| :-------------------- | :---------------- | :--------------------------------- | :--------------------------- |
+| **CLAUDE.md**         | 会话开始          | 完整内容                           | 每个请求                     |
+| **Skills**            | 会话开始 + 使用时 | 启动时的描述，使用时的完整内容     | 低（每个请求的描述）*        |
+| **MCP 服务器**        | 会话开始          | 工具名称；完整架构按需             | 低，直到使用工具             |
+| **Code intelligence** | 文件编辑后和按需  | 编辑后的诊断；符号查找时的位置信息 | 低；减少其他地方的文件读取   |
+| **Subagents**         | 生成时            | 具有指定 skills 的新鲜上下文       | 与主会话隔离                 |
+| **Hooks**             | 触发时            | 无（外部运行）                     | 零，除非 hook 返回额外上下文 |
+
+# 4 .claude目录
+
+.claude的位置——Claude Code 读取 CLAUDE.md、settings.json、hooks、skills、commands、subagents、workflows、rules 和自动内存的位置
+
+![image-20260622163613706](legend/image-20260622163613706.png)
+
 # 其他内容-----------------------------------------------------------
 
 # 1 [claude-code-router]( https://musistudio.github.io/claude-code-router/zh-CN/)
