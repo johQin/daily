@@ -102,11 +102,222 @@ echo '{"primaryApiKey": "any-string"}' > ~/.claude/config.json
 | **Subagents**         | 生成时            | 具有指定 skills 的新鲜上下文       | 与主会话隔离                 |
 | **Hooks**             | 触发时            | 无（外部运行）                     | 零，除非 hook 返回额外上下文 |
 
-# 4 .claude目录
+# 4 [.claude目录](https://code.claude.com/docs/en/claude-directory)
 
-.claude的位置——Claude Code 读取 CLAUDE.md、settings.json、hooks、skills、commands、subagents、workflows、rules 和自动内存的位置
+.claude的位置——Claude Code 读取 CLAUDE.md、settings.json、hooks、skills、commands、subagents、workflows、rules 和自动内存的位置。
+
+项目文件内的`.claude`文件夹，可以提交到git分享给团队，而放置到`~/.claude`中的文件是个人配置，适用于你的所有项目。
 
 ![image-20260622163613706](legend/image-20260622163613706.png)
+
+大多数用户只编辑 `CLAUDE.md` 和 `settings.json`，目录的其余部分是可选的。
+
+## 4.1 作用域与优先级
+
+### 4.1.1 作用域
+
+| 作用域      | 位置                                                         | 影响范围                                                     | 与团队共享？     |
+| :---------- | :----------------------------------------------------------- | :----------------------------------------------------------- | :--------------- |
+| **Managed** | Anthropic 服务器管理的设置、plist / 注册表或系统级 `managed-settings.json` | 服务器管理交付的所有组织成员；plist、HKLM 注册表和文件交付的机器上的所有用户；HKCU 注册表交付的当前用户 | 是（由 IT 部署） |
+| **User**    | `~/.claude/` 目录                                            | 您，跨所有项目                                               | 否               |
+| **Project** | 存储库中的 `.claude/`                                        | 此存储库上的所有协作者                                       | 是（提交到 git） |
+| **Local**   | `.claude/settings.local.json`                                | 您，仅在此存储库中                                           | 否（gitignored） |
+
+
+
+作用域适用于许多 Claude Code 功能：
+
+| 功能            | User 位置                 | Project 位置                       | Local 位置                    |
+| :-------------- | :------------------------ | :--------------------------------- | :---------------------------- |
+| **Settings**    | `~/.claude/settings.json` | `.claude/settings.json`            | `.claude/settings.local.json` |
+| **Subagents**   | `~/.claude/agents/`       | `.claude/agents/`                  | 无                            |
+| **MCP servers** | `~/.claude.json`          | `.mcp.json`                        | `~/.claude.json`（每个项目）  |
+| **Plugins**     | `~/.claude/settings.json` | `.claude/settings.json`            | `.claude/settings.local.json` |
+| **CLAUDE.md**   | `~/.claude/CLAUDE.md`     | `CLAUDE.md` 或 `.claude/CLAUDE.md` | `CLAUDE.local.md`             |
+
+### 4.1.2 优先级
+
+1. **Managed**（最高）- 无法被任何内容覆盖
+2. **命令行参数** - 临时会话覆盖
+3. **Local** - 覆盖项目和用户设置
+4. **Project** - 覆盖用户设置
+5. **User**（最低）- 当没有其他内容指定设置时应用
+
+## 4.2 [CLAUDE.md](https://code.claude.com/docs/en/memory)
+
+**When it loads**：Loaded into context at the start of every session
+
+这个文件可以跨session，instruction（指示）claude的行为。
+
+用于指示claude怎么工作，请在这里放置你们的惯例、常用命令和架构背景，这样Claude就能与你们的团队持有相同的假设进行操作。
+
+- `CLAUDE.md`希望可以少于200行。他的所有内容都会被全部加载，太长的话会费token，并且会降低它的约束力。
+- `.claude/CLAUDE.md`在每次session的一开始就会被加载，列出你最常运行的命令，例如 build、test 和 format，这样 Claude 就不需要你每次都拼写出来
+
+- 如果某事只对特定任务有关系，就把它移动到skills或rules中，以便在需要时才加载
+- 在某次session中，可以运行`/memory`，可以打开和编辑`CLAUDE.md`（临时性）
+- 如果希望项目根目录的整洁度，可以将项目根目录的`CLAUDE.md`放置到`.claude/CLAUDE.md`，这同样生效。
+
+
+
+## 4.3 [settings.json](https://code.claude.com/docs/zh-CN/settings)
+
+项目中的 `.claude/settings.json` 会与用户级（`~/.claude/settings.json`）的配置进行**对象深度合并**，而不是完全覆盖。
+
+**如果项目配置中没有配置 A，而用户级配置中有 A，那么 A 会保留用户配置的值，继续生效。**
+
+合并方式是 **递归覆盖（Recursive Merge）**：
+
+- 对于**普通字段**（字符串、数字、布尔值）：项目级有值 → 用项目级；项目级没有 → 用用户级。
+- 对于**对象（Object）**：会递归合并。项目级对象中的字段会覆盖用户级同名字段，但用户级中项目级没有的字段会保留。
+- 对于**数组（Array）**：**通常直接替换**，而不是合并。项目级的数组会完全覆盖用户级的数组（这一点需要注意，不是追加）。
+
+`settings.local.json` ——git会忽略，`settings.json`——git不会忽略，而分享给team
+
+### 4.3.1 编辑何时生效
+
+Claude Code 监视您的设置文件，并在它们更改时重新加载它们，因此对大多数键的编辑会在运行的会话中应用，无需重启。这包括 `permissions`、`hooks` 和凭证助手（如 `apiKeyHelper`）。重新加载涵盖用户、项目、本地和 managed 设置，并为每个检测到的更改触发 [`ConfigChange` hook](https://code.claude.com/docs/zh-CN/hooks#configchange)。
+
+少数几个键在会话启动时读取一次，并在下次重启时应用：
+
+- `model`：使用 [`/model`](https://code.claude.com/docs/zh-CN/model-config#setting-your-model) 在会话中切换
+- [`outputStyle`](https://code.claude.com/docs/zh-CN/output-styles)：系统提示的一部分，在 `/clear` 或重启时重建
+
+### 4.3.2 常见配置
+
+#### 4.3.2.1 permissions
+
+`permissions` 是用来控制 Claude Code 操作权限的“总开关”。它定义了 Claude 在什么情况下需要向你请求批准，什么情况下可以自主行动。
+
+- allow：允许工具使用的**权限规则**数组，**[权限规则语法](https://code.claude.com/docs/zh-CN/settings#permission-rule-syntax)在下面会讲到**
+- ask：在工具使用时要求 询问确认 的权限规则数组
+- deny：拒绝工具使用的权限规则数组。
+- additionalDirectories：Claude 有权访问的额外工作目录
+- defaultMode
+- disableBypassPermissionsMode：设置为 `"disable"` 以防止激活 `bypassPermissions` 模式。
+- skipDangerousModePermissionPrompt：跳过通过 `--dangerously-skip-permissions` 或 `defaultMode: "bypassPermissions"` 进入 bypass permissions 模式前显示的确认提示。
+
+
+
+##### defaultMode
+
+而 `defaultMode` 就是设定这个“总开关”的默认档位，它决定了 Claude 在**每次会话开始时**的行为基调。你可以把它想象成一个“工作模式”选择器。
+
+`defaultMode`的可选值
+
+- default or manual：**标准/手动模式**。Claude 只在首次使用某个需要批准的工具时询问你，后续操作（如文件读写）不再重复提问
+- **`acceptEdits`**：**自动批准编辑**。Claude 可以自动批准对工作目录内文件的编辑，以及 `mkdir`、`touch`、`mv`、`cp` 等常见文件操作，无需你逐个点击“允许
+- **`plan`**：**计划模式**。Claude **只会读取文件**和运行只读命令来探索和分析代码，**不会**对你的源代码进行任何编辑。它纯粹用于制定计划
+- **`bypassPermissions`**：**绕过所有权限**。Claude **跳过几乎所有权限提示**，可以自由行动（除了个别强制提示的风险操作）
+- **`auto`**：**自动模式**。Claude 自动批准大部分工具调用，但后台会有安全检查，确保操作与你的请求意图一致
+- **`dontAsk`**：**不要询问**。Claude 会**自动拒绝**所有未被 `permissions.allow` 规则明确预先批准的的工具调用
+
+#### 4.3.2.2 hooks
+
+配置自定义命令以在生命周期事件处运行
+
+事件分为三种频率：
+
+- 每个会话一次：`SessionStart` 和 `SessionEnd`
+- 每轮一次：`UserPromptSubmit`、`Stop` 和 `StopFailure`
+- 代理循环内的每个工具调用：`PreToolUse` 和 `PostToolUse`
+
+![Hook 生命周期图，显示可选的 Setup 流入 SessionStart，然后是每轮循环，包含 UserPromptSubmit、用于 slash commands 的 UserPromptExpansion、嵌套的代理循环（PreToolUse、PermissionRequest、PostToolUse、PostToolUseFailure、PostToolBatch、SubagentStart/Stop、TaskCreated、TaskCompleted）和 Stop 或 StopFailure，然后是 TeammateIdle、PreCompact、PostCompact 和 SessionEnd，Elicitation 和 ElicitationResult 嵌套在 MCP 工具执行内，PermissionDenied 作为 PermissionRequest 的副分支用于自动模式拒绝，WorktreeCreate、WorktreeRemove、Notification、ConfigChange、InstructionsLoaded、CwdChanged 和 FileChanged 作为独立异步事件，MessageDisplay 作为仅显示事件，在助手消息文本流式传输时运行](legend/hooks-lifecycle.svg)
+
+| 事件                | 触发时机                                                     |
+| :------------------ | :----------------------------------------------------------- |
+| SessionStart        | 当会话开始或恢复时                                           |
+| Setup               | 当你使用 `--init-only` 启动 Claude Code，或在 `-p` 模式下使用 `--init` 或 `--maintenance` 时。用于 CI 或脚本中的一次性准备 |
+| UserPromptSubmit    | 当你提交提示词时，在 Claude 处理它之前                       |
+| UserPromptExpansion | 当用户输入的命令扩展为提示词时，在到达 Claude 之前。可以阻止该扩展 |
+| PreToolUse          | 在工具调用执行之前。可以阻止它                               |
+| PermissionRequest   | 当权限对话框出现时                                           |
+| PermissionDenied    | 当自动模式分类器拒绝工具调用时。返回 `{retry: true}` 可告知模型它可以重试被拒绝的工具调用 |
+| PostToolUse         | 在工具调用成功后                                             |
+| PostToolUseFailure  | 在工具调用失败后                                             |
+| PostToolBatch       | 在一批并行工具调用全部解析完毕后，在下一次模型调用之前       |
+| Notification        | 当 Claude Code 发送通知时                                    |
+| MessageDisplay      | 当助手消息文本正在显示时                                     |
+| SubagentStart       | 当子代理被生成时                                             |
+| SubagentStop        | 当子代理完成时                                               |
+| TaskCreated         | 当通过 TaskCreate 创建任务时                                 |
+| TaskCompleted       | 当任务被标记为已完成时                                       |
+| Stop                | 当 Claude 完成响应时                                         |
+| StopFailure         | 当本轮对话因 API 错误而结束时。输出和退出代码将被忽略        |
+| TeammateIdle        | 当代理团队中的某个队友即将进入空闲状态时                     |
+| InstructionsLoaded  | 当 CLAUDE.md 或 `.claude/rules/*.md` 文件被加载到上下文中时。在会话开始时以及会话期间按需加载文件时触发 |
+| ConfigChange        | 当会话期间配置文件发生变化时                                 |
+| CwdChanged          | 当工作目录发生变化时，例如 Claude 执行 `cd` 命令时。对于使用 direnv 等工具进行响应式环境管理很有用 |
+| FileChanged         | 当磁盘上的被监视文件发生变化时。`matcher` 字段指定要监视哪些文件名 |
+| WorktreeCreate      | 当通过 `--worktree`、`isolation: "worktree"` 或为后台会话创建工作树时。替换默认的 git 行为 |
+| WorktreeRemove      | 当会话退出时、子代理完成时或你删除后台会话时移除工作树       |
+| PreCompact          | 在上下文压缩之前                                             |
+| PostCompact         | 在上下文压缩完成之后                                         |
+| Elicitation         | 当 MCP 服务器在工具调用期间请求用户输入时                    |
+| ElicitationResult   | 在用户响应 MCP 提示后，在将响应发送回服务器之前              |
+| SessionEnd          | 当会话终止时                                                 |
+
+#### 4.3.2.3 [statusLine](https://code.claude.com/docs/zh-CN/statusline)
+
+配置自定义状态栏以监控 Claude Code 中的上下文窗口使用情况、成本和 git 状态
+
+```json
+{
+
+    "statusLine": {
+        "type": "command",
+        "command": "bash ./.claude/statusline.sh"
+    }
+
+}
+```
+
+
+
+```bash
+#!/bin/bash
+input=$(cat)
+
+MODEL=$(echo "$input" | jq -r '.model.display_name')
+INPUT=$(echo "$input" | jq -r '.context_window.total_input_tokens // 0')
+OUTPUT=$(echo "$input" | jq -r '.context_window.total_output_tokens // 0')
+PCT=$(echo "$input" | jq -r '.context_window.used_percentage // 0' | cut -d. -f1)
+EFFORT=$(echo "$input" | jq -r '.effort.level // "UNK"')
+
+echo "$MODEL | in:$INPUT out:$OUTPUT pct:${PCT}% eft:$EFFORT"
+
+# jq需要提前安装，https://github.com/jqlang/jq/releases
+# 或者 winget install jqlang.jq
+# 安装后添加PATH
+# 检测：jq --version
+```
+
+
+
+## 4.4 [rules/*.md](https://code.claude.com/docs/en/memory#organize-rules-with-claude/rules/)
+
+**When it loads**：
+
+| 规则类型                  | 首次加载时机             | 上下文压缩后             |
+| :------------------------ | :----------------------- | :----------------------- |
+| **`*.md`无 `paths` 字段** | 会话启动时               | 自动重新注入             |
+| **`*.md`有 `paths` 字段** | **意图**：操作匹配文件时 | 丢失，匹配文件时重新加载 |
+
+```markdown
+---
+paths:
+  - "**/*.test.ts"
+  - "**/*.test.tsx"
+---
+
+# Testing Rules
+
+- Use descriptive test names: "should [expected] when [condition]"
+- Mock external dependencies, not internal modules
+- Clean up side effects in afterEach
+```
+
+
 
 # 其他内容-----------------------------------------------------------
 
@@ -327,10 +538,12 @@ ccr ui
     {
       "name": "siliconflow",
       "api_base_url": "https://api.siliconflow.cn/v1/chat/completions",
-      "api_key": "sk-ixxxxxx",
+      "api_key": "sk-imbvmqlmjxxxxxx",
       "models": [
         "deepseek-ai/DeepSeek-V4-Flash",
-        "Pro/zai-org/GLM-5.1"
+        "deepseek-ai/DeepSeek-V4-Pro",
+        "Pro/zai-org/GLM-5.1",
+        "Qwen/Qwen3.5-397B-A17B"
       ],
       "transformer": {
         "use": [
@@ -346,7 +559,7 @@ ccr ui
     {
       "name": "deepseek",
       "api_base_url": "https://api.deepseek.com/chat/completions",
-      "api_key": "sk-1axxxxx",
+      "api_key": "sk-1a8689ec91da4xxxx",
       "models": [
         "deepseek-v4-flash",
         "deepseek-v4-pro"
@@ -354,6 +567,20 @@ ccr ui
       "transformer": {
         "use": [
           "deepseek"
+        ]
+      }
+    },
+    {
+      "name": "volcengine",
+      "api_base_url": "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
+      "api_key": "ark-57ba57e6-0b2xxxx",
+      "models": [
+        "doubao-seed-2-0-lite-260428",
+        "doubao-seed-2-0-pro-260215"
+      ],
+      "transformer": {
+        "use": [
+          "doubao"
         ]
       }
     }
@@ -375,9 +602,59 @@ ccr ui
     "longContext": "",
     "longContextThreshold": 60000,
     "webSearch": "",
-    "image": ""
+    "image": "siliconflow,Qwen/Qwen3.5-397B-A17B"
   },
   "CUSTOM_ROUTER_PATH": ""
 }
 ```
 
+```bash
+# 切换模型
+/model siliconflow,Pro/zai-org/GLM-5.1
+/model siliconflow,deepseek-ai/DeepSeek-V4-Pro
+/model siliconflow,deepseek-ai/DeepSeek-V4-Flash
+/model deepseek,deepseek-v4-pro
+/model volcengine,doubao-seed-2-0-lite-260428
+
+https://ark.cn-beijing.volces.com/api/v3/chat/completions
+# 火山平台测试
+curl https://ark.cn-beijing.volces.com/api/v3/chat/completions -H "Authorization: Bearer ark-57ba57e6-0b20-40fd-bb21-d9cfcb899df4-5659a" -H "Content-Type: application/json" -d '{
+  "model":"doubao-seed-2-0-lite-260428",
+  "messages":[{"role":"user","content":"test"}]
+}'
+
+
+# 输出包含按模型拆分的完整 Token 消耗
+/cost
+/usage
+#会话 token 总量、模型使用频次、上下文占用、套餐剩余额度
+/stats
+
+# 定位 Token 消耗来源，但会展示哪些文件 / 对话历史 / MCP 工具吃掉大量 token，用于优化上下文减少消耗
+/context
+
+# 状态栏实时显示 Token（常驻监控）
+/config status_line true
+
+# 压缩上下文
+/compact
+
+/d/repos/dikong/scdk/20260720
+```
+
+image_rId22.png
+
+[claude code 命令大全1](https://zhuanlan.zhihu.com/p/2020457076900537879)
+
+[claude code 命令大全2](https://blog.csdn.net/weixin_56693899/article/details/161024592)
+
+
+
+```
+curl https://ark.cn-beijing.volces.com/api/v3/chat/completions \
+-H "Authorization: Bearer ark-57ba57e6-0b20-40fd-bb21-d9cfcb899df4-5659a" \
+-H "Content-Type: application/json" \
+-d '{
+  "model":"doubao-seed-2-0-lite-260428",
+  "messages":[{"role":"user","content":"test"}]
+}'
