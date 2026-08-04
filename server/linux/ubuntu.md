@@ -598,7 +598,7 @@
 
    - [essay安装后无法打开的问题](https://blog.csdn.net/u011426115/article/details/126660001)
 
-11. [安装nodejs](https://zhuanlan.zhihu.com/p/531851060)
+11. [安装nodejs](https://zhuanlan.zhihu.com/p/531851060)，[安装新版的](https://blog.csdn.net/nxx_vv/article/details/147196373)
 
 12. [ubuntu远程，安装todesk，或者向日葵完毕后，连接后，对方无法操控本机，显示没有x11桌面](https://blog.csdn.net/crazyjinks/article/details/130017180)
 

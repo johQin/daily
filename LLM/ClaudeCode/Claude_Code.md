@@ -12,7 +12,7 @@ winget install Anthropic.ClaudeCode
 
 # 版本查看
 claude -v
-2.1.126 (Claude Code)
+2.1.218 (Claude Code)
 
 # 使用本地代理，配置多个国内模型，可以在claude对话里通过/model切换
 # Claude Code Router (CCR) → 最强大方式（支持运行中动态切换）
@@ -135,7 +135,7 @@ echo '{"primaryApiKey": "any-string"}' > ~/.claude/config.json
 | **Plugins**     | `~/.claude/settings.json` | `.claude/settings.json`            | `.claude/settings.local.json` |
 | **CLAUDE.md**   | `~/.claude/CLAUDE.md`     | `CLAUDE.md` 或 `.claude/CLAUDE.md` | `CLAUDE.local.md`             |
 
-### 4.1.2 优先级
+### 4.1.2 优先级（precedence）
 
 1. **Managed**（最高）- 无法被任何内容覆盖
 2. **命令行参数** - 临时会话覆盖
@@ -183,7 +183,16 @@ Claude Code 监视您的设置文件，并在它们更改时重新加载它们�
 - `model`：使用 [`/model`](https://code.claude.com/docs/zh-CN/model-config#setting-your-model) 在会话中切换
 - [`outputStyle`](https://code.claude.com/docs/zh-CN/output-styles)：系统提示的一部分，在 `/clear` 或重启时重建
 
+`/status`：可以看见当前session中哪些配置被激活。在status tab包含配置源（User settings、Project settings等）
+
 ### 4.3.2 常见配置
+
+- permissions
+- hooks
+- statusLine
+- model：设置一个默认的模型
+- env：设置环境变量，以控制
+- outputStyle
 
 #### 4.3.2.1 permissions
 
@@ -292,6 +301,21 @@ echo "$MODEL | in:$INPUT out:$OUTPUT pct:${PCT}% eft:$EFFORT"
 # 检测：jq --version
 ```
 
+#### 4.3.2.4 [env](https://code.claude.com/docs/en/env-vars)
+
+环境变量，可以用于控制claude code的行为，也可以设置环境变量以供命令行命令使用。
+
+改变了env的值，要重启claude code才能生效。
+
+```json
+{
+  "env": {
+    "API_TIMEOUT_MS": "1200000",
+    "BASH_DEFAULT_TIMEOUT_MS": "300000"
+  }
+}
+```
+
 
 
 ## 4.4 [rules/*.md](https://code.claude.com/docs/en/memory#organize-rules-with-claude/rules/)
@@ -317,7 +341,744 @@ paths:
 - Clean up side effects in afterEach
 ```
 
+## 4.5 skills
 
+本质：**您或者claude可以通过名称调用的，可重用的，prompts，**
+
+每一个skill是一个文件夹，其包含一个skill.md和skill引用的其他文件。
+
+Skills扩展了Claude的能力。
+
+Claude Code skills 遵循 [Agent Skills](https://agentskills.io/) 开放标准，该标准适用于多个 AI 工具。Claude Code 使用额外功能扩展了该标准，如[调用控制](https://code.claude.com/docs/zh-CN/skills#control-who-invokes-a-skill)、[subagent 执行](https://code.claude.com/docs/zh-CN/skills#run-skills-in-a-subagent)和[动态上下文注入](https://code.claude.com/docs/zh-CN/skills#inject-dynamic-context)。
+
+**自定义命令已合并到 skills 中。** `.claude/commands/deploy.md` 中的文件和 `.claude/skills/deploy/SKILL.md` 中的 skill 都会创建 `/deploy` 并以相同的方式工作。
+
+### 4.5.1 When it loads
+
+**When it loads**：通过/skill-name指定调用某个skill，或者当claude 匹配到一个任务给skill时。
+
+Claude Code 的 skill 相关信息并非一次性全部注入，而是分**两个阶段**注入到模型的上下文中
+
+- 会话启动时——只注入“技能列表”
+  - 在会话一开始，Claude 的上下文里就会加载一份所有可用技能的“名录”。这份列表包含了每个技能的**名称**和一段简短的**描述**
+  - **目的**：让 Claude 知道有哪些技能可用，并能根据你的问题判断是否需要调用某个技能
+  - **实现方式**：这份列表会通过一个`<system-reminder>`消息注入，帮助模型在看到相关问题时匹配到正确的技能
+- 技能被调用时——注入“完整内容”
+  - 当你通过`/skill-name`手动触发，或者 Claude 通过`SkillTool`自动决定使用某个技能时，该技能的核心内容才会被注入。
+  - 这个阶段注入的**完整内容**包括：
+    - **SKILL.md 的正文**：包含具体的指令和工作流程。
+    - **动态上下文**：技能内通过 `!`` 语法包裹的 shell 命令会在此时**立刻执行**，执行结果会替换掉命令本身，再一起发送给模型
+
+### 4.5.2 [bundled skills](https://code.claude.com/docs/zh-CN/commands)
+
+在英文中，"built-in"和"bundled"的核心区别在于**"与生俱来"**和**"打包附赠"**。
+
+[Claude Code 中可用命令的完整参考，包括内置命令和捆绑的 skills。](https://code.claude.com/docs/zh-CN/commands)
+
+**Built-in** 更像是你汽车方向盘上的**物理按钮**，按下去就执行固定的功能；**Bundled** 则像是随车附赠的一本**高级驾驶指南**，AI 会阅读它，并根据当前路况（你的代码）来决定如何操作。
+
+| 对比维度     | **Built-in Commands (内置命令)**                             | **Bundled Skills (捆绑技能)**                                |
+| :----------- | :----------------------------------------------------------- | :----------------------------------------------------------- |
+| **本质**     | **硬编码的逻辑**。由 CLI 的 TypeScript 代码直接执行，逻辑是固定写死的。 | **基于提示词（Prompt）的工作流**。本质是给 Claude 的一份详细"操作手册"，它依靠 Claude 的理解能力和工具来完成任务。 |
+| **灵活性**   | **固定**，执行预定义的操作（如切换模型 `/model`、清空上下文 `/clear`）。 | **动态且自适应**，Claude 可以根据你的代码库情况灵活调整执行步骤。 |
+| **可覆盖性** | **无法**被用户自定义的 skill 覆盖。                          | **可以**被覆盖。如果你在项目中创建了同名的 `code-review` skill，它会替换掉捆绑的版本。 |
+| **可用性**   | 通常**无法禁用**（如核心命令）。                             | 可以通过设置 `disableBundledSkills: true` 来**统一禁用**所有捆绑技能。 |
+| **典型例子** | `/help`、`/compact`、`/clear`、`/model` 等管理类命令。       | `/code-review`、`/debug`、`/batch`、`/claude-api` 等工作流类工具 |
+
+### 4.5.3 自定义skill
+
+#### 自定义示例
+
+此示例创建一个 skill，用于总结你的 git 仓库中未提交的更改，并标记任何风险的内容。它在 Claude 读取之前将实时 diff 拉入提示中，因此响应基于你的实际工作树，而不是 Claude 从打开的文件中猜测的内容。当你询问你的更改时，Claude 会自动加载该 skill，或者你可以使用 `/summarize-changes` 直接调用它。
+
+- 创建skill目录
+
+  ```bash
+  mkdir -p ~/.claude/skills/summarize-changes
+  ```
+
+- 编写skill.md
+
+  - 每个 skill 都需要一个 `SKILL.md` 文件，包含两部分：YAML frontmatter（在 `---` 标记之间）告诉 Claude 何时使用该 skill，以及包含 Claude 在调用该 skill 时遵循的说明的 markdown 内容。
+  - 目录名称变成你输入的命令，`description` 帮助 Claude 决定何时自动加载该 skill。
+
+  ```markdown
+  ---
+  description: Summarizes uncommitted changes and flags anything risky. Use when the user asks what changed, wants a commit message, or asks to review their diff.
+  ---
+  
+  ## Current changes
+  
+  !`git diff HEAD`
+  
+  ## Instructions
+  
+  Summarize the changes above in two or three bullet points, then list any risks you notice such as missing error handling, hardcoded values, or tests that need updating. If the diff is empty, say there are no uncommitted changes.
+  ```
+
+- 测试skill
+
+  - **让 Claude 自动调用它**，通过询问与描述匹配的内容：
+
+    ```
+    What did I change?
+    ```
+
+  - **或直接使用 skill 名称调用它**：
+
+    ```
+    /summarize-changes
+    ```
+
+    无论哪种方式，Claude 都应该用你的编辑的简短摘要和风险列表来响应。
+
+## 4.6 commands
+
+命令和skill现在是同样的一套机制。new command通常应该是skill而不是command；但命令仍然得到支持
+
+## 4.7 agents
+
+具有各自上下文窗口的专业子代理
+
+when it loads：当你或Claude调用它时，它在自己的上下文窗口中运行
+
+在agents文件夹下，每个markdown文件定义一个subagent，它拥有它自己的系统提示、工具访问权限，并可以选择拥有自己的模型。subagent在全新的上下文窗口中运行，保持主对话的整洁。适用于并行工作或隔离任务。
+
+在命令行中输入一个 **`@`**并且 pick 一个agent ，来直接委派agent
+
+# 5 [skills](https://code.claude.com/docs/zh-CN/skills)
+
+## 5.1 配置skill
+
+Skills 通过 `SKILL.md` 顶部的 YAML frontmatter 和随后的 markdown 内容进行配置。
+
+### 5.1.1 Frontmatter(前言)
+
+除了 markdown 内容外，你可以使用 `SKILL.md` 文件顶部 `---` 标记之间的 YAML frontmatter 字段来配置 skill 行为。
+
+```markdown
+---
+name: my-skill
+description: What this skill does
+disable-model-invocation: true
+allowed-tools: Read Grep
+---
+
+Your skill instructions here...
+```
+
+| 字段                       | 必需 | 描述                                                         |
+| :------------------------- | :--- | :----------------------------------------------------------- |
+| `name`                     | 否   | Skill 列表中显示的显示名称。默认为目录名称。请参阅[Skill 如何获得其命令名称](https://code.claude.com/docs/zh-CN/skills#how-a-skill-gets-its-command-name)以了解这与你输入的名称在 `/` 后的调用方式有何不同。 |
+| `description`              | 推荐 | Skill 的功能以及何时使用它。Claude 使用它来决定何时应用该 skill。如果省略，使用 markdown 内容的第一段。将关键用例放在前面：组合的 `description` 和 `when_to_use` 文本在 skill 列表中被截断为 1,536 个字符以减少上下文使用。 |
+| `when_to_use`              | 否   | 关于 Claude 何时应该调用该 skill 的额外上下文，例如触发短语或示例请求。附加到 skill 列表中的 `description`，并计入 1,536 个字符的上限。 |
+| `argument-hint`            | 否   | 自动完成期间显示的提示，指示预期的参数。示例：`[issue-number]` 或 `[filename] [format]`。 |
+| `arguments`                | 否   | 用于 skill 内容中[`$name` 替换](https://code.claude.com/docs/zh-CN/skills#available-string-substitutions)的命名位置参数。接受空格分隔的字符串或 YAML 列表。名称按顺序映射到参数位置。 |
+| `disable-model-invocation` | 否   | 设置为 `true` 以防止 Claude 自动加载此 skill。用于你想使用 `/name` 手动触发的工作流。也防止该 skill 被[预加载到 subagents](https://code.claude.com/docs/zh-CN/sub-agents#preload-skills-into-subagents) 中。从 v2.1.196 开始，也防止该 skill 在[计划任务](https://code.claude.com/docs/zh-CN/scheduled-tasks)使用该 skill 作为其提示时运行。默认值：`false`。 |
+| `user-invocable`           | 否   | 设置为 `false` 以从 `/` 菜单中隐藏。用于用户不应直接调用的背景知识。默认值：`true`。 |
+| `allowed-tools`            | 否   | 当此 skill 处于活动状态时，Claude 可以使用而无需请求权限的工具。接受空格分隔的字符串或 YAML 列表。 |
+| `disallowed-tools`         | 否   | 当此 skill 处于活动状态时从 Claude 的可用工具池中移除的工具。用于不应该调用某些工具的自主 skills，例如用于后台循环的 `AskUserQuestion`。接受空格分隔的字符串或 YAML 列表。当你发送下一条消息时，限制会清除。 |
+| `model`                    | 否   | 当此 skill 处于活动状态时要使用的模型。覆盖适用于当前轮的其余部分，不保存到设置；会话模型在你的下一个提示时恢复。接受与 [`/model`](https://code.claude.com/docs/zh-CN/model-config) 相同的值，或 `inherit` 以保持活动模型。被你的组织的 [`availableModels`](https://code.claude.com/docs/zh-CN/model-config#restrict-model-selection) 允许列表排除的值不会被使用，会话保持其当前模型。 |
+| `effort`                   | 否   | 当此 skill 处于活动状态时的[工作量级别](https://code.claude.com/docs/zh-CN/model-config#adjust-effort-level)。覆盖会话工作量级别。默认值：继承自会话。选项：`low`、`medium`、`high`、`xhigh`、`max`；可用级别取决于模型。 |
+| `context`                  | 否   | 设置为 `fork` 以在分叉的 subagent 上下文中运行。             |
+| `agent`                    | 否   | 当设置 `context: fork` 时要使用的 subagent 类型。            |
+| `hooks`                    | 否   | 限定于此 skill 生命周期的 hooks。有关配置格式，请参阅 [Skills 和代理中的 Hooks](https://code.claude.com/docs/zh-CN/hooks#hooks-in-skills-and-agents)。 |
+| `paths`                    | 否   | Glob 模式，限制何时激活此 skill。接受逗号分隔的字符串或 YAML 列表。设置后，Claude 仅在处理与模式匹配的文件时自动加载该 skill。使用与[路径特定规则](https://code.claude.com/docs/zh-CN/memory#path-specific-rules)相同的格式。 |
+| `shell`                    | 否   | 用于此 skill 中 `!`command`` 和 ````!` 块的 shell。接受 `bash`（默认）或 `powershell`。设置 `powershell` 在 Windows 上通过 PowerShell 运行内联 shell 命令。需要 `CLAUDE_CODE_USE_POWERSHELL_TOOL=1`。 |
+
+#### [skill-name](https://code.claude.com/docs/zh-CN/skills#how-a-skill-gets-its-command-name)
+
+| Skill 位置                                                   | 命令名称来源                                      | 示例                                                         |
+| :----------------------------------------------------------- | :------------------------------------------------ | :----------------------------------------------------------- |
+| `~/.claude/skills/` 或 `.claude/skills/` 下的 Skill 目录     | 目录名称                                          | `.claude/skills/deploy-staging/SKILL.md` → `/deploy-staging` |
+| [嵌套](https://code.claude.com/docs/zh-CN/skills#where-skills-live) `.claude/skills/` 目录，当名称与另一个 skill 冲突时 | 相对于工作目录的子目录路径，然后是 skill 目录名称 | `apps/web/.claude/skills/deploy/SKILL.md` → `/apps/web:deploy` |
+| `.claude/commands/` 下的文件                                 | 文件名称（不含扩展名）                            | `.claude/commands/deploy.md` → `/deploy`                     |
+| 插件 `skills/` 子目录                                        | 目录名称，由插件命名空间                          | `my-plugin/skills/review/SKILL.md` → `/my-plugin:review`     |
+| 插件根 `SKILL.md`                                            | Frontmatter `name`，以插件目录名称作为后备        | `my-plugin/SKILL.md` 带有 `name: review` → `/my-plugin:review`。请参阅[路径行为规则](https://code.claude.com/docs/zh-CN/plugins-reference#path-behavior-rules) |
+
+### 5.1.2 内容(正文)
+
+Skill 文件可以包含任何说明，skill内容类型包含：
+
+- **参考内容**：为claude应用于你当前工作的知识
+
+  - 知识包括：约定、模式、风格指南、领域知识
+
+  - 此内容内联运行，以便 Claude 可以将其与你的对话上下文一起使用
+
+  - ```markdown
+    ---
+    name: api-conventions
+    description: API design patterns for this codebase
+    ---
+    
+    When writing API endpoints:
+    - Use RESTful naming conventions
+    - Return consistent error formats
+    - Include request validation
+    ```
+
+- **任务内容**：为 Claude 提供特定操作的分步说明，如部署、提交或代码生成。
+
+  - 通常是你想使用 `/skill-name` 直接调用的操作，而不是让 Claude 决定何时运行它们。
+
+  - 可以添加 `disable-model-invocation: true` 以防止 Claude 自动触发它。
+
+  - ```markdown
+    ---
+    name: deploy
+    description: Deploy the application to production
+    context: fork
+    disable-model-invocation: true
+    ---
+    
+    Deploy the application:
+    1. Run the test suite
+    2. Build the application
+    3. Push to the deployment target
+    ```
+
+### 5.1.3 支持文件
+
+Skills 可以在其目录中包含多个文件。这使 `SKILL.md` 专注于要点，同时让 Claude 仅在需要时访问详细的参考资料。大型参考文档、API 规范或示例集合不需要在每次 skill 运行时加载到上下文中。
+
+```markdown
+my-skill/
+├── SKILL.md (required - overview and navigation)
+├── reference.md (detailed API docs - loaded when needed)
+├── examples.md (usage examples - loaded when needed)
+└── scripts/
+    └── helper.py (utility script - executed, not loaded)
+```
+
+从 `SKILL.md` 中引用支持文件，以便 Claude 知道每个文件包含什么以及何时加载它
+
+```markdown
+## Additional resources
+
+- For complete API details, see [reference.md](reference.md)
+- For usage examples, see [examples.md](examples.md)
+```
+
+### 5.1.4 内容占位符
+
+Skills 支持 skill 内容中动态值的字符串替换
+
+| 变量                    | 描述                                                         |
+| :---------------------- | :----------------------------------------------------------- |
+| `$ARGUMENTS`            | 调用 skill 时传递的所有参数。如果内容中不存在 `$ARGUMENTS`，参数将作为 `ARGUMENTS: <value>` 追加。 |
+| `$ARGUMENTS[N]`         | 按 0 基索引访问特定参数，如 `$ARGUMENTS[0]` 表示第一个参数。 |
+| `$N`                    | `$ARGUMENTS[N]` 的简写，如 `$0` 表示第一个参数或 `$1` 表示第二个参数。 |
+| `$name`                 | 在 [`arguments`](https://code.claude.com/docs/zh-CN/skills#frontmatter-reference) frontmatter 列表中声明的命名参数。名称按顺序映射到位置，因此使用 `arguments: [issue, branch]` 时，占位符 `$issue` 扩展为第一个参数，`$branch` 扩展为第二个参数。 |
+| `${CLAUDE_SESSION_ID}`  | 当前会话 ID。适用于日志记录、创建会话特定文件或将 skill 输出与会话关联。 |
+| `${CLAUDE_EFFORT}`      | 当前工作量级别：`low`、`medium`、`high`、`xhigh` 或 `max`。Ultracode 不是一个不同的级别，报告为 `xhigh`。使用此来根据活动工作量设置调整 skill 说明。 |
+| `${CLAUDE_SKILL_DIR}`   | 包含 skill 的 `SKILL.md` 文件的目录。对于插件 skills，这是插件内 skill 的子目录，而不是插件根目录。在 bash 注入命令中使用它来引用与 skill 捆绑的脚本或文件，无论当前工作目录如何。 |
+| `${CLAUDE_PROJECT_DIR}` | 项目根目录。这是与 [hooks](https://code.claude.com/docs/zh-CN/hooks#reference-scripts-by-path) 和 MCP 服务器相同的路径，作为 `CLAUDE_PROJECT_DIR` 接收。使用此来引用项目本地脚本或文件，例如 `${CLAUDE_PROJECT_DIR}/.claude/hooks/helper.sh`，独立于 skill 的安装位置。 |
+
+### 5.1.5 内容的生命周期
+
+当你或 Claude 调用一个 skill 时，呈现的 `SKILL.md` 内容作为单个消息进入对话，并在会话的其余部分保持在那里。
+
+当 Claude 重新调用一个 skill 且其呈现的内容与已在上下文中的副本相同时，Claude Code 添加一个简短的说明，表示该 skill 已加载，而不是内容的第二份副本。当呈现的内容不同时，因为参数改变或[动态上下文](https://code.claude.com/docs/zh-CN/skills#inject-dynamic-context)命令产生了新输出，Claude Code 会再次附加完整内容。
+
+## 5.2 动态上下文注入
+
+在上面第二步SKILL.md的内容中，包含一个`!git diff HEAD`
+
+`!git diff HEAD` 这一行使用[动态上下文注入](https://code.claude.com/docs/zh-CN/skills#inject-dynamic-context)：Claude Code 运行该命令，并在 Claude 看到 skill 内容之前将该行替换为其输出，因此说明会随着当前 diff 已内联而到达。
+
+### 内联动态上下文
+
+``!<command>`` 语法在将 skill 内容发送给 Claude 之前运行 shell 命令。命令输出替换占位符，因此 Claude 接收实际数据，而不是命令本身。
+
+内联形式仅在 `!` 出现在行首或紧跟在空白之后时被识别。如果 `!` 跟在另一个字符之后，如 `KEY=!`cmd``，占位符将保留为字面文本，命令不会运行。
+
+### 块动态上下文
+
+对于多行命令，使用以 ````!` 开头的围栏代码块而不是内联形式
+
+````markdown
+## Environment
+```!
+node --version
+npm --version
+git status --short
+```
+````
+
+
+
+## 5.3 skill 参数
+
+`/skill-name` 是**可以携带参数**的，而且用法非常灵活。这些参数可以在技能内部通过多种方式被使用，让技能从一个固定模板变成一个能响应你具体需求的动态工具。这个也是动态上下文注入的一种方式。
+
+### 如何传递
+
+```bash
+/code-review main.py
+```
+
+这里 `main.py` 就是传递给 `/code-review` 的参数。
+
+从 v2.1.199 开始，你甚至可以在**一条消息的开头链接最多 6 个技能**，并将尾部文本作为参数**同时**传递给每个技能。
+
+```bash
+/code-review /fix-issue 123
+```
+
+这个命令会同时加载 `code-review` 和 `fix-issue` 两个技能，并将 `123` 作为参数传递给它们两个
+
+### 参数如何生效
+
+在md文件中增加占位符，预处理占位符，然后交给claude code阅读。
+
+| 占位符                | 说明                                                         | 示例                                                         |
+| :-------------------- | :----------------------------------------------------------- | :----------------------------------------------------------- |
+| `$ARGUMENTS`          | 代表调用时传递的**全部参数**。如果技能内容中没有这个占位符，参数会以 `ARGUMENTS: <value>` 的形式附加在末尾。 | 调用 `/greet Hello world`，`$ARGUMENTS` 的值就是 `Hello world`。 |
+| `$0`, `$1`, ..., `$N` | 用于访问按**位置**排序的单个参数（从0开始）。                | 调用 `/deploy main production`, `$0` 是 `main`, `$1` 是 `production`。 |
+| `$ARGUMENTS[0]`       | 功能同 `$0`，是按索引访问参数的一种更显式的写法。            | 调用 `/deploy main`, `$ARGUMENTS[0]` 的值是 `main`。         |
+| `$name`               | 这是**命名参数**，需要在技能的 `arguments` Frontmatter 字段中预先声明。声明后，参数会根据位置映射到对应的名称。 | 声明 `arguments: [issue, branch]`，调用 `/fix-issue 123 main` 时，`$issue` 是 `123`，`$branch` 是 `main`。 |
+
+### 参数提示更友好
+
+在 `SKILL.md` 的 Frontmatter（文件开头的 YAML 元数据区）中添加 `argument-hint` 字段，方便用户在输入 `/skill-name` 后看到参数提示。
+
+```markdown
+---
+name: create-component
+description: 创建新的 React 组件
+arguments: [name, type]
+argument-hint: <component-name> [functional|class]
+---
+```
+
+用户在输入 `/create-component` 后看到
+
+```
+/create-component <component-name> [functional|class]
+```
+
+## 5.4 变更检测与发现skill
+
+### 变更检测
+
+Claude Code 监视 skill 目录的文件**变更**
+
+- 在 `~/.claude/skills/`、项目 `.claude/skills/` 或 `--add-dir` 目录内的 `.claude/skills/` 中添加、编辑或删除 skill 会在当前会话中生效，无需重新启动。
+
+**创建**在会话启动时不存在的顶级 skills 目录
+
+- 需要重新启动 Claude Code，以便可以监视新目录。
+
+### 发现
+
+项目 skills 从你的起始目录中的 `.claude/skills/` 以及从起始目录到仓库根目录的每个父目录中加载，因此在子目录中启动 Claude 仍然会拾取在根目录定义的 skills。
+
+这个发现也需要重新启动claude code
+
+#### add-dir
+
+`--add-dir` 标志和 `/add-dir` 命令[授予文件访问权限](https://code.claude.com/docs/zh-CN/permissions#additional-directories-grant-file-access-not-configuration)而不是配置发现，但 skills 是一个例外：添加目录中的 `.claude/skills/` 会自动加载。
+
+
+
+## 5.5 subagent 中运行skill
+
+当你想让 skill 在隔离中运行时，在你的 frontmatter 中添加 `context: fork`。skill 内容变成驱动 subagent 的提示。它将无法访问你的对话历史。
+
+`SKILL.md`中要有**任务内容**，如果仅包含参考内容，那么是没有意义的。subagent 仅收到指南但没有可操作的内容，那么返回就没有有意义的输出。
+
+使用 `context: fork`，你在你的 skill 中编写任务并选择一个代理类型来执行它。内置的 Explore 和 Plan 代理[跳过 CLAUDE.md 和 git 状态](https://code.claude.com/docs/zh-CN/sub-agents#what-loads-at-startup)以保持其上下文较小，因此使用 `agent: Explore` 的分叉 skill 仅看到 SKILL.md 内容和代理自己的系统提示。
+
+```markdown
+---
+name: deep-research
+description: Research a topic thoroughly
+context: fork
+agent: Explore
+---
+
+Research $ARGUMENTS thoroughly:
+
+1. Find relevant files using Glob and Grep
+2. Read and analyze the code
+3. Summarize findings with specific file references
+```
+
+当此 skill 运行时：
+
+1. 创建一个新的隔离上下文
+2. Subagent 接收 skill 内容作为其提示（“Research $ARGUMENTS thoroughly…”）
+3. `agent` 字段确定执行环境（模型、工具和权限）
+4. 结果被总结并返回到你的主对话
+
+`agent` 字段指定要使用的 subagent 配置。选项包括内置代理（`Explore`、`Plan`、`general-purpose`）或来自 `.claude/agents/` 的任何自定义 subagent。如果省略，使用 `general-purpose`。
+
+# 6 agents
+
+在Claude Code中创建和使用专门的AI agent，用于特定任务的工作流和改进的上下文管理。
+
+Subagents 是处理特定类型任务的专门 AI 助手
+
+Subagents 帮助您：
+
+- **保留上下文**，通过将探索和实现保持在主对话之外
+- **强制执行约束**，通过限制 subagent 可以使用的工具
+- **跨项目重用配置**，使用用户级 subagents
+- **专门化行为**，为特定领域使用专注的系统提示
+- **控制成本**，通过将任务路由到更快、更便宜的模型（如 Haiku）
+
+
+
+## 6.1 内置(built-in) subagents
+
+Claude Code 包括内置 subagents，Claude 在适当时自动使用。每个都继承父对话的权限，并有额外的工具限制。
+
+内置的subagent
+
+- Explore
+- Plan
+- General-purpose
+
+Explore 和 Plan 会跳过您的 CLAUDE.md 文件和父会话的 git 状态，以保持研究快速且成本低廉。所有其他内置和[自定义 subagent](https://code.claude.com/docs/zh-CN/sub-agents#configure-subagents) 都会加载两者。请参阅[启动时加载的内容](https://code.claude.com/docs/zh-CN/sub-agents#what-loads-at-startup)。
+
+内置 subagents 在交互式会话中默认被注册。
+
+### Explore
+
+一个快速的、只读的代理，针对搜索和分析代码库进行了优化
+
+- **Model**: 从主对话继承
+- **Tools**: 只读工具；拒绝访问 Write 和 Edit
+- **Purpose**: 文件发现、代码搜索、代码库探索
+
+当 Claude 需要搜索或理解代码库而不进行更改时，它会委托给 Explore。这样可以将探索结果保持在主对话上下文之外。	
+
+### Plan
+
+一个研究代理，在 [plan mode](https://code.claude.com/docs/zh-CN/permission-modes#analyze-before-you-edit-with-plan-mode) 期间使用，以在呈现计划之前收集上下文。
+
+- **Model**: 从主对话继承
+- **Tools**: 只读工具；拒绝访问 Write 和 Edit
+- **Purpose**: 用于规划的代码库研究
+
+当您处于 plan mode 并且 Claude 需要理解您的代码库时，它会将研究委托给 Plan subagent，以便探索输出保持在单独的上下文窗口中
+
+### General-purpose
+
+一个能够处理复杂、多步骤任务的代理，需要探索和操作。
+
+- **Model**: 从主对话继承
+- **Tools**: 所有工具
+- **Purpose**: 复杂研究、多步骤操作、代码修改
+
+当任务需要探索和修改、复杂推理来解释结果或多个依赖步骤时，Claude 会委托给 general-purpose。
+
+## 阻止特定agent
+
+settings.json中
+
+```
+{
+  "permissions": {
+    "deny": ["Agent(Explore)", "Agent(my-custom-agent)"]
+  }
+}
+```
+
+## 6.2 创建subagent
+
+在agents目录下，Subagents 是带有 YAML frontmatter 的 Markdown 文件。
+
+示例创建一个code-improver.md
+
+```markdown
+---
+name: code-improver
+description: Scans files and suggests improvements for readability, performance, and best practices. Use after writing or modifying code.
+tools: Read, Grep, Glob
+model: sonnet
+---
+
+You are a code improvement specialist. For each issue you find, explain
+the problem, show the current code, and provide an improved version.
+```
+
+如果 Claude 找不到新的 subagent，请重新启动 Claude Code 并重试。这仅在会话开始前 `~/.claude/agents/` 不存在时发生，因为运行中的会话不会检测到新创建的 `agents` 目录。
+
+## 6.3 配置subagents
+
+### frontmatter
+
+以下字段可以在 YAML frontmatter 中使用。只有 name 和 description 是必需的。
+
+| Field             | 必需 | Description                                                  |
+| :---------------- | :--- | :----------------------------------------------------------- |
+| `name`            | 是   | 使用小写字母和连字符的唯一标识符。[Hooks](https://code.claude.com/docs/zh-CN/hooks#subagentstart) 将此值作为 `agent_type` 接收。文件名不必匹配 |
+| `description`     | 是   | Claude 何时应该委托给此 subagent                             |
+| `tools`           | 否   | [Tools](https://code.claude.com/docs/zh-CN/sub-agents#available-tools) subagent 可以使用。如果省略，继承所有工具。要将 Skills 预加载到上下文中，请使用 `skills` 字段而不是在此处列出 `tools` |
+| `disallowedTools` | 否   | 要拒绝的工具，从继承或指定的列表中删除                       |
+| `model`           | 否   | [Model](https://code.claude.com/docs/zh-CN/sub-agents#choose-a-model) 使用：`sonnet`、`opus`、`haiku`、`fable`、完整模型 ID（例如，`claude-opus-4-8`）或 `inherit`。默认为 `inherit` |
+| `permissionMode`  | 否   | [Permission mode](https://code.claude.com/docs/zh-CN/sub-agents#permission-modes)：`default`、`acceptEdits`、`auto`、`dontAsk`、`bypassPermissions`、`plan` 或 `manual` 作为 `default` 的别名。`manual` 别名需要 Claude Code v2.1.200 或更高版本。对于 [plugin subagents](https://code.claude.com/docs/zh-CN/sub-agents#choose-the-subagent-scope) 被忽略 |
+| `maxTurns`        | 否   | subagent 停止前的最大代理轮数                                |
+| `skills`          | 否   | [Skills](https://code.claude.com/docs/zh-CN/skills) 在启动时加载到 subagent 的上下文中。注入完整的技能内容，而不仅仅是描述。Subagents 仍然可以通过 Skill 工具调用未列出的项目、用户和 plugin 技能 |
+| `mcpServers`      | 否   | [MCP servers](https://code.claude.com/docs/zh-CN/mcp) 对此 subagent 可用。每个条目要么是引用已配置服务器的服务器名称（例如，`"slack"`），要么是内联定义，其中服务器名称为键，完整的 [MCP server config](https://code.claude.com/docs/zh-CN/mcp#installing-mcp-servers) 为值。对于 [plugin subagents](https://code.claude.com/docs/zh-CN/sub-agents#choose-the-subagent-scope) 被忽略 |
+| `hooks`           | 否   | [Lifecycle hooks](https://code.claude.com/docs/zh-CN/sub-agents#define-hooks-for-subagents) 限定于此 subagent。对于 [plugin subagents](https://code.claude.com/docs/zh-CN/sub-agents#choose-the-subagent-scope) 被忽略 |
+| `memory`          | 否   | [Persistent memory scope](https://code.claude.com/docs/zh-CN/sub-agents#enable-persistent-memory)：`user`、`project` 或 `local`。启用跨会话学习 |
+| `background`      | 否   | 设置为 `true` 以始终将此 subagent 作为 [background task](https://code.claude.com/docs/zh-CN/sub-agents#run-subagents-in-foreground-or-background) 运行，即使 Claude 需要其结果。未设置时，Claude 选择，从 v2.1.198 开始，它默认在后台运行 subagents |
+| `effort`          | 否   | 此 subagent 活跃时的努力级别。覆盖会话努力级别。默认：从会话继承。选项：`low`、`medium`、`high`、`xhigh`、`max`；可用级别取决于模型 |
+| `isolation`       | 否   | 设置为 `worktree` 以在临时 [git worktree](https://code.claude.com/docs/zh-CN/worktrees) 中运行 subagent，为其提供存储库的隔离副本，默认从您的 [default branch](https://code.claude.com/docs/zh-CN/worktrees#choose-the-base-branch) 分支，而不是父会话的 `HEAD`。如果 subagent 不进行任何更改，worktree 会自动清理 |
+| `color`           | 否   | Subagent 在任务列表和转录中的显示颜色。接受 `red`、`blue`、`green`、`yellow`、`purple`、`orange`、`pink` 或 `cyan` |
+| `initialPrompt`   | 否   | 当此代理作为主会话代理运行时（通过 `--agent` 或 `agent` 设置），自动提交为第一个用户轮次。[Commands](https://code.claude.com/docs/zh-CN/commands) 和 [skills](https://code.claude.com/docs/zh-CN/skills) 被处理。前置于任何用户提供的提示 |
+
+### 控制subagent能力
+
+Subagents 默认继承主对话中可用的 [internal tools](https://code.claude.com/docs/zh-CN/tools-reference) 和 MCP 工具。
+
+- `tools` 字段中列出也不可用于 subagents
+  - `AskUserQuestion`
+  - `EnterPlanMode`
+  - `ExitPlanMode`，除非 subagent 的 [`permissionMode`](https://code.claude.com/docs/zh-CN/sub-agents#permission-modes) 是 `plan`
+  - `ScheduleWakeup`
+  - `WaitForMcpServers`
+
+- 工具限制：使用 `tools` 字段（允许列表）或 `disallowedTools` 字段（拒绝列表）
+
+- subagent限制调用subagent：当subagent作为主线程运行时（成为主agent，使用 `claude --agent`），它可以使用 Agent 工具生成 subagents。要限制它可以生成的 subagent 类型，在 `tools` 字段中使用 `Agent(agent_type)` 语法。
+
+  ```markdown
+  ---
+  name: coordinator
+  description: Coordinates work across specialized agents
+  tools: Agent(worker, researcher), Read, Bash
+  ---
+  
+  要允许生成任何 subagent 而不受限制，使用不带括号的 Agent
+  tools: Agent, Read, Bash
+  
+  如果 Agent 完全从 tools 列表中省略，代理无法生成任何 subagents。
+  ```
+
+- 限制mcp使用范围
+
+  ```markdown
+  ---
+  name: browser-tester
+  description: Tests features in a real browser using Playwright
+  mcpServers:
+    # Inline definition: scoped to this subagent only
+    - playwright:
+        type: stdio
+        command: npx
+        args: ["-y", "@playwright/mcp@latest"]
+    # Reference by name: reuses an already-configured server
+    - github
+  ---
+  
+  Use the Playwright tools to navigate, screenshot, and interact with pages.
+  ```
+
+- 权限模式：`permissionMode` 字段控制 subagent 如何处理权限提示。Subagents 从主对话继承权限上下文，并可以覆盖模式
+
+  | Mode                | Behavior                                                     |
+  | :------------------ | :----------------------------------------------------------- |
+  | `default`           | 标准权限检查，带有提示                                       |
+  | `acceptEdits`       | 自动接受文件编辑和工作目录或 `additionalDirectories` 中路径的常见文件系统命令 |
+  | `auto`              | [Auto mode](https://code.claude.com/docs/zh-CN/permission-modes#eliminate-prompts-with-auto-mode)：后台分类器审查命令和受保护目录的写入 |
+  | `dontAsk`           | 自动拒绝权限提示。显式允许的工具仍然工作；`AskUserQuestion`、connector 工具 [您的组织设置为 `ask`](https://code.claude.com/docs/zh-CN/mcp#organization-controls-on-connector-tools) 和标记为 [`requiresUserInteraction`](https://code.claude.com/docs/zh-CN/mcp#require-approval-for-a-specific-tool) 的 MCP 工具被拒绝，即使您已允许它们 |
+  | `bypassPermissions` | 跳过权限提示                                                 |
+  | `plan`              | Plan mode（只读探索）                                        |
+
+- 预加载skill到subagent：
+
+  - 预加载使用 `skills` 字段在启动时将技能内容注入到 subagent 的上下文中。这为 subagent 提供领域知识，而无需在执行期间发现和加载技能。
+
+  - 每个列出的技能的完整内容被注入到 subagent 的上下文中
+
+  - 此字段控制哪些技能被预加载，而不是 subagent 可以访问哪些技能：没有它，subagent 仍然可以在执行期间通过 Skill 工具发现和调用项目、用户和 plugin 技能。要防止 subagent 完全调用技能，请从 [`tools`](https://code.claude.com/docs/zh-CN/sub-agents#available-tools) 列表中省略 `Skill` 或将其添加到 `disallowedTools`。
+
+  - ```markdown
+    ---
+    name: api-developer
+    description: Implement API endpoints following team conventions
+    skills:
+      - api-conventions
+      - error-handling-patterns
+    ---
+    
+    Implement API endpoints. Follow the conventions and patterns from the preloaded skills.
+    ```
+
+- 使用持久记忆memory：`memory` 字段为 subagent 提供一个在对话中幸存的持久目录。Subagent 使用此目录随时间积累知识。
+
+  ```markdown
+  ---
+  name: code-reviewer
+  description: Reviews code for quality and best practices
+  memory: user
+  ---
+  
+  You are a code reviewer. As you review code, update your agent memory with
+  patterns, conventions, and recurring issues you discover.
+  ```
+
+  | Scope     | Location                                      | 使用时机                                          |
+  | :-------- | :-------------------------------------------- | :------------------------------------------------ |
+  | `user`    | `~/.claude/agent-memory/<name-of-agent>/`     | subagent 应该在所有项目中记住学习                 |
+  | `project` | `.claude/agent-memory/<name-of-agent>/`       | subagent 的知识是特定于项目的并可通过版本控制共享 |
+  | `local`   | `.claude/agent-memory-local/<name-of-agent>/` | subagent 的知识是特定于项目的但不应检入版本控制   |
+
+- 禁用特定的agent
+
+  - 在settings.json，防止 Claude 使用特定 subagents。
+
+  ```json
+  {
+    "permissions": {
+      "deny": ["Agent(Explore)", "Agent(my-custom-agent)"]
+    }
+  }
+  ```
+
+- 为subagent配置hooks
+
+
+
+
+
+## 6.4 使用agent
+
+### 6.4.1 自动委托
+
+Claude 根据您请求中的任务描述、subagent 配置中的 `description` 字段和当前上下文自动委托任务。
+
+鼓励：subagent的description字段中包含“主动地使用”等词语
+
+### 6.4.2 显式调用subagent
+
+当自动委托不够时，您可以自己请求 subagent。
+
+- **自然语言**：在提示中命名 subagent；Claude 决定是否委托
+
+- **@-mention**：保证 subagent 为一个任务运行
+
+  - 输入 `@` 并从类型提前中选择 subagent，就像您 @-mention 文件一样。这确保特定 subagent 运行，而不是将选择留给 Claude
+
+  ```
+  @"code-reviewer (agent)" look at the auth changes
+  ```
+
+- **会话范围**：整个会话使用该 subagent 的系统提示、工具限制和模型，通过 `--agent` 标志或 `agent` 设置
+
+  会话参数
+
+  ```
+  claude --agent security-reviewer
+  ```
+
+  .claude/settings.json
+
+  ```json
+  {
+    "agent": "code-reviewer"
+  }
+  ```
+
+  
+
+### 6.4.3 在前台或后台调用subagent
+
+Subagents 可以在前台或后台运行
+
+- **前台 subagents** 阻塞主对话直到完成。权限提示会在出现时传递给您。
+- **后台 subagents** 在您继续工作时并发运行。从 v2.1.186 开始，当后台 subagent 到达需要权限的工具调用时，提示会在您的主会话中显示，并命名正在请求的 subagent。批准以让 subagent 继续，或按 Esc 拒绝该单个工具调用而不停止 subagent。在 v2.1.186 之前，后台 subagents 自动拒绝任何会提示的工具调用。
+
+从 v2.1.198 开始，subagents 默认在后台运行。Claude 在需要结果才能继续时在前台运行 subagent。
+
+您也可以自己控制这个：
+
+- 要求 Claude 在后台或前台运行任务
+- 按 **Ctrl+B** 将运行中的任务放在后台
+
+完成的后台 subagent 在 [`/tasks`](https://code.claude.com/docs/zh-CN/commands) 中保持列出，标记为完成并排序在运行工作下方，直到会话清理其任务列表。
+
+### 6.4.4 常见使用模式
+
+1. 隔离高容量操作
+   - subagents 最有效的用途之一是隔离产生大量输出的操作。
+   - 运行测试、获取文档或处理日志文件可能会消耗大量上下文。通过将这些委托给 subagent，详细输出保留在 subagent 的上下文中，而只有相关摘要返回到您的主对话。
+2. 运行并行研究
+   - 对于独立的调查，生成多个 subagents 以同时工作
+   - 每个 subagent 独立探索其区域，然后 Claude 综合这些发现。当研究路径彼此不依赖时，这效果最好。
+   - 当 subagents 完成时，它们的结果返回到您的主对话。运行许多 subagents，每个都返回详细结果，可能会消耗大量上下文。
+3. chain subagent
+   - 对于多步骤工作流，要求 Claude 按顺序使用 subagents。每个 subagent 完成其任务并将结果返回给 Claude，然后将相关上下文传递给下一个 subagent。
+
+### subagent和主对话的选择
+
+在以下情况下使用 **主对话**：
+
+- 任务需要频繁的来回或迭代细化
+- 多个阶段共享重要上下文，例如规划、实现和测试
+- 您正在进行快速、有针对性的更改
+- 延迟很重要。Subagents 从头开始，可能需要时间来收集上下文
+
+在以下情况下使用 **subagents**：
+
+- 任务产生 不需要在主上下文中的详细输出
+- 您想强制执行特定的工具限制或权限
+- 工作是自包含的，可以返回摘要
+
+
+
+### 6.4.5 嵌套的subagent
+
+subagent 可以生成自己的 subagents。当委托的任务本身分裂成并行子任务时使用这个，例如审查者 subagent 为每个发现分派一个验证者，所以中间输出永远不会到达您的主对话。只有顶级 subagent 的摘要返回给您。
+
+
+
+### 6.4.6 分叉当前对话
+
+分叉是一个 subagent，它继承到目前为止的整个对话，而不是从头开始。
+
+这消除了 subagents 通常提供的输入隔离：分叉看到与主会话相同的系统提示、工具、模型和消息历史，因此您可以将其交给一个辅助任务而无需重新解释情况。
+
+分叉自己的工具调用仍然保持在您的对话之外，只有其最终结果返回，因此您的主 context window 保持干净。
+
+当命名 subagent 需要太多背景才能有用时，或当您想从相同的起点并行尝试多种方法时，使用分叉。
+
+`CLAUDE_CODE_FORK_SUBAGENT`默认为0，设置为1以让claude生成分叉subagent，显式 [`/fork`](https://code.claude.com/docs/zh-CN/commands) 命令无需此变量即可工作。
+
+每个subagent生成都在background中运行，无论是分叉还是命名的subagent。
+
+```bash
+/fork draft unit tests for the parser changes so far
+```
+
+分叉出现在提示下方的面板中，并在您继续工作时在后台运行。完成后，其结果作为消息到达您的主对话。下一部分涵盖了在分叉运行时观察和引导它们的面板控制。
+
+#### 观察和引导运行中的分叉
+
+运行中的分叉出现在提示输入下方的面板中，主会话有一行，每个分叉有一行。使用这些键与面板交互
+
+| Key       | Action                               |
+| :-------- | :----------------------------------- |
+| `↑` / `↓` | 在行之间移动                         |
+| `Enter`   | 打开所选分叉的转录并向其发送后续消息 |
+| `x`       | 关闭完成的分叉或停止运行中的分叉     |
+| `Esc`     | 将焦点返回到提示输入                 |
+
+
+
+### 6.4.7 管理subagent上下文
+
+
+
+# Reference
+
+## [Tool Reference](https://code.claude.com/docs/en/tools-reference)
+
+**Claude Code 可用工具的完整参考，包括权限要求和每个工具的行为。**
 
 # 其他内容-----------------------------------------------------------
 
@@ -325,6 +1086,8 @@ paths:
 
 ```bash
 npm install -g @musistudio/claude-code-router
+ccr -v
+claude-code-router version: 2.0.0
 ```
 
 ## 1.1 Command
