@@ -446,6 +446,10 @@ when it loads：当你或Claude调用它时，它在自己的上下文窗口中�
 
 在命令行中输入一个 **`@`**并且 pick 一个agent ，来直接委派agent
 
+## 4.8 workflows
+
+每一个.js文件都是一个动态的工作流程：这些脚本会在运行时被执行，以启动并协调多个子代理节点的运作。这些工作流程是由Claude编写的，并保存在此处，而不是从头开始编写的。
+
 # 5 [skills](https://code.claude.com/docs/zh-CN/skills)
 
 ## 5.1 配置skill
@@ -714,7 +718,7 @@ Research $ARGUMENTS thoroughly:
 
 `agent` 字段指定要使用的 subagent 配置。选项包括内置代理（`Explore`、`Plan`、`general-purpose`）或来自 `.claude/agents/` 的任何自定义 subagent。如果省略，使用 `general-purpose`。
 
-# 6 agents
+# 6 [agents](https://code.claude.com/docs/zh-CN/sub-agents)
 
 在Claude Code中创建和使用专门的AI agent，用于特定任务的工作流和改进的上下文管理。
 
@@ -1068,17 +1072,123 @@ subagent 可以生成自己的 subagents。当委托的任务本身分裂成并�
 | `x`       | 关闭完成的分叉或停止运行中的分叉     |
 | `Esc`     | 将焦点返回到提示输入                 |
 
+#### 分叉与命名subagent的区别
 
+| 分叉           | 命名 subagent        |                                                              |
+| :------------- | :------------------- | ------------------------------------------------------------ |
+| 上下文         | 完整的对话历史       | 新鲜上下文，带有您传递的提示                                 |
+| 系统提示和工具 | 与主会话相同         | 来自 subagent 的 [definition file](https://code.claude.com/docs/zh-CN/sub-agents#write-subagent-files) |
+| 模型           | 与主会话相同         | 来自 subagent 的 `model` 字段                                |
+| 权限           | 提示在您的终端中出现 | [提示在后台运行时在您的主会话中出现](https://code.claude.com/docs/zh-CN/sub-agents#run-subagents-in-foreground-or-background) |
+| Prompt cache   | 与主会话共享         | 单独的缓存                                                   |
 
 ### 6.4.7 管理subagent上下文
 
+每个 subagent 都以新鲜的隔离上下文窗口开始。它看不到您的对话历史、您已经调用的技能或 Claude 已经读取的文件。Claude 编写一条委托消息来总结任务，subagent 从那里开始工作。（除fork外的subagent）
 
+#### 启动时的上下文
+
+非 fork subagent 的初始上下文包含：
+
+- **系统提示**：代理自己的提示加上 Claude Code 附加的环境详情，而不是完整的 Claude Code 系统提示。自定义 subagents 在 [markdown 正文](https://code.claude.com/docs/zh-CN/sub-agents#write-subagent-files) 或 `prompt` 字段中定义它们。内置代理有预定义的提示。
+- **任务消息**：Claude 在移交工作时编写的委托提示。
+- **CLAUDE.md 和内存**：主对话加载的 [内存层次结构](https://code.claude.com/docs/zh-CN/memory#how-claude-md-files-load) 的每个级别，包括 `~/.claude/CLAUDE.md`、项目规则、`CLAUDE.local.md` 和托管策略文件。内置的 Explore 和 Plan 代理跳过这个。
+- **Git 状态**：在父会话开始时拍摄的快照。当工作目录不是 Git 存储库或 [`includeGitInstructions`](https://code.claude.com/docs/zh-CN/settings#available-settings) 为 `false` 时不存在。Explore 和 Plan 无论如何都跳过它。
+- **预加载的技能**：代理的 [`skills` 字段](https://code.claude.com/docs/zh-CN/sub-agents#preload-skills-into-subagents) 中命名的任何技能的完整内容。内置代理不预加载技能。
+- **兄弟名单**：系统提醒，列出 `main` 和会话中的每个其他命名代理，每个都是 [`SendMessage`](https://code.claude.com/docs/zh-CN/sub-agents#resume-subagents) 的有效 `to` 值。需要 Claude Code v2.1.206 或更高版本。名单仅在 subagent 的工具包括 `SendMessage` 且至少有一个其他代理有名称时出现，无论 Claude 在生成时命名它还是它作为 [agent team](https://code.claude.com/docs/zh-CN/agent-teams) 队友运行。它是 subagent 启动时拍摄的快照，所以稍后命名的代理不会出现。
+
+#### 恢复subagents
+
+每个 subagent 调用都会创建一个具有新鲜上下文的新实例。要继续现有 subagent 的工作而不是重新开始，要求 Claude 恢复它。恢复的 subagents 保留其完整的对话历史，包括所有以前的工具调用、结果和推理。Subagent 从它停止的地方继续，而不是从头开始。
+
+当 subagent 完成时，Claude 接收其代理 ID。内置的 Explore 和 Plan 代理是一次性的，不返回代理 ID，所以它们无法恢复；当您需要继续工作时，使用 `general-purpose` 或自定义 subagent。Claude 使用 `SendMessage` 工具，将代理的 ID 或名称作为 `to` 字段来恢复它。完成的 subagent 如果接收 `SendMessage`，会在后台自动恢复，无需新的 `Agent` 调用。同样适用于 Claude 用 `TaskStop` 工具停止的 subagent。
+
+Subagent Transcript（转录）独立于主对话持久化：
+
+- **主对话压缩**：当主对话压缩时，subagent 转录不受影响。它们存储在单独的文件中。
+- **会话持久性**：Subagent 转录在其会话中持久化。您可以通过恢复相同的会话在重启 Claude Code 后 [恢复 subagent](https://code.claude.com/docs/zh-CN/sub-agents#resume-subagents)。
+- **自动清理**：转录根据 `cleanupPeriodDays` 设置（默认为 30 天）进行清理。
+
+#### 自动压缩
+
+Subagents 支持使用与主对话相同的逻辑进行自动压缩。在env的配置中：
+
+- `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE`：设置触发自动压缩的上下文容量百分比（1-100）
+- `CLAUDE_CODE_AUTO_COMPACT_WINDOW`：设置用于自动压缩计算的上下文容量（以令牌为单位）
+
+
+
+# 7 agent teams
+
+协调多个 Claude Code 实例作为一个团队一起工作，具有共享任务、代理间消息传递和集中管理。
+
+与subagents不同，subagent只能向master报告，而在agent teams中，每个agent可以相互通信，而无需让master作为中间人。
+
+agent teams是实验性功能，默认禁用，`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`可以禁用
+
+![比较 subagent 和 agent team 架构的图表。Subagents 由主代理生成、执行工作并报告结果。Agent teams 通过共享任务列表进行协调，队友彼此直接通信。](legend/subagents-vs-agent-teams-light.png)
+
+## 7.1 适用场景
+
+- **研究和审查**：多个队友可以同时调查问题的不同方面，然后分享和质疑彼此的发现
+- **新模块或功能**：队友可以各自拥有一个独立的部分，不会相互干扰
+- **使用竞争假设进行调试**：队友并行测试不同的理论，更快地收敛到答案
+- **跨层协调**：跨越前端、后端和测试的更改，每个由不同的队友负责
+
+## 7.2 控制teams
+
+### 7.2.1 启用agent teams
+
+```json
+{
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  }
+}
+```
+
+启用 agent teams 后，用自然语言描述你想要的任务和队友。Claude 会生成他们并根据你的提示协调工作。
+
+```
+I'm designing a CLI tool that helps developers track TODO comments across
+their codebase. Spawn three teammates to explore this from different angles:
+one on UX, one on technical architecture, one playing devil's advocate.
+
+我正在设计一个命令行工具，旨在帮助开发者在代码库中跟踪待办事项评论。我会安排三位队友从不同的角度来研究这个问题：一位负责用户体验方面，一位负责技术架构设计，还有一位则扮演“反对派”角色，提出一些不同的观点。
+```
+
+从那里，Claude 会填充一个 [共享任务列表](https://code.claude.com/docs/zh-CN/interactive-mode#task-list)，为每个角度生成队友，让他们探索问题，并在完成时综合发现。
+
+负责人的终端在提示输入下方的 agent 面板中列出队友。从该面板中：
+
+- **向上和向下箭头**：选择一个队友
+- **Enter**：打开所选队友的记录并直接向其发送消息
+- **Escape**：中断所选队友的当前轮次
+
+# 8 workflows
+
+动态工作流是一个 JavaScript 脚本，可大规模编排subagent。
+
+Claude 为您描述的任务编写脚本，运行时在后台执行它，同时您的会话保持响应。
+
+## 8.1 让Claude 编写工作流
+
+您可以通过两种方式让 Claude 为您的任务编写工作流：
+
+- [在您的提示中请求工作流](https://code.claude.com/docs/zh-CN/workflows#ask-for-a-workflow-in-your-prompt)，使用关键字 `ultracode`，Claude 为任务编写一个。
+- [让 Claude 使用 ultracode 决定](https://code.claude.com/docs/zh-CN/workflows#let-claude-decide-with-ultracode)：设置 `/effort ultracode`，Claude 为会话中的每个实质性任务规划工作流。
+
+您也可以运行已存在的工作流命令：一个[捆绑工作流](https://code.claude.com/docs/zh-CN/workflows#bundled-workflows)如 `/deep-research`，或一个您已[保存](https://code.claude.com/docs/zh-CN/workflows#save-the-workflow-for-reuse)的。
 
 # Reference
 
 ## [Tool Reference](https://code.claude.com/docs/en/tools-reference)
 
 **Claude Code 可用工具的完整参考，包括权限要求和每个工具的行为。**
+
+## [Env Reference](https://code.claude.com/docs/zh-CN/env-vars)
+
+控制 Claude Code 行为的环境变量完整参考
 
 # 其他内容-----------------------------------------------------------
 
@@ -1381,7 +1491,7 @@ ccr ui
 
 https://ark.cn-beijing.volces.com/api/v3/chat/completions
 # 火山平台测试
-curl https://ark.cn-beijing.volces.com/api/v3/chat/completions -H "Authorization: Bearer ark-57ba57e6-0b20-40fd-bb21-d9cfcb899df4-5659a" -H "Content-Type: application/json" -d '{
+curl https://ark.cn-beijing.volces.com/api/v3/chat/completions -H "Authorization: Bearer ark-57ba57e6-xxxx" -H "Content-Type: application/json" -d '{
   "model":"doubao-seed-2-0-lite-260428",
   "messages":[{"role":"user","content":"test"}]
 }'
