@@ -1192,7 +1192,7 @@ Claude 为您描述的任务编写脚本，运行时在后台执行它，同时�
 
 # 其他内容-----------------------------------------------------------
 
-# 1 [claude-code-router]( https://musistudio.github.io/claude-code-router/zh-CN/)
+# 1 [claude-code-router 2.0.0]( https://musistudio.github.io/claude-code-router/zh-CN/)
 
 ```bash
 npm install -g @musistudio/claude-code-router
@@ -1531,3 +1531,73 @@ curl https://ark.cn-beijing.volces.com/api/v3/chat/completions \
   "model":"doubao-seed-2-0-lite-260428",
   "messages":[{"role":"user","content":"test"}]
 }'
+
+```
+
+
+
+# 2 [claude code router 3.0.20](https://ccrdesk.top/guides/)
+
+## 2.1 [cli](https://ccrdesk.top/guides/cli/)
+
+```bash
+# 首次安装
+npm install -g @musistudio/claude-code-router
+# 安装升级
+npm update -g @musistudio/claude-code-router
+# 或者
+npm install -g @musistudio/claude-code-router@latest
+
+# 卸载
+npm uninstall -g @musistudio/claude-code-router
+
+# 查看版本
+npm view @musistudio/claude-code-router version
+3.0.20
+
+# 后台启动ccr 并打开管理网页界面
+ccr ui
+# 后台启动不打开网页管理
+ccr ui --no-open
+
+# 管理界面默认使用 http://127.0.0.1:3458，模型网关默认使用 http://127.0.0.1:3456
+
+```
+
+升级前，请将以前在`~/.claude-code-router/config.json`删除掉或清空内容
+
+在新版中的供应商请手动挨个添加，不要用以前的配置，否则会出问题，报：`服务启动失败，Core gateway did not accept runtime config within 5000ms.`，这里的服务启动失败，就是网关服务读到的配置是老配置然后报错。
+
+
+
+| 命令                  | 运行方式 | 用途                                               |
+| :-------------------- | :------- | :------------------------------------------------- |
+| `ccr start`           | 后台     | 启动管理服务和模型网关，打印带认证信息的管理 URL。 |
+| `ccr ui`              | 后台     | 复用或启动后台服务，并打开浏览器。                 |
+| `ccr stop`            | 一次性   | 停止由 `start` 或 `ui` 启动的后台服务。            |
+| `ccr serve`           | 前台     | 在当前终端运行，适合查看日志或交给进程管理器。     |
+| `ccr web`             | 前台     | `serve` 的别名。                                   |
+| `ccr <配置名称或 ID>` | 前台     | 启动一个已启用的 Agent 配置。                      |
+
+配置存放的位置：`C:\Users\xxx\AppData\Roaming\claude-code-router\config.sqlite`
+
+`config.json` 只在没有 SQLite 配置时作为旧版迁移，不要在 CCR 运行时直接编辑 SQLite
+
+
+
+
+
+![image-20260808221827305](legend/image-20260808221827305.png)
+
+![image-20260808222809304](legend/供应商编辑.png)
+
+![image-20260808221910707](legend/image-20260808221910707.png)
+
+打开claude code ：`ccr "Claude Code"`
+
+```
+ccr <配置名称或 ID> [cli|app] [-- <Agent 参数>]
+```
+
+- Agent 自己的参数放到 `--` 后，避免与 CCR 选项或入口名冲突。
+
