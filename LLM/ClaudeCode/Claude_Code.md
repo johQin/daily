@@ -1,5 +1,7 @@
 # Claude Code
 
+CLI = Command Line Interface
+
 # 1 安装配置
 
 ## 安装claude code
@@ -18,9 +20,11 @@ claude -v
 # Claude Code Router (CCR) → 最强大方式（支持运行中动态切换）
 # https://musistudio.github.io/claude-code-router/zh-CN/
 npm install -g claude-code-router
+npm view @musistudio/claude-code-router version
+3.0.20
 
-# 使用ccr code进入claude code 交互命令窗
-ccr code
+# 使用ccr "Claude Code"进入claude code 交互命令窗
+ccr "Claude Code"
 # 如果你直接使用claude 命令进入交互命令窗，可能会出现下面的问题
 # Not logged in · Run /login
 # 法一：使用官方账号，在控制台直接输入 /login 并按回车。它会弹出一个网页，你登录你的 Anthropic (Claude.ai) 账号并授权即可。
@@ -31,7 +35,7 @@ echo '{"primaryApiKey": "any-string"}' > ~/.claude/config.json
 
 # 2 核心工作流
 
-### 2.1 工作模式
+## 2.1 工作模式
 
 1. Plan
    - 让Claude 只规划，不执行，只读取文件理解文本，不修改任何文件，反复讨论，修改方案
@@ -40,7 +44,138 @@ echo '{"primaryApiKey": "any-string"}' > ~/.claude/config.json
 2. Auto
    - 用一个AI分类器替你做权限判断。安全操作自动放行，危险操作才拦截
    - 
-3. 
+
+
+
+## 2.2 [上下文探索](https://code.claude.com/docs/en/context-window)
+
+在发出你的指令之前，你的上下文窗口会预先填入（auto-loaded）：
+
+1. System Prompt（token：4.2k+）：对于claude 这个agent的Prompt。
+
+   - Core instructions for behavior，tool use and response formatting. Always loaded first
+
+2. Auto-Memory（token：680+）：跨会话的持久记忆
+
+   - 包括：build commands it learned, patterns it noticed, mistakes to avoid. 
+   - 前 200 行或 25KB（以先达到者为准）会被加载到对话上下文中。
+
+3. Environment info（token：280+）
+
+4. MCP tools（token：120+）：默认只列出了 MCP 工具名称，以便 Claude 知道有哪些工具可用。
+
+   - 默认情况下，完整的工具架构会保持**延迟加载**状态，Claude 会在任务需要时通过工具搜索机制按需加载特定的架构。
+
+   - 配置：
+
+     - `ENABLE_TOOL_SEARCH=auto`：这是一种折中方案。如果所有工具说明书加起来不太大（只占用了 Claude 记忆容量的 10% 以下），那就干脆一开始全记下来（预先加载），这样干活快；太大了就还是按需加载。
+
+     - `ENABLE_TOOL_SEARCH=false`：强制一开始就把所有工具的说明书全看完。这可能会占用大量记忆空间，但在某些复杂场景下可能响应更快。
+
+5. Skill Description（token：450+）：提供可用技能的单行描述，以便 Claude 知道有哪些skill可用
+
+   - 只有当 Claude 实际使用某个技能时，才会加载该技能的完整内容（SKILL.md）。
+   - frontmatter标记为 `disable-model-invocation: true` 的技能不在此列表中。它们完全处于上下文之外，直到您通过 `/name` 命令调用它们。
+   - `/compact`后，不会被重新注入，只有你实际调用过的技能才会被保留
+
+6. `~/.claude/CLAUDE.md`（token：320+）：user级别的preference
+
+7. `Project CLAUDE.md`（token：1.8k+）：项目级的preference或惯例
+
+
+
+在你发出指令：Fix the auth bug where users get 401 after token refresh
+
+1. claude Read src/api/auth.ts   +2.4K
+2. claude Read src/lib/tokens.ts  +1.1K
+3. auto Rule: api-conventions.md  +380
+4. claude Read middleware.ts  +1.8K
+5. claudeRead auth.test.ts    +1.6K
+6. auto Rule: testing.md    +290
+7. claude   grep "refreshToken"   +600
+8. claude   Claude's analysis    +800
+9. claude   Edit auth.ts   +400
+10. hook  Hook: prettier  +120
+11. claude  Edit auth.test.ts  +600
+12. hook   Hook: prettier   +100
+13. claude  npm test output   +1.2K
+14. claude  Summary  +400
+
+
+
+继续交流：Use a subagent to research session timeout handling, then fix it
+
+1. claude   Spawn research subagent   +80
+
+2. Subagent's separate context window
+
+   - subagent    System prompt    +900
+
+   - subagent  Project CLAUDE.md (own copy)  +1.8K
+
+   - subagent  MCP tools + skills   +970
+
+   - subagent   Task prompt from main  +120
+
+   - subagent  Read session.ts  +2.2K
+
+   - subagent   Read timeouts.ts  +800
+
+   - subagent   Read config/*.ts  +3.1K
+
+     ↓ 9.9K tokens stayed in subagent's context · only the summary returns
+
+3. claude  Subagent returns summary   +420
+
+4. Claude's response+1.2K
+
+
+
+继续：`!git status`
+
+继续：/commit-push
+
+继续：/compact
+
+- After /compact   22.2K → 9.1K tokens · freed 13.1K
+
+- Reloaded after compact
+
+  - auto System prompt +4.2K
+  - auto   Auto memory (MEMORY.md) +680
+  - auto  Environment info +280
+
+  - auto MCP tools (deferred) +120
+  - auto ~/.claude/CLAUDE.md +320
+  - auto  Project CLAUDE.md +1.8K
+
+  - Summarized by /compact  compact   Conversation summary
+
+
+
+### 在context 充满时
+
+当你接近context 的限制时，claude 可以自动压缩上下文
+
+在自动压缩上下文动作发生前，你可以：
+
+- 带焦点压缩：在运行`/compact`命令，在命令后衔接一个指令提示，让压缩围绕这个指令提示内容。eg: `/compact focus on the auth bug fix`（专注于认证错误修复）。摘要会保留您选择的内容，而不是自动压缩过程所猜测的重要内容。
+- 设置自动压缩窗口：`/autocompact 500k`
+- 进行新任务前清空上文：`/clear`
+
+### 检查你自己的session
+
+可视化显示你当前session上下文情况
+
+-  `/context`：查看您实际的上下文使用情况，以获取按类别划分的实时明细和优化建议
+
+  ![](./legend/cmd_context_res.png)
+
+  
+
+- `/memory`：打开和编辑这些文件
+
+  ![image-20260813142651481](legend/image-20260813142651481.png)
 
 # 3 扩展claude的功能
 
@@ -449,6 +584,26 @@ when it loads：当你或Claude调用它时，它在自己的上下文窗口中�
 ## 4.8 workflows
 
 每一个.js文件都是一个动态的工作流程：这些脚本会在运行时被执行，以启动并协调多个子代理节点的运作。这些工作流程是由Claude编写的，并保存在此处，而不是从头开始编写的。
+
+
+
+## 4.9 agent-memory
+
+subagent的持久记忆，独立于主会话的**自动记忆**。
+
+when it loads：MEMORY.md 的前 200 行（上限为 25KB）在子代理运行时加载到其系统提示词中。
+
+subagent开启持久记忆：md 文件frontmatter 中添加`memory: scope`，scope有三个范围：
+
+| Scope     | Location                                      | 使用时机                                          |
+| :-------- | :-------------------------------------------- | :------------------------------------------------ |
+| `user`    | `~/.claude/agent-memory/<name-of-agent>/`     | subagent 应该在所有项目中记住学习                 |
+| `project` | `.claude/agent-memory/<name-of-agent>/`       | subagent 的知识是特定于项目的并可通过版本控制共享 |
+| `local`   | `.claude/agent-memory-local/<name-of-agent>/` | subagent 的知识是特定于项目的但不应检入版本控制   |
+
+这与位于 ~/.claude/projects/ 的主会话自动记忆是分开的：每个子代理读写自己的 MEMORY.md 文件，而不是你的。
+
+
 
 # 5 [skills](https://code.claude.com/docs/zh-CN/skills)
 
@@ -1171,14 +1326,265 @@ one on UX, one on technical architecture, one playing devil's advocate.
 
 Claude 为您描述的任务编写脚本，运行时在后台执行它，同时您的会话保持响应。
 
+使用动态工作流大规模编排子代理
+
+当任务超出了单个智能体在上下文中能容纳的范围，或者当相同的步骤需要在许多项目上运行时，工作流最为适用。
+
 ## 8.1 让Claude 编写工作流
 
 您可以通过两种方式让 Claude 为您的任务编写工作流：
 
-- [在您的提示中请求工作流](https://code.claude.com/docs/zh-CN/workflows#ask-for-a-workflow-in-your-prompt)，使用关键字 `ultracode`，Claude 为任务编写一个。
-- [让 Claude 使用 ultracode 决定](https://code.claude.com/docs/zh-CN/workflows#let-claude-decide-with-ultracode)：设置 `/effort ultracode`，Claude 为会话中的每个实质性任务规划工作流。
+- [在您的提示中请求工作流](https://code.claude.com/docs/zh-CN/workflows#ask-for-a-workflow-in-your-prompt)：无论是用你自己的话描述，还是包含关键词 `ultracode`，Claude 都会为该任务生成一个工作流。
+- [让 Claude 使用 ultracode 决定](https://code.claude.com/docs/zh-CN/workflows#let-claude-decide-with-ultracode)：设置 `/effort ultracode`，Claude 就会为会话中的每一项实质性任务规划工作流。
 
 您也可以运行已存在的工作流命令：一个[捆绑工作流](https://code.claude.com/docs/zh-CN/workflows#bundled-workflows)如 `/deep-research`，或一个您已[保存](https://code.claude.com/docs/zh-CN/workflows#save-the-workflow-for-reuse)的。
+
+### 8.1.1 在提示中请求工作流编写
+
+在提示中包含特定的内容，就可以让claude为实质性的任务编写工作流，两种方式：
+
+- “使用工作流”  或 “运行工作流”
+- “ultracode”（推荐），claude 会在输入中突出显示该关键字
+
+```
+ultracode: audit every API endpoint under src/routes/ for missing auth checks
+```
+
+Claude Code 会高亮显示您输入中的关键词（ultracode），Claude 将为该任务编写一个工作流脚本，而不是逐步轮流进行处理。该关键词仅决定了 Claude 如何组织工作结构：以此方式启动的工作流在会话现有的权限模式下运行，且其代理的工具调用与会话中任何其他工具调用一样，均需接受相同的权限检查和沙盒机制限制。
+
+如果你不打算启动工作流：
+
+- 在 macOS 上按 `Option+W` ，或在 Windows 和 Linux 上按 `Alt+W` 来忽略此提示的突出显示
+- 或在突出显示的关键字后面的光标处按退格键。
+- 要完全停止该关键字触发，请在 `/config` 中关闭 Ultracode 关键字触发。
+
+如果运行完成了你想要做的，你之后可以将其保存为命令（If the run does what you wanted, you can [save it as a command](https://code.claude.com/docs/en/workflows#save-the-workflow-for-reuse) ）
+
+**关键词ultracode的生效范围**
+
+该关键词仅在你自行输入的提示词中生效：即在交互式命令行、IDE 扩展面板、远程控制客户端，或将键盘输入来源标记为 `{ kind: "human" }` 的 Agent SDK 应用程序中。
+
+若该关键词通过以下途径进入会话，则不会启动工作流：
+
+- 通过 `-p` 参数传递的提示词
+- Agent SDK 应用程序发送但未标记为人工输入的提示词
+- 计划任务提示词
+- 转发到对话中的 Webhook 负载或拉取请求（Pull Request）评论
+
+### 8.1.2  让 Claude 使用 ultracode 决定
+
+Ultracode 是一个 Claude Code 设置，它结合了 `xhigh` [推理努力](https://code.claude.com/docs/zh-CN/model-config#adjust-effort-level)与自动工作流编排。启用它后，Claude 为每个实质性任务规划工作流，而不是等待您要求。
+
+```
+/effort ultracode
+```
+
+要启动 ultracode 的会话，请使用 `claude --effort ultracode` 启动。
+
+启用 ultracode 后，Claude 决定任务何时值得工作流。单个请求可以变成一系列工作流：一个理解代码，一个进行更改，一个验证它。
+
+这适用于会话中的每个任务，所以**每个请求使用“更多token”并“花费更长的时间”。**
+
+Ultracode 持续当前会话，当您启动新会话时重置。
+
+### 8.1.3 保存工作流以供重用
+
+当claude 为你重复的任务编写了一个workflow，你可以存储为一个命令（这个命令背后就是给你编写的工作流run脚本）
+
+运行 `/workflows`，选择您想保留的run，然后按 `s`。Tab键可以切换它存储的位置：`.claude/workflows/` 或 `~/.claude/workflows/`。按 Enter 保存。工作流在未来会话中从任一位置作为 `/<name>` 运行。
+
+
+
+### 8.1.4 给工作流传递参数
+
+保存的工作流可以通过 `args` 参数传递输入。脚本将其读取为名为 `args` 的全局变量。这样就无须每次都去修改脚本了。
+
+
+
+## 8.2 工作流prompt示例
+
+**针对同一问题审查多个文件**
+
+为每个文件分派一个智能体，随后汇总并验证发现结果。
+
+例如：
+
+```
+使用工作流（use a workflow） 检查 src/routes/ 下的每一个路由处理器是否缺少身份验证检查，并在报告之前对每一项发现进行对抗性验证。
+```
+
+## 8.3 工作流如何运行
+
+工作流运行时在隔离环境中执行脚本，与您的对话分开。中间结果保留在脚本变量中，而不是进入 Claude 的上下文。
+
+工作流每次运行都会将其脚本写入 `~/.claude/projects/` 下你会话目录中的一个文件。
+
+- 运行开始时 Claude 会收到该路径，因此你可以向它索取。
+- 你可以打开该文件阅读 Claude 编写的编排逻辑，将其与前一次运行的脚本进行差异对比
+- 或者编辑它并要求 Claude 从编辑后的版本重新启动。
+
+## 8.4 管理工作流
+
+### 8.4.1 查看工作流运行情况
+
+工作流在后台运行。随时运行 `/workflows` 列出运行中和已完成的工作流，然后选择一个打开其**进度视图**。
+
+进度视图显示每个阶段及其代理计数、令牌总数和经过的时间。页脚列出每个操作的键：
+
+| 键             | 操作                                                         |
+| :------------- | :----------------------------------------------------------- |
+| `↑` / `↓`      | 选择一个阶段或代理                                           |
+| `Enter` 或 `→` | 深入选定的阶段，然后进入代理以读取其提示、最近的工具调用和结果 |
+| `Esc` 或 `←`   | 返回一个级别。在 v2.1.203 至 v2.1.205 中，`←` 没有退出阶段或代理；在这些版本上使用 `Esc` |
+| `j` / `k`      | 当代理详情溢出时在其中滚动                                   |
+| `f`            | 按状态过滤选定阶段中的代理列表。再次按下以循环               |
+| `p`            | 暂停或恢复运行                                               |
+| `x`            | 停止选定的代理，或当焦点在运行上时停止整个工作流             |
+| `r`            | 重启选定的运行中代理                                         |
+| `s`            | [保存](https://code.claude.com/docs/zh-CN/workflows#save-the-workflow-for-reuse)运行的脚本作为命令 |
+
+
+
+# 9 [Hooks](https://code.claude.com/docs/en/hooks)
+
+![](legend/hooks-lifecycle.svg)
+
+
+
+1. Session 级：SessionStart、SessionEnd、PreCompact
+2. 工具调用级：PreToolUse、PostToolUse、PostToolUseFailure、PermissionRequest、UserPromptSubmit
+3. subagent级：SubagentStart、SubagentStop
+4. 完成事件：Stop、Notification
+5. TeammateIdle与TaskCompleted（Agent Teams）、ConfigChange、WorktreeCreate与WorktreeRemove
+
+## 9.1 hooks 配置
+
+在`settings.json`中，在最外层对象中的hooks 用来配置各个事件的数组。
+
+配置结构采用3层嵌套设计：事件类型→matcher组→Hook处理器列表。
+
+- matcher字段用于指定该组Hook适用的工具范围。
+  -  `Write|Edit`：匹配Write或Edit工具（管道符｜表示逻辑“或”）
+  - `*`：匹配所有工具。
+  - 有些事件并不针对特定工具，也有可能时subagent，[匹配的语法](https://code.claude.com/docs/zh-CN/permissions#permission-rule-syntax)
+- matcher字段下面的hooks就是 **Hook处理器列表**
+
+eg：
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./.claude/hooks/block-dangerous.sh",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "prettier --write \"$CLAUDE_FILE_PATH\""
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+## 9.2 hook 处理器
+
+hook处理器包含三种类型
+
+- command：确定性规则
+- prompt：单词大模型评估
+- agent：多轮subagent验证
+
+选择Hook处理器类型时，应遵循“能用command类型的不用prompt类型，能用prompt类型的不用agent类型”的降级原则
+
+![image-20260813175142884](legend/image-20260813175142884.png)
+
+### 9.2.1 command
+
+该类型用于执行Shell命令 或 脚本。作为最常用且最可靠的类型，确定性规则永远比大模型的判断更为可信。
+
+```json
+{
+  "type": "command",
+  "command": "./.claude/hooks/check-security.sh",
+  "timeout": 30
+}
+```
+
+command类型的Hook通过stdin接收JSON格式的上下文数据（包含session_id、tool_name、tool_input等），通过stdout输出JSON格式的决策，并依据退出码表达最终意图。
+
+- 退出码0：表示成功。系统将stdout中的JSON解析结果作为决策依据。
+- 退出码2：表示有意阻止。系统将stderr的内容作为错误原因反馈给Claude。
+- 其他退出码：表示脚本异常。stderr内容仅在调试模式下可见，但不会阻断主流程。
+
+### 9.2.2 prompt
+
+当验证逻辑需要一定的判断力，但不需要执行多步操作时，建议使用prompt类型。该类型会调用小型的模型（通常为Haiku）对当前情况进行评估。
+
+```json
+{
+  "type": "prompt",
+  "prompt": "评估这段代码修改是否引入了安全漏洞。$ARGUMENTS",
+  "model": "claude-haiku-4-5",
+  "timeout": 30
+}
+```
+
+其中，$ARGUMENTS为占位符，运行时将被替换为Hook接收到的完整输入JSON
+
+大模型返回的结果为：
+
+允许通过：
+
+```json
+{"ok": true, "reason": "代码修改安全，未引入已知漏洞模式"}
+```
+
+拒绝操作：
+
+```json
+{"ok": false, "reason": "检测到潜在的SQL注入风险：用户输入未经转义直接拼接到查询字符串"}
+```
+
+
+
+### 9.2.3 agent
+
+当验证逻辑需要实际查看代码文件、执行搜索或多步操作才能得出结论时，应使用agent类型。
+
+该类型会启动一个子智能体，以便能够利用Read、Grep、Glob等工具进行多轮深度验证。
+
+```json
+{
+  "type": "agent",
+  "prompt": "检查所有修改的文件是否通过了单元测试。运行测试套件并验证结果。$ARGUMENTS",
+  "timeout": 120	
+}
+```
+
+agent类型的子智能体最多运行50轮对话/操作后必须返回决策。其响应格式与prompt类型完全一致，返回包含ok（布尔值）和reason（字符串）的JSON对象。
+
+
+
+### 9.2.4 事件处理结果的输出格式
+
+
+
+
 
 # Reference
 
@@ -1189,6 +1595,10 @@ Claude 为您描述的任务编写脚本，运行时在后台执行它，同时�
 ## [Env Reference](https://code.claude.com/docs/zh-CN/env-vars)
 
 控制 Claude Code 行为的环境变量完整参考
+
+## [权限规则](https://code.claude.com/docs/zh-CN/permissions)
+
+[权限规则语法匹配工具](https://code.claude.com/docs/zh-CN/permissions#permission-rule-syntax)
 
 # 其他内容-----------------------------------------------------------
 
