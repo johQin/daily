@@ -19,11 +19,13 @@
 
 # [Strix](https://github.com/usestrix/strix)
 
+[相关文档](https://aiknowledge.cn/collection/1161-strix-%E4%B8%AD%E6%96%87%E6%8A%80%E6%9C%AF%E6%95%99%E7%A8%8B)
+
 Strix 是具备自主运行能力的 AI 智能代理，行为模式堪比真实黑客 —— 它可以动态执行你的代码、挖掘安全漏洞，并通过概念验证（PoC）对漏洞有效性进行核验。
 
 该产品面向开发人员与安全团队打造，能够快速、精准地完成安全测试，省去人工渗透测试高昂的成本开销，同时规避静态分析工具普遍存在的误报问题。
 
-容器镜像：usestrix/strix-sandbox
+容器镜像：`ghcr.io/usestrix/strix-sandbox`
 
 # 0 绪论
 
@@ -79,7 +81,114 @@ multi-agent architecture
 
   **动态协同调度** — 各个智能体相互协作、共享探测到的漏洞信息
 
+## strix与容器
+
+`strix` 命令本身会全自动地处理与 Docker 沙箱容器相关的一切。
+
+当你执行 `strix --target ...` 后，它会自动完成以下操作：
+
+1. **检查 Docker 环境**：命令首先会确认你本地的 Docker 守护进程（Docker Daemon）正在运行。如果 Docker 没运行，它会直接报错提示。
+2. **自动拉取镜像（仅首次）**：如果是**第一次**运行，它会自动从远程仓库（如 `ghcr.io/usestrix/strix-sandbox`）拉取所需的沙箱 Docker 镜像。这个镜像基于 Kali Linux，体积较大（约 3.77GB）。
+3. **自动创建并启动容器**：镜像准备好后，`strix` 主程序会通过 Docker API 自动创建并启动一个沙箱容器。这个容器是**临时的（ephemeral）**，专为本次扫描任务而设。
+4. **在容器内执行任务**：容器启动后，所有实际的渗透测试工具（如 `nmap`, `sqlmap` 等）都会在这个隔离的沙箱环境中执行。同时，容器内还会启动 Caido 代理等服务来捕获和分析流量。
+5. **任务结束后的处理**：扫描完成后，`strix` 会根据情况处理这个容器。你不需要关心它的启动、配置或清理，这些都由 `strix` 命令在后台为你管理
+
+你的准备工作很简单，只需要**确保两件事**：
+
+- **Docker 已安装并运行**：确保你能在终端执行 `docker info` 并得到正常反馈。
+- **正确设置环境变量**：在运行 `strix` 命令的**同一个终端会话**中，已经正确设置了 `STRIX_LLM` 和 `LLM_API_KEY`。
+
+## 安装
+
+strix命令工具安装
+
+```bash
+# 安装脚本会在当前pwd下，生成一个bin目录，里面放一个strix可执行文件，并且将这个路径会写入.bashrc中。source 执行一下就可以使用这个命令了。
+
+# 请单独下载脚本文件，执行了解相关信息后，然后修改脚本，以加快安装进程
+
+# curl 安装
+curl -sSL https://strix.ai/install | bash
+# 在脚本中查找Downloading的地方
+# 可以在脚本中打印一下，找到下载的路径是什么
+print_message info "${MUTED}Download src: ${NC} $url\n"
+https://github.com/usestrix/strix/releases/download/v1.5.3/strix-1.5.3-linux-x86_64.tar.gz
+# 这个脚本会从github上下载资源文件
+# 你如果可以单独通过vpn下载，会更快一些，所以我单独下载了，然后修改了脚本
+
+# 然后替换这一段
+curl -# -L -o "$filename" "$url"
+
+    if [ ! -f "$filename" ]; then
+        echo -e "${RED}Download failed${NC}"
+        exit 1
+    fi
+    
+# 替换为
+local local_archive="/home/qbuntu/Downloads/strix-1.5.3-linux-x86_64.tar.gz"
+cp -p "$local_archive" "$filename"
+# local_archive为你放文件的位置
+
+# 请提前下载sandbox docker镜像
+# 即使提前下载STRIX_IMAGE的镜像，不然会很慢，即使你下载的名字不一样，但docker底层有镜像的唯一id，所以你就不需要重复下载
+STRIX_IMAGE="ghcr.io/usestrix/strix-sandbox:1.3.0"
+
+
+# 执行安装的脚本
+bash install.sh
+
+🦉 Installing Strix version: 1.5.3
+Platform: linux-x86_64
+
+Downloading...
+Download src:  https://github.com/usestrix/strix/releases/download/v1.5.3/strix-1.5.3-linux-x86_64.tar.gz
+
+Filename:  strix-1.5.3-linux-x86_64.tar.gz
+
+Extracting...
+✓ Strix installed to /home/qbuntu/.strix/bin
+Successfully added strix to $PATH in /home/qbuntu/.bashrc
+✓ Strix 1.5.3 ready
+
+Checking for sandbox image...
+Pulling sandbox image (this may take a few minutes)...
+1.3.0: Pulling from usestrix/strix-sandbox
+Digest: sha256:f6906c3114e504fd1a218fcf028d7a0e46851118403a438b63956de6ea7c4331
+Status: Downloaded newer image for ghcr.io/usestrix/strix-sandbox:1.3.0
+ghcr.io/usestrix/strix-sandbox:1.3.0
+✓ Sandbox image pulled successfully
+
+
+   ███████╗████████╗██████╗ ██╗██╗  ██╗
+   ██╔════╝╚══██╔══╝██╔══██╗██║╚██╗██╔╝
+   ███████╗   ██║   ██████╔╝██║ ╚███╔╝ 
+   ╚════██║   ██║   ██╔══██╗██║ ██╔██╗ 
+   ███████║   ██║   ██║  ██║██║██╔╝ ██╗
+   ╚══════╝   ╚═╝   ╚═╝  ╚═╝╚═╝╚═╝  ╚═╝
+
+  AI Penetration Testing Agent
+
+To get started:
+
+  1. Set your environment:
+     export LLM_API_KEY='your-api-key'
+     export STRIX_LLM='openai/gpt-5.4'
+
+  2. Run a penetration test:
+     strix --target https://example.com
+
+For more information visit https://strix.ai
+Supported models https://docs.strix.ai/llm-providers/overview
+Join our community https://discord.gg/strix-ai
+
+→ Run source ~/.bashrc or open a new terminal
+```
+
+
+
 # 1 CLI Reference
+
+
 
 ```bash
 strix (--target <target> | --target-list <path>) [options]
@@ -150,7 +259,11 @@ strix (--target <target> | --target-list <path>) [options]
 
    - 以无界面（headless）模式运行，不启用文本交互界面（TUI：Text‑based User Interface）。适用于 CI/CD 流水线。
 
-8. --max-budget，number
+8. --config
+
+   - 自定义 JSON 配置文件的路径，用于替代默认配置文件 `~/.strix/cli‑config.json`
+
+9. --max-budget，number
 
    - 单次扫描的大型语言模型最大开销限额（美元），开销由根代理以及所有子代理累计计算。每次模型返回响应后都会校验预算。
    - 在**非交互模式（-n）**下，当运行成本达到阈值时，扫描会正常终止，状态标记为已停止（非失败），同时销毁沙箱环境。子代理会在预算消耗至 90% 时提前停止，预留最后一部分预算供根代理收尾并生成最终报告。
@@ -161,13 +274,13 @@ strix (--target <target> | --target-list <path>) [options]
      - 交互模式下所有代理统一使用 70%、85%、95% 的警告档位。警告中展示的百分比为累计实际开销占总预算的比例。
    - 该参数取值必须大于 0；如省略此选项，则开销无上限。
 
-9. --max-turns integer default:"500"
+10. --max-turns integer default:"500"
 
-   - 分配给每个代理的最大轮次（一轮 = 一次模型响应加上对应的一轮工具调用），每次运行单独计数。代理达到该上限时将被强制终止。
-   - 轮次限额即将耗尽时，系统会在下一次模型交互轮次内向该代理推送分阶段收尾警告（70%、85%、95%），使其优先完成剩余工作，并在强制停止前调用生命周期工具（根代理调用 `finish_scan`，子代理调用 `agent_finish`）。
-   - 参数值必须大于0
+    - 分配给每个代理的最大轮次（一轮 = 一次模型响应加上对应的一轮工具调用），每次运行单独计数。代理达到该上限时将被强制终止。
+    - 轮次限额即将耗尽时，系统会在下一次模型交互轮次内向该代理推送分阶段收尾警告（70%、85%、95%），使其优先完成剩余工作，并在强制停止前调用生命周期工具（根代理调用 `finish_scan`，子代理调用 `agent_finish`）。
+    - 参数值必须大于0
 
-10. 
+11. 
 
 ## 1.1 命令退出码
 
@@ -298,7 +411,12 @@ npx skills add usestrix/strix --skill penetration-testing-with-strix
 
 Strix 智能体借助各类专用工具，如同一个真实的渗透测试工程师做的那样。
 
-Strix 在基于 Kali Linux 的 Docker 容器（镜像：usestrix/strix-sandbox）内运行，[容器预装了一整套安全测试工具](https://docs.strix.ai/tools/sandbox)。智能体可通过终端接口调用下述任意工具。
+Strix 在基于 Kali Linux 的 Docker 容器（镜像：`ghcr.io/usestrix/strix-sandbox`）内运行，[容器预装了一整套安全测试工具](https://docs.strix.ai/tools/sandbox)。智能体可通过终端接口调用下述任意工具。
+
+```bash
+# https://github.com/orgs/usestrix/packages/container/strix-sandbox/versions
+docker pull ghcr.io/usestrix/strix-sandbox:latest
+```
 
 所有工具均已完成预配置，开箱即用。智能体会根据待测试的漏洞类型，自动选择合适的工具。
 
@@ -365,6 +483,85 @@ Strix 可访问运行于 Docker 沙箱内部的持久化 Bash 终端。智能体
 
 
 
+# 4 configuration
+
+通过环境变量或者配置文件对 Strix 进行配置。
+
+**llm configuration**
+
+- STRIX_LLM：配置模型，(e.g., `openai/gpt-5.4`, `anthropic/claude-sonnet-4-6`）
+- LLM_API_KEY
+- LLM_API_BASE
+- LLM_EXTRA_HEADERS：额外的http请求头，格式为：a JSON object (e.g. `{"X-Feature-Key":"value","X-Tenant":"acme"}`). 
+- LLM_TIMEOUT：default 300 秒
+- STRIX_LLM_MAX_RETRIES：失败后，最大的尝试次数，默认5
+- STRIX_REASONING_EFFORT：控制推理模型的思考effort投入。有效值：`none`、`minimal`、`low`、`medium`、`high`、`xhigh`、`max`。quick模式下默认值为 `medium`。
+- STRIX_MEMORY_COMPRESSOR_TIMEOUT：context summarization 超时时间，默认30秒
+
+
+
+**Dedicated deduplication model**
+
+漏洞发现结果去重是一项开销较低的结构化分类任务。
+
+默认情况下该任务由主模型执行，但你可以将该任务分流至更小、成本更低的模型，且不会影响实际执行测试的智能代理。
+
+- STRIX_DEDUPE_MODEL
+- DEDUPE_LLM_API_KEY
+- DEDUPE_LLM_API_BASE
+- DEDUPE_LLM_EXTRA_HEADERS
+- STRIX_DEDUPE_REASONING_EFFORT
+
+
+
+**Docker configuration**
+
+- STRIX_IMAGE：sandbox image name，默认：`ghcr.io/usestrix/strix-sandbox:1.3.0`
+- DOCKER_HOST：
+  - 用于告知docker 客户端（CLI）命令行工具，docker后台守护进程在哪里。
+  - 如果你不设置它，Docker 客户端会去找**默认地址**：
+    - Linux：`unix:///var/run/docker.sock`（本地的套接字文件）
+    - Windows：`npipe:////./pipe/docker_engine`（本地的命名管道）
+  - 它的值必须是 **URI（统一资源标识符）** 格式，支持以下几种协议：
+    - **`unix://`**：用于本地 Unix 域套接字（仅限 Linux）。
+    - **`tcp://`**：用于通过网络连接远程 Docker 主机（这是最关键的用途）。
+    - **`fd://`**：用于 systemd 下的套接字激活。
+    - **`npipe://`**：用于 Windows 命名管道。
+  - **举例：**
+    - 本地默认：`unix:///var/run/docker.sock`
+    - 连接远程主机（无加密）：`tcp://192.168.1.100:2375`
+    - 连接远程主机（TLS加密）：`tcp://192.168.1.100:2376`
+    - 使用 `tcp://` 不加任何加密（即 2375 端口）时，网络上任何能连接到该端口的人都能**完全控制**你的 Docker（等同于拿到 root 权限）。**请务必在局域网或安全内网中使用，或使用 TLS 加密（2376 端口）。**
+    - TLS加密：**CA 证书 (`ca.pem`)**，**服务器证书与密钥 (`server-cert.pem`, `server-key.pem`)**，**客户端证书与密钥 (`cert.pem`, `key.pem`)**
+- STRIX_RUNTIME_BACKEND：默认为docker
+
+
+
+**沙箱配置**
+
+- `STRIX_SANDBOX_EXECUTION_TIMEOUT`：沙箱内各项操作的最大执行时长，默认 120秒
+- STRIX_SANDBOX_CONNECT_TIMEOUT：连接沙箱容器的超时时间，默认10秒
+
+## 配置文件的位置
+
+Strix 的配置文件存放路径为 `~/.strix/cli‑config.json`。你也可以指定自定义配置文件：
+
+```bash
+strix --target ./app --config /path/to/config.json
+```
+
+config file format
+
+```json
+{
+  "env": {
+    "STRIX_LLM": "openai/gpt-5.4",
+    "LLM_API_KEY": "sk-...",
+    "STRIX_REASONING_EFFORT": "high"
+  }
+}
+```
+
 
 
 # [skills CLI](https://mintlify.wiki/vercel-labs/skills/introduction)
@@ -397,4 +594,20 @@ skills命令的安装：
   ```bash
   npx skills add vercel-labs/agent-skills
   ```
+
+
+
+# prompt example
+
+```bash
+strix --target http://124.220.19.199:8000/portal --scan-mode quick --config ~/.strix/cli-config.json --instruction "使用 Strix 对该网站执行渗透测试，并汇总输出漏洞结果"
+```
+
+
+
+# 提示词示例
+
+1. 使用 Strix 对该代码仓库执行渗透测试（快速模式，预算 10 美元），并汇总输出漏洞结果。
+2. 修复上一次 Strix 扫描产出的所有严重（critical）和高危（high）漏洞，之后重新扫描进行验证。
+3. 将 Strix 安全扫描接入到 GitHub Actions，实现对每一条合并请求（PR）执行安全检测。
 

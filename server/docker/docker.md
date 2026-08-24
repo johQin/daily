@@ -2321,3 +2321,45 @@ sudo vim /etc/docker/daemon.json
 # default-address-pools：此配置指定了 Docker 为创建的新网络（包括通过 Docker Compose 创建的默认网络）分配 IP 地址时使用的地址池。在这里，我们设置其为 10.201.0.0/16，并通过 size 指定每次分配的子网大小为 /24。
 ```
 
+## 其他镜像源
+
+```bash
+# 1. linux系统请使用以下命令修改默认docker镜像源：
+vim /etc/docker/daemon.json
+{
+"registry-mirrors": ["https://xxxxxxxx.jialiyun.fun "
+]
+}
+systemctl daemon-reload
+systemctl restart docker
+
+# 拉取
+docker pull xxx.jialiyun.fun/ghcr.io/usestrix/strix-sandbox:latest
+
+# 多源合一 镜像源加速使用方法
+Docker 官方镜像：
+docker pull xxx.jialiyun.fun/nginx
+Docker 镜像：
+docker pull xxx.jialiyun.fun/user/image
+ghcr.io 镜像：
+docker pull xxx.jialiyun.fun/ghcr.io/user/image
+Quay.io 镜像：
+docker pull xxx.jialiyun.fun/quay.io/org/image
+Kubernetes 镜像：
+docker pull xxx.jialiyun.fun/registry.k8s.io/pause:3.8
+```
+
+## 将当前用户加入docker 用户组
+
+可以让当前的用户，在执行docker命令时，无需加sudo
+
+```bash
+# 确认docker 用户组是否存在
+sudo groupadd docker
+groupadd: group 'docker' already exists
+# 当前用户添加到docker 用户组
+sudo usermod -aG docker $USER
+# 使组权限变更生效
+newgrp docker
+```
+
