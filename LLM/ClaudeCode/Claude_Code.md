@@ -1978,6 +1978,8 @@ ccr ui --no-open
 
 在新版中的供应商请手动挨个添加，不要用以前的配置，否则会出问题，报：`服务启动失败，Core gateway did not accept runtime config within 5000ms.`，这里的服务启动失败，就是网关服务读到的配置是老配置然后报错。
 
+也可能是vpn的问题，在启动服务时，可以先把vpn关闭，然后再去启动。
+
 
 
 | 命令                  | 运行方式 | 用途                                               |
@@ -2010,4 +2012,25 @@ ccr <配置名称或 ID> [cli|app] [-- <Agent 参数>]
 ```
 
 - Agent 自己的参数放到 `--` 后，避免与 CCR 选项或入口名冲突。
+
+## 2.2 桌面版
+
+在ubuntu 操作系统中，请使用claude code router的桌面版，cli版本无法打开浏览器然后开启配置。
+
+并且api-key请直接在provider的网站中直接创建然后复制。不要使用远程工具copy，例如todesk传递key可能会有问题。
+
+```bash
+chmod +x Claude-Code-Router_3.0.22.AppImag
+dlopen(): error loading libfuse.so.2
+
+AppImages require FUSE to run. 
+You might still be able to extract the contents of this AppImage 
+if you run it with the --appimage-extract option. 
+See https://github.com/AppImage/AppImageKit/wiki/FUSE 
+for more information
+
+sudo apt install libfuse
+
+./Claude-Code-Router_3.0.22.AppImag
+```
 

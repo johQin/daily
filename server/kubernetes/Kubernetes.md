@@ -190,3 +190,283 @@ Service 通过 **selector 标签** 关联 Pod：
 
 
 
+## 0.4 硬件要求
+
+测试环境：
+
+- master：2核/4G/20G
+- worker：4核/8G/40G
+
+
+
+
+
+# 1 搭建k8s集群
+
+两种方式：
+
+- kubeadm（kubernetes-admin）
+  - master 节点`kubeadm init`，初始化集群
+  - worker节点`kubeadm join`，加入集群
+  - kubeadm降低了部署门槛，但屏蔽了很多细节，遇到问题很难排查
+- 组件部署方式：
+  - 从github下载发行版的组件包，手动部署每个组件，组成k8s集群
+  - 手动部署较为麻烦，但可以学习很多工作原理，也利于后期维护
+
+## 1.1 kubeadm
+
+kubeadm是官方社区推出的一个用于快速部署kubernetes集群的工具。
+
+```bash
+# 创建一个 Master 节点
+kubeadm init
+
+# 将一个 Node 节点加入到当前集群中
+kubeadm join <Master节点的IP和端口 >
+```
+
+### 1.1.1 linux 系统环境准备
+
+[部署参考](https://gitee.com/moxi159753/LearningNotes/tree/master/K8S/3_%E4%BD%BF%E7%94%A8kubeadm%E6%96%B9%E5%BC%8F%E6%90%AD%E5%BB%BAK8S%E9%9B%86%E7%BE%A4)
+
+```bash
+# 关防火墙
+# 查看防火墙状态
+sudo ufw status
+# centos
+# 临时关 systemctl stop firewalld
+# 永久关 systemctl disable firewalld
+# ubuntu
+# 临时关
+sudo systemctl stop ufw
+# 永久关
+sudo ufw disable
+# 关闭防火墙的原因：
+# Kubernetes 的网络代理 kube-proxy 依赖 iptables 或 IPVS 来管理网络规则。而像 firewalld 这样的防火墙服务，可能会在背后操作 nftables，与 kube-proxy 管理的 iptables 规则产生冲突，导致生成重复的规则，进而破坏 kube-proxy 的功能
+# nftables 与 kubeadm 不兼容:它会导致重复的防火墙规则和breaks kube-proxy
+# nftables：是 Linux 防火墙子系统的框架（从 Linux 3.13 开始引入），它用于替代旧的iptables/ip6tables/arptables /ebtables 等工具
+
+
+# 关闭selinux
+# 为了绕过 SELinux 严格的访问控制机制，避免因其导致的各种奇怪权限问题。
+# 根本原因：SELinux 会为每个进程和文件打上安全标签，限制其访问权限。容器运行时和 Kubernetes 组件（如 kubelet）需要访问宿主机文件系统，而 SELinux 的默认策略可能阻止这些操作，导致 Pod 网络故障、容器无法启动等问题。
+#复杂性：要为 Kubernetes 正确配置 SELinux 策略非常复杂，大多数教程选择直接关闭以避免麻烦。
+
+# centos
+# 临时关闭 setenforce 0 
+# 永久关闭 sed -i 's/enforcing/disabled/' /etc/selinux/config  
+# 在 Ubuntu 系统中，SELinux 默认是未安装且未启用的
+# 查看selinux的状态
+sestatus
+
+# 关闭swap
+# Kubernetes 官方文档的强制性要求
+# Kubelet（Kubernetes 的节点代理）在设计上要求精确管理资源，其默认行为是如果检测到 Swap 被启用，就会启动失败
+# 性能考量：Swap 使用硬盘作为虚拟内存，速度远慢于物理内存。一旦启用，Pod 的性能会急剧下降。同时，Swap 会让调度器误判节点可用资源，导致 Pod 调度出错。
+# 运维理念：Kubernetes 的哲学是“快速失败，快速恢复”。当 Pod 内存不足时，更希望它被直接杀死（OOM）并自动重启，而不是靠 Swap “续命”，导致节点响应缓慢，问题更难排查
+# 查看当前 Swap 状态，此命令会列出所有激活的 Swap 分区或文件
+sudo swapon --show
+# 临时关闭swap，-a 参数代表关闭所有已知的 Swap 设备
+sudo swapoff -a
+# 永久关闭，但不会立刻关闭当前正在运行的 swap
+sudo sed -ri 's/.*swap.*/#&/' /etc/fstab
+
+
+# 在多个主机中修改hostname
+sudo hostnamectl set-hostname master01
+sudo hostnamectl set-hostname master02
+sudo hostnamectl set-hostname worker01
+sudo hostnamectl set-hostname worker02
+
+
+# 在master添加hosts
+# 作用：免记 IP，直接用名字互访，ping 10.0.0.3 可以修改为ping master01
+cat >> /etc/hosts << EOF
+10.0.0.3 master01
+10.0.0.8 master02
+10.0.0.6 worker01
+10.0.0.17 worker02
+EOF
+
+# centos br_netfilter 这个内核模块默认自动加载
+# 查看当前系统是否加载了br_netfilter
+lsmod | grep br_netfilter
+br_netfilter           32768  0
+bridge                425984  1 br_netfilter
+# 加载 br_netfilter 内核模块（Ubuntu 必须做这一步）
+sudo modprobe br_netfilter
+# 确保开机自动加载（写入 /etc/modules-load.d/）
+cat <<EOF | sudo tee /etc/modules-load.d/k8s.conf
+br_netfilter
+EOF
+
+# 网络设置
+# 将桥接的IPv4流量传递到iptables的链
+cat <<EOF | sudo tee /etc/sysctl.d/k8s.conf
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
+net.ipv4.ip_forward = 1
+EOF
+# 核心作用：让 Kubernetes 的 kube-proxy（基于 iptables 模式）能够正确处理 容器网桥（Bridge） 上的网络包。
+# 具体场景：你的 Pod 是跑在虚拟网卡（如 cni0、docker0）上的。当流量从 Pod 发出，经过这个“网桥”去往外部时，内核必须检查 iptables 规则（做 SNAT 地址转换），否则 Pod 无法访问外网，Service 的 ClusterIP 负载均衡也会失效。
+# net.ipv4.ip_forward=1 是让节点间 Pod 网络互通的关键
+
+# 立即生效（不需要重启）
+sudo sysctl --system
+
+# 时间同步
+# 时间同步对Kubernetes集群至关重要：
+# 证书验证：K8s组件间使用数字证书进行加密通信，证书有严格的有效期。节点间时间差过大会导致证书被认为“尚未生效”或“已过期”，造成kubelet无法连接apiserver等严重问题。
+# 日志审计：集群审计日志和事件顺序依赖准确的时间戳，时间不同步会让排错变得异常困难
+
+# ubuntu中，使用内置的 systemd-timesyncd 服务
+# 检查当前的状态
+timedatectl status
+               Local time: Wed 2026-09-02 12:51:35 CST
+           Universal time: Wed 2026-09-02 04:51:35 UTC
+                 RTC time: Wed 2026-09-02 04:51:35
+                Time zone: Asia/Shanghai (CST, +0800)
+System clock synchronized: yes
+              NTP service: active
+          RTC in local TZ: no
+# 如果上一步显示未开启，则重新开启
+sudo timedatectl set-ntp true
+```
+
+### 1.1.2 安装docker/kubeadm/kubelet
+
+#### kubernetes与docker的版本兼容性
+
+[kubernetes的版本](https://github.com/kubernetes/kubernetes/tree/master/CHANGELOG)
+
+[docker的版本](https://docs.docker.com/engine/release-notes)
+
+Kubernetes 1.24 及以上版本不再支持 Docker 作为 CRI（Container Runtime Interface），建议使用 containerd 或 CRI-O。
+
+docker与containerd
+
+- 当你执行docker run 时，典型调用链：Docker CLI → Docker Daemon (dockerd) → **containerd** → **runc**
+- Containerd 是这个链条中的核心一环，它只专注于容器的核心生命周期管理，如创建、启动、停止容器，以及镜像的拉取和存储
+
+针对 Kubernetes 1.24 及之后版本，关于 Docker 你需要注意的核心是：**Kubernetes 节点用于运行容器的“引擎”变了，但你构建的 Docker 镜像依然可以正常工作。**
+
+通过K8s管理Pod下的容器不再通过docker管理，而直接通过containerd管理。真正受影响的是当你**直接登录到 K8s 的 Node 节点**上进行故障排查或维护时，`docker` 命令将无法看到k8s管理的容器。
+
+在 containerd 环境下，你需要使用 **`crictl`** 作为主要的命令行工具来替代 `docker` 命令，来查看k8s管理下的容器或者镜像。下表是常用命令的快速对照。
+
+| 功能分类     | 原 Docker 命令       | 新 Containerd 命令 (crictl) |
+| :----------- | :------------------- | :-------------------------- |
+| **镜像管理** | `docker images`      | `crictl images`             |
+|              | `docker pull`        | `crictl pull`               |
+|              | `docker rmi`         | `crictl rmi`                |
+| **容器管理** | `docker ps`          | `crictl ps`                 |
+|              | `docker exec`        | `crictl exec`               |
+|              | `docker logs`        | `crictl logs`               |
+|              | `docker stop` / `rm` | `crictl stop` / `rm`        |
+| **Pod 管理** | (无直接命令)         | `crictl pods`               |
+|              | (无直接命令)         | `crictl runp` / `stopp`     |
+
+**补充说明**：`crictl` 是专门为 Kubernetes 设计的调试工具。containerd 还有一个自带的 `ctr` 命令，但它功能更基础，主要用于调试，日常运维建议优先使用 `crictl`
+
+
+
+所以容器这一侧，只需要安装containerd就行，但你也可以直接安装最新的docker（它也依赖containerd）
+
+k8s 1.36版本开始， kubelet将直接拒绝连接containerd 1.x，需要containerd 2.x的支持
+
+[K8S的版本与containerd的版本支持情况](https://containerd.io/releases/#kubernetes-support)
+
+- containerd：选用2.3.4
+- K8S：选用1.36
+
+```bash
+# 我直接安装的docker，里面依赖的是containerd v2.3.4
+sudo docker version
+Client: Docker Engine - Community
+ Version:           29.7.2
+ API version:       1.55
+ Go version:        go1.26.5
+ Git commit:        a7dcaa6
+ Built:             Wed Aug  5 18:28:53 2026
+ OS/Arch:           linux/amd64
+ Context:           default
+
+Server: Docker Engine - Community
+ Engine:
+  Version:          29.7.2
+  API version:      1.55 (minimum version 1.40)
+  Go version:       go1.26.5
+  Git commit:       6a43e3d
+  Built:            Wed Aug  5 18:28:53 2026
+  OS/Arch:          linux/amd64
+  Experimental:     false
+ containerd:
+  Version:          v2.3.4
+  GitCommit:        db8809540e1a7a9da5d518876894933ff55692ab
+ runc:
+  Version:          1.4.3
+  GitCommit:        v1.4.3-0-gbb14dabe
+ docker-init:
+  Version:          0.19.0
+  GitCommit:        de40ad0
+
+# 
+
+# 生成containerd默认配置文件
+sudo containerd config default | sudo tee /etc/containerd/config.toml
+
+sudo vim /etc/containerd/config.toml
+
+# 修改SystemdCgroup 为true
+# 确保容器的 cgroup 驱动与 kubelet 保持一致（均为 systemd）
+[plugins.'io.containerd.cri.v1.runtime'.containerd.runtimes.runc.options]
+  SystemdCgroup = true
+            
+# 依情况配置containerd 的镜像站
+# 在 [plugins."io.containerd.grpc.v1.cri"] 部分下，补充 registry.mirrors 配置（若已有该节点，直接添加内容）
+[plugins."io.containerd.grpc.v1.cri".registry]
+    [plugins."io.containerd.grpc.v1.cri".registry.mirrors]
+      [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
+        endpoint = [
+          "https://docker.1panel.live",
+          "https://docker.1ms.run",
+          "https://dytt.online"
+        ]
+
+sudo systemctl restart containerd
+systemctl enable containerd
+systemctl status containerd
+```
+
+
+
+# 2 k8s核心概念
+
+
+
+# 3 搭建集群监控平台
+
+
+
+# 4 高可用k8s集群
+
+
+
+# 5 集群部署项目
+
+
+
+
+
+# 其他
+
+| 特性维度         | AppArmor                                                     | SELinux                                                      |
+| :--------------- | :----------------------------------------------------------- | :----------------------------------------------------------- |
+| **控制模型**     | **基于路径 (Path-based)** 为特定程序设置能访问哪些文件路径的规则。 | **基于标签 (Label-based)** 给系统里的每个文件、进程、端口都打上标签，根据标签之间的规则决定访问权限。 |
+| **策略形式**     | 人类可读的**文本配置文件** 规则一目了然，修改方便。          | 需编译的**二进制策略模块** 规则策略需要编译后才能加载，管理更复杂。 |
+| **默认发行版**   | **Ubuntu**、openSUSE                                         | **RHEL**、Fedora、CentOS                                     |
+| **文件系统依赖** | **无特殊要求**                                               | **需要支持扩展属性 (xattrs)**，如 ext4 标签是作为文件的扩展属性存储的。 |
+| **性能影响**     | **较小** 基于路径的字符串匹配，开销相对低。                  | **略高** 需要维护和查询每个文件/进程的标签。                 |
+| **学习与运维**   | **学习曲线平缓** 使用 `aa-status`、`aa-logprof` 等工具，上手快。 | **学习曲线陡峭** 概念复杂（类型、角色、用户等），需理解 `audit2allow` 等高级工具。 |
+| **高级安全模型** | 不支持 MLS/MCS                                               | **原生支持** MLS (多级安全) 和 MCS (多类别安全)              |
+

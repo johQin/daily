@@ -1006,7 +1006,73 @@
 
     
 
-19. 
+23. session关闭后，脱机运行
+
+    - 在`/etc/systemd/system`中，建立一个`antd-dev.service`
+
+      ```bash
+      [Unit]
+      Description=Ant Design Pro Dev Server
+      Documentation=https://github.com/ant-design/ant-design-pro
+      After=network.target
+      
+      [Service]
+      Type=simple
+      User=ubuntu
+      WorkingDirectory=/home/ubuntu/wenjie1
+      ExecStart=/usr/bin/npm run dev
+      Restart=always
+      RestartSec=10
+      StandardOutput=append:/home/ubuntu/wenjie1/dev.log
+      StandardError=append:/home/ubuntu/wenjie1/dev-error.log
+      Environment=NODE_ENV=development
+      Environment=NODE_OPTIONS=--max-old-space-size=4096
+      LimitNOFILE=65536
+      
+      [Install]
+      WantedBy=multi-user.target
+      ```
+
+    - 确保当前用户具有`/home/ubuntu/wenjie1`这个文件夹的权限，否则不起作用
+
+    - ```bash
+      # 重新加载 systemd 配置
+      sudo systemctl daemon-reload
+      
+      # 启动服务
+      sudo systemctl start antd-dev.service
+      
+      # 查看状态
+      sudo systemctl status antd-dev.service
+      
+      # 查看日志
+      sudo journalctl -u antd-dev.service -f
+      
+      # 停止服务
+      sudo systemctl stop antd-dev.service
+      
+      # 设置开机自启
+      sudo systemctl enable antd-dev.service
+      ```
+
+    
+
+24. 集成APPImage 应用到ubuntu系统
+
+    ```bash
+    # 先下载https://github.com/TheAssassin/AppImageLauncher/releases，找对应的deb版本
+    # appimagelauncher_3.0.0-beta-2-gha287.96cb937_amd64.deb
+    sudo dpkg -i appimagelauncher_3.0.0-beta-2-gha287.96cb937_amd64.deb
+    
+    # chmod +x your_app.AppImage
+    # eg:
+    chmod +x Claude-Code-Router_3.0.22.AppImage
+    
+    # 会弹出弹框，让你确认添加到系统，还是run once
+    ./Claude-Code-Router_3.0.22.AppImage
+    ```
+
+    
 
 
 
