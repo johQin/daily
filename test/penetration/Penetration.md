@@ -4,6 +4,8 @@
 
 # [Strix](https://github.com/usestrix/strix)------------------
 
+[官方文档](https://docs.strix.ai/)
+
 [相关文档](https://aiknowledge.cn/collection/1161-strix-%E4%B8%AD%E6%96%87%E6%8A%80%E6%9C%AF%E6%95%99%E7%A8%8B)
 
 Strix 是具备自主运行能力的 AI 智能代理，行为模式堪比真实黑客 —— 它可以动态执行你的代码、挖掘安全漏洞，并通过概念验证（PoC）对漏洞有效性进行核验。
@@ -268,6 +270,19 @@ strix (--target <target> | --target-list <path>) [options]
     - 分配给每个代理的最大轮次（一轮 = 一次模型响应加上对应的一轮工具调用），每次运行单独计数。代理达到该上限时将被强制终止。
     - 轮次限额即将耗尽时，系统会在下一次模型交互轮次内向该代理推送分阶段收尾警告（70%、85%、95%），使其优先完成剩余工作，并在强制停止前调用生命周期工具（根代理调用 `finish_scan`，子代理调用 `agent_finish`）。
     - 参数值必须大于0
+
+11. --resume，通过运行名称恢复之前的扫描任务（对应目录：`./strix_runs/`下的文件夹，记住不是文件路径名称，而是run_name）。会读取根代理以及所有非终止子代理的完整大模型对话历史与代理拓扑结构，不再生成新的运行名称。
+
+    - eg: `strix --resume sc-lowalt-ops-back_c2d2`，在执行命令的时候，请在strix_runs 的同级目录下执行
+
+```bash
+strix views run_name
+
+# eg：
+strix view sc-lowalt-ops-back_c2d
+```
+
+- 启动一个网站，可以在网页上查看相关的渗透测试报告
 
 
 

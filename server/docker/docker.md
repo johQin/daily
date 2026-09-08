@@ -2293,6 +2293,16 @@ docker network create --subnet=10.1.0.0/16 gpu-net
 docker run -it --network gpu-net --ip 10.1.0.2 --privileged=true -v /home/qbuntu/docker:/var/docker dsfegggd /bin/bash
 ```
 
+## 查看容器ip
+
+```bash
+docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' <容器名称或ID>
+# or
+docker inspect <容器名称或ID> | grep IPAddress
+```
+
+
+
 ## [默认网段](https://blog.csdn.net/weixin_66397563/article/details/151115199)
 
 - 在 Docker 的默认网络配置中，Docker 会为容器创建一个桥接（bridge）网络，并自动为每个容器分配一个 IP 地址。

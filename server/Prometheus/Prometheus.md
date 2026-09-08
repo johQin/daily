@@ -93,7 +93,13 @@ Prometheus 采用拉数据方式，即使采用的是push-gateway，prometheus�
 
 [pushgateway-1.11.3.linux-amd64.tar.gz](https://github.com/prometheus/pushgateway/releases/download/v1.11.3/pushgateway-1.11.3.linux-amd64.tar.gz)
 
-### [prometheus.yml](https://blog.csdn.net/csdn_tom_168/article/details/150860012)
+
+
+[官网相关下载](https://prometheus.io/download/)
+
+### 0.7.1 [prometheus.yml](https://blog.csdn.net/csdn_tom_168/article/details/150860012)
+
+官网的[configuration file](https://prometheus.io/docs/prometheus/latest/configuration/configuration/#configuration-file)
 
 `prometheus.yml` 是 Prometheus 的**主配置文件**，决定了 Prometheus Server 如何发现目标、抓取指标、评估规则、以及与外部系统（如 Alertmanager）交互。
 
@@ -126,7 +132,109 @@ scrape_configs:
 
 ```
 
-### node exporter
+#### global 配置
+
+定义 Prometheus 的默认行为。
+
+<table><thead><tr><th>配置项</th><th>默认值</th><th>说明</th></tr></thead><tbody><tr><td><code>scrape_interval</code></td><td><code>1m</code></td><td>默认抓取间隔（可被 job 覆盖）</td></tr><tr><td><code>scrape_timeout</code></td><td><code>10s</code></td><td>单次抓取超时时间</td></tr><tr><td><code>evaluation_interval</code></td><td><code>1m</code></td><td>告警和记录规则的评估频率</td></tr><tr><td><code>external_labels</code></td><td><code>{}</code></td><td>添加到所有指标的外部标签（如 <code>datacenter: "us-east-1"</code>）</td></tr></tbody></table>
+
+##### 推荐配置（生产环境）
+
+```
+global:
+  scrape_interval: 15s           # 统一抓取频率
+  scrape_timeout: 10s            # 超时应小于 scrape_interval
+  evaluation_interval: 15s       # 与 scrape_interval 保持一致
+  external_labels:
+    datacenter: "shanghai"
+    environment: "production"
+    cluster: "k8s-prod"
+
+```
+
+#### alerting告警配置
+
+配置 Prometheus 如何将告警发送到 **Alertmanager**
+
+```yaml
+alerting:
+  alertmanagers:
+    - scheme: http
+      static_configs:
+        - targets: ['alertmanager1:9093', 'alertmanager2:9093']
+      timeout: 10s
+      api_version: v1
+```
+
+#### rule_files规则文件
+
+指定 Prometheus 加载的**记录规则（Recording Rules）** 和 **告警规则（Alerting Rules）** 文件路径。
+
+#### scrape_configs抓取配置（核心）
+
+定义 Prometheus 的**监控任务（Jobs）** 和 **目标发现方式**。
+
+| 配置项                        | 说明                                |
+| ----------------------------- | ----------------------------------- |
+| `job_name`                    | 任务名称，会作为 `job` 标签自动添加 |
+| `scrape_interval`             | 该任务的抓取频率（覆盖全局）        |
+| `scrape_timeout`              | 该任务的抓取超时                    |
+| `metrics_path`                | 指标端点路径（默认 `/metrics`）     |
+| `scheme`                      | `http` 或 `https`                   |
+| `basic_auth` / `bearer_token` | 认证配置                            |
+| `tls_config`                  | TLS 证书配置                        |
+| `static_configs`              | 静态目标配置                        |
+| `file_sd_configs`             | 文件服务发现                        |
+| `kubernetes_sd_configs`       | Kubernetes 服务发现                 |
+| `relabel_configs`             | 抓取前重写标签                      |
+| `metric_relabel_configs`      | 抓取后重写指标                      |
+
+`static_configs` 和 `file_sd_configs` 是 Prometheus 中用于定义监控目标的两种方式。
+
+| 特性             | `static_configs` (静态配置)                                  | `file_sd_configs` (文件服务发现)                             |
+| :--------------- | :----------------------------------------------------------- | :----------------------------------------------------------- |
+| **目标定义位置** | 直接写在 Prometheus 的主配置文件 (`prometheus.yml`) 中       | 写在独立的 YAML 或 JSON 文件中                               |
+| **更新方式**     | **手动**：修改配置后，需要重启 Prometheus 或手动触发配置重载 | **自动**：Prometheus 会定期监控文件变化，发现变更后自动加载，无需重启 |
+| **配置复杂度**   | **低**：配置简单直接，一目了然                               | **中**：需要管理额外的目标文件，但主配置更清晰               |
+| **适用场景**     | 环境稳定，监控目标（如物理机、数据库）极少变动               | 目标动态变化，或希望通过外部系统（如 CMDB、脚本）管理目标列表的场景 |
+
+static_configs 示例
+
+```yaml
+scrape_configs:
+  - job_name: 'node_exporter'
+    static_configs:
+      - targets: ['192.168.1.10:9100', '192.168.1.11:9100'] # 直接列出目标
+        labels:
+          env: 'production'
+```
+
+file_sd_configs示例
+
+```yaml
+- job_name: 'node'
+  file_sd_configs:
+    - files:
+        - 'targets/nodes.json'
+      refresh_interval: 5m
+
+```
+
+target node.json示例
+
+```json
+[
+  {
+    "targets": ["192.168.1.10:9100", "192.168.1.11:9100"],
+    "labels": { "region": "east" }
+  }
+]
+
+```
+
+
+
+### 0.7.2 [node exporter](https://github.com/prometheus/node_exporter)
 
 Node Exporter 是 Prometheus 生态中一款开源的主机监控采集工具（Agent），主要用于收集 Linux/Unix 类主机的硬件和系统级别的运行指标1。它通常以 HTTP 接口暴露指标数据，供 Prometheus 定期抓取。其核心功能包括：
 
@@ -134,9 +242,41 @@ Node Exporter 是 Prometheus 生态中一款开源的主机监控采集工具（
 - **系统指标采集**：收集系统进程数、系统负载、文件描述符使用量、系统启动时间等1。
 - **其他指标**：如文件系统 inode 使用情况、CPU 温度（部分硬件支持）等
 
+**node exporter 安装和启动**
+
+下载地址：https://github.com/prometheus/node_exporter/releases
+
+```bash
+wget https://github.com/prometheus/node_exporter/releases/download/v1.12.1/node_exporter-1.12.1.linux-amd64.tar.gz
+tar xvfz node_exporter-1.12.1.linux-amd64.tar.gz
+cd node_exporter-1.10.2.linux-amd64
+
+# 查看有哪些可以配置的选项
+./node_exporter --help
+
+# 默认监听9100端口
+# 修改监听的端口 1. 所有网卡的 9100 端口，允许外部访问，2. 本机 127.0.0.1 的 9101 端口，仅本机访问
+./node_exporter --web.listen-address=:9100 --web.listen-address=127.0.0.1:9101
+
+# 安装后你可以验证
+curl http://localhost:9100/metrics
+
+# TYPE promhttp_metric_handler_requests_in_flight gauge
+promhttp_metric_handler_requests_in_flight 1
+# HELP promhttp_metric_handler_requests_total Total number of scrapes by HTTP status code.
+# TYPE promhttp_metric_handler_requests_total counter
+promhttp_metric_handler_requests_total{code="200"} 0
+promhttp_metric_handler_requests_total{code="500"} 0
+promhttp_metric_handler_requests_total{code="503"} 0
+```
+
+
+
 **node exporter 开机自启动**
 
 1. 创建一个service文件：`sudo vim /etc/systemd/system/node_exporter.service`
+
+   - ExecStart 那里，你需要写你指定位置的命令
 
    ```ini
    [Unit]
@@ -171,7 +311,7 @@ Node Exporter 是 Prometheus 生态中一款开源的主机监控采集工具（
    sudo systemctl status node_exporter
    ```
 
-### 启动其他组件
+### 0.7.3 启动其他组件
 
 ```bash
 nohup ./prometheus --config.file=prometheus.yml > ./prometheus.log 2>&1 &
@@ -181,13 +321,107 @@ nohup ./pushgateway --web.listen-address :9001 > ./pushgateway.log 2>&1 &
 nohup ./alertmanager --config.file=alertmanager.yml > ./alertmanager.log 2>&1 &
 ```
 
+### 0.7.4 在容器中运行
 
+容器中两个容器卷的作用：
+
+- `/prometheus`：**存放 Prometheus 的时间序列数据库（TSDB）数据**
+- `/etc/prometheus`：用于让容器中的prometheus读取来自宿主机中的配置文件prometheus.yml，以及它的依赖文件
+
+我在宿主机上配置了一个如下的文件夹结构
+
+```bash
+├── conf
+│   ├── prometheus.yml
+│   ├── rules
+│   └── targets
+│       └── nodes.json
+└── data
+```
+
+prometheus.yml
+
+```yaml
+global:
+  scrape_interval: 15s
+  scrape_timeout: 10s
+
+scrape_configs:
+  - job_name: 'node'
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    metrics_path: '/metrics'
+    scheme: http
+    file_sd_configs:
+    - files:
+        - 'targets/nodes.json'
+      refresh_interval: 5m
+```
+
+targets/nodes.json
+
+- file_sd_configs 的文件格式要求严格：必须是有效的 JSON 或 YAML。文件内容是一个对象数组，每个对象必须有 targets 和可选的 labels。
+
+
+```json
+[
+  {
+    "targets": ["172.17.0.1:9100"],
+    "labels": { "region": "qtu" }
+  }
+]
+```
+
+
+
+```bash
+# 为容器卷加权限
+# 由于prometheus的官方镜像的 dockerfile 是通过nobody用户去执行程序，所以需要给宿主机中将挂载的容器卷加权
+# dockerfile的地址：https://github.com/prometheus/prometheus/blob/main/Dockerfile
+# 数据目录给所有用户写权限（不推荐生产环境，安全性低）
+sudo chmod -R 777 /home/qbuntu/soft/prometheus/data
+# 配置目录给所有用户读权限（至少 644 或 755）
+sudo chmod -R o+r /home/qbuntu/soft/prometheus/conf
+
+# 检查配置文件是否出错
+docker run --rm \
+  -v /home/qbuntu/soft/prometheus/conf:/etc/prometheus \
+  --entrypoint /bin/promtool \
+  prom/prometheus \
+  check config /etc/prometheus/prometheus.yml
+  
+# 不加 -d，让容器在前台运行，这样所有输出会直接打印在终端上，方便观察
+# 如果启动失败，终端会显示错误信息，
+docker run --rm -it \
+  -v /home/qbuntu/soft/prometheus/conf:/etc/prometheus \
+  -v /home/qbuntu/soft/prometheus/data:/prometheus \
+  prom/prometheus
+  
+# 也可以查看对应容器启动出错的日志
+docker logs 3d29cdde35f0
+
+# 后台运行
+docker run -d \
+  -p 9090:9090 \
+  -v /home/qbuntu/soft/prometheus/conf:/etc/prometheus \
+  -v /home/qbuntu/soft/prometheus/data:/prometheus \
+  prom/prometheus
+  
+# 查看容器的ip
+docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' container_id
+172.17.0.3
+# 验证node exporter 与prometheus 是否对接
+http://172.17.0.3:9090/targets
+
+```
+
+![验证node exporter 与prometheus 是否对接](legend/image-20260908210408816.png)
 
 # 1 概念
 
 ## 1.1 Data Model
 
-每条时间序列由**指标名称(Metrics Name)**以及一组**标签(Labels)**作为唯一标识的key
+每条时间序列由**指标名称(Metrics Name)**以及一组**标签(Labels)**作为唯一标识的**key**
 
 每条时间序列按照时间的先后顺序存储一系列的样本值values。
 
@@ -250,6 +484,15 @@ http_request_status{ # 指标名称
 4. **Summary（摘要）**
    - **定义**：与 Histogram 类似，但它直接在客户端计算并输出观测值的分位数
    - **适用场景**：适用于需要极高精度的分位数，且无需跨实例聚合的单实例场景
+
+
+
+## 1.4 监控
+
+- **白盒监控**：关注系统内部状态。通过部署各种 Exporter（如 Node Exporter）或应用埋点，收集 CPU、内存、JVM 状态、内网 SQL 延迟等内部指标。
+- **黑盒监控**：关注用户侧的外部体验。不关心系统内部如何运行，而是从外部网络发起探测，检查服务的**网络可达性、协议响应耗时、SSL 证书是否过期**等。prometheus提供[blackbox_exporter](https://github.com/prometheus/blackbox_exporter)
+
+
 
 # 2 PromQL
 
@@ -328,9 +571,48 @@ grafana 是一款采用 Go 语言编写的开源应用，主要用于大规模�
    - panel：不仅可以使用PromQL得到时间序列数据（Query），还可以配置告警（alert，notification）
    - row：row可以包含多个panel
 
+## 3.1 安装宿主机版本
+
+```bash
+# https://grafana.com/grafana/download
+
+wget https://dl.grafana.com/grafana-enterprise/release/13.2.1/grafana-enterprise_13.2.1_33191028959_linux_amd64.tar.gz
+tar -zxvf grafana-enterprise_13.2.1_33191028959_linux_amd64.tar.gz
+
+cd grafana-13.2.1/bin
+# ./grafana --help
+./grafana server
+# Grafana默认监听3000端口，默认用户名密码都是admin
+
+# http://你的IP:3000，访问grafana，用admin/admin登录。首次登录会要求修改密码。
+```
+
+![image-20260908211121087](legend/image-20260908211121087.png)
+
+![image-20260908211309585](legend/image-20260908211309585.png)
+
+```bash
+# 选择Prometheus，add new data source
+# 在顶部点击修改 连接名，我在此改的是 “prome_home”，它默认的名字是prometheus，如果重复的话，会默认为prometheus-1
+# prometheus server url
+http://172.17.0.3:9090
+# 点击Save & Test，如果看到绿色的"Data source is working"就说明连接成功了。
+
+# 检测grafana 是否能拿到 prometheus 的数据
+#  Explore：在 Grafana 左侧边栏中，点击放大镜图标（Explore）
+# 在queries 中加node_memory_MemTotal_bytes，点击刷新
+# 我的电脑是memory 32G，所以图中显示的是31 bil
+```
+
+![image-20260908212321460](legend/image-20260908212321460.png)
+
+## 3.2 安装docker版本
+
+[grafana在docker 容器中的配置](https://grafana.com/docs/grafana/latest/setup-grafana/configure-docker/)
 
 
-## 3.1 添加dashboard模板
+
+## 3.3 添加dashboard模板
 
 手动一个个添加 Dashboard 比较繁琐，Grafana 社区鼓励用户分享 Dashboard，通过[https://grafana.com/dashboards ](https://grafana.com/dashboards)网站，可以找到大量可直接使用的 Dashboard 模板。
 
@@ -338,8 +620,22 @@ Grafana 中所有的Dashboard 通过 JSON 进行共享，下载并且导入这�
 
 可以搜索node exporter的相关模板
 
+```bash
+# 在dashboard 菜单页中
 
+# https://grafana.com/grafana/dashboards/1860-node-exporter-full/
+# 复制id号 1860
 
-## 3.2 配置告警
+# 选择刚才配置的Prometheus数据源，点击Import。
+```
+
+![image-20260908212758312](legend/image-20260908212758312.png)
+
+![image-20260908212905816](legend/image-20260908212905816.png)
+
+## 3.4 配置告警
 
 ![img](legend/30304ce1de88587c7889bdcf11d6b15a.png)
+
+
+
