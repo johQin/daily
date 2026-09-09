@@ -185,7 +185,7 @@ JMeter是Apache组织开发的java开源软件，用于对系统做功能测试�
 
 ## 0.6 安装JMeter
 
-依赖：JDK
+依赖：JDK，[JDK下载](https://www.oracle.com/java/technologies/javase/jdk17-archive-downloads.html)
 
 下载：https://jmeter.apache.org/download_jmeter.cgi
 

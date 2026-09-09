@@ -311,7 +311,88 @@ promhttp_metric_handler_requests_total{code="503"} 0
    sudo systemctl status node_exporter
    ```
 
-### 0.7.3 启动其他组件
+### 0.7.3 在主机中运行
+
+```bash
+wget https://github.com/prometheus/prometheus/releases/download/v3.13.3/prometheus-3.13.3.linux-amd64.tar.gz
+tar xvzf prometheus-3.13.3.linux-amd64.tar.gz
+cd prometheus-3.14.0.linux-amd64/
+ls 
+LICENSE  NOTICE  prometheus  prometheus.yml  promtool 
+
+```
+
+
+
+prometheus.yml
+
+```yaml
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  scrape_timeout: 10s
+
+scrape_configs:
+  - job_name: 'node'
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    metrics_path: '/metrics'
+    scheme: http
+    file_sd_configs:
+    - files:
+        - 'targets/nodes.json'
+      refresh_interval: 5m
+
+```
+
+targets/nodes.json
+
+```json
+[
+  {
+    "targets": ["10.15.0.10:9100"],
+    "labels": { "host": "app1" }
+  },
+  {
+    "targets": ["10.15.0.8:9100"],
+    "labels": { "host": "app2" }
+  },
+  {
+    "targets": ["10.15.0.4:9100"],
+    "labels": { "host": "app3" }
+  }
+]
+```
+
+```bash
+# 检查配置文件
+./promtool check config prometheus.yml
+Checking prometheus.yml
+ SUCCESS: prometheus.yml is valid prometheus config file syntax
+ 
+#  查看有哪些选项
+./prometheus --help
+--config.file="prometheus.yml"
+--web.listen-address=0.0.0.0:9090
+
+# 生成prometheus 网站的密码
+# centos
+yum install httpd-tools -y
+htpasswd -B -n admin
+# 输入你的密码
+#执行上述命令后，控制台会输出一行类似 admin:$2y$05$abcdxxxxx... 的字符串。
+
+vim web-config.yml
+basic_auth_users:
+    admin: "$2y$05$abcdxxxxx."
+# 这个密码切记要加引号，否则等会启动报如下错。
+time=2026-09-09T05:51:55.991-04:00 level=ERROR source=main.go:1234 msg="Unable to validate web configuration file" err="yaml: unmarshal errors:\n  line 2: cannot unmarshal !!str `admin:$...` into map[string]config.Secret"
+# admin与密码之间要有一个空格
+
+./prometheus --web.listen-address=10.15.0.6:9090 --config.file=prometheus.yml --web.config.file=web-config.yml
+```
+
+
 
 ```bash
 nohup ./prometheus --config.file=prometheus.yml > ./prometheus.log 2>&1 &
