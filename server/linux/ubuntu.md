@@ -148,6 +148,9 @@
    ```bash
    /etc/vim/vimrc
    # 在内容最后加set number
+   
+   # 查看行号
+   cat jmeter.properties | grep -n server.rmi.ssl.disable
    ```
 
 11. ubuntu定时关机

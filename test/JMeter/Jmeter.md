@@ -707,3 +707,248 @@ Download the Plugins Manager JAR fileand put it into JMeter's `lib/ext` director
 3. 引接数据模块丢失率公式定义明确，合理丢弃范围（如格式错误、校验失败）已在公式中扣除
 4. 引接数据模块基线校准通过，预跑 1000 条数据丢失率为 0%，发送端与接收端计数交叉对比统计误差引接数据模块 < 引接数据模块 0.01%
 
+# 7 主从架构
+
+**总并发数** = **单台 Slave 上所有线程组的线程数之和 × Slave 数量**
+
+JMeter 分布式测试只做两件事：
+
+1. Master 把**测试计划（.jmx）** 分发给各个 Slave。
+2. Slave 执行后把**采样结果**回传给 Master
+
+**参数化文件同步**：如果测试脚本使用了 CSV 参数化文件，**必须手动将文件拷贝到每一个 Slave 节点的相同路径下**，JMeter 不会自动分发这些数据文件。
+
+它**不会分发** `jmeter.properties`、`user.properties` 等 JVM 级配置文件。每个 Slave 启动时，只读取**自己本地 `bin/user.properties`** 中的属性。因此你在 Master 的 `user.properties` 里写了 `srv_ip=106.225.246.165`，Slave 根本不知道。
+
+## 7.1 slave 节点
+
+```bash
+# 在bin/jmeter.properties 中设置server.rmi.ssl.disable 为true
+# JMeter 默认启用 RMI 通信的 SSL 加密，这常导致连接失败或配置复杂。设为 true 可简化初始配置，避免因证书问题导致的连接错误。
+cat jmeter.properties | grep -n server.rmi.ssl.disable
+345:server.rmi.ssl.disable=true
+
+# 在bin/system.properties中 添加从机的ip
+# java.rmi.server.hostname=10.15.0.3
+# 当 Slave 机器有多个网卡时，JMeter 可能选择错误的 IP 进行注册，导致 Master 无法连接。强制指定正确的 IP 可确保 Master 能准确寻址。
+echo 'java.rmi.server.hostname=10.15.0.3' >> system.properties
+
+# 可选：自定义 RMI 端口
+# 在bin/jmeter.properties配置
+# 目的：默认端口 1099 可能被占用或与其他服务冲突。自定义端口可避免冲突，便于网络策略管理。注意，此处修改后，Master 的配置也需同步更新为该端口。
+server_port=1099
+server.rmi.localport=1099
+
+# 启动任务监听
+./jmeter-server
+```
+
+## 7.2 master 节点
+
+```bash
+# 在bin/jmeter.properties中，配置
+# 这是 Master 的“通讯录”。告诉 Master 有哪些 Slave 可用，以及它们的 IP 和端口，从而建立连接并分发测试任务。多个节点用逗号分隔。
+remote_hosts=10.15.0.3:1099,10.15.0.11:1099,10.15.0.12:1099
+
+# 可选:调整超时与重试参数
+# 配置：根据网络状况，可调整 client.retries_delay 和 timeout 参数。
+# 目的：在分布式环境中，网络抖动可能导致 Slave 响应延迟。适当增加重试延迟和超时时间，可避免因临时网络问题导致的测试中断。
+
+# 同时也要设置这个
+server.rmi.ssl.disable=true
+```
+
+## 7.3 测试
+
+```bash
+jmeter -n -t test.jmx -r -G srv_ip=10.15.0.6 -G thread_num=1 -l result.jtl -e -o report
+
+jmeter -n -t test.jmx -R 10.15.0.3:1099,10.15.0.11:1099,10.15.0.12:1099 \
+  -G srv_ip=106.225.246.165 \
+  -G srv_protocol=http \
+  -l result.jtl -e -o report
+```
+
+jmeter命令行参数解释
+
+- -R：在命令行中临时指定remote_hosts的值
+- -r：直接使用bin/jmeter.properties中remote_hosts的值
+-  `-G`： 命令行参数全局传递，在 Master 启动分布式测试时，通过 `-G` 把属性发送给所有远程 Slave
+- `-l` ：
+  - **含义**：`-l` 是 `--logfile` 的缩写，指定一个文件来保存测试过程中所有采样器的原始结果。
+  - **作用**：JMeter 会把每个请求的响应时间、状态码、成功与否、字节数等信息按行写入 `result.jtl`（JTL 是 JMeter Test Log 的缩写）。
+  - **目的**：用于事后分析，也可以作为生成 HTML 报告的数据源。
+- `-e`
+  - 表示**测试结束后自动生成 HTML 报告**
+  - **作用**：JMeter 会在压测完成后，根据 `-l` 指定的结果文件生成一个包含图表、统计数据的 HTML 报告。
+  - **注意**：必须与 `-o` 同时使用，否则会报错。
+- `-o`
+  - **含义**：`--outputfolder` 的缩写，指定 HTML 报告的**输出目录**。
+  - **作用**：生成的 HTML 报告会放在 `report` 这个文件夹里（包含 `index.html` 及资源文件）。
+  - **目的**：指定报告存放位置，便于查看和归档。
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.3">
+  <hashTree>
+    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="安全中心压测">
+      <boolProp name="TestPlan.serialize_threadgroups">true</boolProp>
+      <boolProp name="TestPlan.tearDown_on_shutdown">true</boolProp>
+      <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="用户定义的变量">
+        <collectionProp name="Arguments.arguments"/>
+      </elementProp>
+    </TestPlan>
+    <hashTree>
+      <Arguments guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+        <collectionProp name="Arguments.arguments">
+          <elementProp name="server_ip" elementType="Argument">
+            <stringProp name="Argument.name">server_ip</stringProp>
+            <stringProp name="Argument.value">${__P(srv_ip, 106.225.246.165)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="server_protocol" elementType="Argument">
+            <stringProp name="Argument.name">server_protocol</stringProp>
+            <stringProp name="Argument.value">${__P(srv_protocol, http)}</stringProp>
+            <stringProp name="Argument.desc"></stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="thread_num" elementType="Argument">
+            <stringProp name="Argument.name">thread_num</stringProp>
+            <stringProp name="Argument.value">${__P(thread_num, 1)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+        </collectionProp>
+      </Arguments>
+      <hashTree/>
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="获取token">
+        <stringProp name="ThreadGroup.num_threads">${thread_num}</stringProp>
+        <intProp name="ThreadGroup.ramp_time">1</intProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="循环控制器">
+          <stringProp name="LoopController.loops">1</stringProp>
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+        </elementProp>
+      </ThreadGroup>
+      <hashTree>
+        <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP信息头管理器" enabled="true">
+          <collectionProp name="HeaderManager.headers">
+            <elementProp name="Content-Type" elementType="Header">
+              <stringProp name="Header.name">Content-Type</stringProp>
+              <stringProp name="Header.value">application/json</stringProp>
+            </elementProp>
+          </collectionProp>
+        </HeaderManager>
+        <hashTree/>
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="安全中心获取token" enabled="true">
+          <intProp name="HTTPSampler.concurrentPool">6</intProp>
+          <stringProp name="HTTPSampler.domain">${server_ip}</stringProp>
+          <stringProp name="HTTPSampler.protocol">${server_protocol}</stringProp>
+          <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
+          <stringProp name="HTTPSampler.path">api/OAuth/token?date=${__time()}</stringProp>
+          <stringProp name="HTTPSampler.method">POST</stringProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+          <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+            <collectionProp name="Arguments.arguments">
+              <elementProp name="" elementType="HTTPArgument">
+                <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                <stringProp name="Argument.value">{&quot;code&quot;:&quot;DC82F0609BFB00FF163B8C5FBE7FF2BC&quot;,&quot;language&quot;:&quot;zh-CN&quot;}</stringProp>
+                <stringProp name="Argument.metadata">=</stringProp>
+              </elementProp>
+            </collectionProp>
+          </elementProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Response Assertion" enabled="true">
+            <collectionProp name="Asserion.test_strings">
+              <stringProp name="-1938933922">access_token</stringProp>
+              <stringProp name="3076010">data</stringProp>
+            </collectionProp>
+            <stringProp name="Assertion.custom_message"></stringProp>
+            <stringProp name="Assertion.test_field">Assertion.response_data</stringProp>
+            <boolProp name="Assertion.assume_success">false</boolProp>
+            <intProp name="Assertion.test_type">16</intProp>
+          </ResponseAssertion>
+          <hashTree/>
+          <JSONPostProcessor guiclass="JSONPostProcessorGui" testclass="JSONPostProcessor" testname="JSON提取器" enabled="true">
+            <stringProp name="JSONPostProcessor.referenceNames">token</stringProp>
+            <stringProp name="JSONPostProcessor.jsonPathExprs">$..access_token</stringProp>
+            <stringProp name="JSONPostProcessor.match_numbers">1</stringProp>
+            <stringProp name="JSONPostProcessor.defaultValues">无法获取token</stringProp>
+          </JSONPostProcessor>
+          <hashTree/>
+          <BeanShellPostProcessor guiclass="TestBeanGUI" testclass="BeanShellPostProcessor" testname="BeanShell 后置处理程序" enabled="true">
+            <stringProp name="filename"></stringProp>
+            <stringProp name="parameters"></stringProp>
+            <boolProp name="resetInterpreter">false</boolProp>
+            <stringProp name="script">${__setProperty(logintoken,${token},)}</stringProp>
+          </BeanShellPostProcessor>
+          <hashTree/>
+        </hashTree>
+        <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="View Results Tree">
+          <boolProp name="ResultCollector.error_logging">false</boolProp>
+          <objProp>
+            <name>saveConfig</name>
+            <value class="SampleSaveConfiguration">
+              <time>true</time>
+              <latency>true</latency>
+              <timestamp>true</timestamp>
+              <success>true</success>
+              <label>true</label>
+              <code>true</code>
+              <message>true</message>
+              <threadName>true</threadName>
+              <dataType>true</dataType>
+              <encoding>false</encoding>
+              <assertions>true</assertions>
+              <subresults>true</subresults>
+              <responseData>false</responseData>
+              <samplerData>false</samplerData>
+              <xml>false</xml>
+              <fieldNames>true</fieldNames>
+              <responseHeaders>false</responseHeaders>
+              <requestHeaders>false</requestHeaders>
+              <responseDataOnError>false</responseDataOnError>
+              <saveAssertionResultsFailureMessage>true</saveAssertionResultsFailureMessage>
+              <assertionsResultsToSave>0</assertionsResultsToSave>
+              <bytes>true</bytes>
+              <sentBytes>true</sentBytes>
+              <url>true</url>
+              <threadCounts>true</threadCounts>
+              <idleTime>true</idleTime>
+              <connectTime>true</connectTime>
+            </value>
+          </objProp>
+          <stringProp name="filename"></stringProp>
+        </ResultCollector>
+        <hashTree/>
+      </hashTree>
+    </hashTree>
+  </hashTree>
+</jmeterTestPlan>
+```
+
+
+
+## 7.4 master同时也是slave
+
+让Master参与压测会带来额外开销，需要谨慎评估：
+
+- **资源竞争与负载压力**：Master本身需要负责**脚本分发、结果聚合**等控制工作，自身消耗较大。如果同时承担压测负载，**CPU、内存和网络I/O可能会成为瓶颈**，进而影响测试的稳定性和结果的准确性。
+- **性能影响**：官方和社区通常**不建议**让Master参与施压，以保证其调度和汇总能力。如果一定要这么做，务必**适度降低Master上的线程数**，避免其因资源耗尽而崩溃。
+- **结果聚合**：Master会将自己的测试结果与Slave回传的结果进行统一汇总，因此你无需担心数据合并问题。
+
+```bash
+# 在jmeter.properties中，添加127.0.0.1:1099
+remote_hosts=10.15.0.3:1099,10.15.0.11:1099,127.0.0.1:1099
+
+# 启动监听
+./jmeter-server
+```
+
+
+
+# log
+
+设置全局

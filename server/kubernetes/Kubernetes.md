@@ -10,9 +10,11 @@ k8s是谷歌在2014年开源的容器化集群管理系统
 
 # 0 绪论
 
+**Kubernetes 是底层的容器编排引擎**
 
+**Rancher**：构建在 Kubernetes 之上的多集群管理平台。它的核心价值是让 Kubernetes 更容易部署、管理和规模化运维。
 
-
+**KubeSphere**：一个开源的、以应用为中心的容器平台，提供了比 Rancher 更友好的 UI 和开箱即用的可观测性集成，适合希望获得更完整平台能力、且能接受一定复杂度的团队
 
 ## 0.1 功能
 
@@ -215,7 +217,7 @@ Service 通过 **selector 标签** 关联 Pod：
 
 
 
-## 1.1 二进制套件方式
+## 1.1 预准备
 
 ### 1.1.1 linux 系统环境准备
 
@@ -427,6 +429,7 @@ sudo vim /etc/containerd/config.toml
 
 # 修改SystemdCgroup 为true
 # 确保容器的 cgroup 驱动与 kubelet 保持一致（均为 systemd）
+# or sudo sed -i 's/SystemdCgroup = false/SystemdCgroup = true/' /etc/containerd/config.toml
 [plugins.'io.containerd.cri.v1.runtime'.containerd.runtimes.runc.options]
   SystemdCgroup = true
 
@@ -511,8 +514,8 @@ server = "https://registry.k8s.io"
 # 你就要新建一个 sudo mkdir -p /etc/containerd/certs.d/ghcr.io，然后如上操作
 
 sudo systemctl restart containerd
-systemctl enable containerd
-systemctl status containerd
+sudo systemctl enable containerd
+sudo systemctl status containerd
 ```
 
 ### 1.1.3 安装k8s 套件
@@ -619,6 +622,24 @@ sudo ctr -n k8s.io images import kube-proxy.tar
 # containerd 使用命名空间来隔离资源，让不同用途的容器和镜像互不干扰。
 # k8s.io 是 Kubernetes 专用的命名空间。Kubernetes 管理的所有容器和镜像都默认存储在这里。
 # 如果你不加 -n k8s.io，ctr 会默认使用 default 命名空间，这样 Kubernetes 就无法识别你导入的镜像。
+# 查看命名空间中有哪些镜像
+ctr -n k8s.io images ls
+# 如果镜像的tag里面包含amd64后缀，那么还要改一个tag
+sudo ctr -n k8s.io images tag \
+  registry.k8s.io/kube-apiserver-amd64:v1.36.4 \
+  registry.k8s.io/kube-apiserver:v1.36.4
+
+sudo ctr -n k8s.io images tag \
+  registry.k8s.io/kube-controller-manager-amd64:v1.36.4 \
+  registry.k8s.io/kube-controller-manager:v1.36.4
+
+sudo ctr -n k8s.io images tag \
+  registry.k8s.io/kube-proxy-amd64:v1.36.4 \
+  registry.k8s.io/kube-proxy:v1.36.4
+
+sudo ctr -n k8s.io images tag \
+  registry.k8s.io/kube-scheduler-amd64:v1.36.4 \
+  registry.k8s.io/kube-scheduler:v1.36.4
 
 # images import：这是 ctr 的镜像管理子命令，用于导入镜像。
 # import 的功能是从一个 .tar 归档文件中加载镜像，并将其存储到 containerd 的本地镜像库中。
@@ -638,9 +659,301 @@ sudo ctr -n k8s.io images tag swr.cn-north-4.myhuaweicloud.com/ddn-k8s/registry.
 
 sudo ctr -n k8s.io images pull swr.cn-north-4.myhuaweicloud.com/ddn-k8s/registry.k8s.io/etcd:3.6.8-0
 sudo ctr -n k8s.io images tag swr.cn-north-4.myhuaweicloud.com/ddn-k8s/registry.k8s.io/etcd:3.6.8-0 registry.k8s.io/etcd:3.6.8-0
+
+# 查看命名空间中有哪些镜像
+ctr -n k8s.io images ls
 ```
 
-### 1.1.4 添加证书
+## 1.2 kubeadm方式
+
+预准备过程是master和worker都需要配置执行的。
+
+kubeadm是官方社区推出的一个用于快速部署kubernetes集群的工具。
+
+```bash
+# 创建 kubelet 主服务文件
+sudo vim /etc/systemd/system/kubelet.service
+[Unit]
+Description=kubelet: The Kubernetes Node Agent
+Documentation=https://kubernetes.io/docs/
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+ExecStart=/usr/local/bin/kubelet
+Restart=always
+StartLimitInterval=0
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+
+# 创建 kubeadm 专用的 drop-in 配置
+sudo mkdir -p /etc/systemd/system/kubelet.service.d
+sudo vim /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+[Service]
+Environment="KUBELET_KUBECONFIG_ARGS=--bootstrap-kubeconfig=/etc/kubernetes/bootstrap-kubelet.conf --kubeconfig=/etc/kubernetes/kubelet.conf"
+Environment="KUBELET_CONFIG_ARGS=--config=/var/lib/kubelet/config.yaml"
+EnvironmentFile=-/var/lib/kubelet/kubeadm-flags.env
+EnvironmentFile=-/etc/default/kubelet
+ExecStart=
+ExecStart=/usr/local/bin/kubelet $KUBELET_KUBECONFIG_ARGS $KUBELET_CONFIG_ARGS $KUBELET_KUBEADM_ARGS $KUBELET_EXTRA_ARGS
+
+# 重新加载服务，并且设置kubelet开机自启动，但此时这个服务并未启动，我们不需要手动启动，在后面的kubeadm init中可以代为启动
+# 在worker node中也需要配置kubelet的服务
+sudo systemctl daemon-reload
+sudo systemctl enable kubelet
+
+
+# 创建一个 Master 节点
+sudo kubeadm init --service-cidr=10.96.0.0/12 --pod-network-cidr=10.244.0.0/16 --apiserver-advertise-address=10.0.0.3 --kubernetes-version=1.36.4
+  
+# CIDR 的全称是 Classless Inter-Domain Routing，中文常译为 无类别域间路由。它不再沿用传统的 A、B、C 类网络划分方式，而是用“网络前缀长度”来表示一个 IP 地址范围，例如：
+# xxx.xxx.xxx.xxx/n，n代表子网掩码中1的个数
+# 10.96.0.0/12
+# 192.168.1.0/24
+
+# --pod-network-cidr 用来指定 Kubernetes 集群中 Pod 使用的 IP 地址范围，也就是 Pod 网段。它必须和你要安装的 CNI 插件（Flannel、Calico、Cilium 等）配置中的 Pod 网段保持一致。
+# 它不能和当前主机所在的物理网络、节点 IP、Service CIDR 以及其他集群/VPN 网段冲突，否则会出现路由歧义、Pod 无法通信、CoreDNS Pending 等问题。
+
+# --apiserver-advertise-address 用来指定 kube-apiserver 对外宣告自己监听和可访问的 IP 地址。它会被写入集群的多处配置，影响其他组件和节点如何连接 apiserver。
+# --apiserver-bind-port：apiserver 监听的端口	默认 6443
+# --control-plane-endpoint	集群的稳定访问入口，可以是 VIP 或 DNS	k8s.example.com:6443 或 VIP
+# 多 master / HA 场景，通常用 --control-plane-endpoint 指向一个 VIP 或负载均衡器，此时 --apiserver-advertise-address 仍然需要，指向本节点自己的 IP。
+
+# 如果前面的镜像导入了，并且tag也是标准的tag，那么此命令中，就不会再从网络中拉取了，这时init的过程就会很快
+[init] Using Kubernetes version: v1.36.4
+[preflight] Running pre-flight checks
+[preflight] Pulling images required for setting up a Kubernetes cluster
+[preflight] This might take a minute or two, depending on the speed of your internet connection
+[preflight] You can also perform this action beforehand using 'kubeadm config images pull'
+[certs] Using certificateDir folder "/etc/kubernetes/pki"
+[certs] Generating "ca" certificate and key
+[certs] Generating "apiserver" certificate and key
+[certs] apiserver serving cert is signed for DNS names [kubernetes kubernetes.default kubernetes.default.svc kubernetes.default.svc.cluster.local master01] and IPs [10.96.0.1 10.0.0.3]
+[certs] Generating "apiserver-kubelet-client" certificate and key
+[certs] Generating "front-proxy-ca" certificate and key
+[certs] Generating "front-proxy-client" certificate and key
+[certs] Generating "etcd/ca" certificate and key
+[certs] Generating "etcd/server" certificate and key
+[certs] etcd/server serving cert is signed for DNS names [localhost master01] and IPs [10.0.0.3 127.0.0.1 ::1]
+[certs] Generating "etcd/peer" certificate and key
+[certs] etcd/peer serving cert is signed for DNS names [localhost master01] and IPs [10.0.0.3 127.0.0.1 ::1]
+[certs] Generating "etcd/healthcheck-client" certificate and key
+[certs] Generating "apiserver-etcd-client" certificate and key
+[certs] Generating "sa" key and public key
+[kubeconfig] Using kubeconfig folder "/etc/kubernetes"
+[kubeconfig] Writing "admin.conf" kubeconfig file
+[kubeconfig] Writing "super-admin.conf" kubeconfig file
+[kubeconfig] Writing "kubelet.conf" kubeconfig file
+[kubeconfig] Writing "controller-manager.conf" kubeconfig file
+[kubeconfig] Writing "scheduler.conf" kubeconfig file
+[etcd] Creating static Pod manifest for local etcd in "/etc/kubernetes/manifests"
+[control-plane] Using manifest folder "/etc/kubernetes/manifests"
+[control-plane] Creating static Pod manifest for "kube-apiserver"
+[control-plane] Creating static Pod manifest for "kube-controller-manager"
+[control-plane] Creating static Pod manifest for "kube-scheduler"
+[kubelet-start] Writing kubelet environment file with flags to file "/var/lib/kubelet/kubeadm-flags.env"
+[kubelet-start] Writing kubelet configuration to file "/var/lib/kubelet/instance-config.yaml"
+[patches] Applied patch of type "application/strategic-merge-patch+json" to target "kubeletconfiguration"
+[kubelet-start] Writing kubelet configuration to file "/var/lib/kubelet/config.yaml"
+[kubelet-start] Starting the kubelet
+[wait-control-plane] Waiting for the kubelet to boot up the control plane as static Pods from directory "/etc/kubernetes/manifests"
+[kubelet-check] Waiting for a healthy kubelet at http://127.0.0.1:10248/healthz. This can take up to 4m0s
+[kubelet-check] The kubelet is healthy after 919.597µs
+[control-plane-check] Waiting for healthy control plane components. This can take up to 4m0s
+[control-plane-check] Checking kube-apiserver at https://10.0.0.3:6443/livez
+[control-plane-check] Checking kube-controller-manager at https://127.0.0.1:10257/healthz
+[control-plane-check] Checking kube-scheduler at https://127.0.0.1:10259/livez
+[control-plane-check] kube-scheduler is healthy after 3.724256ms
+[control-plane-check] kube-controller-manager is healthy after 4.177248ms
+[control-plane-check] kube-apiserver is healthy after 1.50151572s
+[upload-config] Storing the configuration used in ConfigMap "kubeadm-config" in the "kube-system" Namespace
+[kubelet] Creating a ConfigMap "kubelet-config" in namespace kube-system with the configuration for the kubelets in the cluster
+[upload-certs] Skipping phase. Please see --upload-certs
+[mark-control-plane] Marking the node master01 as control-plane by adding the labels: [node-role.kubernetes.io/control-plane node.kubernetes.io/exclude-from-external-load-balancers]
+[mark-control-plane] Marking the node master01 as control-plane by adding the taints [node-role.kubernetes.io/control-plane:NoSchedule]
+[bootstrap-token] Using token: dcvc77.tesxdf2dg4je6epx
+[bootstrap-token] Configuring bootstrap tokens, cluster-info ConfigMap, RBAC Roles
+[bootstrap-token] Configured RBAC rules to allow Node Bootstrap tokens to get nodes
+[bootstrap-token] Configured RBAC rules to allow Node Bootstrap tokens to post CSRs in order for nodes to get long term certificate credentials
+[bootstrap-token] Configured RBAC rules to allow the csrapprover controller automatically approve CSRs from a Node Bootstrap Token
+[bootstrap-token] Configured RBAC rules to allow certificate rotation for all node client certificates in the cluster
+[bootstrap-token] Configured RBAC rules to allow the API server kubelet client certificate to access the kubelet API
+[bootstrap-token] Creating the "cluster-info" ConfigMap in the "kube-public" namespace
+[kubelet-finalize] Updating "/etc/kubernetes/kubelet.conf" to point to a rotatable kubelet client certificate and key
+[addons] Applied essential addon: CoreDNS
+[addons] Applied essential addon: kube-proxy
+
+Your Kubernetes control-plane has initialized successfully!
+
+To start using your cluster, you need to run the following as a regular user:
+
+  mkdir -p $HOME/.kube
+  sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+  sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+Alternatively, if you are the root user, you can run:
+
+  export KUBECONFIG=/etc/kubernetes/admin.conf
+
+You should now deploy a pod network to the cluster.
+Run "kubectl apply -f [podnetwork].yaml" with one of the options listed at:
+  https://kubernetes.io/docs/concepts/cluster-administration/addons/
+
+Then you can join any number of worker nodes by running the following on each as root:
+
+kubeadm join 10.0.0.3:6443 --token dcvc77.tesxdf2dg4je6epx \
+        --discovery-token-ca-cert-hash sha256:8014ac2b50a5f4e6b80be6c25827600cae4800f9f37dc788f48fd41a1c0d43d5
+        
+
+# 所有关键阶段都通过：
+# [preflight] 预检通过
+# [certs] 证书全部生成
+# [kubeconfig] 所有 kubeconfig 写入
+# [etcd] / [control-plane] 静态 Pod 清单创建
+# [kubelet-start] kubelet 成功启动
+# [control-plane-check] 三个控制面组件全部健康
+# [addons] CoreDNS 和 kube-proxy 已部署
+# 最后打印了 Your Kubernetes control-plane has initialized successfully!
+
+# 紧接着按照它的提示执行
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+# 查看当前集群中包含哪些节点，因为还没有子节点加入所以，暂时显示如下
+kubectl get nodes
+NAME       STATUS     ROLES           AGE   VERSION
+master01   NotReady   control-plane   15m   v1.36.4
+
+# 将一个 Node 节点加入到当前集群中
+# 在kubeadm init 成功后的提示钟获取如下join 命令，在worker节点钟执行
+# 记得worker 加入前，请配置kubelet 服务
+sudo kubeadm reset -f
+sudo kubeadm join 10.0.0.3:6443 --token dcvc77.tesxdf2dg4je6epx \
+        --discovery-token-ca-cert-hash sha256:8014ac2b50a5f4e6b80be6c25827600cae4800f9f37dc788f48fd41a1c0d43d5
+
+# worker加入之后，在master节点上可以看到，但状态时NotReady
+kubectl get nodes
+NAME       STATUS     ROLES           AGE   VERSION
+master01   NotReady   control-plane   97m   v1.36.4
+worker01   NotReady   <none>          43s   v1.36.4
+worker02   NotReady   <none>          14s   v1.36.4
+
+
+
+```
+
+### 安装CNI 网络插件
+
+本次用的是flannel 插件，也可以用其他的Calico（学习曲线要高一点）
+
+Flannel 在 Kubernetes 中是以 DaemonSet 方式部署的。DaemonSet 的作用就是：在集群的每个节点上自动运行一个 Flannel Pod。这个 Pod 负责配置该节点的网络（创建 VXLAN 隧道、配置路由、安装 CNI 插件等）。
+
+所以：
+
+- 你只需要在 Master 节点执行一次 kubectl apply -f kube-flannel.yml。
+
+- Kubernetes 会自动在每个 Worker 节点上创建对应的 Flannel Pod。
+
+- 但每个 Worker 节点必须提前满足运行这个 Pod 的条件。
+
+#### worker节点的准备条件：
+
+1. **导入 Flannel 相关镜像**
+   每个节点都要能启动 Flannel Pod，因此下面两个镜像必须存在于**每个 Worker 节点**上：
+
+   - `ghcr.io/flannel-io/flannel:v0.28.9`
+
+   - `ghcr.io/flannel-io/flannel-cni-plugin:v1.9.1-flannel3`
+
+   - ```bash
+     ctr images pull swr.cn-north-4.myhuaweicloud.com/ddn-k8s/ghcr.io/flannel-io/flannel:v0.28.9
+     ctr images tag  swr.cn-north-4.myhuaweicloud.com/ddn-k8s/ghcr.io/flannel-io/flannel:v0.28.9  ghcr.io/flannel-io/flannel:v0.28.9
+     ctr images pull swr.cn-north-4.myhuaweicloud.com/ddn-k8s/ghcr.io/flannel-io/flannel-cni-plugin:v1.9.1-flannel3
+     ctr images tag  swr.cn-north-4.myhuaweicloud.com/ddn-k8s/ghcr.io/flannel-io/flannel-cni-plugin:v1.9.1-flannel3  ghcr.io/flannel-io/flannel-cni-plugin:v1.9.1-flannel3
+     ```
+
+2. **加载内核模块并设置 sysctl**
+
+   ```bash
+   # 这个在预准备中已有
+   # 每个 Worker 节点都要执行：
+   sudo modprobe br_netfilter
+   echo "br_netfilter" | sudo tee /etc/modules-load.d/k8s.conf
+   sudo tee /etc/sysctl.d/99-kubernetes-k8s.conf <<EOF
+   net.bridge.bridge-nf-call-iptables = 1
+   net.bridge.bridge-nf-call-ip6tables = 1
+   net.ipv4.ip_forward = 1
+   EOF
+   sudo sysctl --system
+   
+   ```
+
+3. master 配置： 部署 Flannel 网络插件
+
+   ```bash
+   weget https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
+   
+   kubectl apply -f kube-flannel.yml
+   namespace/kube-flannel created
+   serviceaccount/flannel created
+   clusterrole.rbac.authorization.k8s.io/flannel created
+   clusterrolebinding.rbac.authorization.k8s.io/flannel created
+   configmap/kube-flannel-cfg created
+   daemonset.apps/kube-flannel-ds created
+   
+   # 多等一会（多次执行下面的命令，查看status），所有pod才会都running
+   kubectl get pods -n kube-system
+   NAME                               READY   STATUS              RESTARTS   AGE
+   coredns-589f44dc88-bzxzj           0/1     ContainerCreating   0          6h10m
+   coredns-589f44dc88-fbldt           0/1     ContainerCreating   0          6h10m
+   etcd-master01                      1/1     Running             0          6h10m
+   kube-apiserver-master01            1/1     Running             0          6h10m
+   kube-controller-manager-master01   1/1     Running             0          6h10m
+   kube-proxy-4rkh6                   1/1     Running             0          4h34m
+   kube-proxy-jqf66                   1/1     Running             0          4h33m
+   kube-proxy-twnqj                   1/1     Running             0          6h10m
+   kube-scheduler-master01            1/1     Running             0          6h10m
+   
+   # 如果有的pod 一直处于ContainerCreating
+   # 考虑某些节点的镜像没导入，如果镜像导入了还是Creating，那么可能是其他问题
+   # 找出指定的出问题的pods ：coredns-589f44dc88-bzxzj ，查看原因
+   kubectl describe pod coredns-589f44dc88-bzxzj -n kube-system
+   # 如果是下面则考虑是cni plugins没装
+   Warning  FailedCreatePodSandBox  46m                   kubelet            Failed to create pod sandbox: rpc error: code = Unknown desc = failed to setup network for sandbox "6091888ef60975acea7b4596a3b7deb9f51d58e4f4a43ea33e721ed280beb5b7": plugin type="loopback" failed (add): failed to find plugin "loopback" in path [/opt/cni/bin]
+   
+   # 所有节点，master和worker
+   wget https://github.com/containernetworking/plugins/releases/download/v1.9.1/cni-plugins-linux-amd64-v1.9.1.tgz
+   sudo mv cni-plugins-linux-amd64-v1.9.1.tgz /opt/cni/bin
+   cd /opt/cni/bin && tar -xzf cni-plugins-linux-amd64-v1.9.1.tgz
+   # 然后就可以running
+   kubectl get pods -n kube-system
+   NAME                               READY   STATUS    RESTARTS   AGE
+   coredns-589f44dc88-bzxzj           1/1     Running   0          6h17m
+   coredns-589f44dc88-fbldt           1/1     Running   0          6h17m
+   etcd-master01                      1/1     Running   0          6h17m
+   kube-apiserver-master01            1/1     Running   0          6h17m
+   kube-controller-manager-master01   1/1     Running   0          6h17m
+   kube-proxy-4rkh6                   1/1     Running   0          4h41m
+   kube-proxy-jqf66                   1/1     Running   0          4h40m
+   kube-proxy-twnqj                   1/1     Running   0          6h17m
+   kube-scheduler-master01            1/1     Running   0          6h17m
+   
+   # 再查看所有节点
+   kubectl get nodes
+   NAME       STATUS   ROLES           AGE     VERSION
+   master01   Ready    control-plane   6h28m   v1.36.4
+   worker01   Ready    <none>          4h52m   v1.36.4
+   worker02   Ready    <none>          4h51m   v1.36.4
+   ```
+
+   
+
+## 1.3 手动方式
+
+### 添加证书
 
 [添加证书官方说明](https://kubernetes.io/docs/setup/best-practices/certificates/)
 
@@ -657,17 +970,199 @@ kube-apiserver 和 etcd 之间的通信必须通过 TLS 加密，所以需要证
 
 
 
-## 1.1 kubeadm方式
+cfssl是一个开源的证书管理工具，使用json文件生成证书，相比openssl 更方便使用。找任意一台服务器操作，这里用Master节点。[下载三个工具](https://github.com/cloudflare/cfssl/releases)：
 
-kubeadm是官方社区推出的一个用于快速部署kubernetes集群的工具。
+- cfssl_1.6.4_linux_amd64
+- cfssl-certinfo_1.6.4_linux_amd64
+- cfssljson_1.6.4_linux_amd64
+
+| 工具               | 作用                                                         | 类比           |
+| :----------------- | :----------------------------------------------------------- | :------------- |
+| **cfssl**          | 核心命令行工具，负责生成 CSR、签发证书、管理 CA、启动签名 API 服务等 | “主程序”       |
+| **cfssljson**      | 把 `cfssl` 输出的 JSON 结果解析并落盘成 PEM/KEY/CSR 等文件   | “管道后处理器” |
+| **cfssl-certinfo** | 查看、解码 X.509 证书信息，输出 JSON 格式                    | “证书检查器”   |
 
 ```bash
-# 创建一个 Master 节点
-kubeadm init
+mv cfssl_1.6.4_linux_amd64 cfssl
+mv cfssl-certinfo_1.6.4_linux_amd64 cfssl-certinfo
+mv cfssljson_1.6.4_linux_amd64 cfssljson
 
-# 将一个 Node 节点加入到当前集群中
-kubeadm join <Master节点的IP和端口 >
+chmod +x cfssl cfssl-certinfo cfssljson
+sudo mv cfssl cfssl-certinfo cfssljson /usr/local/bin/
+
+# 生成根证书
+vim ca-csr.json
+{
+  "CN": "Kubernetes CA",
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [
+    {
+      "C": "CN",
+      "L": "Chengdu",
+      "O": "Kubernetes",
+      "OU": "System",
+      "ST": "Sichuan"
+    }
+  ]
+}
+
+
+# 直接使用 cfssl gencert -initca root-csr.json | cfssljson -bare ca，不需要 -config 和 -profile。CFSSL 会自动为根证书设置正确的 CA 用途（cert sign、crl sign）。
+cfssl gencert -initca cat-csr.json | cfssljson -bare ca
+# 因此，ca-config.json（root） 是多余的，如果一定要用，应该定义专门的 CA profile：
+{
+  "signing": {
+    "default": { "expiry": "87600h" },
+    "profiles": {
+      "ca": {
+        "usages": ["cert sign", "crl sign"],
+        "expiry": "87600h"
+      }
+    }
+  }
+}
+
+
+# 生成叶子证书
+# 如果没有现成的配置文件，可以生成模板文件
+cfssl print-defaults csr > leaf-csr.json
+# 这份 etcd-csr.json，在 CFSSL 里是生成证书签名请求（CSR）和申请证书时用的输入配置文件。
+# 它本身不是证书，也不是私钥，而是告诉 CFSSL：
+# - 要给谁办证书（CN、names）
+# - 这个证书能用在哪些 IP / 域名上（hosts，最终变成 SAN）
+# - 用什么密钥算法和长度（key）
+
+# 此次使用这一份
+{
+  "CN": "Component",
+  "hosts": [
+    "127.0.0.1",
+    "localhost",
+    "10.0.0.3",
+    "master01",
+    "10.0.0.8",
+    "master02",
+    "10.0.0.6",
+    "worker01",
+    "10.0.0.17",
+    "worker02"
+  ],
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [
+    {
+      "C": "CN",
+      "L": "Chengdu",
+      "O": "Component",
+      "OU": "Security",
+      "ST": "Sichuan"
+    }
+  ]
+}
+
+# "CN": "etcd" ，common name 通常用来标识这个证书属于 etcd 组件。
+# "names": []，names数组，用来描述证书 Subject 中的其他属性。C国家，L城市地区，O组织，OU组织部门，ST（state/province）
+
+
+# 这里也是生成
+cfssl print-defaults config > leaf-config.json
+# 如果你要在生产环境中，精细化profile管理，那么可以下面这样写
+{
+  "signing": {
+    "default": {
+      "expiry": "87600h"
+    },
+    "profiles": {
+      "server": {
+        "expiry": "87600h",
+        "usages": [
+          "signing",
+          "key encipherment",
+          "server auth"
+        ]
+      },
+      "client": {
+        "expiry": "87600h",
+        "usages": [
+          "signing",
+          "key encipherment",
+          "client auth"
+        ]
+      },
+      "peer": {
+        "expiry": "87600h",
+        "usages": [
+          "signing",
+          "key encipherment",
+          "server auth",
+          "client auth"
+        ]
+      }
+    }
+  }
+}
+
+# 如果你简化profile管理，那么你可以用下面这一个
+{
+  "signing": {
+    "default": {
+      "expiry": "8760h"
+    },
+    "profiles": {
+      "kubernetes": {
+        "usages": [
+          "signing",
+          "key encipherment",
+          "server auth",
+          "client auth"
+        ],
+        "expiry": "8760h"
+      }
+    }
+  }
+}
+
+# Profile的名称（如 kubernetes、server、client、peer）完全由你自定义，cfssl 并不强制要求特定名称。关键在于 usages 字段的内容，它决定了证书的实际用途。签发证书时，通过 -profile=你的Profile名 来指定使用哪个配置
+
+
+# ca-csr.json:负责“CA 自己是谁”,CA 的“身份证申请表”，用来生成 CA 自己的证书和私钥。
+# ca-config.json:负责“CA 怎么签别人”。CA 的“签发规则说明书”，用来定义 签发其他证书时的策略（有效期、用途、Profile）。
+
+cfssl gencert \
+  -ca=ca.pem \
+  -ca-key=ca-key.pem \
+  -config=ca-config.json \
+  -profile=kubernetes \
+  etcd-csr.json | cfssljson -bare etcd-server
 ```
+
+| 组件                    | 证书用途         | 建议 Profile        | 典型 CN / O                                                  |
+| :---------------------- | :--------------- | :------------------ | :----------------------------------------------------------- |
+| etcd                    | 服务端           | `server`            | CN=etcd, O=etcd                                              |
+| etcd                    | 节点间 peer      | `peer`              | CN=etcd, O=etcd                                              |
+| kube-apiserver          | 服务端           | `server`            | CN=kube-apiserver                                            |
+| kube-apiserver          | 连接 etcd 客户端 | `client`            | CN=kube-apiserver-etcd-client, O=system:masters              |
+| kube-controller-manager | 客户端           | `client`            | CN=system:kube-controller-manager, O=system:kube-controller-manager |
+| kube-scheduler          | 客户端           | `client`            | CN=system:kube-scheduler, O=system:kube-scheduler            |
+| admin 用户              | 客户端           | `client`            | CN=admin, O=system:masters                                   |
+| kubelet                 | 服务端/客户端    | `server` / `client` | CN=system:node:<nodeName>, O=system:nodes                    |
+
+**CA 是“发证机关”和信任根，etcd 服务器（组件）证书是由 CA 签发的“叶子证书”**。二者不是并列关系，而是**签发与被签发、信任与被验证**的关系。
+
+- CA = 公安局/护照签发机构
+- etcd 服务器证书 = etcd 的护照/身份证
+- apiserver 拿着 CA 证书 = 拿着公安局的样本，用来验证 etcd 护照是不是真的
+
+**根证书是“信任的源头”，叶子证书是“被验证的身份”。根证书分发给所有验证方，叶子证书分发给被验证方；根证书用来认证叶子证书，叶子证书用来证明自己。**
+
+### 部署etcd集群
+
+### 部署集群网络
 
 
 

@@ -2013,6 +2013,12 @@ ccr <配置名称或 ID> [cli|app] [-- <Agent 参数>]
 
 - Agent 自己的参数放到 `--` 后，避免与 CCR 选项或入口名冲突。
 
+```
+/model deepseek,deepseek-v4-flash
+```
+
+
+
 ## 2.2 桌面版
 
 在ubuntu 操作系统中，请使用claude code router的桌面版，cli版本无法打开浏览器然后开启配置。

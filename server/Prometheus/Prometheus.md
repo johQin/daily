@@ -390,6 +390,46 @@ time=2026-09-09T05:51:55.991-04:00 level=ERROR source=main.go:1234 msg="Unable t
 # admin与密码之间要有一个空格
 
 ./prometheus --web.listen-address=10.15.0.6:9090 --config.file=prometheus.yml --web.config.file=web-config.yml
+
+# 验证是否启动成功
+curl -s -u 'admin:你的密码' http://10.15.0.6:9090/-/healthy
+Prometheus Server is Healthy.
+
+# 脱机启动
+nohup ./prometheus \
+  --web.listen-address=10.15.0.6:9090 \
+  --config.file=prometheus.yml \
+  --web.config.file=web-config.yml \
+  > prometheus.log 2>&1 &
+  
+# 查看端口  
+ss -lntp | grep 9090
+
+
+# 也可以服务化进程
+# /etc/systemd/system/prometheus.service
+[Unit]
+Description=Prometheus
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/path/to/prometheus-3.14.0.linux-amd64
+ExecStart=/path/to/prometheus-3.14.0.linux-amd64/prometheus \
+  --web.listen-address=10.15.0.6:9090 \
+  --config.file=/path/to/prometheus-3.14.0.linux-amd64/prometheus.yml \
+  --web.config.file=/path/to/prometheus-3.14.0.linux-amd64/web-config.yml \
+  --web.enable-lifecycle
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+
+
+systemctl daemon-reload
+systemctl enable --now prometheus
+systemctl status prometheus
 ```
 
 
