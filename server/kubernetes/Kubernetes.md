@@ -128,7 +128,7 @@ k8s是谷歌在2014年开源的容器化集群管理系统
    - 共享主机名，域名
    - 统一生命周期：同时创建，同时销毁，同时调度
      - 不会单独重启Pod里某一个容器，任一容器异常，可触发Pod重启
-     - 调度时整体被调度到某一个节点，不会拆分到不同机器
+     - 调度时整体被调度到**某一个节点，不会拆分到不同机器**
 2. 约束特性
    - 资源约束：CPU / 内存 是 Pod 维度整体限制，内部多个容器瓜分 Pod 分配的资源。
    - 同一节点绑定：同一个 Pod永远只会跑在同一个 K8s 节点，不会跨节点拆分。
@@ -221,7 +221,7 @@ Service 通过 **selector 标签** 关联 Pod：
 
 ### 1.1.1 linux 系统环境准备
 
-[部署参考](https://gitee.com/moxi159753/LearningNotes/tree/master/K8S/3_%E4%BD%BF%E7%94%A8kubeadm%E6%96%B9%E5%BC%8F%E6%90%AD%E5%BB%BAK8S%E9%9B%86%E7%BE%A4)
+[部署参考](https://gitee.c	om/moxi159753/LearningNotes/tree/master/K8S/3_%E4%BD%BF%E7%94%A8kubeadm%E6%96%B9%E5%BC%8F%E6%90%AD%E5%BB%BAK8S%E9%9B%86%E7%BE%A4)
 
 ```bash
 # 关防火墙
@@ -484,6 +484,7 @@ cat /etc/containerd/config.toml | grep -n -A 4 -B 4 config_path
 265-  path = ''
 
 # 修改第31行的config_path
+sudo vim /etc/containerd/config.toml
 config_path='/etc/containerd/certs.d'
 
 # 配置docker.io的镜像站
@@ -494,8 +495,8 @@ sudo vim /etc/containerd/certs.d/docker.io/hosts.toml
 # server	默认的镜像仓库地址，回退使用
 # host."<url>"	镜像加速器地址，按顺序尝试
 # capabilities	该加速器支持的能力：pull（拉取）、resolve（解析）、push（推送），多个 host	Containerd 会按配置顺序依次尝试，直到成功
-
-server = "https://docker.io"
+# registry-1.docker.io是 Docker Hub 的注册表地址之一，也就是docker的官方镜像仓库
+server = "https://registry-1.docker.io"
 
 [host."https://mirror.ccs.tencentyun.com"]
   capabilities = ["pull", "resolve"]
@@ -841,11 +842,13 @@ master01   NotReady   control-plane   97m   v1.36.4
 worker01   NotReady   <none>          43s   v1.36.4
 worker02   NotReady   <none>          14s   v1.36.4
 
-
-
 ```
 
 ### 安装CNI 网络插件
+
+CNI（Container Network Interface）是一套**容器网络接口规范**，CNI 插件就是实现这套规范的网络程序。它本身不是 Kubernetes 专属，但在 Kubernetes 里非常关键：**K8s 只定义 Pod 网络模型，不自己实现 Pod 网络，具体网络能力交给 CNI 插件完成。**
+
+一句话：**CNI 插件负责给 Pod“插网线、分 IP、设路由、做隔离”，让 Pod 能互相通信、能跟节点通信。**
 
 本次用的是flannel 插件，也可以用其他的Calico（学习曲线要高一点）
 
@@ -947,6 +950,13 @@ Flannel 在 Kubernetes 中是以 DaemonSet 方式部署的。DaemonSet 的作用
    master01   Ready    control-plane   6h28m   v1.36.4
    worker01   Ready    <none>          4h52m   v1.36.4
    worker02   Ready    <none>          4h51m   v1.36.4
+   
+   # 创建一个nginx镜像
+   kubectl create deployment nginx --image=nginx
+   # 对外暴露端口
+   kubectl expose deployment nginx --port=80 --type=NodePort
+   # 查看资源
+   kubectl get pod, svc
    ```
 
    
@@ -1170,19 +1180,835 @@ cfssl gencert \
 
 
 
-# 2 k8s核心概念
+# 2 kubectl工具
+
+kubectl是Kubernetes集群的命令行工具，通过kubectl能够对集群本身进行管理，并能够在集群上进行容器化应用的安装和部署
+
+## 2.1 kubectl
+
+```bash
+kubectl [command] [type] [name] [flags]
+
+# command：指定要对资源执行的操作，例如create、get、describe、delete
+# type：指定资源类型，资源类型是大小写敏感的，开发者能够以单数 、复数 和 缩略的形式
+# name：指定资源的名称，名称也是大小写敏感的，如果省略名称，则会显示所有的资源
+# flags：指定可选的参数，例如，可用 -s 或者 -server参数指定Kubernetes API server的地址和端口
+
+# 列出 Pod，在默认列的基础上， -o wide 是 --output=wide 的简写，表示以“宽格式”输出。额外显示 Pod IP、所在节点等更详细的信息。
+kubectl get pods -o wide
+kubectl get nodes worker01
+
+# 查看控制平面组件状态，
+kubectl get cs
+kubectl get componentstatuses	
+Warning: v1 ComponentStatus is deprecated in v1.19+
+NAME                 STATUS    MESSAGE   ERROR
+controller-manager   Healthy   ok        
+etcd-0               Healthy   ok        
+scheduler            Healthy   ok  
+
+# 查看 Kubernetes Service 的命令，缩写可以未svc，默认列出当前 namespace 下的所有 Service。
+kubectl get services
+kubectl get svc
+kubectl get svc -n <namespace>      # 指定命名空间
+
+# 获取某个命令的介绍和使用
+kubectl get --help
+
+# # 获取kubectl的命令
+kubectl --help
+kubectl controls the Kubernetes cluster manager.
+
+ Find more information at: https://kubernetes.io/docs/reference/kubectl/
+
+Basic Commands (Beginner):
+  create          Create a resource from a file or from stdin
+  expose          Take a replication controller, service, deployment or pod and expose it as a new Kubernetes service
+  run             Run a particular image on the cluster
+  set             Set specific features on objects
+
+Basic Commands (Intermediate):
+  explain         Get documentation for a resource
+  get             Display one or many resources
+  edit            Edit a resource on the server
+  delete          Delete resources by file names, stdin, resources and names, or by resources and label selector
+
+Deploy Commands:
+  rollout         Manage the rollout of a resource
+  scale           Set a new size for a deployment, replica set, or replication controller
+  autoscale       Auto-scale a deployment, replica set, stateful set, or replication controller
+
+Cluster Management Commands:
+  certificate     Modify certificate resources
+  cluster-info    Display cluster information
+  top             Display resource (CPU/memory) usage
+  cordon          Mark node as unschedulable
+  uncordon        Mark node as schedulable
+  drain           Drain node in preparation for maintenance
+  taint           Update the taints on one or more nodes
+
+Troubleshooting and Debugging Commands:
+  describe        Show details of a specific resource or group of resources
+  logs            Print the logs for a container in a pod
+  attach          Attach to a running container
+  exec            Execute a command in a container
+  port-forward    Forward one or more local ports to a pod
+  proxy           Run a proxy to the Kubernetes API server
+  cp              Copy files and directories to and from containers
+  auth            Inspect authorization
+  debug           Create debugging sessions for troubleshooting workloads and nodes
+  events          List events
+
+Advanced Commands:
+  diff            Diff the live version against a would-be applied version
+  apply           Apply a configuration to a resource by file name or stdin
+  patch           Update fields of a resource
+  replace         Replace a resource by file name or stdin
+  wait            Wait for a specific condition on one or many resources
+  kustomize       Build a kustomization target from a directory or URL
+
+Settings Commands:
+  label           Update the labels on a resource
+  annotate        Update the annotations on a resource
+  completion      Output shell completion code for the specified shell (bash, zsh, fish, or powershell)
+
+Subcommands provided by plugins:
+  convert       The command convert is a plugin installed by the user
+
+Other Commands:
+  api-resources   Print the supported API resources on the server
+  api-versions    Print the supported API versions on the server, in the form of "group/version"
+  config          Modify kubeconfig files
+  kuberc          Manage kuberc configuration files
+  plugin          Provides utilities for interacting with plugins
+  version         Print the client and server version information
+
+Usage:
+  kubectl [flags] [options]
+
+Use "kubectl <command> --help" for more information about a given command.
+Use "kubectl options" for a list of global command-line options (applies to all commands).
+```
 
 
 
-# 3 搭建集群监控平台
+### 2.1.1 基础命令
+
+常见的基础命令
+
+|  命令   |                      介绍                       |
+| :-----: | :---------------------------------------------: |
+| create  |          通过文件名或标准输入创建资源           |
+| expose  |         将一个资源公开为一个新的Service         |
+|   run   |           在集群中运行一个特定的镜像            |
+|   set   |             在对象上设置特定的功能              |
+|   get   |               显示一个或多个资源                |
+| explain |                  文档参考资料                   |
+|  edit   |          使用默认的编辑器编辑一个资源           |
+| delete  | 通过文件名，标准输入，资源名称或标签来删除资源2 |
+
+### 2.1.2部署命令
+
+|      命令      |                        介绍                        |
+| :------------: | :------------------------------------------------: |
+|    rollout     |                   管理资源的发布                   |
+| rolling-update |             对给定的复制控制器滚动更新             |
+|     scale      | 扩容或缩容Pod数量，Deployment、ReplicaSet、RC或Job |
+|   autoscale    |      创建一个自动选择扩容或缩容并设置Pod数量       |
+
+### 2.1.3 集群管理命令
+
+| 命令         | 介绍                           |
+| ------------ | ------------------------------ |
+| certificate  | 修改证书资源                   |
+| cluster-info | 显示集群信息                   |
+| top          | 显示资源(CPU/M)                |
+| cordon       | 标记节点不可调度               |
+| uncordon     | 标记节点可被调度               |
+| drain        | 驱逐节点上的应用，准备下线维护 |
+| taint        | 修改节点taint标记              |
+|              |                                |
+
+### 2.1.4 故障和调试命令
+
+|     命令     |                             介绍                             |
+| :----------: | :----------------------------------------------------------: |
+|   describe   |                显示特定资源或资源组的详细信息                |
+|     logs     | 在一个Pod中打印一个容器日志，如果Pod只有一个容器，容器名称是可选的 |
+|    attach    |                     附加到一个运行的容器                     |
+|     exec     |                        执行命令到容器                        |
+| port-forward |                        转发一个或多个                        |
+|    proxy     |             运行一个proxy到Kubernetes API Server             |
+|      cp      |                    拷贝文件或目录到容器中                    |
+|     auth     |                           检查授权                           |
+
+### 2.1.5 其它命令
+
+|     命令     |                        介绍                         |
+| :----------: | :-------------------------------------------------: |
+|    apply     |         通过文件名或标准输入对资源应用配置          |
+|    patch     |            使用补丁修改、更新资源的字段             |
+|   replace    |          通过文件名或标准输入替换一个资源           |
+|   convert    |            不同的API版本之间转换配置文件            |
+|    label     |                  更新资源上的标签                   |
+|   annotate   |                  更新资源上的注释                   |
+|  completion  |             用于实现kubectl工具自动补全             |
+| api-versions |                 打印受支持的API版本                 |
+|    config    | 修改kubeconfig文件（用于访问API，比如配置认证信息） |
+|     help     |                    所有命令帮助                     |
+|    plugin    |                 运行一个命令行插件                  |
+|   version    |              打印客户端和服务版本信息               |
+
+## 2.2 资源编排yaml文件
+
+k8s 集群中对资源管理和资源对象编排部署都可以通过声明样式（YAML）文件来解决，也就是可以把需要对资源对象的操作编辑到YAML 格式文件中。
+
+在编辑好yaml文件后，通过kubectl 命令直接使用资源清单文件就可以实现对大量的资源对象进行编排部署了。
+
+###  2.2.1  YAML 基本语法
+
+YAML ：仍是一种标记语言。为了强调这种语言以数据做为中心，而不是以标记语言为重点。
+
+- 使用空格做为缩进，使用缩进表示层级关系
+  - 缩进的空格数目不重要，只要相同层级的元素左侧对齐即可
+  - 缩进时不允许使用Tab 键，只允许使用空格
+  - 请统一使用 **2 个空格** 或 **4 个空格** 缩进。
+- 使用#标识注释，从这个字符一直到行尾，都会被解释器忽略
+- 使用 --- 表示新的yaml文档的开始
+  - 一个 `.yaml` 文件里可以包含多个 YAML 文档，用 `---` 分隔。Kubernetes 中经常这样写，用来在一个文件里定义多个资源。
+  - **`---` 通常单独一行，顶格写**
+  - **`...` 表示文档结束**，但 Kubernetes 里很少写。
+
+#### YAML 支持的数据结构
+
+**对象**：键值对的集合，又称为映射(mapping) / 哈希（hashes） / 字典（dictionary）
+
+```yaml
+# 对象类型：对象的一组键值对，使用冒号结构表示，键值对之间要有冒号（其后紧跟一个空格）
+name: Tom
+age: 18
+
+# yaml 也允许另一种写法，将所有键值对写成一个行内对象
+hash: {name: Tom, age: 18}
+```
+
+**数组**
+
+```yaml
+# 数组类型：一组连词线开头的行，构成一个数组
+People
+- Tom
+- Jack
+
+# 数组也可以采用行内表示法
+People: [Tom, Jack]
+```
+
+### 2.2.2 资源yaml文件的组成
+
+资源文件主要分为两部分：**控制器**和**被控制对象**
+
+示例：
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  namespace: default
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx
+    template:
+      metadata:
+        labels:
+          app: nginx
+      spec:
+        containers:
+        - name: nginx
+          image: nginx: 1.15
+          ports:
+          - containerPort: 80       
+```
 
 
 
-# 4 高可用k8s集群
+在一个YAML文件的控制器定义中，它有很多属性名称：
+
+|  属性名称  |    介绍    |
+| :--------: | :--------: |
+| apiVersion |  API版本   |
+|    kind    |  资源类型  |
+|  metadata  | 资源元数据 |
+|    spec    |  资源规格  |
+|  replicas  |  副本数量  |
+|  selector  | 标签选择器 |
+|  template  |  Pod模板   |
+|  metadata  | Pod元数据  |
+|    spec    |  Pod规格   |
+| containers |  容器配置  |
 
 
 
-# 5 集群部署项目
+### 2.2.3 快速生成可用yaml文件
+
+```bash
+# 第一种方式：通过kubectl Create 命令生成
+kubectl create deployment web --image=nginx -o yaml --dry-run=client > hello.yaml
+# -o，输出格式
+# --dry-run：不实际执行create动作，在较新的 kubectl 版本中，--dry-run 已细化为：
+# --dry-run=client：只在客户端模拟，不发送到 API Server（等同于旧版 --dry-run）；
+# --dry-run=server：发送到 API Server，但不会持久化，用于服务端校验。
+
+# 第二种方式：kubectl get 命令生成，适用于当前集群有部署好的项目的场景下
+kubectl get deploy nginx -o=yaml --export > nginx.yaml
+```
+
+# 3 Pod
+
+**Pod 是 K8s 最小、最基础的调度单元（运行单元）**，也是 K8s 调度、部署、管理的**最小原子**。
+
+一个Pod里面可以包含1个或多个容器。（一般一个容器中就存放一个用户应用，一组应用应放在多个容器中）
+
+Pod 不是“容器的集合”，而是**逻辑主机**的抽象。
+
+每一个Pod都有一个**“根容器”的Pause容器**（Pause 容器本身几乎不运行任何业务逻辑，只调用 `pause()` 系统调用挂起，占用资源极少），Pause容器对应的镜像属于k8s平台的一部分。除了Pause容器，每个Pod还包含一个或多个紧密相关的用户业务容器。
+
+Pod的存在是为了承载**“亲密性应用”（intimate applications）**，指**多个进程/容器之间需要非常紧密地协作，甚至像运行在同一台机器上一样**。多个进程或容器必须一起运行、共享资源、直接通信、生命周期同步，并且需要被调度到同一节点上。它们之间的耦合非常紧密，无法或不应拆分成独立的服务。
+
+## 3.1 Pod的特性
+
+同一个Pod内的容器有以下特性：
+
+1. 共享特性
+   - **共享网络命名空间**
+     - 整个Pod共用同一个IP、同一个网卡、同一个端口空间
+     - 容器之间直接用`localhost:port`就能相互访问
+     - 不能在同一个Pod里占用相同端口，端口会冲突
+   - 共享PID命名空间：默认不开启，配置`shareProcessNamespace: true`，容器能相互看到对方进程，可以互相查看，调试进程
+   - **共享存储卷**：Pod挂载的卷，所有容器都能挂载使用，实现文件共享，日志共享
+   - 共享UTS：主机名（命令：hostname），域名（nis域名，命令：domainname）
+   - 共享IPC：共享 SystemV IPC、POSIX 消息队列
+   - 统一生命周期：同时创建，同时销毁，同时调度
+     - 不会单独重启Pod里某一个容器，任一容器异常，可触发Pod重启
+     - 调度时整体被调度到**某一个节点，不会拆分到不同机器**
+2. 约束特性
+   - 资源约束：CPU / 内存 是 Pod 维度整体限制，内部多个容器瓜分 Pod 分配的资源。
+   - 同一节点绑定：同一个 Pod永远只会跑在同一个 K8s 节点，不会跨节点拆分。
+   - 日志与隔离：每个容器的日志独立，归属同一个Pod。**网络和存储互通，但文件系统隔离，只能通过Volume共享文件**
+
+如果两个应用：
+
+- 不需要共享网络或存储；
+- 可以独立扩缩容；
+- 有各自独立的发布周期；
+- 通过网络 API 通信即可；
+
+那么它们应该分成**不同的 Pod**，而不是塞进同一个 Pod。
+
+
+
+### 3.1.1 共享网络空间命名机制
+
+Kubernetes Pod 内多个容器能共享网络，核心机制是：**Linux Network Namespace + pause（sandbox）容器 + `setns` 系统调用**。可以简单理解为：每个 Pod 先创建一个独立的网络命名空间，由一个极小的 pause 容器“持有”它，其他容器启动时都加入这个网络命名空间。
+
+容器运行时先创建一个 pause/sandbox 容器，并为它创建独立的 Linux network namespace；CNI 插件配置该 netns 的网络；Pod 内其他容器启动时，通过 OCI 配置和 `setns` 系统调用加入同一个 network namespace，从而共享 IP、端口、路由和 localhost。
+
+
+
+### 3.1.2 共享容器卷的配置
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-pod
+spec:
+  containers:
+  - name: write
+    image: centos
+    command: ["bash","-c","for i in {1..100};do echo $i >> /data/hello;sleep 1;done"]
+    volumeMounts:
+    - name: data
+      mountPath: /data
+  - name: read
+    image: centos
+    command: ["bash","-c","tail -f /data/hello"]
+    volumeMounts:
+    - name: data
+      mountPath: /data
+  volumes:
+  - name: data
+    emptyDir: {}
+```
+
+## 3.2 镜像拉取策略
+
+拉取策略：
+
+- IfNotPresent：默认值，镜像在宿主机上不存在才拉取
+- Always：每次创建Pod都会重新拉取一次镜像
+- Never：Pod永远不会主动拉取这个镜像（手动导入或拉取）
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mypod
+spec:
+  containers:
+  - name: nginx
+    image: nginx:1.14
+    imagePullPolicy: Always
+```
+
+
+
+
+
+## 3.3 重启策略
+
+restartPolicy重启策略：
+
+- Always：当容器终止退出后，总是重启容器，默认策略 【nginx等，需要不断提供服务】
+- OnFailure：当容器异常退出（退出状态码非0）时，才重启容器。
+- Never：当容器终止退出，从不重启容器 【批量任务】
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: dns-test
+spec:
+  containers:
+  - name: busybox
+    image: busybox:1.28.4
+    args:
+    - /bin/sh
+    - -c
+    - sleep 36000
+  restartPolicy: Never
+```
+
+## 3.4 健康探针
+
+Kubernetes 的健康检查机制，核心是 **kubelet 根据 Pod 中定义的探针（Probe），定期检查容器状态，并根据结果决定是否重启容器、是否把 Pod 加入 Service 流量端点**。
+
+它主要由三类探针组成：**livenessProbe、readinessProbe、startupProbe**。
+
+1. startupProbe：启动探针，判断容器内的应用是否已经启动完成。
+   - 在 startupProbe 成功之前，**livenessProbe 和 readinessProbe 都不会执行**。
+   - 如果 startupProbe 失败达到阈值，kubelet 会杀死容器并重启。
+2. livenessProbe：存活探针，判断容器是否还“活着”
+   - 如果失败达到阈值，kubelet 会杀死容器，然后根据 `restartPolicy` 决定是否重启。
+3.  readinessProbe：就绪探针，判断容器是否已经准备好接收流量。
+   - 如果失败，Pod 会被标记为 **NotReady**。如果成功，Pod 重新加入 Service 后端。
+   - 它**不会重启容器**，只影响流量接入。
+
+probe支持三个类型的**检查方法**：
+
+```yaml
+# exec：在容器内执行命令，退出码为 `0` 表示成功。
+# httpGet：向容器发起 HTTP GET 请求，返回状态码 200-399 表示成功。
+# tcpSocket：尝试与容器指定端口建立 TCP 连接，能连上就成功。
+# grpc：使用 gRPC 健康检查协议。较新版本 Kubernetes 支持。
+
+livenessProbe:
+  exec:
+    command: ["cat", "/tmp/healthy"]
+    
+readinessProbe:
+  httpGet:
+    path: /ready
+    port: 8080
+
+livenessProbe:
+  tcpSocket:
+    port: 3306
+    
+livenessProbe:
+  grpc:
+    port: 50051
+    
+# 探针常用参数 
+initialDelaySeconds: 5   # 容器启动后等多久开始探测
+periodSeconds: 10        # 每隔多久探测一次，默认 10s
+timeoutSeconds: 1        # 单次探测超时时间，默认 1s
+successThreshold: 1      # 连续成功多少次算成功，默认 1，liveness 和 startup 的 successThreshold 通常必须是 1。
+failureThreshold: 3      # 连续失败多少次算失败，默认 3
+terminationGracePeriodSeconds: 30  # 探针失败杀容器时的优雅终止时间
+```
+
+示例：
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: health-demo
+spec:
+  containers:
+  - name: app
+    image: nginx
+    ports:
+    - containerPort: 80
+
+    startupProbe:
+      httpGet:
+        path: /healthz
+        port: 80
+      failureThreshold: 30
+      periodSeconds: 10
+
+    livenessProbe:
+      httpGet:
+        path: /healthz
+        port: 80
+      initialDelaySeconds: 5
+      periodSeconds: 10
+      timeoutSeconds: 2
+      failureThreshold: 3
+
+    readinessProbe:
+      httpGet:
+        path: /ready
+        port: 80
+      periodSeconds: 5
+      failureThreshold: 2
+```
+
+## 3.5 创建pod 的流程
+
+
+
+![image-20260921095032498](legend/image-20260921095032498.png)
+
+
+
+## 3.6 调度策略
+
+Kubernetes 的调度是一个**自动匹配**的过程，核心由 `kube-scheduler` 组件完成。它根据一系列规则，为每个新创建的 Pod 在集群中挑选最合适的 Worker 节点。
+
+kube-scheduler 的决策分为两个步骤：
+
+1. **过滤（Filtering）**：首先，调度器会找出所有**满足 Pod 硬性要求**的节点。这些要求包括资源是否充足、标签是否匹配、是否容忍节点的污点等。这一步筛选出的节点集合，称为“可调度节点”。
+2. **打分（Scoring）**：然后，调度器会对每一个“可调度节点”进行打分（0-100分），分数越高，代表节点越适合运行该 Pod。打分规则会考虑资源均衡度、亲和性偏好等因素。
+
+kube-scheduler 会将 Pod 调度到得分最高的节点上。 如果存在多个得分最高的节点，kube-scheduler 会从中随机选取一个。
+
+支持以下两种方式配置调度器的过滤和打分行为：
+
+1. [调度策略](https://kubernetes.io/zh-cn/docs/reference/scheduling/policies) 允许你配置过滤所用的 **断言（Predicates）** 和打分所用的 **优先级（Priorities）**。
+2. [调度配置](https://kubernetes.io/zh-cn/docs/reference/scheduling/config/#profiles) 允许你配置实现不同调度阶段的插件， 包括：`QueueSort`、`Filter`、`Score`、`Bind`、`Reserve`、`Permit` 等等。 你也可以配置 kube-scheduler 运行不同的配置文件。
+
+### 3.6.1 资源请求与限制
+
+- **`requests`**：容器需要的最小资源量，用于调度决策。
+- **`limits`**：容器能使用的最大资源量，用于运行时限制（通过 cgroups）。
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: frontend
+spec:
+  containers:
+  - name: db
+    image: mysql
+    env:
+    - name: MYSQL_ROOT_PASSWORD
+      value: "password"
+    resources:
+      requests:			# 调度器依据此值选择节点
+        memory: "64Mi"
+        cpu: "250m"
+      limits:			# 容器运行时资源上限
+        memory: "128Mi"
+        cpu: "500m"
+```
+
+注：cpu那里的单位时HZ，cpu每秒占用时长
+
+### 3.6.2 节点选择器
+
+nodeSelector：通过**键值对**匹配节点的标签，Pod 只会被调度到包含所有指定标签的节点
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-example
+spec:
+  nodeSelector:
+    env_role: dev
+    disktype: ssd   # 只调度到带有 disktype=ssd 标签的节点
+  containers:
+  - name: nginx
+    image: nginx:1.15
+
+```
+
+给节点添加标签：
+
+```bash
+kubectl label node worker01 env_role=prod
+kubectl get nodes worker01 --show-labels
+```
+
+### 3.6.3 节点亲和性
+
+nodeAffinity
+
+- requiredDuringSchedulingIgnoredDuringExecution：硬亲和性，在这里面的条件必须满足
+- preferredDuringSchedulingIgnoredDuringExecution：软亲和性，尝试满足条件，如果不满足也不强制
+
+支持常用操作符：in、NotIn、Exists、Gt、Lt、DoesNotExists
+
+**节点反亲和性**：nodeAntAffinity
+
+**nodeAffinity 是 Pod 对 Node 的亲和性，决定 Pod 能调度到哪些节点；**
+
+**podAffinity 是 Pod 对 Pod 的亲和性，决定 Pod 要和哪些 Pod 靠近或远离。**
+
+要使用 Pod 间亲和性，可以使用 Pod 规约中的 `.affinity.podAffinity` 字段。 对于 Pod 间反亲和性，可以使用 Pod 规约中的 `.affinity.podAntiAffinity` 字段
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: with-node-affinity
+spec:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: env_role
+            operator: In
+            values:
+            - dev
+            - test
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 1
+        preference:
+          matchExpressions:
+          - key: group
+            operator: In
+            values:
+            - otherprod
+  containers:
+  - name: webdemo
+    image: nginx
+
+```
+
+### 3.6.4 污点与容忍度
+
+`Taints` & `Tolerations`
+
+一种**节点主动排斥** Pod 的机制。
+
+- **污点（Taint）**：打在**节点**上，表示该节点有某种“瑕疵”，不希望普通 Pod 调度上来。
+- **容忍度（Toleration）**：打在 **Pod** 上，表示该 Pod 可以“容忍”特定的污点。
+
+```bash
+# 查看节点的污点
+kubectl describe node master01 | grep Taint
+Taints:             node-role.kubernetes.io/control-plane:NoSchedule
+kubectl describe node worker01 | grep Taint
+Taints:             <none>
+
+# 为节点添加污点影响值
+# kubectl taint node [node] key=value:effect
+# key与value 是为容忍度来用
+
+# 为节点删除污点影响值
+# kubectl taint node k8snode1 env_role:effect-
+```
+
+node对Pod的影响值有三个：
+
+| effect             | 对新 Pod 调度                          | 对 Node 上已有 Pod          | 性质         |
+| :----------------- | :------------------------------------- | :-------------------------- | :----------- |
+| `NoSchedule`       | 不能调度，除非 Pod 有对应容忍          | 不影响，不驱逐              | 硬限制       |
+| `PreferNoSchedule` | 尽量不调度，但实在没地方也可能调度上去 | 不影响，不驱逐              | 软限制       |
+| `NoExecute`        | 不能调度，除非 Pod 有对应容忍          | 不能容忍的已有 Pod 会被驱逐 | 最硬，会驱逐 |
+
+#### 容忍度
+
+比如给节点打：
+
+```bash
+# 意思是：
+# node1 有污点：key 是 gpu，value 是 true，效果是 NoSchedule。
+kubectl taint node node1 gpu=true:NoSchedule
+```
+
+Pod 如果想被调度到 node1，就要有对应的容忍：
+
+```bash
+tolerations:
+- key: "gpu"
+  operator: "Equal"
+  value: "true"
+  effect: "NoSchedule"
+```
+
+如果 Pod 没有这个 toleration，或者 value 写成了 `false`，那就对不上，调度器就会按 `NoSchedule` 处理：不调度上去。
+
+### 3.6.5 指定调度器
+
+如果你的集群部署了多个调度器（例如，为 AI 任务使用 Volcano），可以通过这个字段为 Pod 指定使用哪个调度器
+
+```yaml
+spec:
+  schedulerName: my-custom-scheduler  # 使用自定义调度器
+```
+
+### 3.6.6 直接指定节点
+
+这是最直接的方式，**跳过调度器**，将 Pod 直接绑定到指定的节点上。通常只用于特殊调试场景，不推荐在生产中使用
+
+```yaml
+spec:
+  nodeName: worker-node-01
+```
+
+
+
+# 4 Controller
+
+**Controller负责管理Pod **：创建、扩缩容、重启、自愈、版本更新
+
+**我们从不直接创建日常业务 Pod，都是创建 Controller，由 Controller 帮你生成并维护 Pod。**
+
+## 4.1 与Pod的关系
+
+```bash
+# 生成名为web1，Deployment类型的Controller，yaml文件
+kubectl create deployment web1 --image=nginx --dry-run=client -o yaml > nginx1.yaml
+
+cat nginx.yaml
+```
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: web1
+  name: web1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web1
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app: web1
+    spec:
+      containers:
+      - image: nginx
+        name: nginx
+        resources: {}
+status: {}
+```
+
+```bash
+# 使用yaml文件部署应用
+kubectl apply -f nginx1.yaml
+# 因为这个方式创建的，我们只能在集群内部进行访问，所以我们还需要对外暴露端口
+# 对外暴露端口
+kubectl expose deployment web1 --port=80 --type=NodePort --target-port=80 --name=web1
+
+# --port：就是我们内部的端口号
+# --target-port：就是暴露外面访问的端口号
+# --name：名称
+# --type：类型
+
+
+# 我们一样可以导出对应的配置文件
+kubectl expose deployment web2 --port=80 --type=NodePort --target-port=80 --name=web2 -o yaml > nginx2.yaml
+```
+
+
+
+**管理关系**
+
+Controller 管理 Pod：Controller 是一个控制循环，它不断对比“期望状态”和“实际状态”，并采取行动让二者一致。
+
+| Controller类型 | 管理 Pod 特点                                                | 适用场景                       |
+| -------------- | ------------------------------------------------------------ | ------------------------------ |
+| ReplicaSet     | 保证指定数量的 Pod 副本运行                                  |                                |
+| Deployment     | 无状态、随机 Pod、可随意重建<br />管理 ReplicaSet，间接管理 Pod，支持滚动更新、回滚 | web 服务、后端接口（90% 业务） |
+| StatefulSet    | 有状态，有固定名称、固定网络标识、有序                       | MySQL、Redis、MQ 有状态中间件  |
+| DaemonSet      | 每个节点自动跑一个 Pod                                       | 日志收集、监控代理、节点 agent |
+| Job            | 跑完就退出的 Pod（并确保任务成功完成）                       | 批量任务、数据备份             |
+| CronJob        | 定时生成 Job，由Job 再创建 Pod                               | 定时脚本、定时报表             |
+
+**创建关系**：Controller 的 spec 中通常有 `template`，即 Pod 模板。Controller 根据这个模板创建 Pod。
+
+- ```yaml
+  spec:
+    replicas: 3
+    template:
+      metadata:
+        labels:
+          app: nginx
+      spec:
+        containers:
+        - name: nginx
+          image: nginx
+  ```
+
+
+
+**选择关系**：Controller 通过 **标签选择器** 找到它要管理的 Pod。
+
+- ```yaml
+  selector:
+    matchLabels:
+      app: nginx
+  ```
+
+**归属关系**：Controller 创建的 Pod 会带有 `ownerReferences`，指向它的所有者
+
+- 垃圾回收：删除 Controller 时，默认级联删除它管理的 Pod；
+- 归属明确：一个 Pod 通常只有一个 controller owner。
+- 因此：
+  - 一个 Controller 可以管理多个 Pod；
+  - 一个 Pod 通常属于一个 Controller；
+  - 一个 Pod 可以被多个 Service 选择，但不应被多个 Controller 同时管理。
+
+**生命周期关系**：
+
+- **自愈**：Pod 挂掉或节点故障，Controller 会重建 Pod；
+- **扩缩容**：调整 `replicas`，Controller 创建或删除 Pod；
+- **滚动更新**：Deployment 创建新 ReplicaSet，逐步替换旧 Pod；
+- **回滚**：回退到旧 ReplicaSet；
+- **删除**：删除 Deployment 会级联删除 ReplicaSet 和 Pod。
+
+## 发布应用示例
+
+```bash
+
+```
+
+
+
+# 搭建集群监控平台
+
+
+
+#  高可用k8s集群
+
+
+
+# 集群部署项目
 
 
 
